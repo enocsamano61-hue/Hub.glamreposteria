@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Glam Hub — Operaciones &amp; clientes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#F7F4EE; --card:#FFFEFB; --ink:#292421; --ink-soft:#756D65; --border:#E5DED4;
+    --wine:#5A1F2B; --wine-dark:#3B151D; --champagne:#C6A66B;
+    --success:#55745C; --terracota:#B56F55; --danger:#B5453A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{ font-family:'Inter', sans-serif; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; font-size:14px; }
+  h1,h2,h3{ font-family:'Newsreader', serif; font-weight:600; letter-spacing:-0.01em; }
+  .spark{ color:var(--champagne); }
+  button{ font-family:inherit; }
+
+  /* ---------- LOGIN ---------- */
+  #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--wine-dark); padding:20px; }
+  .login-card{ background:var(--card); border-radius:16px; padding:36px 32px; width:100%; max-width:360px; }
+  .login-brand{ font-family:'Newsreader', serif; font-size:26px; font-weight:600; text-align:center; margin-bottom:4px; }
+  .login-brand small{ display:block; font-size:14px; color:var(--wine); letter-spacing:0.05em; }
+  .login-sub{ text-align:center; font-size:12px; color:var(--ink-soft); margin-bottom:26px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
+  .field input{ width:100%; padding:11px 13px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13.5px; }
+  .btn-primary{ background:var(--wine); color:#fff; border:none; padding:12px 17px; border-radius:10px; font-size:13.5px; font-weight:600; cursor:pointer; width:100%; }
+  .btn-primary:disabled{ opacity:.6; cursor:default; }
+  .login-error{ background:#F2E2D8; color:#7A2E1D; font-size:12px; padding:9px 12px; border-radius:8px; margin-bottom:14px; display:none; }
+  .login-error.show{ display:block; }
+
+  /* ---------- APP SHELL ---------- */
+  #appShell{ display:none; }
+  #appShell.active{ display:flex; min-height:100vh; }
+  .sidebar{ width:222px; flex-shrink:0; background:var(--wine-dark); color:#EFE3DC; display:flex; flex-direction:column; padding:26px 16px; }
+  .brand{ padding:0 6px 22px 6px; }
+  .brand-mark{ font-family:'Newsreader', serif; font-size:26px; font-weight:600; line-height:1.05; color:#FBF3E8; }
+  .brand-mark small{ display:block; font-size:15px; font-weight:500; color:var(--champagne); letter-spacing:0.04em; }
+  .brand-sub{ font-size:10.5px; color:#B79CAA; margin-top:6px; }
+  .sidebar nav{ display:flex; flex-direction:column; gap:2px; }
+  .nav-item{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; cursor:pointer; font-size:13.5px; font-weight:500; color:#DCC7CE; }
+  .nav-item:hover{ background:rgba(255,255,255,.06); }
+  .nav-item.active{ background:rgba(255,255,255,.12); color:#fff; }
+  .nav-item.soon{ opacity:.5; cursor:default; }
+  .nav-ico{ width:16px; height:16px; flex-shrink:0; opacity:.85; }
+  .pill-soon{ margin-left:auto; font-size:9px; background:rgba(255,255,255,.1); padding:2px 6px; border-radius:20px; color:#C9B4A8; }
+  .sidebar-foot{ margin-top:auto; padding-top:14px; }
+  .who{ font-size:11px; color:#DCC7CE; margin-bottom:8px; }
+  .btn-logout{ background:rgba(255,255,255,.08); color:#EFE3DC; border:none; padding:8px 10px; border-radius:8px; font-size:11.5px; cursor:pointer; width:100%; }
+
+  .mobile-topbar{ display:none; }
+  .picker{ position:relative; }
+  .picker-btn{ display:flex; align-items:center; gap:8px; width:100%; background:rgba(255,255,255,.09); border:none; border-radius:12px; padding:11px 13px; color:#fff; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+  .picker-btn .chev{ margin-left:auto; transition:transform .18s ease; }
+  .picker-btn.open .chev{ transform:rotate(180deg); }
+  .picker-menu{ position:absolute; left:0; right:0; top:calc(100% + 8px); z-index:40; background:var(--wine-dark); border-radius:14px; padding:6px; box-shadow:0 14px 32px rgba(0,0,0,.32); display:none; flex-direction:column; gap:2px; max-height:70vh; overflow-y:auto; }
+  .picker-menu.open{ display:flex; }
+  .picker-item{ display:flex; align-items:center; gap:10px; padding:12px; border-radius:10px; color:#DCC7CE; font-size:14px; font-weight:500; cursor:pointer; }
+  .picker-item.active{ background:rgba(255,255,255,.14); color:#fff; }
+  .picker-overlay{ display:none; position:fixed; inset:0; z-index:30; }
+  .picker-overlay.open{ display:block; }
+
+  .main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:20px 28px; border-bottom:1px solid var(--border); background:var(--card); }
+  .topbar h1{ font-size:21px; }
+  .topbar-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .view{ display:none; padding:24px; overflow-x:auto; padding-bottom:env(safe-area-inset-bottom, 24px); }
+  .view.active{ display:block; }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin-bottom:14px; }
+  .card h3{ font-size:14.5px; margin-bottom:4px; }
+  .card .sub{ font-size:12px; color:var(--ink-soft); margin-bottom:14px; }
+  .btn-primary.small{ width:auto; padding:10px 15px; }
+  .search, .select, .textarea{ padding:10px 13px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
+  .textarea{ width:100%; resize:vertical; min-height:64px; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:22px; }
+  .kpi{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; }
+  .kpi .v{ font-family:'Newsreader',serif; font-size:27px; font-weight:600; }
+  .kpi .l{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; }
+
+  .board-toolbar{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px;}
+  .board-filters{ display:flex; gap:8px; flex-wrap:wrap; flex:1; }
+  .search{ flex:1; min-width:160px; max-width:260px; }
+  .board{ display:flex; gap:12px; align-items:flex-start; }
+  .column{ width:222px; flex-shrink:0; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .col-head{ padding:10px 12px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
+  .col-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; border:1px solid rgba(0,0,0,.08); }
+  .col-title{ font-size:11px; font-weight:600; line-height:1.25; }
+  .col-count{ margin-left:auto; font-size:10.5px; color:var(--ink-soft); font-weight:600; }
+  .col-body{ padding:8px; display:flex; flex-direction:column; gap:7px; min-height:30px; }
+  .lead-card{ background:var(--bg); border:1px solid var(--border); border-top:3px solid var(--card-accent, var(--border)); border-radius:9px; padding:9px 10px; cursor:pointer; }
+  .lead-card:hover{ box-shadow:0 3px 10px rgba(43,35,32,.07); }
+  .lead-name{ font-size:12.5px; font-weight:600; }
+  .lead-meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; line-height:1.45; }
+  .badge-blacklist{ display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; padding:2px 6px; border-radius:5px; background:#F2E2D8; color:var(--terracota); margin-top:6px;}
+  .empty-note{ padding:20px 4px; color:var(--ink-soft); font-size:12.5px; }
+
+  /* ---------- ACORDEÓN DE ESTATUS (reemplaza el tablero horizontal) ---------- */
+  .status-list{ display:flex; flex-direction:column; gap:8px; }
+  .status-tile{ background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .status-tile.dragging{ opacity:.45; }
+  .status-tile-header{ display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; user-select:none; }
+  .drag-handle{ cursor:grab; color:var(--ink-soft); padding:4px; touch-action:none; font-size:14px; line-height:1; flex-shrink:0; }
+  .drag-handle:active{ cursor:grabbing; }
+  .status-tile-header .dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; border:1px solid rgba(0,0,0,.08); }
+  .status-tile-header .label{ flex:1; font-size:13px; font-weight:600; }
+  .status-tile-header .count{ font-size:11px; color:var(--ink-soft); font-weight:600; background:var(--bg); padding:2px 9px; border-radius:20px; }
+  .status-tile-header .chevron{ transition:transform .15s ease; color:var(--ink-soft); flex-shrink:0; }
+  .status-tile.open .chevron{ transform:rotate(90deg); }
+  .status-tile-body{ display:none; padding:0 14px 14px 14px; grid-template-columns:repeat(auto-fill,minmax(190px,220px)); gap:8px; }
+  .status-tile.open .status-tile-body{ display:grid; }
+
+  /* ---------- CALENDARIO: mes interactivo con resumen y hoja de detalle ---------- */
+  .cal-curso-tag{ display:inline-flex; align-items:center; gap:6px; background:rgba(197,166,107,.18); color:#8A6D2F; font-size:10.5px; font-weight:600; padding:5px 10px; border-radius:8px; margin-bottom:14px; }
+  .cal-curso-tag b{ font-weight:700; }
+  .cal-resumen{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
+  .cal-stat{ background:var(--bg); border:1px solid var(--border); border-radius:11px; padding:10px 6px; text-align:center; }
+  .cal-stat .v{ font-family:'Newsreader',serif; font-size:19px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .cal-stat .l{ font-size:8.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.02em; margin-top:2px; }
+  .cal-stat.tot .v{ color:var(--wine); }
+  .cal-stat.liq .v{ color:var(--success); }
+  .cal-stat.ant .v{ color:#8A6D2F; }
+  .cal-stat.pend .v{ color:var(--danger); }
+  .cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .cal-nav button{ background:var(--bg); border:1px solid var(--border); width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--ink); cursor:pointer; padding:0; }
+  .cal-nav button:disabled{ opacity:.3; cursor:default; }
+  .cal-nav button svg{ width:14px; height:14px; }
+  .cal-nav h4{ font-family:'Newsreader',serif; font-size:16px; font-weight:600; text-transform:capitalize; margin:0; }
+  .cal-dow{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:5px; }
+  .cal-dow span{ text-align:center; font-size:10px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-cell{ aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:10px; font-size:12.5px; font-variant-numeric:tabular-nums; }
+  .cal-cell .num{ width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+  .cal-cell.muted{ opacity:.28; }
+  .cal-cell.today .num{ background:var(--wine); color:#fff; font-weight:600; }
+  .cal-cell.has-evt{ cursor:pointer; }
+  .cal-cell.has-evt:active{ transform:scale(.88); }
+  .cal-cell.verde{ background:rgba(63,131,84,.09); }
+  .cal-cell.ambar{ background:rgba(197,166,107,.16); }
+  .cal-cell.rojo{ background:rgba(181,69,58,.11); }
+  .cal-dot{ width:5px; height:5px; border-radius:50%; margin-top:3px; }
+  .cal-dot.verde{ background:var(--success); }
+  .cal-dot.ambar{ background:var(--champagne); }
+  .cal-dot.rojo{ background:var(--danger); }
+  .cal-legend{ display:flex; gap:16px; justify-content:center; margin-top:16px; font-size:10px; color:var(--ink-soft); flex-wrap:wrap; }
+  .cal-legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .cal-legend i{ width:6px; height:6px; border-radius:50%; display:inline-block; }
+
+  .sheet-backdrop{ display:none; position:fixed; inset:0; background:rgba(41,36,33,.45); z-index:70; opacity:0; transition:opacity .25s ease; }
+  .sheet-backdrop.open{ display:block; opacity:1; }
+  .sheet{ position:fixed; left:0; right:0; bottom:0; background:var(--card); border-radius:20px 20px 0 0; padding:12px 22px 26px; transform:translateY(105%); transition:transform .34s cubic-bezier(.32,.72,0,1); z-index:71; max-height:80vh; overflow-y:auto; max-width:480px; margin:0 auto; box-shadow:0 -12px 32px rgba(41,36,33,.18); }
+  .sheet.open{ transform:translateY(0); }
+  .sheet-handle{ width:36px; height:5px; background:var(--border); border-radius:3px; margin:0 auto 16px; }
+  .sheet-close{ position:absolute; top:12px; right:18px; background:none; border:none; color:var(--ink-soft); font-size:17px; cursor:pointer; padding:6px; }
+  .sheet-fecha{ font-size:11px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin-bottom:12px; }
+  .sheet-evento{ border-top:1px solid var(--border); padding:14px 0; }
+  .sheet-evento:first-of-type{ border-top:none; padding-top:0; }
+  .sheet-city{ font-family:'Newsreader',serif; font-size:19px; font-weight:600; margin-bottom:2px; }
+  .sheet-curso{ font-size:11px; color:var(--ink-soft); margin-bottom:10px; }
+  .sheet-pill{ display:inline-block; font-size:10px; font-weight:700; padding:4px 10px; border-radius:20px; margin-bottom:12px; }
+  .sheet-pill.rojo{ background:rgba(181,69,58,.12); color:var(--danger); }
+  .sheet-pill.ambar{ background:rgba(197,166,107,.22); color:#8A6D2F; }
+  .sheet-pill.verde{ background:rgba(63,131,84,.12); color:var(--success); }
+  .sheet-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+  .sheet-stats .stat{ background:var(--bg); border:1px solid var(--border); border-radius:11px; padding:9px 6px; text-align:center; }
+  .sheet-stats .stat .v{ font-family:'Newsreader',serif; font-size:18px; font-weight:600; }
+  .sheet-stats .stat .l{ font-size:8.5px; color:var(--ink-soft); text-transform:uppercase; margin-top:2px; }
+  .sheet-bar{ height:7px; border-radius:20px; overflow:hidden; display:flex; background:var(--border); }
+  .sheet-bar span{ height:100%; }
+
+  /* ---------- filas clickeables (drill-down: ciudad -> curso -> alumno) ---------- */
+  .lead-row.clickable{ cursor:pointer; border-radius:9px; }
+  .lead-row.clickable:hover{ background:var(--bg); }
+  .pill-pago{ font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px; flex-shrink:0; }
+  .pill-pago.liquidado{ background:rgba(63,131,84,.14); color:var(--success); }
+  .pill-pago.anticipo{ background:rgba(197,166,107,.2); color:#8A6D2F; }
+  .pill-pago.sin-pago{ background:rgba(181,69,58,.1); color:var(--danger); }
+  .cat-tile-header .label{ font-size:14px; }
+  .cat-sub-label{ grid-column:1/-1; font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin:6px 0 -2px 2px; }
+
+  /* modal */
+  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(41,36,33,.5); z-index:60; align-items:center; justify-content:center; padding:16px; }
+  .modal-overlay.open{ display:flex; }
+  .modal{ background:var(--card); border-radius:16px; padding:24px; width:100%; max-width:440px; max-height:88vh; overflow-y:auto; }
+  .modal h3{ font-size:17px; margin-bottom:2px; }
+  .modal .close{ float:right; background:none; border:none; font-size:18px; cursor:pointer; color:var(--ink-soft); }
+  .modal-field{ margin-bottom:12px; }
+  .modal-field label{ display:block; font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
+  .modal-field input, .modal-field select{ width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:9px; font-family:inherit; font-size:13px; }
+  .interaccion-item{ font-size:12px; padding:8px 0; border-bottom:1px dashed var(--border); }
+  .interaccion-item:last-child{ border-bottom:none; }
+  .interaccion-fecha{ font-size:10px; color:var(--ink-soft); }
+  .toast{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--wine-dark); color:#fff; padding:11px 18px; border-radius:10px; font-size:12.5px; z-index:80; display:none; }
+  .toast.show{ display:block; }
+  .toast.err{ background:var(--danger); }
+
+  .lead-row{ display:flex; align-items:flex-start; gap:12px; padding:12px 10px; border-bottom:1px solid var(--border); }
+  .lead-row:last-child{ border-bottom:none; }
+  .avatar{ width:32px; height:32px; border-radius:50%; background:var(--wine); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px; flex-shrink:0; }
+  .pill-veces{ font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px; background:rgba(90,31,43,.08); color:var(--wine); }
+  .plaza-hero{ background:var(--wine); border-radius:14px; padding:22px 24px; margin-bottom:16px; color:#F3E9DC; }
+  .plaza-hero h2{ font-size:20px; color:#fff; }
+  .plaza-summary{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0; }
+  .plaza-kpi{ background:rgba(255,255,255,.08); border-radius:10px; padding:12px 14px; }
+  .plaza-kpi .v{ font-family:'Newsreader',serif; font-size:24px; font-weight:600; color:#fff; }
+  .plaza-kpi .l{ font-size:10.5px; color:#DCC7CE; margin-top:2px; }
+  .new-city-form{ display:none; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .new-city-form.open{ display:flex; }
+  .new-city-form input{ flex:1; min-width:140px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; }
+  .soon-wrap{ text-align:center; padding:60px 20px; color:var(--ink-soft); }
+  .soon-wrap h3{ margin-top:10px; color:var(--ink); }
+
+  @media (max-width: 760px){
+    #appShell.active{ flex-direction:column; }
+    .sidebar{ display:none; }
+    .mobile-topbar{ display:block; background:var(--wine-dark); padding:14px; }
+    .mobile-topbar .brand{ padding:0; margin-bottom:10px; }
+    .topbar{ padding:16px 18px; } .view{ padding:16px; }
+    .kpis{ grid-template-columns:repeat(2,1fr); }
+    .cal-resumen{ grid-template-columns:repeat(2,1fr); }
+    .board-toolbar{ flex-direction:column; align-items:stretch; }
+  }
+  @media (min-width: 761px){ .picker-overlay{ display:none !important; } }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand"><span class="spark">✦</span> GLAM<small>HUB</small></div>
+    <div class="login-sub">Operaciones &amp; clientes</div>
+    <div class="login-error" id="loginError"></div>
+    <div class="field"><label>Correo</label><input type="email" id="loginEmail" autocomplete="username"></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="loginPassword" autocomplete="current-password"></div>
+    <button class="btn-primary" id="loginBtn">Entrar</button>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="appShell">
+  <div class="mobile-topbar">
+    <div class="brand"><div class="brand-mark"><span class="spark">✦</span> GLAM<small>HUB</small></div></div>
+    <div class="picker">
+      <button class="picker-btn" id="pickerBtn">
+        <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
+        <span id="pickerLabel">Inicio</span>
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="picker-menu" id="pickerMenu"></div>
+    </div>
+  </div>
+  <div class="picker-overlay" id="pickerOverlay"></div>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><span class="spark">✦</span> GLAM<small>HUB</small></div>
+      <div class="brand-sub">Operaciones &amp; clientes</div>
+    </div>
+    <nav id="desktopNav"></nav>
+    <div class="sidebar-foot">
+      <div class="who" id="whoAmI">—</div>
+      <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar"><div><h1 id="viewTitle">Inicio</h1><div class="topbar-sub" id="viewSub">Conectado a la base de datos real</div></div></div>
+
+    <!-- INICIO -->
+    <div class="view active" id="view-inicio">
+      <div class="card" style="margin-bottom:20px;"><h1 style="font-size:22px;">Buenos días <span class="spark">✦</span></h1><p class="sub" style="margin:4px 0 0 0;">Datos en vivo desde Supabase — todavía sin migrar el histórico, así que varios números empiezan en cero.</p></div>
+      <div class="kpis" id="dashKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
+      <div class="card"><h3><span class="spark">✦</span> Leads más recientes</h3><div id="actividadList" class="sub">Cargando…</div></div>
+    </div>
+
+    <!-- ALUMNOS Y LEADS -->
+    <div class="view" id="view-board">
+      <div class="board-toolbar">
+        <div class="board-filters"><input class="search" id="searchInput" placeholder="Buscar por nombre o teléfono..."></div>
+        <button class="btn-primary small" id="btnNuevoLead">+ Nuevo lead</button>
+      </div>
+      <div class="board" id="board"><div class="empty-note">Cargando leads…</div></div>
+    </div>
+
+    <!-- HISTORIAL CLIENTE -->
+    <div class="view" id="view-historial">
+      <div class="card"><h3>Buscar cliente</h3><input class="search" id="historialSearch" placeholder="Nombre o teléfono..." style="max-width:320px; width:100%;"></div>
+      <div id="historialResultado"></div>
+    </div>
+
+    <!-- CURSOS -->
+    <div class="view" id="view-cursos">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <h3 style="margin-bottom:0;">Cursos</h3>
+          <button class="btn-primary small" id="btnNuevoCurso">+ Nuevo curso</button>
+        </div>
+        <div class="sub">Clientes y ciudades reales por curso, ordenado por eventos próximos</div>
+        <div id="listaCursos">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- CIUDADES / PLAZAS -->
+    <div class="view" id="view-plaza">
+      <div class="plaza-hero">
+        <h2>Nueva plaza — ¿Dónde vamos después?</h2>
+        <div class="sub" style="color:#DCC7CE; margin:4px 0 0 0;">Selecciona una ciudad y descubre a quién ya conocemos ahí.</div>
+        <select class="select" id="ciudadSelect" style="width:100%; max-width:280px; background:rgba(255,255,255,.95); margin-top:14px;"></select>
+        <div class="new-city-form" id="newCityForm">
+          <input id="newCityInput" placeholder="Nombre de la ciudad nueva">
+          <input id="newCityState" placeholder="Estado">
+          <button class="btn-primary small" id="newCitySave">Agregar</button>
+        </div>
+        <div class="plaza-summary" id="plazaKpis"></div>
+      </div>
+      <div class="card"><h3>Cursos dados en esta plaza</h3><div class="sub">Elige uno para ver a los alumnos y su estatus</div><div id="plazaLista">Selecciona una ciudad arriba.</div></div>
+    </div>
+
+    <div class="view" id="view-ventas"><div class="card"><div class="soon-wrap"><div class="spark">✦</div><h3>Ventas — próximamente</h3></div></div></div>
+    <div class="view" id="view-reportes"><div class="card"><div class="soon-wrap"><div class="spark">✦</div><h3>Reportes — próximamente</h3></div></div></div>
+    <div class="view" id="view-calendario">
+      <div class="card">
+        <h3><span class="spark">✦</span> Cursos programados</h3>
+        <div class="sub">Quiénes ya pagaron y quiénes faltan, por fecha</div>
+        <div id="listaCalendario">Cargando…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: DETALLE DE LEAD ===================== -->
+<div class="modal-overlay" id="modalLead">
+  <div class="modal">
+    <button class="close" id="closeModalLead">✕</button>
+    <h3 id="modalLeadNombre">—</h3>
+    <div class="sub" id="modalLeadTelefono" style="margin-bottom:14px;"></div>
+    <div class="modal-field"><label>Nombre</label><input id="modalNombreEdit"></div>
+    <div class="modal-field"><label>Teléfono principal</label><input id="modalTelefonoEdit" placeholder="10 dígitos"></div>
+    <div class="modal-field"><label>Teléfono adicional</label><input id="modalTelefonoAltEdit" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Estatus</label><select id="modalEstatusSelect"></select></div>
+    <div class="modal-field"><label>Agregar comentario</label><textarea class="textarea" id="modalComentarioNuevo" placeholder="Qué pasó en el último contacto..."></textarea></div>
+    <button class="btn-primary" id="guardarLead">Guardar cambios</button>
+    <h3 style="font-size:13px; margin-top:18px;">Historial de contacto</h3>
+    <div id="modalHistorial">—</div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: NUEVO LEAD ===================== -->
+<div class="modal-overlay" id="modalNuevo">
+  <div class="modal">
+    <button class="close" id="closeModalNuevo">✕</button>
+    <h3>Nuevo lead</h3>
+    <div class="modal-field"><label>Nombre</label><input id="nuevoNombre"></div>
+    <div class="modal-field"><label>Teléfono</label><input id="nuevoTelefono" placeholder="10 dígitos"></div>
+    <div class="modal-field"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
+    <div class="modal-field"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
+    <button class="btn-primary" id="guardarNuevoLead">Crear lead</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CURSO -> CIUDADES DONDE SE DIO ===================== -->
+<div class="modal-overlay" id="modalCursoCiudades">
+  <div class="modal">
+    <button class="close" id="closeModalCursoCiudades">✕</button>
+    <h3 id="modalCursoCiudadesNombre">—</h3>
+    <div class="sub" style="margin-bottom:14px;">Ciudades donde se ha dado este curso — elige una para ver a los alumnos</div>
+    <div id="modalCursoCiudadesLista">Cargando…</div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ALUMNOS DE UNA CIUDAD + CURSO ===================== -->
+<div class="modal-overlay" id="modalAlumnos">
+  <div class="modal">
+    <button class="close" id="closeModalAlumnos">✕</button>
+    <h3 id="modalAlumnosTitulo">—</h3>
+    <div class="sub" id="modalAlumnosSub" style="margin-bottom:14px;"></div>
+    <div id="modalAlumnosLista">Cargando…</div>
+  </div>
+</div>
+
+<!-- ===================== HOJA: DETALLE DE UN DÍA DEL CALENDARIO ===================== -->
+<div class="sheet-backdrop" id="sheetCalendarioBackdrop"></div>
+<div class="sheet" id="sheetCalendario">
+  <button class="sheet-close" id="sheetCalendarioClose">✕</button>
+  <div class="sheet-handle"></div>
+  <div class="sheet-fecha" id="sheetFecha">—</div>
+  <div id="sheetEventos"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   CONEXIÓN — clave pública (publishable), segura para el navegador.
+   El acceso real lo protegen las políticas RLS de Supabase, no esta
+   clave — sin sesión iniciada, esta clave sola no abre nada.
+   ========================================================= */
+const SUPABASE_URL = 'https://bomlszsnixazhnsegeik.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_w85mi4Z_NunDmMQIcWGaaw_KqNSN2lq';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let ESTATUS = [];       // catálogo cargado de la BD
+let CURSOS = [];
+let CIUDADES = [];
+let sesionActual = null;
+
+function toast(msg, esError){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (esError?' err':'');
+  setTimeout(()=>{ t.className='toast'; }, 3200);
+}
+
+/* =========================================================
+   AUTENTICACIÓN
+   ========================================================= */
+async function initAuth(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){ await onLogin(session); } else { showLogin(); }
+  sb.auth.onAuthStateChange((event, session)=>{
+    if(event === 'SIGNED_IN' && session) onLogin(session);
+    if(event === 'SIGNED_OUT') showLogin();
+  });
+}
+function showLogin(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appShell').classList.remove('active');
+}
+async function onLogin(session){
+  sesionActual = session;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').classList.add('active');
+  document.getElementById('whoAmI').textContent = session.user.email;
+  await cargarCatalogos();
+  await cargarCiudadesConCurso();
+  await Promise.all([renderBoard(), renderDashboard(), renderCursos(), renderCiudadSelect(), renderCalendario()]);
+}
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errBox = document.getElementById('loginError');
+  errBox.className = 'login-error';
+  const btn = document.getElementById('loginBtn'); btn.disabled = true; btn.textContent = 'Entrando...';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if(error){ errBox.textContent = 'No se pudo iniciar sesión: ' + error.message; errBox.className = 'login-error show'; }
+});
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{ await sb.auth.signOut(); });
+
+/* =========================================================
+   NAVEGACIÓN
+   ========================================================= */
+const SECCIONES = [
+  { id:'inicio', label:'Inicio', sub:'Datos en vivo desde Supabase', soon:false, icon:'<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>' },
+  { id:'board', label:'Alumnos y Leads', sub:'Tablero por estatus, conectado a la base real', soon:false, icon:'<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="9" rx="1.5"/>' },
+  { id:'historial', label:'Historial cliente', sub:'Búsqueda contra personas reales', soon:false, icon:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>' },
+  { id:'cursos', label:'Cursos', sub:'Catálogo real', soon:false, icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/>' },
+  { id:'plaza', label:'Ciudades / Plazas', sub:'Vista en vivo por ciudad', soon:false, icon:'<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>' },
+  { id:'ventas', label:'Ventas', sub:'Próximamente', soon:true, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+  { id:'reportes', label:'Reportes', sub:'Próximamente', soon:true, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
+  { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
+];
+function svgIcon(p,c){ return `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`; }
+document.getElementById('desktopNav').innerHTML = SECCIONES.map((s,i)=>`<div class="nav-item ${i===0?'active':''} ${s.soon?'soon':''}" data-view="${s.id}">${svgIcon(s.icon,'nav-ico')}<span>${s.label}</span>${s.soon?'<span class="pill-soon">pronto</span>':''}</div>`).join('');
+const pickerMenu = document.getElementById('pickerMenu');
+pickerMenu.innerHTML = SECCIONES.map((s,i)=>`<div class="picker-item ${i===0?'active':''}" data-view="${s.id}">${svgIcon(s.icon,'nav-ico')}<span>${s.label}</span></div>`).join('');
+function setActiveSection(id){
+  const sec = SECCIONES.find(s=>s.id===id);
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('viewTitle').textContent = sec.label;
+  document.getElementById('viewSub').textContent = sec.sub;
+  document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.classList.toggle('active', el.dataset.view===id));
+  document.querySelectorAll('#pickerMenu .picker-item').forEach(el=>el.classList.toggle('active', el.dataset.view===id));
+  document.getElementById('pickerLabel').textContent = sec.label;
+  closePicker();
+}
+document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
+document.querySelectorAll('#pickerMenu .picker-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
+const pickerBtn=document.getElementById('pickerBtn'), pickerOverlay=document.getElementById('pickerOverlay');
+function openPicker(){ pickerMenu.classList.add('open'); pickerBtn.classList.add('open'); pickerOverlay.classList.add('open'); }
+function closePicker(){ pickerMenu.classList.remove('open'); pickerBtn.classList.remove('open'); pickerOverlay.classList.remove('open'); }
+pickerBtn.addEventListener('click', ()=> pickerMenu.classList.contains('open')?closePicker():openPicker());
+pickerOverlay.addEventListener('click', closePicker);
+
+/* =========================================================
+   CATÁLOGOS
+   ========================================================= */
+async function cargarCatalogos(){
+  const [{data:est, error:e1}, {data:cur, error:e2}, {data:ciu, error:e3}] = await Promise.all([
+    sb.from('estatus').select('*').order('orden'),
+    sb.from('cursos').select('*').order('nombre'),
+    sb.from('ciudades').select('*').order('nombre').limit(3000),
+  ]);
+  if(e1||e2||e3){ toast('Error cargando catálogos: ' + (e1||e2||e3).message, true); return; }
+  ESTATUS = est||[]; CURSOS = cur||[]; CIUDADES = ciu||[];
+}
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+async function renderDashboard(){
+  const box = document.getElementById('dashKpis');
+  const [{count:totalLeads}, {count:cursosProx}] = await Promise.all([
+    sb.from('leads').select('*', {count:'exact', head:true}),
+    sb.from('eventos').select('*', {count:'exact', head:true}).gte('fecha', new Date().toISOString().slice(0,10)),
+  ]);
+  box.innerHTML = [
+    {v: totalLeads ?? 0, l:'Leads totales'},
+    {v: cursosProx ?? 0, l:'Cursos próximos'},
+    {v: CIUDADES.length, l:'Plazas cargadas'},
+  ].map(k=>`<div class="kpi"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
+
+  const { data, error } = await sb.from('leads').select('id, creado_en, personas(nombre, telefono_principal), estatus(etiqueta)')
+    .order('creado_en', {ascending:false}).limit(6);
+  const cont = document.getElementById('actividadList');
+  if(error){ cont.textContent = 'Error: ' + error.message; return; }
+  if(!data || data.length===0){ cont.innerHTML = '<div class="empty-note">Sin leads todavía — crea el primero desde "Alumnos y Leads".</div>'; return; }
+  cont.innerHTML = data.map(l=>`<div class="lead-row"><div class="avatar">${(l.personas?.nombre||'?').slice(0,2).toUpperCase()}</div>
+    <div class="info" style="flex:1;"><div class="lead-name">${l.personas?.nombre||'(sin nombre)'}</div><div class="lead-meta">${l.personas?.telefono_principal||''}</div></div>
+    <span class="pill-veces">${l.estatus?.etiqueta||'—'}</span></div>`).join('');
+}
+
+/* =========================================================
+   ALUMNOS Y LEADS (kanban real)
+   ========================================================= */
+let leadsCache = [];
+let eventosProximosPorCiudad = {};
+let ordenCategorias = [];       // orden actual de las 4 categorías (se actualiza al arrastrar)
+let estatusAbiertos = new Set(); // qué categorías están desplegadas, sobrevive a los re-renders
+
+async function cargarEventosProximos(){
+  const hoy = new Date().toISOString().slice(0,10);
+  const { data, error } = await sb.from('eventos').select('ciudad_id, fecha, cursos(nombre)')
+    .gte('fecha', hoy).not('fecha', 'is', null).order('fecha', {ascending:true});
+  if(error){ toast('Error cargando eventos próximos: ' + error.message, true); return; }
+  eventosProximosPorCiudad = {};
+  (data||[]).forEach(e=>{
+    if(!eventosProximosPorCiudad[e.ciudad_id]) eventosProximosPorCiudad[e.ciudad_id] = e;
+  });
+}
+
+/* =========================================================
+   GIRA ACTIVA — nombre exacto del curso que se está trabajando
+   ahora mismo. Cuando arranque una gira nueva, este es el ÚNICO
+   lugar que hay que actualizar. (La sección "Agregar gira" que
+   reemplazará esto por completo quedó pendiente — ver Roadmap.)
+   ========================================================= */
+const CURSO_ACTIVO_NOMBRE = 'LOS PASTELES MAS SABROSOS DE LA CHEF';
+let cursoActivoIdCache; // undefined = no consultado todavía · null = se consultó y no existe · string = id real
+async function obtenerCursoActivoId(){
+  if(cursoActivoIdCache !== undefined) return cursoActivoIdCache;
+  const { data } = await sb.from('cursos').select('id').eq('nombre', CURSO_ACTIVO_NOMBRE).maybeSingle();
+  cursoActivoIdCache = data ? data.id : null;
+  return cursoActivoIdCache;
+}
+let CIUDADES_GIRA_ACTIVA = null; // null = no cargadas todavía; array (posiblemente vacío) ya cargado
+async function cargarCiudadesGiraActiva(){
+  const cursoId = await obtenerCursoActivoId();
+  if(!cursoId){ CIUDADES_GIRA_ACTIVA = []; return; }
+  const { data: eventos } = await sb.from('eventos').select('ciudad_id').eq('curso_id', cursoId);
+  CIUDADES_GIRA_ACTIVA = [...new Set((eventos||[]).map(e=>e.ciudad_id).filter(Boolean))];
+}
+
+async function cargarLeads(){
+  await cargarCiudadesGiraActiva();
+  let query = sb.from('leads').select(`
+    id, comentario, creado_en, ciudad_interes_id,
+    personas ( id, nombre, telefono_principal, en_lista_negra ),
+    cursos ( nombre ),
+    ciudades ( nombre ),
+    estatus ( id, etiqueta, color_hex )
+  `).order('creado_en', {ascending:false});
+  // Solo leads de las ciudades que pertenecen a la gira en curso. Si no
+  // se encontró el curso activo (p.ej. cambió de nombre y no se
+  // actualizó CURSO_ACTIVO_NOMBRE arriba), se falla VISIBLE — se
+  // muestran todos los leads sin filtrar y se avisa — en vez de
+  // esconder en silencio a todo el mundo con un filtro vacío.
+  if(CIUDADES_GIRA_ACTIVA.length){
+    query = query.in('ciudad_interes_id', CIUDADES_GIRA_ACTIVA);
+  } else {
+    toast('No se encontró el curso activo ("' + CURSO_ACTIVO_NOMBRE + '") — mostrando TODOS los leads sin filtrar por gira.', true);
+  }
+  const { data, error } = await query;
+  if(error){ toast('Error cargando leads: ' + error.message, true); return []; }
+  return data || [];
+}
+async function renderBoard(){
+  await cargarEventosProximos();
+  leadsCache = await cargarLeads();
+  if (ordenCategorias.length !== CATEGORIAS.length) ordenCategorias = CATEGORIAS.map(c => c.id);
+  pintarBoard();
+}
+// Los 12 estatus reales de TIPIFICACIONES se conservan intactos — esto
+// solo los AGRUPA visualmente en 4 categorías de negocio para que el
+// acordeón no sea una lista de 12 filas. Cada tarjeta sigue mostrando
+// su estatus real (punto de color + etiqueta), nada se colapsa de verdad.
+const CATEGORIAS = [
+  { id:'pagos', label:'Pagos', color:'#3F8354', claves:['pago_por_confirmar','pago_en_curso','pagado'] },
+  { id:'seguimiento', label:'Seguimiento activo', color:'#3FB6C4', claves:['no_vence_pago','pago_programado','anticipo_vigente','liquida_en_curso'] },
+  { id:'nocontesta', label:'No contesta', color:'#8C8378', claves:['primer_intento','segundo_intento','tercer_intento'] },
+  { id:'atencion', label:'Necesita atención', color:'#C4432E', claves:['algo_esta_mal','no_va_al_curso'] },
+];
+
+function pintarBoard(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtrados = leadsCache.filter(l=>{
+    if(!q) return true;
+    const n=(l.personas?.nombre||'').toLowerCase(), t=(l.personas?.telefono_principal||'');
+    return n.includes(q) || t.includes(q);
+  });
+  const board = document.getElementById('board');
+  if(ESTATUS.length===0){ board.innerHTML = '<div class="empty-note">No se pudo cargar el catálogo de estatus.</div>'; return; }
+  board.className = 'status-list';
+
+  board.innerHTML = ordenCategorias.map(catId=>{
+    const cat = CATEGORIAS.find(c=>c.id===catId);
+    if(!cat) return '';
+    const estatusDeCategoria = ESTATUS.filter(e => cat.claves.includes(e.clave));
+    const idsDeCategoria = estatusDeCategoria.map(e=>e.id);
+    const items = filtrados.filter(l => idsDeCategoria.includes(l.estatus?.id));
+    const abierto = estatusAbiertos.has(cat.id);
+    return `<div class="status-tile ${abierto?'open':''}" data-estatus-id="${cat.id}">
+      <div class="status-tile-header">
+        <span class="drag-handle" title="Arrastra para reordenar">⋮⋮</span>
+        <span class="dot" style="background:${cat.color}"></span>
+        <span class="label">${cat.label}</span>
+        <span class="count">${items.length}</span>
+        <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+      <div class="status-tile-body">${items.map(l=>{
+        const e = l.estatus;
+        const evProx = l.ciudad_interes_id ? eventosProximosPorCiudad[l.ciudad_interes_id] : null;
+        const fechaBadge = evProx
+          ? `<span class="pill-veces" style="margin-top:6px; display:inline-block;">📅 ${new Date(evProx.fecha).toLocaleDateString('es-MX', {day:'numeric', month:'short'})}</span>`
+          : '';
+        return `
+        <div class="lead-card" style="--card-accent:${e?.color_hex||'#ccc'}" data-lead-id="${l.id}">
+          <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}</div>
+          <div class="lead-meta">${l.personas?.telefono_principal||''}${l.cursos?.nombre?'<br>'+l.cursos.nombre:''}${l.ciudades?.nombre?' · '+l.ciudades.nombre:''}</div>
+          <span class="lead-tag" style="background:${e?.color_hex||'#ccc'}22; color:${e?.color_hex==='#FFFFFF'?'#8C8378':(e?.color_hex||'#333')};">${e?.etiqueta||''}</span>
+          ${fechaBadge}
+          ${l.personas?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}
+        </div>`;
+      }).join('') || '<div class="empty-note">Sin leads en esta categoría.</div>'}</div>
+    </div>`;
+  }).join('');
+
+  board.querySelectorAll('.status-tile-header').forEach(h=>{
+    h.addEventListener('click', (ev)=>{
+      if(ev.target.closest('.drag-handle')) return;
+      const tile = h.closest('.status-tile');
+      const id = tile.dataset.estatusId;
+      if(estatusAbiertos.has(id)) estatusAbiertos.delete(id); else estatusAbiertos.add(id);
+      tile.classList.toggle('open');
+    });
+  });
+  board.querySelectorAll('.lead-card').forEach(el=>el.addEventListener('click', ()=>abrirModalLead(el.dataset.leadId)));
+
+  habilitarArrastre(board);
+}
+
+/**
+ * Reordenar los recuadros de estatus arrastrando el "gripito" (⋮⋮).
+ * Usa Pointer Events (no HTML5 drag-and-drop) porque funciona igual
+ * con mouse y con el dedo en celular, sin código separado para cada uno.
+ */
+function habilitarArrastre(container){
+  container.querySelectorAll('.drag-handle').forEach(handle=>{
+    handle.addEventListener('pointerdown', (e)=>{
+      e.preventDefault();
+      const tile = handle.closest('.status-tile');
+      tile.classList.add('dragging');
+      try { handle.setPointerCapture(e.pointerId); } catch(err){}
+
+      const mover = (ev)=>{
+        const y = ev.clientY;
+        const otros = [...container.querySelectorAll('.status-tile:not(.dragging)')];
+        const destino = otros.find(el=>{
+          const r = el.getBoundingClientRect();
+          return y < r.top + r.height/2;
+        });
+        if(destino) container.insertBefore(tile, destino);
+        else container.appendChild(tile);
+      };
+      const soltar = ()=>{
+        tile.classList.remove('dragging');
+        window.removeEventListener('pointermove', mover);
+        window.removeEventListener('pointerup', soltar);
+        // guarda el nuevo orden para que sobreviva al siguiente render
+        ordenCategorias = [...container.querySelectorAll('.status-tile')].map(el => el.dataset.estatusId);
+      };
+      window.addEventListener('pointermove', mover);
+      window.addEventListener('pointerup', soltar);
+    });
+  });
+}
+document.getElementById('searchInput').addEventListener('input', pintarBoard);
+
+/* --- Modal: detalle / actualizar estatus / comentar --- */
+let leadAbiertoId = null, leadAbiertoPersonaId = null;
+async function abrirModalLead(leadId){
+  const lead = leadsCache.find(l=>l.id===leadId);
+  if(!lead) return;
+  leadAbiertoId = leadId; leadAbiertoPersonaId = lead.personas?.id;
+  document.getElementById('modalLeadNombre').textContent = lead.personas?.nombre || '(sin nombre)';
+  document.getElementById('modalLeadTelefono').textContent = lead.personas?.telefono_principal || '';
+  document.getElementById('modalNombreEdit').value = lead.personas?.nombre || '';
+  document.getElementById('modalTelefonoEdit').value = lead.personas?.telefono_principal || '';
+  document.getElementById('modalTelefonoAltEdit').value = lead.personas?.telefono_alternativo || '';
+  const sel = document.getElementById('modalEstatusSelect');
+  sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
+  document.getElementById('modalComentarioNuevo').value = '';
+  document.getElementById('modalHistorial').innerHTML = 'Cargando...';
+  document.getElementById('modalLead').classList.add('open');
+
+  const { data, error } = await sb.from('interacciones').select('*').eq('persona_id', leadAbiertoPersonaId).order('fecha', {ascending:false}).limit(10);
+  const hist = document.getElementById('modalHistorial');
+  if(error){ hist.textContent = 'Error: ' + error.message; return; }
+  hist.innerHTML = (data && data.length)
+    ? data.map(i=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(i.fecha).toLocaleString('es-MX')}</div>${i.nota||'(sin nota)'}</div>`).join('')
+    : '<div class="empty-note">Sin interacciones registradas todavía.</div>';
+}
+document.getElementById('closeModalLead').addEventListener('click', ()=>document.getElementById('modalLead').classList.remove('open'));
+
+document.getElementById('guardarLead').addEventListener('click', async ()=>{
+  const nuevoEstatusId = Number(document.getElementById('modalEstatusSelect').value);
+  const comentario = document.getElementById('modalComentarioNuevo').value.trim();
+  const nombreNuevo = document.getElementById('modalNombreEdit').value.trim();
+  const telNuevo = document.getElementById('modalTelefonoEdit').value.replace(/\D/g,'');
+  const telAltNuevo = document.getElementById('modalTelefonoAltEdit').value.replace(/\D/g,'');
+  if(!nombreNuevo || telNuevo.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
+
+  const btn = document.getElementById('guardarLead'); btn.disabled = true; btn.textContent = 'Guardando...';
+
+  const { error: errPersona } = await sb.from('personas').update({
+    nombre: nombreNuevo,
+    telefono_principal: telNuevo,
+    telefono_alternativo: telAltNuevo || null,
+    actualizado_en: new Date().toISOString()
+  }).eq('id', leadAbiertoPersonaId);
+
+  const { error: errUpd } = await sb.from('leads').update({ estatus_id: nuevoEstatusId, actualizado_en: new Date().toISOString() }).eq('id', leadAbiertoId);
+  let errInt = null;
+  if(comentario){
+    const r = await sb.from('interacciones').insert({ persona_id: leadAbiertoPersonaId, lead_id: leadAbiertoId, nota: comentario, canal: 'otro' });
+    errInt = r.error;
+    if(!errInt) await sb.from('leads').update({ comentario }).eq('id', leadAbiertoId);
+  }
+  btn.disabled = false; btn.textContent = 'Guardar cambios';
+
+  if(errPersona || errUpd || errInt){ toast('Error al guardar: ' + (errPersona||errUpd||errInt).message, true); return; }
+  toast('Guardado.');
+  document.getElementById('modalLead').classList.remove('open');
+  await renderBoard();
+});
+
+/* --- Modal: nuevo lead --- */
+function poblarSelectCursosCiudades(){
+  document.getElementById('nuevoCurso').innerHTML = '<option value="">— Sin especificar —</option>' + CURSOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  document.getElementById('nuevoCiudad').innerHTML = '<option value="">— Sin especificar —</option>' + CIUDADES.map(c=>`<option value="${c.id}">${c.nombre}${c.estado?', '+c.estado:''}</option>`).join('');
+}
+document.getElementById('btnNuevoLead').addEventListener('click', ()=>{
+  poblarSelectCursosCiudades();
+  document.getElementById('nuevoNombre').value=''; document.getElementById('nuevoTelefono').value='';
+  document.getElementById('modalNuevo').classList.add('open');
+});
+document.getElementById('closeModalNuevo').addEventListener('click', ()=>document.getElementById('modalNuevo').classList.remove('open'));
+document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('nuevoNombre').value.trim();
+  const telefono = document.getElementById('nuevoTelefono').value.replace(/\D/g,'');
+  const cursoId = document.getElementById('nuevoCurso').value || null;
+  const ciudadId = document.getElementById('nuevoCiudad').value || null;
+  if(!nombre || telefono.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
+
+  const btn = document.getElementById('guardarNuevoLead'); btn.disabled = true; btn.textContent = 'Creando...';
+
+  let personaId;
+  const { data: existente } = await sb.from('personas').select('id').eq('telefono_principal', telefono).maybeSingle();
+  if(existente){ personaId = existente.id; }
+  else {
+    const { data: nueva, error: errP } = await sb.from('personas').insert({ nombre, telefono_principal: telefono }).select('id').single();
+    if(errP){ btn.disabled=false; btn.textContent='Crear lead'; toast('Error creando persona: ' + errP.message, true); return; }
+    personaId = nueva.id;
+  }
+  const estatusInicial = ESTATUS.find(e=>e.clave==='pago_por_confirmar') || ESTATUS[0];
+  const { error: errL } = await sb.from('leads').insert({
+    persona_id: personaId, estatus_id: estatusInicial.id,
+    curso_interes_id: cursoId, ciudad_interes_id: ciudadId
+  });
+  btn.disabled = false; btn.textContent = 'Crear lead';
+  if(errL){ toast('Error creando lead: ' + errL.message, true); return; }
+  toast('Lead creado.');
+  document.getElementById('modalNuevo').classList.remove('open');
+  await renderBoard(); await renderDashboard();
+});
+
+/* =========================================================
+   CALENDARIO — mes interactivo (estilo iOS) con resumen y
+   hoja de detalle por día. La carga de datos (Supabase) es
+   idéntica a como funcionaba antes; solo cambió cómo se pinta.
+   ========================================================= */
+let calendarioDias = {};      // 'YYYY-MM-DD' -> [{ciudad, liq, ant, pend}, ...]
+let calendarioMeses = [];     // [{y, m}, ...] meses navegables, del actual al del último evento
+let calendarioMesIdx = 0;
+
+function calPad(n){ return String(n).padStart(2,'0'); }
+function calMismoDia(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+function clasificarCalendario(liq, ant, pend){
+  const total = liq + ant + pend;
+  if(total === 0) return 'verde';
+  if(pend/total >= 0.5) return 'rojo';
+  if(pend > 0 || ant > 0) return 'ambar';
+  return 'verde';
+}
+
+async function renderCalendario(){
+  const cont = document.getElementById('listaCalendario');
+  const cursoId = await obtenerCursoActivoId();
+  if(!cursoId){
+    cont.innerHTML = '<div class="empty-note">No se encontró el curso activo ("' + CURSO_ACTIVO_NOMBRE + '") en el catálogo. Revisa que el nombre coincida exactamente.</div>';
+    return;
+  }
+  // Solo eventos del curso en curso — antes traía eventos de CUALQUIER
+  // curso con fecha futura (incluía tarjetas ajenas a la gira actual).
+  const { data: eventos, error } = await sb.from('eventos')
+    .select('id, fecha, ciudad_id, ciudades(nombre), cursos(nombre)')
+    .eq('curso_id', cursoId)
+    .not('fecha', 'is', null).gte('fecha', new Date().toISOString().slice(0,10))
+    .order('fecha', {ascending:true});
+  if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + error.message + '</div>'; return; }
+  if(!eventos || eventos.length===0){ cont.innerHTML = '<div class="empty-note">Sin eventos programados del curso activo todavía.</div>'; return; }
+
+  // Antes esto se calculaba cruzando "leads" (bandeja de seguimiento,
+  // ~165 filas) agrupado por CIUDAD completa — mezclaba fechas distintas
+  // de la misma ciudad y nunca reflejaba el pago real. El dato de pago
+  // real vive en "inscripciones" (anticipo/restante/liquidado), ligado
+  // al EVENTO exacto — es lo que corresponde a las columnas ANTICIPO/
+  // LIQUIDO de la hoja de Excel.
+  const eventoIds = eventos.map(e=>e.id);
+  const { data: inscripcionesData } = await sb.from('inscripciones')
+    .select('evento_id, liquidado, anticipo').in('evento_id', eventoIds);
+  const liquidadoPorEvento = {}, anticipoPorEvento = {}, sinPagoPorEvento = {};
+  const eventosConInscripcion = new Set();
+  (inscripcionesData||[]).forEach(i=>{
+    if(!i.evento_id) return;
+    eventosConInscripcion.add(i.evento_id);
+    if(i.liquidado) liquidadoPorEvento[i.evento_id] = (liquidadoPorEvento[i.evento_id]||0)+1;
+    else if(i.anticipo && i.anticipo > 0) anticipoPorEvento[i.evento_id] = (anticipoPorEvento[i.evento_id]||0)+1;
+    else sinPagoPorEvento[i.evento_id] = (sinPagoPorEvento[i.evento_id]||0)+1;
+  });
+
+  // Fallback: un evento de la gira ACTIVA todavía no tiene ninguna fila en
+  // "inscripciones" — hoy nada en el Hub convierte un lead pagado en una
+  // inscripción real, así que para esos eventos el dato de pago de verdad
+  // vive en "leads" de esa ciudad. Se calcula solo para los eventos que
+  // no tienen ninguna inscripción, para no mezclar las dos fuentes.
+  const ciudadesSinInscripcion = [...new Set(eventos.filter(e => !eventosConInscripcion.has(e.id)).map(e => e.ciudad_id))];
+  const resumenLeadsPorCiudad = {};
+  if(ciudadesSinInscripcion.length){
+    const { data: leadsData } = await sb.from('leads')
+      .select('ciudad_interes_id, estatus(clave)')
+      .in('ciudad_interes_id', ciudadesSinInscripcion);
+    (leadsData||[]).forEach(l=>{
+      const cid = l.ciudad_interes_id;
+      if(!cid) return;
+      if(!resumenLeadsPorCiudad[cid]) resumenLeadsPorCiudad[cid] = { liquidado: 0, anticipo: 0, sinPago: 0 };
+      const clave = l.estatus?.clave;
+      if(clave === 'pagado') resumenLeadsPorCiudad[cid].liquidado++;
+      else if(clave === 'anticipo_vigente') resumenLeadsPorCiudad[cid].anticipo++;
+      else if(clave !== 'no_va_al_curso') resumenLeadsPorCiudad[cid].sinPago++;
+      // 'no_va_al_curso' no cuenta en ningún cubo — no es alguien a quien cobrar.
+    });
+  }
+
+  // Agrupa por fecha (puede haber más de un evento el mismo día) para
+  // poder pintar un calendario mensual real en vez de una lista plana.
+  calendarioDias = {};
+  eventos.forEach(e=>{
+    let liquidados, conAnticipo, sinPago;
+    if(eventosConInscripcion.has(e.id)){
+      liquidados = liquidadoPorEvento[e.id] || 0;
+      conAnticipo = anticipoPorEvento[e.id] || 0;
+      sinPago = sinPagoPorEvento[e.id] || 0;
+    } else {
+      const r = resumenLeadsPorCiudad[e.ciudad_id] || { liquidado: 0, anticipo: 0, sinPago: 0 };
+      liquidados = r.liquidado; conAnticipo = r.anticipo; sinPago = r.sinPago;
+    }
+    if(!calendarioDias[e.fecha]) calendarioDias[e.fecha] = [];
+    calendarioDias[e.fecha].push({ ciudad: e.ciudades?.nombre || '(ciudad?)', liq: liquidados, ant: conAnticipo, pend: sinPago });
+  });
+
+  const hoy = new Date();
+  const claves = Object.keys(calendarioDias).sort();
+  const ultimo = new Date(claves[claves.length-1] + 'T00:00:00');
+  calendarioMeses = [];
+  let cursor = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  const fin = new Date(ultimo.getFullYear(), ultimo.getMonth(), 1);
+  while(cursor <= fin){
+    calendarioMeses.push({ y: cursor.getFullYear(), m: cursor.getMonth() });
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
+  }
+  calendarioMesIdx = 0;
+  pintarCalendarioMes();
+}
+
+function pintarCalendarioMes(){
+  const cont = document.getElementById('listaCalendario');
+  const { y, m } = calendarioMeses[calendarioMesIdx];
+  const hoy = new Date();
+
+  const first = new Date(y, m, 1);
+  const startWeekday = first.getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const daysInPrev = new Date(y, m, 0).getDate();
+  const celdas = [];
+  for(let i=startWeekday-1; i>=0; i--) celdas.push({ dia: daysInPrev-i, fuera:true });
+  for(let d=1; d<=daysInMonth; d++){
+    celdas.push({ dia:d, fuera:false, key:`${y}-${calPad(m+1)}-${calPad(d)}`, fecha:new Date(y,m,d) });
+  }
+  let relleno = 1;
+  while(celdas.length % 7 !== 0) celdas.push({ dia: relleno++, fuera:true });
+
+  let totLiq=0, totAnt=0, totPend=0, totEventos=0;
+  celdas.forEach(c=>{
+    if(c.fuera || !calendarioDias[c.key]) return;
+    calendarioDias[c.key].forEach(ev=>{ totLiq+=ev.liq; totAnt+=ev.ant; totPend+=ev.pend; totEventos++; });
+  });
+
+  const tituloMes = first.toLocaleDateString('es-MX', { month:'long', year:'numeric' });
+
+  const gridHtml = celdas.map(c=>{
+    if(c.fuera) return `<div class="cal-cell muted"><span class="num">${c.dia}</span></div>`;
+    const eventosDelDia = calendarioDias[c.key];
+    const esHoy = calMismoDia(c.fecha, hoy);
+    if(!eventosDelDia) return `<div class="cal-cell ${esHoy?'today':''}"><span class="num">${c.dia}</span></div>`;
+    let liq=0, ant=0, pend=0;
+    eventosDelDia.forEach(ev=>{ liq+=ev.liq; ant+=ev.ant; pend+=ev.pend; });
+    const clase = clasificarCalendario(liq, ant, pend);
+    return `<div class="cal-cell has-evt ${clase} ${esHoy?'today':''}" data-key="${c.key}">
+      <span class="num">${c.dia}</span><span class="cal-dot ${clase}"></span></div>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <div class="cal-curso-tag">📚 Curso activo · <b>${CURSO_ACTIVO_NOMBRE}</b></div>
+    <div class="cal-resumen">
+      <div class="cal-stat tot"><div class="v">${totEventos}</div><div class="l">Eventos</div></div>
+      <div class="cal-stat liq"><div class="v">${totLiq}</div><div class="l">Liquidados</div></div>
+      <div class="cal-stat ant"><div class="v">${totAnt}</div><div class="l">Anticipo</div></div>
+      <div class="cal-stat pend"><div class="v">${totPend}</div><div class="l">Sin pago</div></div>
+    </div>
+    <div class="cal-nav">
+      <button id="calPrev" ${calendarioMesIdx===0?'disabled':''} aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <h4>${tituloMes}</h4>
+      <button id="calNext" ${calendarioMesIdx===calendarioMeses.length-1?'disabled':''} aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="cal-dow"><span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span></div>
+    <div class="cal-grid" style="${totEventos?'':'display:none;'}">${gridHtml}</div>
+    ${totEventos ? '' : '<div class="empty-note" style="text-align:center;">Sin cursos programados este mes todavía.</div>'}
+    <div class="cal-legend">
+      <span><i style="background:var(--success)"></i>Al día</span>
+      <span><i style="background:var(--champagne)"></i>En seguimiento</span>
+      <span><i style="background:var(--danger)"></i>Necesita atención</span>
+    </div>`;
+
+  cont.querySelectorAll('.has-evt').forEach(el=>el.addEventListener('click', ()=>abrirSheetCalendario(el.dataset.key)));
+  document.getElementById('calPrev').addEventListener('click', ()=>{ if(calendarioMesIdx>0){ calendarioMesIdx--; pintarCalendarioMes(); } });
+  document.getElementById('calNext').addEventListener('click', ()=>{ if(calendarioMesIdx<calendarioMeses.length-1){ calendarioMesIdx++; pintarCalendarioMes(); } });
+}
+
+function abrirSheetCalendario(key){
+  const eventosDelDia = calendarioDias[key] || [];
+  const fecha = new Date(key + 'T00:00:00');
+  document.getElementById('sheetFecha').textContent = fecha.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('sheetEventos').innerHTML = eventosDelDia.map(ev=>{
+    const clase = clasificarCalendario(ev.liq, ev.ant, ev.pend);
+    const total = (ev.liq + ev.ant + ev.pend) || 1;
+    const pillTxt = clase==='rojo' ? 'Necesita seguimiento' : clase==='ambar' ? 'En seguimiento' : 'Al día';
+    return `<div class="sheet-evento">
+      <div class="sheet-city">${ev.ciudad}</div>
+      <div class="sheet-curso">${CURSO_ACTIVO_NOMBRE}</div>
+      <div class="sheet-pill ${clase}">${pillTxt}</div>
+      <div class="sheet-stats">
+        <div class="stat"><div class="v" style="color:var(--success)">${ev.liq}</div><div class="l">Liquidados</div></div>
+        <div class="stat"><div class="v" style="color:#8A6D2F">${ev.ant}</div><div class="l">Anticipo</div></div>
+        <div class="stat"><div class="v" style="color:var(--danger)">${ev.pend}</div><div class="l">Sin pago</div></div>
+      </div>
+      <div class="sheet-bar">
+        <span style="background:var(--success); width:${ev.liq/total*100}%"></span>
+        <span style="background:var(--champagne); width:${ev.ant/total*100}%"></span>
+        <span style="background:var(--danger); width:${ev.pend/total*100}%"></span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('sheetCalendario').classList.add('open');
+  document.getElementById('sheetCalendarioBackdrop').classList.add('open');
+}
+function cerrarSheetCalendario(){
+  document.getElementById('sheetCalendario').classList.remove('open');
+  document.getElementById('sheetCalendarioBackdrop').classList.remove('open');
+}
+document.getElementById('sheetCalendarioClose').addEventListener('click', cerrarSheetCalendario);
+document.getElementById('sheetCalendarioBackdrop').addEventListener('click', cerrarSheetCalendario);
+
+async function renderCursos(){
+  const cont = document.getElementById('listaCursos');
+  const { data, error } = await sb.from('vista_resumen_curso').select('*')
+    .order('eventos_proximos', {ascending:false}).order('clientes_totales', {ascending:false});
+  if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + error.message + '</div>'; return; }
+  if(!data || data.length===0){ cont.innerHTML = '<div class="empty-note">Sin cursos con eventos todavía.</div>'; return; }
+  cont.innerHTML = data.map(c=>`
+    <div class="lead-row clickable" data-curso-id="${c.curso_id}">
+      <div class="avatar" style="background:${c.eventos_proximos>0?'var(--wine)':'var(--ink-soft)'};">${c.eventos_proximos>0?'📅':''}</div>
+      <div style="flex:1;">
+        <div class="lead-name">${c.curso}${c.eventos_proximos>0?` <span class="pill-veces">${c.eventos_proximos} próximo${c.eventos_proximos>1?'s':''}</span>`:''}</div>
+        <div class="lead-meta">${c.clientes_totales} clientes históricos · ${c.ciudades_distintas} ciudades distintas</div>
+      </div>
+    </div>`).join('');
+  cont.querySelectorAll('.lead-row.clickable').forEach(el=>{
+    const curso = data.find(c=>c.curso_id === el.dataset.cursoId);
+    el.addEventListener('click', ()=> abrirModalCursoCiudades(el.dataset.cursoId, curso?.curso));
+  });
+}
+document.getElementById('btnNuevoCurso').addEventListener('click', async ()=>{
+  const nombre = prompt('Nombre del curso nuevo:'); if(!nombre) return;
+  const linea = prompt('Línea (gira / online / 360 / postres_virales / galleteria / pasteleria_saludable / academia):', 'gira') || 'gira';
+  const precio = prompt('Precio base (déjalo vacío si no aplica):');
+  const { error } = await sb.from('cursos').insert({ nombre, linea, precio_base: precio?Number(precio):null });
+  if(error){ toast('Error: ' + error.message, true); return; }
+  toast('Curso agregado.');
+  await cargarCatalogos(); await renderCursos();
+});
+
+/* =========================================================
+   CIUDADES / PLAZAS (vista_resumen_plaza en vivo)
+   ========================================================= */
+let CIUDADES_CON_CURSO = [];
+async function cargarCiudadesConCurso(){
+  // Solo ciudades donde YA se dio un curso real (tienen evento) — no
+  // todas las 1,500+ que existen solo porque algún alumno vive ahí.
+  const { data, error } = await sb.from('eventos').select('ciudades(id,nombre,estado)').limit(3000);
+  if(error){ toast('Error cargando ciudades con curso: ' + error.message, true); return; }
+  const vistas = {};
+  (data||[]).forEach(e=>{ if(e.ciudades) vistas[e.ciudades.id] = e.ciudades; });
+  CIUDADES_CON_CURSO = Object.values(vistas).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+}
+function renderCiudadSelect(){
+  const sel = document.getElementById('ciudadSelect');
+  sel.innerHTML = CIUDADES_CON_CURSO.map(c=>`<option value="${c.id}">${c.nombre}${c.estado?', '+c.estado:''}</option>`).join('') + `<option value="__new">+ Nueva ciudad…</option>`;
+  if(CIUDADES_CON_CURSO.length) renderPlaza(CIUDADES_CON_CURSO[0].id);
+}
+document.getElementById('ciudadSelect').addEventListener('change', (e)=>{
+  if(e.target.value==='__new'){ document.getElementById('newCityForm').classList.add('open'); }
+  else { document.getElementById('newCityForm').classList.remove('open'); renderPlaza(e.target.value); }
+});
+document.getElementById('newCitySave').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('newCityInput').value.trim();
+  const estado = document.getElementById('newCityState').value.trim();
+  if(!nombre){ return; }
+  const { data, error } = await sb.from('ciudades').insert({ nombre, estado: estado||null }).select('id,nombre,estado').single();
+  if(error){ toast('Error: ' + error.message, true); return; }
+  // se agrega local a la lista filtrada aunque todavía no tenga evento —
+  // la acabas de crear a propósito para trabajarla
+  CIUDADES_CON_CURSO.push(data);
+  CIUDADES_CON_CURSO.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  renderCiudadSelect();
+  document.getElementById('ciudadSelect').value = data.id;
+  document.getElementById('newCityForm').classList.remove('open');
+  renderPlaza(data.id);
+});
+async function renderPlaza(ciudadId){
+  const kpis = document.getElementById('plazaKpis');
+  const lista = document.getElementById('plazaLista');
+  kpis.innerHTML = '<div class="plaza-kpi"><div class="v">…</div><div class="l">Cargando</div></div>';
+  const { data: resumen, error } = await sb.from('vista_resumen_plaza').select('*').eq('ciudad_id', ciudadId).maybeSingle();
+  if(error){ kpis.innerHTML=''; lista.innerHTML = 'Error: ' + error.message; return; }
+  kpis.innerHTML = [
+    {v: resumen?.clientes_historicos ?? 0, l:'Clientes históricos'},
+    {v: resumen?.clientes_recurrentes ?? 0, l:'Clientes recurrentes'},
+    {v: resumen?.leads_pendientes ?? 0, l:'Leads pendientes'},
+  ].map(k=>`<div class="plaza-kpi"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
+
+  // Cursos que se han dado en esta ciudad — clic en uno abre a los
+  // alumnos con su estatus real (liquidado/anticipo/comentario), igual
+  // que abrir la hoja de esa ciudad dentro del curso en el Excel.
+  const { data: eventosCiudad, error: errorEventos } = await sb.from('eventos')
+    .select('curso_id, cursos(nombre)').eq('ciudad_id', ciudadId);
+  if(errorEventos){ lista.innerHTML = 'Error: ' + errorEventos.message; return; }
+  const cursosPorId = {};
+  (eventosCiudad||[]).forEach(e=>{
+    if(!e.curso_id) return;
+    if(!cursosPorId[e.curso_id]) cursosPorId[e.curso_id] = { nombre: e.cursos?.nombre || '(curso?)', n_eventos: 0 };
+    cursosPorId[e.curso_id].n_eventos++;
+  });
+  const cursosLista = Object.entries(cursosPorId).sort((a,b)=>b[1].n_eventos - a[1].n_eventos);
+  lista.innerHTML = cursosLista.length
+    ? cursosLista.map(([cursoId, c])=>`<div class="lead-row clickable" data-curso-id="${cursoId}">
+        <div class="avatar">📚</div>
+        <div style="flex:1;"><div class="lead-name">${c.nombre}</div>
+        <div class="lead-meta">${c.n_eventos} evento${c.n_eventos===1?'':'s'} en esta ciudad</div></div></div>`).join('')
+    : '<div class="empty-note">Sin cursos registrados para esta ciudad todavía.</div>';
+  lista.querySelectorAll('.lead-row.clickable').forEach(el=>{
+    const cursoId = el.dataset.cursoId;
+    el.addEventListener('click', ()=> abrirModalAlumnos(ciudadId, cursoId, resumen?.ciudad, cursosPorId[cursoId].nombre));
+  });
+}
+
+/**
+ * Modal compartido: alumnos de una combinación ciudad+curso, con su
+ * pago real (liquidado/anticipo/sin pago) y el comentario original de
+ * la migración. Lo usan tanto Ciudades/Plazas (ciudad->curso->alumnos)
+ * como Cursos (curso->ciudad->alumnos) — es la misma pregunta desde
+ * dos puntos de entrada distintos.
+ */
+async function abrirModalAlumnos(ciudadId, cursoId, ciudadNombre, cursoNombre){
+  document.getElementById('modalCursoCiudades').classList.remove('open');
+  document.getElementById('modalAlumnosTitulo').textContent = cursoNombre || '(curso?)';
+  document.getElementById('modalAlumnosSub').textContent = ciudadNombre || '';
+  const lista = document.getElementById('modalAlumnosLista');
+  lista.innerHTML = 'Cargando…';
+  document.getElementById('modalAlumnos').classList.add('open');
+
+  const { data, error } = await sb.from('inscripciones')
+    .select('liquidado, anticipo, notas_migracion, eventos!inner(ciudad_id, curso_id), personas(nombre, telefono_principal, vip, en_lista_negra)')
+    .eq('eventos.ciudad_id', ciudadId).eq('eventos.curso_id', cursoId);
+  if(error){ lista.innerHTML = 'Error: ' + error.message; return; }
+  if(!data || data.length===0){ lista.innerHTML = '<div class="empty-note">Sin alumnos registrados todavía.</div>'; return; }
+
+  lista.innerHTML = data.map(i=>{
+    const p = i.personas;
+    let pago = 'sin-pago', pagoTxt = 'Sin pago';
+    if(i.liquidado){ pago = 'liquidado'; pagoTxt = 'Liquidado'; }
+    else if(i.anticipo && i.anticipo > 0){ pago = 'anticipo'; pagoTxt = 'Anticipo $' + i.anticipo; }
+    // El comentario original de la hoja (UNIFORME, Asistencia, etc.) vive
+    // como texto libre dentro de notas_migracion — se muestra tal cual,
+    // no se inventan columnas que la migración no dejó separadas.
+    const comentario = i.notas_migracion ? `<div class="lead-meta" style="margin-top:4px;">${i.notas_migracion}</div>` : '';
+    return `<div class="lead-row">
+      <div class="avatar">${(p?.nombre||'?').slice(0,2).toUpperCase()}</div>
+      <div style="flex:1;">
+        <div class="lead-name">${p?.nombre||'(sin nombre)'} ${p?.vip?'<span class="pill-veces">★ VIP</span>':''} ${p?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}</div>
+        <div class="lead-meta">${p?.telefono_principal||''}</div>
+        ${comentario}
+      </div>
+      <span class="pill-pago ${pago}">${pagoTxt}</span>
+    </div>`;
+  }).join('');
+}
+document.getElementById('closeModalAlumnos').addEventListener('click', ()=>document.getElementById('modalAlumnos').classList.remove('open'));
+
+/**
+ * Drill desde Cursos: qué ciudades han dado este curso -> clic en una
+ * abre el mismo modal de alumnos de arriba.
+ */
+async function abrirModalCursoCiudades(cursoId, cursoNombre){
+  document.getElementById('modalCursoCiudadesNombre').textContent = cursoNombre || '(curso?)';
+  const lista = document.getElementById('modalCursoCiudadesLista');
+  lista.innerHTML = 'Cargando…';
+  document.getElementById('modalCursoCiudades').classList.add('open');
+
+  const { data, error } = await sb.from('eventos').select('ciudad_id, ciudades(nombre)').eq('curso_id', cursoId);
+  if(error){ lista.innerHTML = 'Error: ' + error.message; return; }
+  const ciudadesPorId = {};
+  (data||[]).forEach(e=>{
+    if(!e.ciudad_id) return;
+    if(!ciudadesPorId[e.ciudad_id]) ciudadesPorId[e.ciudad_id] = { nombre: e.ciudades?.nombre || '(ciudad?)', n_eventos: 0 };
+    ciudadesPorId[e.ciudad_id].n_eventos++;
+  });
+  const entradas = Object.entries(ciudadesPorId).sort((a,b)=>b[1].n_eventos - a[1].n_eventos);
+  lista.innerHTML = entradas.length
+    ? entradas.map(([ciudadId, c])=>`<div class="lead-row clickable" data-ciudad-id="${ciudadId}">
+        <div class="avatar">📍</div>
+        <div style="flex:1;"><div class="lead-name">${c.nombre}</div>
+        <div class="lead-meta">${c.n_eventos} evento${c.n_eventos===1?'':'s'}</div></div></div>`).join('')
+    : '<div class="empty-note">Sin ciudades registradas para este curso todavía.</div>';
+  lista.querySelectorAll('.lead-row.clickable').forEach(el=>{
+    const ciudadId = el.dataset.ciudadId;
+    el.addEventListener('click', ()=> abrirModalAlumnos(ciudadId, cursoId, ciudadesPorId[ciudadId].nombre, cursoNombre));
+  });
+}
+document.getElementById('closeModalCursoCiudades').addEventListener('click', ()=>document.getElementById('modalCursoCiudades').classList.remove('open'));
+
+/* =========================================================
+   HISTORIAL CLIENTE
+   ========================================================= */
+let historialTimeout = null;
+document.getElementById('historialSearch').addEventListener('input', (e)=>{
+  clearTimeout(historialTimeout);
+  historialTimeout = setTimeout(()=>buscarHistorial(e.target.value.trim()), 350);
+});
+async function buscarHistorial(q){
+  const cont = document.getElementById('historialResultado');
+  if(!q){ cont.innerHTML = '<div class="card"><div class="sub">Escribe un nombre o teléfono.</div></div>'; return; }
+  const { data, error } = await sb.from('personas').select('id, nombre, telefono_principal, en_lista_negra')
+    .or(`nombre.ilike.%${q}%,telefono_principal.ilike.%${q}%`).limit(5);
+  if(error){ cont.innerHTML = '<div class="card">Error: ' + error.message + '</div>'; return; }
+  if(!data || data.length===0){ cont.innerHTML = '<div class="card"><div class="sub">Sin coincidencias.</div></div>'; return; }
+  const p = data[0];
+  const [{data:hist}, {data:inter}, {data:todasInscripciones}] = await Promise.all([
+    sb.from('vista_historial_cliente').select('*').eq('persona_id', p.id).maybeSingle(),
+    sb.from('interacciones').select('*').eq('persona_id', p.id).order('fecha', {ascending:false}).limit(10),
+    // TODAS las inscripciones, liquidadas o no — antes solo se veían
+    // las pagadas y un intento fallido (ej. "2V no contesta") quedaba
+    // invisible, como si el contacto nunca hubiera existido.
+    sb.from('inscripciones').select('liquidado, restante, creado_en, eventos(fecha, ciudades(nombre), cursos(nombre)), estatus(etiqueta, color_hex)')
+      .eq('persona_id', p.id).order('creado_en', {ascending:false}),
+  ]);
+  const cursosHtml = (todasInscripciones && todasInscripciones.length)
+    ? todasInscripciones.map(ins=>{
+        const ev = ins.eventos;
+        const est = ins.estatus;
+        const colorPunto = est?.color_hex || '#ccc';
+        return `<span class="curso-chip"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorPunto};border:1px solid rgba(0,0,0,.1);"></span>
+          <b>${ev?.ciudades?.nombre || '(ciudad?)'}</b> · ${ev?.cursos?.nombre || '(curso?)'} · ${ev?.fecha ? new Date(ev.fecha).toLocaleDateString('es-MX') : 'sin fecha'} · ${est?.etiqueta || 'sin estatus'}</span>`;
+      }).join('')
+    : '<div class="empty-note">Sin ningún registro de curso o intento todavía.</div>';
+  cont.innerHTML = `<div class="card">
+    ${p.en_lista_negra?'<div class="badge-blacklist" style="display:inline-flex; margin-bottom:10px;">⚠ Lista negra</div>':''}
+    <h3>${p.nombre} <span class="pill-veces">${hist?.veces_tomo_curso ?? 0}x liquidado</span></h3>
+    <div class="sub">${p.telefono_principal}</div>
+    <div class="sub" style="margin-bottom:2px;">Historial completo (liquidado y no liquidado):</div>
+    <div>${cursosHtml}</div>
+    <h3 style="margin-top:14px; font-size:13px;">Historial de contacto</h3>
+    ${(inter&&inter.length) ? inter.map(i=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(i.fecha).toLocaleString('es-MX')}</div>${i.nota||'(sin nota)'}</div>`).join('') : '<div class="empty-note">Sin interacciones todavía.</div>'}
+  </div>`;
+}
+
+initAuth();
+</script>
+</body>
+</html>
