@@ -133,15 +133,21 @@
   .cal-dow{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:5px; }
   .cal-dow span{ text-align:center; font-size:10px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; }
   .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
-  .cal-cell{ aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:10px; font-size:12.5px; font-variant-numeric:tabular-nums; }
-  .cal-cell .num{ width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
-  .cal-cell.muted{ opacity:.28; }
+  .cal-cell{ min-height:66px; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; border-radius:10px; padding:4px 5px; font-size:12.5px; font-variant-numeric:tabular-nums; gap:2px; overflow:hidden; }
+  .cal-cell .num{ width:20px; height:20px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:11.5px; flex-shrink:0; }
+  .cal-cell.muted{ opacity:.28; min-height:34px; }
   .cal-cell.today .num{ background:var(--wine); color:#fff; font-weight:600; }
   .cal-cell.has-evt{ cursor:pointer; }
-  .cal-cell.has-evt:active{ transform:scale(.88); }
+  .cal-cell.has-evt:active{ transform:scale(.96); }
   .cal-cell.verde{ background:rgba(63,131,84,.09); }
   .cal-cell.ambar{ background:rgba(197,166,107,.16); }
   .cal-cell.rojo{ background:rgba(181,69,58,.11); }
+  .cal-city{ font-weight:700; font-size:10.5px; line-height:1.2; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; }
+  .cal-mini-stats{ display:flex; gap:4px; flex-wrap:wrap; margin-top:auto; }
+  .cal-mini-stats .ms{ font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:8px; line-height:1.45; }
+  .cal-mini-stats .ms.liq{ background:rgba(63,131,84,.16); color:var(--success); }
+  .cal-mini-stats .ms.ant{ background:rgba(197,166,107,.28); color:#7A5F22; }
+  .cal-mini-stats .ms.pend{ background:rgba(181,69,58,.16); color:var(--danger); }
   .cal-dot{ width:5px; height:5px; border-radius:50%; margin-top:3px; }
   .cal-dot.verde{ background:var(--success); }
   .cal-dot.ambar{ background:var(--champagne); }
@@ -575,13 +581,17 @@ async function cargarLeads(){
     ciudades ( nombre ),
     estatus ( id, etiqueta, color_hex )
   `).order('creado_en', {ascending:false});
-  // Solo leads de las ciudades que pertenecen a la gira en curso. Si no
-  // se encontró el curso activo (p.ej. cambió de nombre y no se
-  // actualizó CURSO_ACTIVO_NOMBRE arriba), se falla VISIBLE — se
-  // muestran todos los leads sin filtrar y se avisa — en vez de
-  // esconder en silencio a todo el mundo con un filtro vacío.
+  // Solo leads de las ciudades que pertenecen a la gira en curso, MÁS los
+  // que todavía no tienen ciudad asignada (leads recién llegados de
+  // campaña que aún no se clasifican a una parada — p.ej. la bandeja de
+  // Facebook Ads). Antes el filtro los excluía a todos por igual porque
+  // `ciudad_interes_id` no hace match con `null`, dejando el tablero
+  // vacío para leads nuevos sin ciudad. Si no se encontró el curso activo
+  // (p.ej. cambió de nombre y no se actualizó CURSO_ACTIVO_NOMBRE arriba),
+  // se falla VISIBLE — se muestran todos los leads sin filtrar y se avisa
+  // — en vez de esconder en silencio a todo el mundo con un filtro vacío.
   if(CIUDADES_GIRA_ACTIVA.length){
-    query = query.in('ciudad_interes_id', CIUDADES_GIRA_ACTIVA);
+    query = query.or(`ciudad_interes_id.in.(${CIUDADES_GIRA_ACTIVA.join(',')}),ciudad_interes_id.is.null`);
   } else {
     toast('No se encontró el curso activo ("' + CURSO_ACTIVO_NOMBRE + '") — mostrando TODOS los leads sin filtrar por gira.', true);
   }
@@ -941,8 +951,12 @@ function pintarCalendarioMes(){
     let liq=0, ant=0, pend=0;
     eventosDelDia.forEach(ev=>{ liq+=ev.liq; ant+=ev.ant; pend+=ev.pend; });
     const clase = clasificarCalendario(liq, ant, pend);
-    return `<div class="cal-cell has-evt ${clase} ${esHoy?'today':''}" data-key="${c.key}">
-      <span class="num">${c.dia}</span><span class="cal-dot ${clase}"></span></div>`;
+    const ciudadesTxt = [...new Set(eventosDelDia.map(ev=>ev.ciudad))].join(' · ');
+    return `<div class="cal-cell has-evt ${clase} ${esHoy?'today':''}" data-key="${c.key}" title="${ciudadesTxt}">
+      <span class="num">${c.dia}</span>
+      <span class="cal-city">${ciudadesTxt}</span>
+      <span class="cal-mini-stats">${liq?`<span class="ms liq">✓ ${liq}</span>`:''}${ant?`<span class="ms ant">◐ ${ant}</span>`:''}${pend?`<span class="ms pend">! ${pend}</span>`:''}</span>
+    </div>`;
   }).join('');
 
   cont.innerHTML = `
