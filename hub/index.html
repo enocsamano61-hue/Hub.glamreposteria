@@ -173,10 +173,32 @@
   .sheet-pill.verde{ background:rgba(63,131,84,.12); color:var(--success); }
   .sheet-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
   .sheet-stats .stat{ background:var(--bg); border:1px solid var(--border); border-radius:11px; padding:9px 6px; text-align:center; }
-  .sheet-stats .stat .v{ font-family:'Newsreader',serif; font-size:18px; font-weight:600; }
+  .sheet-stats .stat .v{ font-family:'Newsreader',serif; font-size:18px; font-weight:600; text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px; transition:text-decoration-color .12s; }
   .sheet-stats .stat .l{ font-size:8.5px; color:var(--ink-soft); text-transform:uppercase; margin-top:2px; }
+  .sheet-stats .stat.clickable{ cursor:pointer; transition:background .12s, transform .12s; }
+  .sheet-stats .stat.clickable:hover{ background:var(--border); }
+  .sheet-stats .stat.clickable:hover .v{ text-decoration-color:currentColor; }
+  .sheet-stats .stat.clickable:active{ transform:scale(.95); }
   .sheet-bar{ height:7px; border-radius:20px; overflow:hidden; display:flex; background:var(--border); }
   .sheet-bar span{ height:100%; }
+  .tap-hint{ text-align:center; font-size:10.5px; color:var(--ink-soft); margin:2px 0 0; }
+
+  /* ---------- hoja del calendario: resumen <-> lista de alumnos (drill-down) ---------- */
+  .sheet-body{ position:relative; overflow:hidden; }
+  .view-lista{ display:none; }
+  .view-lista.showing{ display:block; }
+  .sheet-body.showing-lista .view-resumen{ display:none; }
+  .list-head{ display:flex; align-items:center; gap:10px; padding-bottom:12px; border-bottom:1px solid var(--border); margin-bottom:2px; }
+  .list-back{ display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; border:1px solid var(--border); background:var(--bg); color:var(--ink); cursor:pointer; flex-shrink:0; font-size:16px; padding:0; line-height:1; }
+  .list-label{ flex:1; font-weight:600; font-size:14px; }
+  .list-count{ font-size:11px; color:var(--ink-soft); font-weight:600; background:var(--bg); padding:2px 9px; border-radius:20px; }
+  .alumno-row{ display:flex; align-items:center; gap:12px; padding:11px 2px; border-bottom:1px solid var(--border); cursor:pointer; }
+  .alumno-row:last-child{ border-bottom:none; }
+  .alumno-row:hover{ background:var(--bg); }
+  .alumno-info{ flex:1; min-width:0; }
+  .alumno-nombre{ font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .alumno-tel{ font-size:11px; color:var(--ink-soft); }
+  .alumno-monto{ font-size:13px; font-weight:600; color:var(--ink-soft); flex-shrink:0; }
 
   /* ---------- filas clickeables (drill-down: ciudad -> curso -> alumno) ---------- */
   .lead-row.clickable{ cursor:pointer; border-radius:9px; }
@@ -189,7 +211,7 @@
   .cat-sub-label{ grid-column:1/-1; font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin:6px 0 -2px 2px; }
 
   /* modal */
-  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(41,36,33,.5); z-index:60; align-items:center; justify-content:center; padding:16px; }
+  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(41,36,33,.5); z-index:78; align-items:center; justify-content:center; padding:16px; }
   .modal-overlay.open{ display:flex; }
   .modal{ background:var(--card); border-radius:16px; padding:24px; width:100%; max-width:440px; max-height:88vh; overflow-y:auto; }
   .modal h3{ font-size:17px; margin-bottom:2px; }
@@ -197,6 +219,15 @@
   .modal-field{ margin-bottom:12px; }
   .modal-field label{ display:block; font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
   .modal-field input, .modal-field select{ width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:9px; font-family:inherit; font-size:13px; }
+  .modal-tabs{ display:flex; gap:4px; background:var(--bg); border-radius:10px; padding:3px; margin-bottom:16px; }
+  .modal-tab{ flex:1; text-align:center; padding:8px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink-soft); background:none; border:none; font-family:inherit; }
+  .modal-tab.active{ background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(41,36,33,.12); }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+  .dato-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed var(--border); font-size:13px; }
+  .dato-row:last-of-type{ border-bottom:none; margin-bottom:14px; }
+  .dato-row .l{ color:var(--ink-soft); }
+  .dato-row .v{ font-weight:600; }
   .interaccion-item{ font-size:12px; padding:8px 0; border-bottom:1px dashed var(--border); }
   .interaccion-item:last-child{ border-bottom:none; }
   .interaccion-fecha{ font-size:10px; color:var(--ink-soft); }
@@ -389,13 +420,56 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: ALUMNO DE UN EVENTO (inscripción) — marcar estatus / agregar pago ===================== -->
+<div class="modal-overlay" id="modalInscripcion">
+  <div class="modal">
+    <button class="close" id="closeModalInscripcion">✕</button>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <div class="avatar" id="modalInscAvatar" style="width:40px; height:40px; font-size:14px;">—</div>
+      <div>
+        <h3 id="modalInscNombre" style="margin-bottom:1px;">—</h3>
+        <div class="sub" id="modalInscTelefono"></div>
+      </div>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabInscEstatus">Marcar estatus</button>
+      <button class="modal-tab" id="tabInscPago">Agregar pago</button>
+    </div>
+
+    <div class="tab-panel active" id="panelInscEstatus">
+      <div class="dato-row"><span class="l">Precio pactado</span><span class="v" id="modalInscPrecio">—</span></div>
+      <div class="dato-row"><span class="l">Anticipo registrado</span><span class="v" id="modalInscAnticipo">—</span></div>
+      <div class="dato-row"><span class="l">Restante</span><span class="v" id="modalInscRestante">—</span></div>
+      <div class="modal-field"><label>Nuevo estatus</label><select id="modalInscEstatusSelect"></select></div>
+      <button class="btn-primary" id="guardarInscEstatus">Guardar estatus</button>
+    </div>
+
+    <div class="tab-panel" id="panelInscPago">
+      <div class="modal-field"><label>Monto del abono</label><input type="number" id="modalPagoMonto" placeholder="700" inputmode="decimal"></div>
+      <div class="modal-field"><label>Fecha</label><input type="date" id="modalPagoFecha"></div>
+      <div class="modal-field"><label>Banco (opcional)</label><input id="modalPagoBanco" placeholder="BanCoppel, transferencia..."></div>
+      <button class="btn-primary" id="guardarInscPago">Registrar abono</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== HOJA: DETALLE DE UN DÍA DEL CALENDARIO ===================== -->
 <div class="sheet-backdrop" id="sheetCalendarioBackdrop"></div>
 <div class="sheet" id="sheetCalendario">
   <button class="sheet-close" id="sheetCalendarioClose">✕</button>
   <div class="sheet-handle"></div>
   <div class="sheet-fecha" id="sheetFecha">—</div>
-  <div id="sheetEventos"></div>
+  <div class="sheet-body" id="sheetCalendarioBody">
+    <div class="view-resumen" id="sheetEventos"></div>
+    <div class="view-lista" id="sheetLista">
+      <div class="list-head">
+        <button class="list-back" id="sheetListaBack">‹</button>
+        <span class="list-label" id="sheetListaLabel">—</span>
+        <span class="list-count" id="sheetListaCount">0</span>
+      </div>
+      <div id="sheetListaBody">Cargando…</div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -414,6 +488,7 @@ let ESTATUS = [];       // catálogo cargado de la BD
 let CURSOS = [];
 let CIUDADES = [];
 let sesionActual = null;
+let asesorActualId = null; // asesor ligado al usuario logueado, para "confirmado_por" en pagos
 
 function toast(msg, esError){
   const t = document.getElementById('toast');
@@ -443,7 +518,13 @@ async function onLogin(session){
   document.getElementById('whoAmI').textContent = session.user.email;
   await cargarCatalogos();
   await cargarCiudadesConCurso();
+  await resolverAsesorActual();
   await Promise.all([renderBoard(), renderDashboard(), renderCursos(), renderCiudadSelect(), renderCalendario()]);
+}
+async function resolverAsesorActual(){
+  if(!sesionActual) return;
+  const { data } = await sb.from('asesores').select('id').eq('user_id', sesionActual.user.id).maybeSingle();
+  asesorActualId = data?.id || null;
 }
 document.getElementById('loginBtn').addEventListener('click', async ()=>{
   const email = document.getElementById('loginEmail').value.trim();
@@ -767,6 +848,7 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   toast('Guardado.');
   document.getElementById('modalLead').classList.remove('open');
   await renderBoard();
+  if(diaCalendarioAbierto) await renderCalendario(true);
 });
 
 /* --- Modal: nuevo lead --- */
@@ -828,7 +910,8 @@ function clasificarCalendario(liq, ant, pend){
   return 'verde';
 }
 
-async function renderCalendario(){
+async function renderCalendario(preservarMes){
+  const mesPrevio = (preservarMes && calendarioMeses[calendarioMesIdx]) ? { ...calendarioMeses[calendarioMesIdx] } : null;
   const cont = document.getElementById('listaCalendario');
   const cursoId = await obtenerCursoActivoId();
   if(!cursoId){
@@ -901,7 +984,10 @@ async function renderCalendario(){
       liquidados = r.liquidado; conAnticipo = r.anticipo; sinPago = r.sinPago;
     }
     if(!calendarioDias[e.fecha]) calendarioDias[e.fecha] = [];
-    calendarioDias[e.fecha].push({ ciudad: e.ciudades?.nombre || '(ciudad?)', liq: liquidados, ant: conAnticipo, pend: sinPago });
+    calendarioDias[e.fecha].push({
+      id: e.id, ciudadId: e.ciudad_id, tieneInscripciones: eventosConInscripcion.has(e.id),
+      ciudad: e.ciudades?.nombre || '(ciudad?)', liq: liquidados, ant: conAnticipo, pend: sinPago
+    });
   });
 
   const hoy = new Date();
@@ -914,8 +1000,14 @@ async function renderCalendario(){
     calendarioMeses.push({ y: cursor.getFullYear(), m: cursor.getMonth() });
     cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
   }
-  calendarioMesIdx = 0;
+  if(mesPrevio){
+    const idx = calendarioMeses.findIndex(mm => mm.y===mesPrevio.y && mm.m===mesPrevio.m);
+    calendarioMesIdx = idx >= 0 ? idx : 0;
+  } else {
+    calendarioMesIdx = 0;
+  }
   pintarCalendarioMes();
+  if(preservarMes) refrescarHojaAbierta();
 }
 
 function pintarCalendarioMes(){
@@ -986,11 +1078,16 @@ function pintarCalendarioMes(){
   document.getElementById('calNext').addEventListener('click', ()=>{ if(calendarioMesIdx<calendarioMeses.length-1){ calendarioMesIdx++; pintarCalendarioMes(); } });
 }
 
+let diaCalendarioAbierto = null;     // key ('YYYY-MM-DD') del día con la hoja abierta, o null
+let listaCalendarioActual = null;    // { ev, categoria } de la lista de alumnos abierta, o null si se ve el resumen
+
 function abrirSheetCalendario(key){
+  diaCalendarioAbierto = key;
+  mostrarResumenSheet();
   const eventosDelDia = calendarioDias[key] || [];
   const fecha = new Date(key + 'T00:00:00');
   document.getElementById('sheetFecha').textContent = fecha.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
-  document.getElementById('sheetEventos').innerHTML = eventosDelDia.map(ev=>{
+  document.getElementById('sheetEventos').innerHTML = eventosDelDia.map((ev, idx)=>{
     const clase = clasificarCalendario(ev.liq, ev.ant, ev.pend);
     const total = (ev.liq + ev.ant + ev.pend) || 1;
     const pillTxt = clase==='rojo' ? 'Necesita seguimiento' : clase==='ambar' ? 'En seguimiento' : 'Al día';
@@ -999,26 +1096,218 @@ function abrirSheetCalendario(key){
       <div class="sheet-curso">${CURSO_ACTIVO_NOMBRE}</div>
       <div class="sheet-pill ${clase}">${pillTxt}</div>
       <div class="sheet-stats">
-        <div class="stat"><div class="v" style="color:var(--success)">${ev.liq}</div><div class="l">Liquidados</div></div>
-        <div class="stat"><div class="v" style="color:#8A6D2F">${ev.ant}</div><div class="l">Anticipo</div></div>
-        <div class="stat"><div class="v" style="color:var(--danger)">${ev.pend}</div><div class="l">Sin pago</div></div>
+        <div class="stat clickable" data-evt-idx="${idx}" data-cat="liq"><div class="v" style="color:var(--success)">${ev.liq}</div><div class="l">Liquidados</div></div>
+        <div class="stat clickable" data-evt-idx="${idx}" data-cat="ant"><div class="v" style="color:#8A6D2F">${ev.ant}</div><div class="l">Anticipo</div></div>
+        <div class="stat clickable" data-evt-idx="${idx}" data-cat="pend"><div class="v" style="color:var(--danger)">${ev.pend}</div><div class="l">Sin pago</div></div>
       </div>
       <div class="sheet-bar">
         <span style="background:var(--success); width:${ev.liq/total*100}%"></span>
         <span style="background:var(--champagne); width:${ev.ant/total*100}%"></span>
         <span style="background:var(--danger); width:${ev.pend/total*100}%"></span>
       </div>
+      <div class="tap-hint">↑ Toca un número para ver a esos alumnos</div>
     </div>`;
   }).join('');
+  document.getElementById('sheetEventos').querySelectorAll('.stat.clickable').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const ev = eventosDelDia[Number(el.dataset.evtIdx)];
+      if(ev) abrirListaCategoriaCalendario(ev, el.dataset.cat);
+    });
+  });
   document.getElementById('sheetCalendario').classList.add('open');
   document.getElementById('sheetCalendarioBackdrop').classList.add('open');
 }
 function cerrarSheetCalendario(){
   document.getElementById('sheetCalendario').classList.remove('open');
   document.getElementById('sheetCalendarioBackdrop').classList.remove('open');
+  diaCalendarioAbierto = null;
+  listaCalendarioActual = null;
+}
+
+function mostrarResumenSheet(){
+  document.getElementById('sheetCalendarioBody').classList.remove('showing-lista');
+  document.getElementById('sheetLista').classList.remove('showing');
+  listaCalendarioActual = null;
+}
+function mostrarListaSheet(){
+  document.getElementById('sheetCalendarioBody').classList.add('showing-lista');
+  document.getElementById('sheetLista').classList.add('showing');
+}
+document.getElementById('sheetListaBack').addEventListener('click', mostrarResumenSheet);
+
+const CATEGORIA_LABEL_CAL = { liq:'Liquidados', ant:'Con anticipo', pend:'Sin pago' };
+
+function iniciales(nombre){
+  if(!nombre) return '?';
+  const partes = nombre.trim().split(/\s+/);
+  return ((partes[0]?.[0]||'') + (partes[1]?.[0]||'')).toUpperCase();
+}
+
+/**
+ * Toca el número de una categoría (Liquidados/Anticipo/Sin pago) en la hoja
+ * del día -> desliza a la lista real de esos alumnos. Si el evento ya tiene
+ * inscripciones reales, se lee de "inscripciones" (con pago real, se puede
+ * marcar estatus o agregar un abono). Si el evento aún no tiene ninguna
+ * inscripción (ciudad todavía no llega su turno en la gira), se lee de
+ * "leads" — mismo dato que usa el resumen del calendario para esos días.
+ */
+async function abrirListaCategoriaCalendario(ev, categoria){
+  listaCalendarioActual = { ev, categoria };
+  document.getElementById('sheetListaLabel').textContent = CATEGORIA_LABEL_CAL[categoria];
+  document.getElementById('sheetListaCount').textContent = '…';
+  document.getElementById('sheetListaBody').innerHTML = 'Cargando…';
+  mostrarListaSheet();
+
+  if(ev.tieneInscripciones){
+    const { data, error } = await sb.from('inscripciones')
+      .select('id, anticipo, restante, precio_pactado, liquidado, personas(id, nombre, telefono_principal)')
+      .eq('evento_id', ev.id);
+    if(error){ document.getElementById('sheetListaBody').innerHTML = 'Error: ' + error.message; return; }
+    const filas = (data||[]).filter(i=>{
+      if(categoria==='liq') return i.liquidado;
+      if(categoria==='ant') return !i.liquidado && Number(i.anticipo) > 0;
+      return !i.liquidado && !(Number(i.anticipo) > 0);
+    }).sort((a,b)=>(a.personas?.nombre||'').localeCompare(b.personas?.nombre||''));
+    document.getElementById('sheetListaCount').textContent = filas.length;
+    document.getElementById('sheetListaBody').innerHTML = filas.length ? filas.map(i=>`
+      <div class="alumno-row" data-insc-id="${i.id}">
+        <div class="avatar">${iniciales(i.personas?.nombre)}</div>
+        <div class="alumno-info">
+          <div class="alumno-nombre">${i.personas?.nombre || '(sin nombre)'}</div>
+          <div class="alumno-tel">${i.personas?.telefono_principal || ''}</div>
+        </div>
+        <div class="alumno-monto">${i.liquidado ? '$'+Number(i.precio_pactado||0).toFixed(0) : (Number(i.anticipo)>0 ? '$'+Number(i.anticipo).toFixed(0) : '—')}</div>
+      </div>`).join('') : '<div class="empty-note">Sin alumnos en esta categoría.</div>';
+    document.getElementById('sheetListaBody').querySelectorAll('.alumno-row').forEach(row=>{
+      row.addEventListener('click', ()=>abrirModalInscripcion(row.dataset.inscId));
+    });
+  } else {
+    const { data, error } = await sb.from('leads')
+      .select('id, estatus(clave), personas(id, nombre, telefono_principal)')
+      .eq('ciudad_interes_id', ev.ciudadId);
+    if(error){ document.getElementById('sheetListaBody').innerHTML = 'Error: ' + error.message; return; }
+    const filas = (data||[]).filter(l=>{
+      const clave = l.estatus?.clave;
+      if(categoria==='liq') return clave==='pagado';
+      if(categoria==='ant') return clave==='anticipo_vigente';
+      return clave!=='pagado' && clave!=='anticipo_vigente' && clave!=='no_va_al_curso';
+    }).sort((a,b)=>(a.personas?.nombre||'').localeCompare(b.personas?.nombre||''));
+    document.getElementById('sheetListaCount').textContent = filas.length;
+    document.getElementById('sheetListaBody').innerHTML = filas.length ? filas.map(l=>`
+      <div class="alumno-row" data-lead-id="${l.id}">
+        <div class="avatar">${iniciales(l.personas?.nombre)}</div>
+        <div class="alumno-info">
+          <div class="alumno-nombre">${l.personas?.nombre || '(sin nombre)'}</div>
+          <div class="alumno-tel">${l.personas?.telefono_principal || ''}</div>
+        </div>
+      </div>`).join('') : '<div class="empty-note">Sin contactos en esta categoría.</div>';
+    document.getElementById('sheetListaBody').querySelectorAll('.alumno-row').forEach(row=>{
+      row.addEventListener('click', ()=>abrirModalLead(row.dataset.leadId));
+    });
+  }
+}
+
+/** Tras guardar un cambio (estatus o pago), reabre la hoja del día en el mismo punto donde estaba. */
+function refrescarHojaAbierta(){
+  if(!diaCalendarioAbierto) return;
+  const estabaEnLista = listaCalendarioActual;
+  abrirSheetCalendario(diaCalendarioAbierto);
+  if(estabaEnLista){
+    const eventosDelDia = calendarioDias[diaCalendarioAbierto] || [];
+    const evActualizado = eventosDelDia.find(e => e.id === estabaEnLista.ev.id) || eventosDelDia[0];
+    if(evActualizado) abrirListaCategoriaCalendario(evActualizado, estabaEnLista.categoria);
+  }
 }
 document.getElementById('sheetCalendarioClose').addEventListener('click', cerrarSheetCalendario);
 document.getElementById('sheetCalendarioBackdrop').addEventListener('click', cerrarSheetCalendario);
+
+/* --- Modal: alumno de un evento (inscripción real) — marcar estatus / agregar pago --- */
+let modalInscId = null, modalInscDatos = null;
+
+async function abrirModalInscripcion(inscId){
+  modalInscId = inscId;
+  document.getElementById('modalInscNombre').textContent = 'Cargando…';
+  document.getElementById('modalInscTelefono').textContent = '';
+  document.getElementById('modalInscAvatar').textContent = '—';
+  document.getElementById('modalInscripcion').classList.add('open');
+  cambiarTabInsc('estatus');
+
+  const { data, error } = await sb.from('inscripciones')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, personas(nombre, telefono_principal)')
+    .eq('id', inscId).single();
+  if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
+  modalInscDatos = data;
+  document.getElementById('modalInscNombre').textContent = data.personas?.nombre || '(sin nombre)';
+  document.getElementById('modalInscTelefono').textContent = data.personas?.telefono_principal || '';
+  document.getElementById('modalInscAvatar').textContent = iniciales(data.personas?.nombre);
+  document.getElementById('modalInscPrecio').textContent = data.precio_pactado!=null ? '$'+Number(data.precio_pactado).toFixed(0) : '—';
+  document.getElementById('modalInscAnticipo').textContent = '$'+Number(data.anticipo||0).toFixed(0);
+  document.getElementById('modalInscRestante').textContent = data.liquidado ? 'Liquidado' : '$'+Number(data.restante||0).toFixed(0);
+  const sel = document.getElementById('modalInscEstatusSelect');
+  sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===data.estatus_id?'selected':''}>${e.etiqueta}</option>`).join('');
+  document.getElementById('modalPagoMonto').value = '';
+  document.getElementById('modalPagoFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('modalPagoBanco').value = '';
+}
+function cerrarModalInscripcion(){
+  document.getElementById('modalInscripcion').classList.remove('open');
+  modalInscId = null; modalInscDatos = null;
+}
+document.getElementById('closeModalInscripcion').addEventListener('click', cerrarModalInscripcion);
+
+function cambiarTabInsc(tab){
+  document.getElementById('tabInscEstatus').classList.toggle('active', tab==='estatus');
+  document.getElementById('tabInscPago').classList.toggle('active', tab==='pago');
+  document.getElementById('panelInscEstatus').classList.toggle('active', tab==='estatus');
+  document.getElementById('panelInscPago').classList.toggle('active', tab==='pago');
+}
+document.getElementById('tabInscEstatus').addEventListener('click', ()=>cambiarTabInsc('estatus'));
+document.getElementById('tabInscPago').addEventListener('click', ()=>cambiarTabInsc('pago'));
+
+document.getElementById('guardarInscEstatus').addEventListener('click', async ()=>{
+  if(!modalInscId) return;
+  const nuevoEstatusId = Number(document.getElementById('modalInscEstatusSelect').value);
+  const btn = document.getElementById('guardarInscEstatus'); btn.disabled = true; btn.textContent = 'Guardando...';
+  const { error } = await sb.from('inscripciones').update({ estatus_id: nuevoEstatusId }).eq('id', modalInscId);
+  btn.disabled = false; btn.textContent = 'Guardar estatus';
+  if(error){ toast('Error al guardar: ' + error.message, true); return; }
+  toast('Estatus actualizado.');
+  cerrarModalInscripcion();
+  await renderCalendario(true);
+});
+
+document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
+  if(!modalInscId || !modalInscDatos) return;
+  const monto = Number(document.getElementById('modalPagoMonto').value);
+  const fecha = document.getElementById('modalPagoFecha').value;
+  const banco = document.getElementById('modalPagoBanco').value.trim();
+  if(!monto || monto <= 0){ toast('Ingresa un monto válido.', true); return; }
+  if(!fecha){ toast('Selecciona una fecha.', true); return; }
+
+  const btn = document.getElementById('guardarInscPago'); btn.disabled = true; btn.textContent = 'Guardando...';
+
+  const { error: errPago } = await sb.from('pagos').insert({
+    inscripcion_id: modalInscId, monto, fecha, banco: banco || null, confirmado_por: asesorActualId || null
+  });
+  if(errPago){ btn.disabled = false; btn.textContent = 'Registrar abono'; toast('Error al registrar el pago: ' + errPago.message, true); return; }
+
+  const nuevoAnticipo = Number(modalInscDatos.anticipo || 0) + monto;
+  const precio = modalInscDatos.precio_pactado != null ? Number(modalInscDatos.precio_pactado) : null;
+  const nuevoRestante = precio != null ? Math.max(precio - nuevoAnticipo, 0) : Math.max(Number(modalInscDatos.restante || 0) - monto, 0);
+  const liquidado = precio != null ? nuevoAnticipo >= precio : nuevoRestante <= 0;
+  const update = { anticipo: nuevoAnticipo, restante: nuevoRestante, liquidado };
+  if(liquidado){
+    const estatusPagado = ESTATUS.find(e=>e.clave==='pagado');
+    if(estatusPagado) update.estatus_id = estatusPagado.id;
+  }
+  const { error: errUpd } = await sb.from('inscripciones').update(update).eq('id', modalInscId);
+  btn.disabled = false; btn.textContent = 'Registrar abono';
+  if(errUpd){ toast('El pago se guardó, pero no se pudo actualizar el saldo: ' + errUpd.message, true); return; }
+
+  toast('Abono registrado.');
+  cerrarModalInscripcion();
+  await renderCalendario(true);
+});
 
 async function renderCursos(){
   const cont = document.getElementById('listaCursos');
