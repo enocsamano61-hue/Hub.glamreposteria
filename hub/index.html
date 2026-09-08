@@ -2150,54 +2150,73 @@ async function renderGirasHistorial(){
   const cont = document.getElementById('giraHistorialLista');
   cont.innerHTML = 'Cargando…';
   const { data, error } = await sb.from('giras')
-    .select('id, nombre, estatus, creado_en, confirmada_en, cursos(nombre), gira_paradas(id, orden, ciudad_id, distancia_km_desde_anterior, ciudades(nombre, estado))')
+    .select('id, nombre, estatus, creado_en, confirmada_en, reactivacion_generada_en, cursos(nombre), gira_paradas(id, orden, ciudad_id, distancia_km_desde_anterior, ciudades(nombre, estado))')
     .order('creado_en', {ascending:false});
   if(error){ cont.innerHTML = '<div class="empty-note">Error: '+error.message+'</div>'; return; }
   if(!data || data.length===0){ cont.innerHTML = '<div class="empty-note">Todavía no se ha guardado ninguna gira — arma una en "Constructor de ruta".</div>'; return; }
   cont.innerHTML = data.map(g=>{
     const paradas = (g.gira_paradas||[]).slice().sort((a,b)=>a.orden-b.orden);
     const totalKm = paradas.reduce((a,p)=>a+(Number(p.distancia_km_desde_anterior)||0),0);
+    const confirmada = g.estatus==='confirmada';
     return `<div class="card" style="margin-bottom:14px;">
       <div class="sheet-city">${g.nombre}</div>
       <div class="sheet-curso">${g.cursos?.nombre || '(sin curso asignado)'} · ${paradas.length} ciudades · ${totalKm.toFixed(0)} km</div>
-      <div class="sheet-pill ${g.estatus==='confirmada'?'verde':'ambar'}">${g.estatus==='confirmada'?'Confirmada':'Borrador'}</div>
+      <div class="sheet-pill ${confirmada?'verde':'ambar'}">${confirmada?'Confirmada':'Borrador'}</div>
       <div class="modal-notas" style="margin:12px 0;">
         ${paradas.map(p=>`<div class="modal-notas-item">${p.orden}. ${p.ciudades?.nombre||'?'}${p.ciudades?.estado?', '+p.ciudades.estado:''}${p.distancia_km_desde_anterior?' · '+Number(p.distancia_km_desde_anterior).toFixed(0)+' km':''}</div>`).join('')}
       </div>
-      ${g.estatus==='borrador'
-        ? `<button class="btn-primary small" data-confirmar-gira="${g.id}">Confirmar y generar lista de reactivación</button>`
-        : `<div class="sub">Confirmada el ${new Date(g.confirmada_en).toLocaleDateString('es-MX')}</div>`}
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        ${!confirmada ? `<button class="btn-primary small" data-confirmar-ruta="${g.id}">Confirmar ruta</button>` : `<span class="sub" style="margin:0;">Confirmada el ${new Date(g.confirmada_en).toLocaleDateString('es-MX')}</span>`}
+        ${confirmada ? `<button class="btn-primary small" data-generar-reactivacion="${g.id}">${g.reactivacion_generada_en ? 'Volver a generar lista de reactivación' : 'Agregar alumnos históricos a Leads'}</button>` : ''}
+      </div>
+      ${g.reactivacion_generada_en ? `<div class="sub" style="margin-top:6px;">Lista generada por última vez el ${new Date(g.reactivacion_generada_en).toLocaleDateString('es-MX')}</div>` : ''}
     </div>`;
   }).join('');
-  cont.querySelectorAll('[data-confirmar-gira]').forEach(btn=>{
-    btn.addEventListener('click', ()=>confirmarGira(btn.dataset.confirmarGira, btn));
+  cont.querySelectorAll('[data-confirmar-ruta]').forEach(btn=>{
+    btn.addEventListener('click', ()=>confirmarRutaGira(btn.dataset.confirmarRuta, btn));
+  });
+  cont.querySelectorAll('[data-generar-reactivacion]').forEach(btn=>{
+    btn.addEventListener('click', ()=>generarReactivacionGira(btn.dataset.generarReactivacion, btn));
   });
 }
 
+/** Cierra la ruta de la gira — no toca Leads, solo marca que ya es una gira hecha (no un borrador). */
+async function confirmarRutaGira(giraId, btnOrigen){
+  if(!confirm('¿Confirmar esta ruta? Ya no aparecerá como borrador. Esto NO agrega nada a Leads todavía — eso se hace con el botón aparte.')) return;
+  if(btnOrigen){ btnOrigen.disabled = true; btnOrigen.textContent = 'Confirmando...'; }
+  const { error } = await sb.from('giras').update({ estatus:'confirmada', confirmada_en: new Date().toISOString() }).eq('id', giraId);
+  if(error){ toast('Error: '+error.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar ruta';} return; }
+  toast('Ruta confirmada.');
+  await renderGirasHistorial();
+}
+
 /**
- * Al confirmar una gira: junta a TODOS los alumnos históricos (cualquier
- * curso) de las ciudades de la ruta, y los agrega como leads nuevos para
- * el curso de esta gira — pero nunca a quien ya tenga un lead para ese
- * mismo curso, para no duplicar ni volver a ofrecérselo dos veces.
+ * Botón independiente — solo tiene sentido para una gira ya confirmada
+ * (una ruta real, no un borrador en planeación). Junta a TODOS los alumnos
+ * históricos (cualquier curso) de las ciudades de la ruta, y los agrega
+ * como leads nuevos para el curso de esta gira — pero nunca a quien ya
+ * tenga un lead para ese mismo curso, para no duplicar ni volver a
+ * ofrecérselo dos veces. Es seguro volver a darle clic: nunca duplica.
  */
-async function confirmarGira(giraId, btnOrigen){
-  if(!confirm('¿Confirmar esta gira y generar la lista de reactivación? Se agregarán a "Alumnos y Leads" los alumnos históricos de estas ciudades que todavía no tengan seguimiento para este curso.')) return;
+async function generarReactivacionGira(giraId, btnOrigen){
+  if(!confirm('¿Generar la lista de reactivación de esta gira? Se agregarán a "Alumnos y Leads" los alumnos históricos de estas ciudades que todavía no tengan seguimiento para este curso.')) return;
+  const textoOriginal = btnOrigen ? btnOrigen.textContent : '';
   if(btnOrigen){ btnOrigen.disabled = true; btnOrigen.textContent = 'Generando...'; }
 
   const { data: gira, error: errGira } = await sb.from('giras').select('id, curso_id, gira_paradas(ciudad_id)').eq('id', giraId).single();
-  if(errGira){ toast('Error: '+errGira.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
-  if(!gira.curso_id){ toast('Esta gira no tiene un curso asignado — no se puede generar la lista sin saber qué curso ofrecer.', true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+  if(errGira){ toast('Error: '+errGira.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent=textoOriginal;} return; }
+  if(!gira.curso_id){ toast('Esta gira no tiene un curso asignado — no se puede generar la lista sin saber qué curso ofrecer.', true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent=textoOriginal;} return; }
   const ciudadIds = [...new Set((gira.gira_paradas||[]).map(p=>p.ciudad_id))];
 
   const { data: eventosCiudades, error: errEv } = await sb.from('eventos').select('id, ciudad_id').in('ciudad_id', ciudadIds);
-  if(errEv){ toast('Error: '+errEv.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+  if(errEv){ toast('Error: '+errEv.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent=textoOriginal;} return; }
   const eventoIds = (eventosCiudades||[]).map(e=>e.id);
   const ciudadPorEvento = {}; (eventosCiudades||[]).forEach(e=>{ ciudadPorEvento[e.id] = e.ciudad_id; });
 
   let nuevosLeads = [];
   if(eventoIds.length){
     const { data: inscripciones, error: errInsc } = await sb.from('inscripciones').select('persona_id, evento_id').in('evento_id', eventoIds);
-    if(errInsc){ toast('Error buscando alumnos históricos: '+errInsc.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+    if(errInsc){ toast('Error buscando alumnos históricos: '+errInsc.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent=textoOriginal;} return; }
     const personaIds = [...new Set((inscripciones||[]).map(i=>i.persona_id))];
     const ciudadPorPersona = {};
     (inscripciones||[]).forEach(i=>{ if(!ciudadPorPersona[i.persona_id]) ciudadPorPersona[i.persona_id] = ciudadPorEvento[i.evento_id]; });
@@ -2216,13 +2235,13 @@ async function confirmarGira(giraId, btnOrigen){
 
   if(nuevosLeads.length){
     const { error: errNuevos } = await sb.from('leads').insert(nuevosLeads);
-    if(errNuevos){ toast('Error creando leads: '+errNuevos.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+    if(errNuevos){ toast('Error creando leads: '+errNuevos.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent=textoOriginal;} return; }
     toast(`${nuevosLeads.length} alumno(s) agregados a Alumnos y Leads para dar seguimiento.`);
   } else {
-    toast('Gira confirmada. No había alumnos históricos nuevos que agregar (todos ya tenían seguimiento para este curso, o ninguna de estas ciudades tiene historial).');
+    toast('Sin alumnos nuevos que agregar (todos ya tenían seguimiento para este curso, o ninguna de estas ciudades tiene historial).');
   }
 
-  await sb.from('giras').update({ estatus:'confirmada', confirmada_en: new Date().toISOString() }).eq('id', giraId);
+  await sb.from('giras').update({ reactivacion_generada_en: new Date().toISOString() }).eq('id', giraId);
   await renderGirasHistorial();
   leadsCache = await cargarLeads();
   pintarBoard();
