@@ -228,6 +228,10 @@
   .dato-row:last-of-type{ border-bottom:none; margin-bottom:14px; }
   .dato-row .l{ color:var(--ink-soft); }
   .dato-row .v{ font-weight:600; }
+  .modal-notas{ background:var(--bg); border-radius:10px; padding:10px 12px; margin-bottom:16px; }
+  .modal-notas-titulo{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
+  .modal-notas-item{ font-size:12px; color:var(--ink); padding:3px 0; }
+  .modal-notas-item:not(:last-child){ border-bottom:1px dashed var(--border); }
   .interaccion-item{ font-size:12px; padding:8px 0; border-bottom:1px dashed var(--border); }
   .interaccion-item:last-child{ border-bottom:none; }
   .interaccion-fecha{ font-size:10px; color:var(--ink-soft); }
@@ -431,6 +435,7 @@
         <div class="sub" id="modalInscTelefono"></div>
       </div>
     </div>
+    <div class="modal-notas" id="modalInscNotas" style="display:none;"></div>
     <div class="modal-tabs">
       <button class="modal-tab active" id="tabInscEstatus">Marcar estatus</button>
       <button class="modal-tab" id="tabInscPago">Agregar pago</button>
@@ -1229,11 +1234,12 @@ async function abrirModalInscripcion(inscId){
   document.getElementById('modalInscNombre').textContent = 'Cargando…';
   document.getElementById('modalInscTelefono').textContent = '';
   document.getElementById('modalInscAvatar').textContent = '—';
+  document.getElementById('modalInscNotas').style.display = 'none';
   document.getElementById('modalInscripcion').classList.add('open');
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, personas(nombre, telefono_principal)')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, notas_migracion, personas(nombre, telefono_principal)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -1243,6 +1249,15 @@ async function abrirModalInscripcion(inscId){
   document.getElementById('modalInscPrecio').textContent = data.precio_pactado!=null ? '$'+Number(data.precio_pactado).toFixed(0) : '—';
   document.getElementById('modalInscAnticipo').textContent = '$'+Number(data.anticipo||0).toFixed(0);
   document.getElementById('modalInscRestante').textContent = data.liquidado ? 'Liquidado' : '$'+Number(data.restante||0).toFixed(0);
+  const notasBox = document.getElementById('modalInscNotas');
+  if(data.notas_migracion){
+    const items = data.notas_migracion.split(' | ').filter(Boolean);
+    notasBox.innerHTML = '<div class="modal-notas-titulo">Notas del Excel</div>' +
+      items.map(t=>`<div class="modal-notas-item">${t}</div>`).join('');
+    notasBox.style.display = 'block';
+  } else {
+    notasBox.style.display = 'none';
+  }
   const sel = document.getElementById('modalInscEstatusSelect');
   sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===data.estatus_id?'selected':''}>${e.etiqueta}</option>`).join('');
   document.getElementById('modalPagoMonto').value = '';
