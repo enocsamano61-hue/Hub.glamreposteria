@@ -1176,7 +1176,7 @@ async function abrirListaCategoriaCalendario(ev, categoria){
           <div class="alumno-nombre">${i.personas?.nombre || '(sin nombre)'}</div>
           <div class="alumno-tel">${i.personas?.telefono_principal || ''}</div>
         </div>
-        <div class="alumno-monto">${i.liquidado ? '$'+Number(i.precio_pactado||0).toFixed(0) : (Number(i.anticipo)>0 ? '$'+Number(i.anticipo).toFixed(0) : '—')}</div>
+        <div class="alumno-monto">${i.liquidado ? (i.precio_pactado!=null ? '$'+Number(i.precio_pactado).toFixed(0) : '—') : (Number(i.anticipo)>0 ? '$'+Number(i.anticipo).toFixed(0) : '—')}</div>
       </div>`).join('') : '<div class="empty-note">Sin alumnos en esta categoría.</div>';
     document.getElementById('sheetListaBody').querySelectorAll('.alumno-row').forEach(row=>{
       row.addEventListener('click', ()=>abrirModalInscripcion(row.dataset.inscId));
