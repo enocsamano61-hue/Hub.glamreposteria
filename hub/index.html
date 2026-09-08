@@ -230,8 +230,6 @@
   .dato-row .v{ font-weight:600; }
   .modal-notas{ background:var(--bg); border-radius:10px; padding:10px 12px; margin-bottom:16px; }
   .modal-notas-titulo{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
-  .modal-notas-item{ font-size:12px; color:var(--ink); padding:3px 0; }
-  .modal-notas-item:not(:last-child){ border-bottom:1px dashed var(--border); }
   .interaccion-item{ font-size:12px; padding:8px 0; border-bottom:1px dashed var(--border); }
   .interaccion-item:last-child{ border-bottom:none; }
   .interaccion-fecha{ font-size:10px; color:var(--ink-soft); }
@@ -435,7 +433,11 @@
         <div class="sub" id="modalInscTelefono"></div>
       </div>
     </div>
-    <div class="modal-notas" id="modalInscNotas" style="display:none;"></div>
+    <div class="modal-notas">
+      <div class="modal-notas-titulo">Comentarios</div>
+      <textarea class="textarea" id="modalInscNotasEdit" placeholder="Sin comentarios todavía..." style="min-height:80px;"></textarea>
+      <button class="btn-primary small" id="guardarInscNotas" style="margin-top:8px;">Guardar comentario</button>
+    </div>
     <div class="modal-tabs">
       <button class="modal-tab active" id="tabInscEstatus">Marcar estatus</button>
       <button class="modal-tab" id="tabInscPago">Agregar pago</button>
@@ -1234,7 +1236,7 @@ async function abrirModalInscripcion(inscId){
   document.getElementById('modalInscNombre').textContent = 'Cargando…';
   document.getElementById('modalInscTelefono').textContent = '';
   document.getElementById('modalInscAvatar').textContent = '—';
-  document.getElementById('modalInscNotas').style.display = 'none';
+  document.getElementById('modalInscNotasEdit').value = '';
   document.getElementById('modalInscripcion').classList.add('open');
   cambiarTabInsc('estatus');
 
@@ -1249,15 +1251,7 @@ async function abrirModalInscripcion(inscId){
   document.getElementById('modalInscPrecio').textContent = data.precio_pactado!=null ? '$'+Number(data.precio_pactado).toFixed(0) : '—';
   document.getElementById('modalInscAnticipo').textContent = '$'+Number(data.anticipo||0).toFixed(0);
   document.getElementById('modalInscRestante').textContent = data.liquidado ? 'Liquidado' : '$'+Number(data.restante||0).toFixed(0);
-  const notasBox = document.getElementById('modalInscNotas');
-  if(data.notas_migracion){
-    const items = data.notas_migracion.split(' | ').filter(Boolean);
-    notasBox.innerHTML = '<div class="modal-notas-titulo">Notas del Excel</div>' +
-      items.map(t=>`<div class="modal-notas-item">${t}</div>`).join('');
-    notasBox.style.display = 'block';
-  } else {
-    notasBox.style.display = 'none';
-  }
+  document.getElementById('modalInscNotasEdit').value = (data.notas_migracion || '').split(' | ').join('\n');
   const sel = document.getElementById('modalInscEstatusSelect');
   sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===data.estatus_id?'selected':''}>${e.etiqueta}</option>`).join('');
   document.getElementById('modalPagoMonto').value = '';
@@ -1278,6 +1272,17 @@ function cambiarTabInsc(tab){
 }
 document.getElementById('tabInscEstatus').addEventListener('click', ()=>cambiarTabInsc('estatus'));
 document.getElementById('tabInscPago').addEventListener('click', ()=>cambiarTabInsc('pago'));
+
+document.getElementById('guardarInscNotas').addEventListener('click', async ()=>{
+  if(!modalInscId) return;
+  const texto = document.getElementById('modalInscNotasEdit').value.trim();
+  const btn = document.getElementById('guardarInscNotas'); btn.disabled = true; btn.textContent = 'Guardando...';
+  const { error } = await sb.from('inscripciones').update({ notas_migracion: texto || null }).eq('id', modalInscId);
+  btn.disabled = false; btn.textContent = 'Guardar comentario';
+  if(error){ toast('Error al guardar: ' + error.message, true); return; }
+  if(modalInscDatos) modalInscDatos.notas_migracion = texto || null;
+  toast('Comentario guardado.');
+});
 
 document.getElementById('guardarInscEstatus').addEventListener('click', async ()=>{
   if(!modalInscId) return;
