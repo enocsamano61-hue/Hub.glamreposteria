@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
     --bg:#F7F4EE; --card:#FFFEFB; --ink:#292421; --ink-soft:#756D65; --border:#E5DED4;
@@ -230,6 +231,46 @@
   .dato-row .v{ font-weight:600; }
   .modal-notas{ background:var(--bg); border-radius:10px; padding:10px 12px; margin-bottom:16px; }
   .modal-notas-titulo{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
+
+  /* ---------- Ventas / Reportes: sub-pestañas, tarjetas de gráfica, tablas, feed ---------- */
+  .subtabs{ display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+  .subtab{ background:var(--card); border:1px solid var(--border); padding:9px 16px; border-radius:20px; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; font-family:inherit; }
+  .subtab.active{ background:var(--wine); border-color:var(--wine); color:#fff; }
+  .subview{ display:none; }
+  .subview.active{ display:block; }
+
+  .chart-card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:16px; }
+  .chart-card h4{ font-family:'Newsreader',serif; font-size:16px; font-weight:600; margin-bottom:2px; }
+  .chart-card .sub{ margin-bottom:14px; }
+  .chart-wrap{ position:relative; height:320px; }
+  .chart-wrap.short{ height:230px; }
+  .chart-empty{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--ink-soft); font-size:12.5px; text-align:center; padding:0 20px; }
+
+  .toggle-group{ display:inline-flex; background:var(--bg); border-radius:10px; padding:3px; margin-bottom:14px; }
+  .toggle-btn{ padding:7px 14px; border-radius:8px; font-size:12px; font-weight:600; color:var(--ink-soft); background:none; border:none; cursor:pointer; font-family:inherit; }
+  .toggle-btn.active{ background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(41,36,33,.12); }
+
+  .rep-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .rep-table th{ text-align:left; padding:9px 10px; font-size:10.5px; text-transform:uppercase; letter-spacing:.02em; color:var(--ink-soft); border-bottom:1px solid var(--border); cursor:pointer; user-select:none; white-space:nowrap; }
+  .rep-table th:hover{ color:var(--ink); }
+  .rep-table th .arrow{ opacity:.35; font-size:9px; margin-left:2px; }
+  .rep-table th.sorted .arrow{ opacity:1; }
+  .rep-table td{ padding:9px 10px; border-bottom:1px solid var(--border); }
+  .rep-table tr:last-child td{ border-bottom:none; }
+  .rep-table td.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .rep-table-wrap{ overflow-x:auto; }
+
+  .pago-feed-item{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); }
+  .pago-feed-item:last-child{ border-bottom:none; }
+  .pago-feed-monto{ font-family:'Newsreader',serif; font-size:17px; font-weight:600; color:var(--success); flex-shrink:0; }
+  .pago-feed-info{ flex:1; min-width:0; }
+  .pago-feed-nombre{ font-weight:600; font-size:13px; }
+  .pago-feed-meta{ font-size:11px; color:var(--ink-soft); }
+
+  .builder-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:flex-end; }
+  .builder-field{ display:flex; flex-direction:column; gap:4px; }
+  .builder-field label{ font-size:10.5px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.02em; }
+  .builder-field select{ min-width:160px; }
   .interaccion-item{ font-size:12px; padding:8px 0; border-bottom:1px dashed var(--border); }
   .interaccion-item:last-child{ border-bottom:none; }
   .interaccion-fecha{ font-size:10px; color:var(--ink-soft); }
@@ -360,8 +401,103 @@
       <div class="card"><h3>Cursos dados en esta plaza</h3><div class="sub">Elige uno para ver a los alumnos y su estatus</div><div id="plazaLista">Selecciona una ciudad arriba.</div></div>
     </div>
 
-    <div class="view" id="view-ventas"><div class="card"><div class="soon-wrap"><div class="spark">✦</div><h3>Ventas — próximamente</h3></div></div></div>
-    <div class="view" id="view-reportes"><div class="card"><div class="soon-wrap"><div class="spark">✦</div><h3>Reportes — próximamente</h3></div></div></div>
+    <div class="view" id="view-ventas">
+      <div class="subtabs" id="ventasSubtabs">
+        <button class="subtab active" data-tab="ingresos">Ingresos</button>
+        <button class="subtab" data-tab="pagos">Pagos recientes</button>
+        <button class="subtab" data-tab="embudo">Embudo de conversión</button>
+        <button class="subtab" data-tab="asesores">Asesores</button>
+      </div>
+
+      <div class="subview active" id="ventas-ingresos">
+        <div class="kpis" id="ventasIngresosKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
+        <div class="chart-card">
+          <h4>Anticipo recaudado por ciudad</h4>
+          <div class="sub">Curso activo · ciudades con más recaudación</div>
+          <div class="chart-wrap"><canvas id="chartIngresosCiudad"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h4>Todas las ciudades</h4>
+          <div class="sub">Toca un encabezado para ordenar</div>
+          <div class="rep-table-wrap"><table class="rep-table" id="tablaIngresosCiudad"></table></div>
+        </div>
+      </div>
+
+      <div class="subview" id="ventas-pagos">
+        <div class="card">
+          <h3><span class="spark">✦</span> Abonos registrados</h3>
+          <div class="sub">Los pagos que se han guardado desde la ficha del alumno, en el Calendario</div>
+          <div id="listaPagosRecientes">Cargando…</div>
+        </div>
+      </div>
+
+      <div class="subview" id="ventas-embudo">
+        <div class="chart-card">
+          <h4>Embudo de conversión</h4>
+          <div class="sub">Curso activo · de contactado a liquidado, todas las ciudades</div>
+          <div class="chart-wrap short"><canvas id="chartEmbudo"></canvas></div>
+        </div>
+      </div>
+
+      <div class="subview" id="ventas-asesores">
+        <div class="chart-card">
+          <h4>Anticipo recaudado por asesor</h4>
+          <div class="sub" id="ventasAsesoresSub">Curso activo</div>
+          <div class="chart-wrap"><canvas id="chartAsesores"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="rep-table-wrap"><table class="rep-table" id="tablaAsesores"></table></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-reportes">
+      <div class="subtabs" id="reportesSubtabs">
+        <button class="subtab active" data-tab="resumen">Resumen ejecutivo</button>
+        <button class="subtab" data-tab="comparativa">Comparativa de ciudades</button>
+        <button class="subtab" data-tab="constructor">Constructor de reportes</button>
+      </div>
+
+      <div class="subview active" id="reportes-resumen">
+        <div class="kpis" id="resumenKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
+        <div class="chart-card">
+          <h4>Avance de la gira</h4>
+          <div class="sub">Liquidados, con anticipo y pendientes — todas las ciudades</div>
+          <div class="chart-wrap short"><canvas id="chartResumenEstatus"></canvas></div>
+        </div>
+      </div>
+
+      <div class="subview" id="reportes-comparativa">
+        <div class="chart-card">
+          <div class="sub" style="margin-bottom:10px;">Toca un encabezado para ordenar</div>
+          <button class="btn-primary small" id="btnExportarComparativa" style="margin-bottom:14px;">⬇ Exportar CSV</button>
+          <div class="rep-table-wrap"><table class="rep-table" id="tablaComparativa"></table></div>
+        </div>
+      </div>
+
+      <div class="subview" id="reportes-constructor">
+        <div class="chart-card">
+          <div class="builder-row">
+            <div class="builder-field"><label>Dimensión</label><select id="builderDimension">
+              <option value="ciudad">Ciudad</option>
+              <option value="estatus">Estatus</option>
+              <option value="semana">Semana</option>
+            </select></div>
+            <div class="builder-field"><label>Métrica</label><select id="builderMetrica">
+              <option value="alumnos">Alumnos (conteo)</option>
+              <option value="recaudado">Recaudado ($)</option>
+            </select></div>
+            <div class="builder-field"><label>Gráfica</label><select id="builderTipo">
+              <option value="bar">Barras</option>
+              <option value="line">Línea</option>
+              <option value="doughnut">Dona</option>
+            </select></div>
+            <button class="btn-primary small" id="btnExportarBuilder">⬇ Exportar CSV</button>
+          </div>
+          <div class="chart-wrap"><canvas id="chartBuilder"></canvas></div>
+        </div>
+      </div>
+    </div>
     <div class="view" id="view-calendario">
       <div class="card">
         <h3><span class="spark">✦</span> Cursos programados</h3>
@@ -554,8 +690,8 @@ const SECCIONES = [
   { id:'historial', label:'Historial cliente', sub:'Búsqueda contra personas reales', soon:false, icon:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>' },
   { id:'cursos', label:'Cursos', sub:'Catálogo real', soon:false, icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/>' },
   { id:'plaza', label:'Ciudades / Plazas', sub:'Vista en vivo por ciudad', soon:false, icon:'<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>' },
-  { id:'ventas', label:'Ventas', sub:'Próximamente', soon:true, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
-  { id:'reportes', label:'Reportes', sub:'Próximamente', soon:true, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
+  { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+  { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
 ];
 function svgIcon(p,c){ return `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`; }
@@ -571,6 +707,8 @@ function setActiveSection(id){
   document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.classList.toggle('active', el.dataset.view===id));
   document.querySelectorAll('#pickerMenu .picker-item').forEach(el=>el.classList.toggle('active', el.dataset.view===id));
   document.getElementById('pickerLabel').textContent = sec.label;
+  if(id==='ventas') cargarVentasTab('ingresos');
+  if(id==='reportes') cargarReportesTab('resumen');
   closePicker();
 }
 document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
@@ -1014,7 +1152,14 @@ async function renderCalendario(preservarMes){
     calendarioMesIdx = 0;
   }
   pintarCalendarioMes();
-  if(preservarMes) refrescarHojaAbierta();
+  if(preservarMes){
+    refrescarHojaAbierta();
+    // El dinero/estatus cambió — que Ventas y Reportes vuelvan a consultar
+    // en su próxima visita en vez de mostrar el número de antes del cambio.
+    montoPorEventoCache = null;
+    ventasCargado.ingresos = ventasCargado.embudo = ventasCargado.asesores = ventasCargado.pagos = false;
+    reportesCargado.resumen = reportesCargado.comparativa = reportesCargado.constructor = false;
+  }
 }
 
 function pintarCalendarioMes(){
@@ -1327,6 +1472,424 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   toast('Abono registrado.');
   cerrarModalInscripcion();
   await renderCalendario(true);
+});
+
+/* =========================================================
+   VENTAS / REPORTES — utilidades compartidas
+   Todo se apoya en calendarioDias (ya cargado por el Calendario: un
+   evento del curso activo por ciudad, con conteos liq/ant/pend) más un
+   único fetch adicional a "inscripciones" para tener el dinero real
+   (anticipo) por evento. Así ninguna de las dos secciones repite las
+   consultas pesadas que ya hace el Calendario.
+   ========================================================= */
+const chartInstances = {};
+function destruirChart(id){
+  if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+function fmtNum(n){ return Number(n||0).toLocaleString('es-MX'); }
+function fmtMoney(n){ return '$' + Number(n||0).toLocaleString('es-MX', {maximumFractionDigits:0}); }
+function semanaDeISO(fechaStr){
+  const d = new Date(fechaStr + 'T00:00:00');
+  const inicio = new Date(d);
+  inicio.setDate(d.getDate() - d.getDay());
+  return inicio.toISOString().slice(0,10);
+}
+const DONA_COLORES = ['#5A1F2B','#C6A66B','#55745C','#B5453A','#B56F55','#8A6D2F','#3FB6C4','#756D65'];
+
+function mostrarVacioChart(canvas, texto){
+  canvas.style.display = 'none';
+  const wrap = canvas.parentElement;
+  let msg = wrap.querySelector('.chart-empty');
+  if(!msg){ msg = document.createElement('div'); msg.className = 'chart-empty'; wrap.appendChild(msg); }
+  msg.textContent = texto || 'Sin datos suficientes todavía.';
+}
+function ocultarVacioChart(canvas){
+  canvas.style.display = '';
+  const msg = canvas.parentElement.querySelector('.chart-empty');
+  if(msg) msg.remove();
+}
+function pintarChartBarras(canvasId, labels, data, opts){
+  opts = opts || {};
+  destruirChart(canvasId);
+  const canvas = document.getElementById(canvasId);
+  if(!labels.length || !data.some(v=>v>0)){ mostrarVacioChart(canvas, opts.vacioTexto); return; }
+  ocultarVacioChart(canvas);
+  const horizontal = opts.horizontal !== false;
+  const fmt = opts.formatter || (v=>v);
+  chartInstances[canvasId] = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: opts.colors || '#5A1F2B', borderRadius: 4, maxBarThickness: horizontal?24:56 }] },
+    options: {
+      indexAxis: horizontal ? 'y' : 'x',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=>fmt(horizontal?c.parsed.x:c.parsed.y) } } },
+      scales: {
+        x: { beginAtZero:true, grid:{ color: horizontal?'#E5DED4':'transparent' }, ticks:{ color:'#756D65', callback: horizontal ? (v)=>fmt(v) : undefined } },
+        y: { beginAtZero:true, grid:{ display: !horizontal, color:'#E5DED4' }, ticks:{ color: horizontal?'#292421':'#756D65', callback: !horizontal ? (v)=>fmt(v) : undefined } }
+      }
+    }
+  });
+}
+function pintarChartLinea(canvasId, labels, data, opts){
+  opts = opts || {};
+  destruirChart(canvasId);
+  const canvas = document.getElementById(canvasId);
+  if(!labels.length){ mostrarVacioChart(canvas, opts.vacioTexto); return; }
+  ocultarVacioChart(canvas);
+  const fmt = opts.formatter || (v=>v);
+  chartInstances[canvasId] = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets: [{ data, borderColor:'#5A1F2B', backgroundColor:'rgba(90,31,43,.12)', fill:true, tension:.25, pointBackgroundColor:'#5A1F2B', pointRadius:4 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=>fmt(c.parsed.y) } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ color:'#756D65' } },
+        y:{ beginAtZero:true, grid:{ color:'#E5DED4' }, ticks:{ color:'#756D65', callback:(v)=>fmt(v) } }
+      }
+    }
+  });
+}
+function pintarChartDona(canvasId, labels, data, colors, opts){
+  opts = opts || {};
+  destruirChart(canvasId);
+  const canvas = document.getElementById(canvasId);
+  if(!labels.length || !data.some(v=>v>0)){ mostrarVacioChart(canvas, opts.vacioTexto); return; }
+  ocultarVacioChart(canvas);
+  const fmt = opts.formatter || (v=>v);
+  chartInstances[canvasId] = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderColor:'#FFFEFB', borderWidth:2 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ color:'#292421', font:{ size:11 }, boxWidth:10, padding:14 } },
+        tooltip:{ callbacks:{ label:(c)=>`${c.label}: ${fmt(c.parsed)}` } }
+      }
+    }
+  });
+}
+/** Tabla con encabezados clickeables para ordenar — se reutiliza en Ventas y Reportes. */
+function crearTablaOrdenable(tabla, columnas, filas){
+  let estado = { col: columnas[1]?.key || columnas[0].key, dir: -1 };
+  function pintar(){
+    const ordenadas = [...filas].sort((a,b)=>{
+      const va = a[estado.col], vb = b[estado.col];
+      if(typeof va === 'number' && typeof vb === 'number') return (va-vb)*estado.dir;
+      return String(va).localeCompare(String(vb)) * estado.dir;
+    });
+    tabla.innerHTML = `<thead><tr>${columnas.map(c=>`<th data-key="${c.key}" class="${c.key===estado.col?'sorted':''}">${c.label}<span class="arrow">${c.key===estado.col?(estado.dir===1?'▲':'▼'):'▲'}</span></th>`).join('')}</tr></thead>
+      <tbody>${ordenadas.length ? ordenadas.map(f=>`<tr>${columnas.map(c=>`<td class="${c.num?'num':''}">${c.render ? c.render(f[c.key], f) : (f[c.key] ?? '')}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${columnas.length}" class="empty-note">Sin datos todavía.</td></tr>`}</tbody>`;
+    tabla.querySelectorAll('th').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.key;
+        if(estado.col===key) estado.dir *= -1; else { estado.col = key; estado.dir = -1; }
+        pintar();
+      });
+    });
+  }
+  pintar();
+}
+function exportarCSV(nombreArchivo, encabezados, filas){
+  const escapar = (v)=>{
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const lineas = [encabezados.map(escapar).join(',')].concat(filas.map(f=>f.map(escapar).join(',')));
+  const csv = '\uFEFF' + lineas.join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombreArchivo;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Descargando ' + nombreArchivo);
+}
+
+/** evento_id -> { total, liq, ant } de dinero real (anticipo), separado por si el
+ *  alumno ya liquidó o sigue con solo el anticipo — para el constructor de reportes. */
+let montoPorEventoCache = null;
+async function obtenerMontoPorEvento(forzar){
+  if(montoPorEventoCache && !forzar) return montoPorEventoCache;
+  if(Object.keys(calendarioDias).length === 0) await renderCalendario();
+  const eventoIds = [...new Set(Object.values(calendarioDias).flat().map(e=>e.id))];
+  montoPorEventoCache = {};
+  if(eventoIds.length){
+    const { data } = await sb.from('inscripciones').select('evento_id, anticipo, liquidado').in('evento_id', eventoIds);
+    (data||[]).forEach(i=>{
+      const m = montoPorEventoCache[i.evento_id] || (montoPorEventoCache[i.evento_id] = { total:0, liq:0, ant:0 });
+      const monto = Number(i.anticipo||0);
+      m.total += monto;
+      if(i.liquidado) m.liq += monto; else m.ant += monto;
+    });
+  }
+  return montoPorEventoCache;
+}
+/** Aplana calendarioDias (agrupado por fecha) a una fila por evento, con su dinero pegado. */
+function filasBaseReporte(montoMap){
+  const filas = [];
+  Object.entries(calendarioDias).forEach(([fecha, eventos])=>{
+    eventos.forEach(ev=>{
+      const m = montoMap[ev.id] || { total:0, liq:0, ant:0 };
+      filas.push({ eventoId: ev.id, ciudadId: ev.ciudadId, ciudad: ev.ciudad, fecha, liq: ev.liq, ant: ev.ant, pend: ev.pend, monto: m.total, montoLiq: m.liq, montoAnt: m.ant });
+    });
+  });
+  return filas;
+}
+
+/* =========================================================
+   VENTAS
+   ========================================================= */
+const ventasCargado = { ingresos:false, pagos:false, embudo:false, asesores:false };
+
+async function renderVentasIngresos(){
+  const kpisEl = document.getElementById('ventasIngresosKpis');
+  kpisEl.innerHTML = '<div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div>';
+  const monto = await obtenerMontoPorEvento();
+  const filas = filasBaseReporte(monto);
+  const porCiudad = {};
+  filas.forEach(f=>{
+    if(!porCiudad[f.ciudadId]) porCiudad[f.ciudadId] = { ciudad: f.ciudad, monto:0, liq:0, ant:0, pend:0 };
+    const c = porCiudad[f.ciudadId];
+    c.monto += f.monto; c.liq += f.liq; c.ant += f.ant; c.pend += f.pend;
+  });
+  const filasCiudad = Object.values(porCiudad);
+  const totalRecaudado = filasCiudad.reduce((a,c)=>a+c.monto,0);
+  const ciudadesConDato = filasCiudad.filter(c=>c.monto>0).length;
+  const promedio = ciudadesConDato ? totalRecaudado/ciudadesConDato : 0;
+  kpisEl.innerHTML = `
+    <div class="kpi"><div class="v">${fmtMoney(totalRecaudado)}</div><div class="l">Recaudado (anticipo)</div></div>
+    <div class="kpi"><div class="v">${ciudadesConDato}</div><div class="l">Ciudades con pagos</div></div>
+    <div class="kpi"><div class="v">${fmtMoney(promedio)}</div><div class="l">Promedio por ciudad</div></div>`;
+
+  const top = [...filasCiudad].filter(c=>c.monto>0).sort((a,b)=>b.monto-a.monto).slice(0,15);
+  pintarChartBarras('chartIngresosCiudad', top.map(c=>c.ciudad), top.map(c=>c.monto), { formatter: fmtMoney, vacioTexto:'Todavía no hay anticipos registrados en ninguna ciudad.' });
+
+  crearTablaOrdenable(document.getElementById('tablaIngresosCiudad'), [
+    { key:'ciudad', label:'Ciudad' },
+    { key:'monto', label:'Recaudado', num:true, render:v=>fmtMoney(v) },
+    { key:'liq', label:'Liquidados', num:true },
+    { key:'ant', label:'Anticipo', num:true },
+    { key:'pend', label:'Pendientes', num:true },
+  ], filasCiudad);
+}
+
+async function renderVentasPagos(){
+  const cont = document.getElementById('listaPagosRecientes');
+  cont.innerHTML = 'Cargando…';
+  const { data, error } = await sb.from('pagos')
+    .select('id, monto, fecha, banco, creado_en, inscripciones(personas(nombre, telefono_principal), eventos(ciudades(nombre)))')
+    .order('creado_en', { ascending:false }).limit(30);
+  if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + error.message + '</div>'; return; }
+  if(!data || data.length===0){
+    cont.innerHTML = '<div class="empty-note">Aún no se han registrado abonos desde el Hub. Los que se guarden desde la ficha del alumno en el Calendario aparecerán aquí.</div>';
+    return;
+  }
+  cont.innerHTML = data.map(p=>{
+    const nombre = p.inscripciones?.personas?.nombre || '(sin nombre)';
+    const tel = p.inscripciones?.personas?.telefono_principal || '';
+    const ciudad = p.inscripciones?.eventos?.ciudades?.nombre || '';
+    const fechaTxt = p.fecha ? new Date(p.fecha+'T00:00:00').toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'}) : '';
+    return `<div class="pago-feed-item">
+      <div class="pago-feed-monto">${fmtMoney(p.monto)}</div>
+      <div class="pago-feed-info">
+        <div class="pago-feed-nombre">${nombre}</div>
+        <div class="pago-feed-meta">${tel}${ciudad?' · '+ciudad:''}${fechaTxt?' · '+fechaTxt:''}${p.banco?' · '+p.banco:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function renderVentasEmbudo(){
+  const monto = await obtenerMontoPorEvento();
+  const filas = filasBaseReporte(monto);
+  const totalLiq = filas.reduce((a,f)=>a+f.liq,0);
+  const totalAnt = filas.reduce((a,f)=>a+f.ant,0);
+  const totalPend = filas.reduce((a,f)=>a+f.pend,0);
+  const contactados = totalLiq + totalAnt + totalPend;
+  pintarChartBarras('chartEmbudo',
+    ['Contactados', 'Con anticipo o más', 'Liquidados'],
+    [contactados, totalLiq+totalAnt, totalLiq],
+    { formatter: v=>fmtNum(v)+' alumnos', colors: ['rgba(90,31,43,.32)','rgba(90,31,43,.62)','#5A1F2B'], horizontal:false,
+      vacioTexto: 'Todavía no hay contactos cargados para el curso activo.' });
+}
+
+async function renderVentasAsesores(){
+  const sub = document.getElementById('ventasAsesoresSub');
+  const cursoId = await obtenerCursoActivoId();
+  if(!cursoId){ sub.textContent = 'No se encontró el curso activo.'; return; }
+  if(Object.keys(calendarioDias).length === 0) await renderCalendario();
+  const eventoIds = [...new Set(Object.values(calendarioDias).flat().map(e=>e.id))];
+  if(!eventoIds.length){
+    sub.textContent = 'Curso activo · sin eventos programados todavía.';
+    pintarChartBarras('chartAsesores', [], [], {});
+    crearTablaOrdenable(document.getElementById('tablaAsesores'), [
+      { key:'nombre', label:'Asesor' }, { key:'monto', label:'Recaudado', num:true }, { key:'alumnos', label:'Alumnos', num:true }, { key:'liquidados', label:'Liquidados', num:true },
+    ], []);
+    return;
+  }
+  const { data, error } = await sb.from('inscripciones')
+    .select('anticipo, liquidado, asesor_id, asesores(nombre)')
+    .in('evento_id', eventoIds);
+  if(error){ sub.textContent = 'Error: ' + error.message; return; }
+  const porAsesor = {};
+  (data||[]).forEach(i=>{
+    const key = i.asesor_id || 'sin_asesor';
+    const nombre = i.asesores?.nombre || 'Sin asesor asignado';
+    if(!porAsesor[key]) porAsesor[key] = { nombre, monto:0, liquidados:0, alumnos:0 };
+    porAsesor[key].monto += Number(i.anticipo||0);
+    porAsesor[key].alumnos += 1;
+    if(i.liquidado) porAsesor[key].liquidados += 1;
+  });
+  const filas = Object.values(porAsesor).sort((a,b)=>b.monto-a.monto);
+  sub.textContent = 'Curso activo · ' + filas.length + (filas.length===1 ? ' asesor con inscripciones' : ' asesores con inscripciones');
+  pintarChartBarras('chartAsesores', filas.map(f=>f.nombre), filas.map(f=>f.monto), { formatter: fmtMoney, vacioTexto:'Todavía no hay inscripciones asignadas a un asesor.' });
+  crearTablaOrdenable(document.getElementById('tablaAsesores'), [
+    { key:'nombre', label:'Asesor' },
+    { key:'monto', label:'Recaudado', num:true, render:v=>fmtMoney(v) },
+    { key:'alumnos', label:'Alumnos', num:true },
+    { key:'liquidados', label:'Liquidados', num:true },
+  ], filas);
+}
+
+async function cargarVentasTab(tab){
+  if(tab==='ingresos' && !ventasCargado.ingresos){ ventasCargado.ingresos=true; await renderVentasIngresos(); }
+  else if(tab==='pagos' && !ventasCargado.pagos){ ventasCargado.pagos=true; await renderVentasPagos(); }
+  else if(tab==='embudo' && !ventasCargado.embudo){ ventasCargado.embudo=true; await renderVentasEmbudo(); }
+  else if(tab==='asesores' && !ventasCargado.asesores){ ventasCargado.asesores=true; await renderVentasAsesores(); }
+}
+document.querySelectorAll('#ventasSubtabs .subtab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('#ventasSubtabs .subtab').forEach(b=>b.classList.toggle('active', b===btn));
+    document.querySelectorAll('#view-ventas .subview').forEach(v=>v.classList.remove('active'));
+    document.getElementById('ventas-'+tab).classList.add('active');
+    cargarVentasTab(tab);
+  });
+});
+
+/* =========================================================
+   REPORTES
+   ========================================================= */
+const reportesCargado = { resumen:false, comparativa:false, constructor:false };
+let comparativaCache = [];
+let builderCache = [];
+
+async function renderReportesResumen(){
+  const kpisEl = document.getElementById('resumenKpis');
+  kpisEl.innerHTML = '<div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div>';
+  const monto = await obtenerMontoPorEvento();
+  const filas = filasBaseReporte(monto);
+  const totLiq = filas.reduce((a,f)=>a+f.liq,0);
+  const totAnt = filas.reduce((a,f)=>a+f.ant,0);
+  const totPend = filas.reduce((a,f)=>a+f.pend,0);
+  const totMonto = filas.reduce((a,f)=>a+f.monto,0);
+  const totAlumnos = totLiq+totAnt+totPend;
+  const avance = totAlumnos ? Math.round((totLiq/totAlumnos)*100) : 0;
+  kpisEl.innerHTML = `
+    <div class="kpi"><div class="v">${filas.length}</div><div class="l">Eventos programados</div></div>
+    <div class="kpi"><div class="v" style="color:var(--success)">${totLiq}</div><div class="l">Liquidados</div></div>
+    <div class="kpi"><div class="v" style="color:#8A6D2F">${totAnt}</div><div class="l">Con anticipo</div></div>
+    <div class="kpi"><div class="v" style="color:var(--danger)">${totPend}</div><div class="l">Sin pago</div></div>
+    <div class="kpi"><div class="v">${fmtMoney(totMonto)}</div><div class="l">Recaudado (anticipo)</div></div>
+    <div class="kpi"><div class="v" style="color:var(--wine)">${avance}%</div><div class="l">De la gira liquidado</div></div>`;
+  pintarChartDona('chartResumenEstatus', ['Liquidados','Con anticipo','Sin pago'], [totLiq, totAnt, totPend], ['#55745C','#C6A66B','#B5453A'], { formatter: fmtNum });
+}
+
+async function renderReportesComparativa(){
+  const monto = await obtenerMontoPorEvento();
+  const filas = filasBaseReporte(monto);
+  const porCiudad = {};
+  filas.forEach(f=>{
+    if(!porCiudad[f.ciudadId]) porCiudad[f.ciudadId] = { ciudad: f.ciudad, liq:0, ant:0, pend:0, monto:0 };
+    const c = porCiudad[f.ciudadId];
+    c.liq += f.liq; c.ant += f.ant; c.pend += f.pend; c.monto += f.monto;
+  });
+  comparativaCache = Object.values(porCiudad).map(c=>{
+    const total = c.liq+c.ant+c.pend;
+    return { ...c, total, pctLiq: total ? Math.round((c.liq/total)*100) : 0 };
+  });
+  crearTablaOrdenable(document.getElementById('tablaComparativa'), [
+    { key:'ciudad', label:'Ciudad' },
+    { key:'liq', label:'Liquidados', num:true },
+    { key:'ant', label:'Anticipo', num:true },
+    { key:'pend', label:'Pendientes', num:true },
+    { key:'monto', label:'Recaudado', num:true, render:v=>fmtMoney(v) },
+    { key:'pctLiq', label:'% Liquidado', num:true, render:v=>v+'%' },
+  ], comparativaCache);
+}
+document.getElementById('btnExportarComparativa').addEventListener('click', ()=>{
+  exportarCSV('comparativa_ciudades.csv', ['Ciudad','Liquidados','Anticipo','Pendientes','Recaudado','% Liquidado'],
+    comparativaCache.map(c=>[c.ciudad, c.liq, c.ant, c.pend, c.monto, c.pctLiq]));
+});
+
+async function renderReportesConstructor(){
+  const monto = await obtenerMontoPorEvento();
+  const filas = filasBaseReporte(monto);
+  const dimension = document.getElementById('builderDimension').value;
+  const metrica = document.getElementById('builderMetrica').value;
+  const tipo = document.getElementById('builderTipo').value;
+
+  const agrupado = {};
+  const asegurar = (key, label)=> agrupado[key] || (agrupado[key] = { label, alumnos:0, recaudado:0 });
+  filas.forEach(f=>{
+    if(dimension==='ciudad'){
+      const g = asegurar(f.ciudadId, f.ciudad);
+      g.alumnos += (f.liq+f.ant+f.pend); g.recaudado += f.monto;
+    } else if(dimension==='semana'){
+      const s = semanaDeISO(f.fecha);
+      const g = asegurar(s, new Date(s+'T00:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short'}));
+      g.alumnos += (f.liq+f.ant+f.pend); g.recaudado += f.monto;
+    } else if(dimension==='estatus'){
+      if(f.liq){ const g = asegurar('liquidado','Liquidados'); g.alumnos += f.liq; g.recaudado += f.montoLiq; }
+      if(f.ant){ const g = asegurar('anticipo','Con anticipo'); g.alumnos += f.ant; g.recaudado += f.montoAnt; }
+      if(f.pend){ const g = asegurar('pendiente','Sin pago'); g.alumnos += f.pend; }
+    }
+  });
+
+  let claves = Object.keys(agrupado);
+  if(dimension==='semana') claves = claves.sort();
+  else claves = claves.sort((a,b)=> metrica==='alumnos' ? agrupado[b].alumnos-agrupado[a].alumnos : agrupado[b].recaudado-agrupado[a].recaudado);
+
+  const filasAgrupadas = claves.map(k=>agrupado[k]);
+  const labels = filasAgrupadas.map(f=>f.label);
+  const data = filasAgrupadas.map(f=> metrica==='alumnos' ? f.alumnos : f.recaudado);
+  const formatter = metrica==='alumnos' ? fmtNum : fmtMoney;
+  const colDim = dimension==='ciudad' ? 'Ciudad' : dimension==='estatus' ? 'Estatus' : 'Semana (inicio)';
+  const colMet = metrica==='alumnos' ? 'Alumnos' : 'Recaudado';
+  builderCache = filasAgrupadas.map(f=>[f.label, metrica==='alumnos'?f.alumnos:f.recaudado]);
+  builderCache.encabezados = [colDim, colMet];
+
+  const coloresEstatus = (lbls)=> lbls.map(l=> l==='Liquidados' ? '#55745C' : l==='Con anticipo' ? '#C6A66B' : '#B5453A');
+  if(tipo==='doughnut'){
+    pintarChartDona('chartBuilder', labels, data, dimension==='estatus' ? coloresEstatus(labels) : DONA_COLORES, { formatter });
+  } else if(tipo==='line'){
+    pintarChartLinea('chartBuilder', labels, data, { formatter });
+  } else {
+    pintarChartBarras('chartBuilder', labels, data, { formatter, colors: dimension==='estatus' ? coloresEstatus(labels) : '#5A1F2B', horizontal: dimension==='ciudad' });
+  }
+}
+
+async function cargarReportesTab(tab){
+  if(tab==='resumen' && !reportesCargado.resumen){ reportesCargado.resumen=true; await renderReportesResumen(); }
+  else if(tab==='comparativa' && !reportesCargado.comparativa){ reportesCargado.comparativa=true; await renderReportesComparativa(); }
+  else if(tab==='constructor' && !reportesCargado.constructor){ reportesCargado.constructor=true; await renderReportesConstructor(); }
+}
+document.querySelectorAll('#reportesSubtabs .subtab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('#reportesSubtabs .subtab').forEach(b=>b.classList.toggle('active', b===btn));
+    document.querySelectorAll('#view-reportes .subview').forEach(v=>v.classList.remove('active'));
+    document.getElementById('reportes-'+tab).classList.add('active');
+    cargarReportesTab(tab);
+  });
+});
+['builderDimension','builderMetrica','builderTipo'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderReportesConstructor);
+});
+document.getElementById('btnExportarBuilder').addEventListener('click', ()=>{
+  if(!builderCache.encabezados){ toast('Genera primero un reporte.', true); return; }
+  exportarCSV('reporte_personalizado.csv', builderCache.encabezados, builderCache);
 });
 
 async function renderCursos(){
