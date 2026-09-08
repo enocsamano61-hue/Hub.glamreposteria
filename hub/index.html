@@ -75,6 +75,8 @@
   .card h3{ font-size:14.5px; margin-bottom:4px; }
   .card .sub{ font-size:12px; color:var(--ink-soft); margin-bottom:14px; }
   .btn-primary.small{ width:auto; padding:10px 15px; }
+  .btn-outline{ background:transparent; color:var(--wine); border:1.5px solid var(--wine); padding:10.5px 17px; border-radius:10px; font-size:13.5px; font-weight:600; cursor:pointer; width:100%; }
+  .btn-outline:disabled{ opacity:.5; cursor:default; }
   .search, .select, .textarea{ padding:10px 13px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
   .textarea{ width:100%; resize:vertical; min-height:64px; }
 
@@ -451,7 +453,8 @@
             <div class="sub" id="giraRutaSub">Agrega ciudades desde la izquierda, en el orden en que quieras visitarlas.</div>
             <div id="giraRutaLista"></div>
             <div class="dato-row" style="margin-top:6px;"><span class="l">Distancia total</span><span class="v" id="giraDistanciaTotal">—</span></div>
-            <button class="btn-primary" id="btnGuardarGiraBorrador" style="margin-top:14px;">Guardar como borrador</button>
+            <button class="btn-outline" id="btnSugerirOrden" style="margin-top:14px;">✨ Sugerir orden más corto</button>
+            <button class="btn-primary" id="btnGuardarGiraBorrador" style="margin-top:10px;">Guardar como borrador</button>
           </div>
         </div>
       </div>
@@ -2125,6 +2128,61 @@ function pintarGiraRuta(){
   document.getElementById('giraDistanciaTotal').textContent = total ? total.toFixed(0)+' km' : '—';
 }
 document.getElementById('giraBuscarCiudad').addEventListener('input', (e)=>renderGiraCandidatas(e.target.value));
+
+function distanciaTotalRuta(ruta){
+  let total = 0;
+  for(let i=1;i<ruta.length;i++) total += distanciaKm(ruta[i-1].lat, ruta[i-1].lng, ruta[i].lat, ruta[i].lng);
+  return total;
+}
+function ordenVecinoMasCercano(paradas){
+  const restante = paradas.slice(1);
+  const ruta = [paradas[0]];
+  while(restante.length){
+    const actual = ruta[ruta.length-1];
+    let mejorIdx = 0, mejorD = Infinity;
+    restante.forEach((p,i)=>{
+      const d = distanciaKm(actual.lat, actual.lng, p.lat, p.lng);
+      if(d<mejorD){ mejorD=d; mejorIdx=i; }
+    });
+    ruta.push(restante.splice(mejorIdx,1)[0]);
+  }
+  return ruta;
+}
+function mejorarConDosOpt(rutaInicial){
+  let mejor = rutaInicial.slice();
+  let mejorDist = distanciaTotalRuta(mejor);
+  let sigueMejorando = true;
+  while(sigueMejorando){
+    sigueMejorando = false;
+    for(let i=1;i<mejor.length-1;i++){
+      for(let j=i+1;j<mejor.length;j++){
+        const candidata = mejor.slice(0,i).concat(mejor.slice(i,j+1).reverse(), mejor.slice(j+1));
+        const dist = distanciaTotalRuta(candidata);
+        if(dist < mejorDist - 0.01){
+          mejor = candidata;
+          mejorDist = dist;
+          sigueMejorando = true;
+        }
+      }
+    }
+  }
+  return mejor;
+}
+document.getElementById('btnSugerirOrden').addEventListener('click', ()=>{
+  if(giraRutaActual.length < 3){ toast('Agrega al menos 3 ciudades para poder sugerir un orden.', true); return; }
+  const totalAntes = distanciaTotalRuta(giraRutaActual);
+  const sugerida = mejorarConDosOpt(ordenVecinoMasCercano(giraRutaActual));
+  giraRutaActual = sugerida;
+  recalcularDistanciasRuta();
+  pintarGiraRuta();
+  const totalDespues = distanciaTotalRuta(giraRutaActual);
+  const ahorro = totalAntes - totalDespues;
+  if(ahorro > 1){
+    toast(`Orden sugerido: de ${totalAntes.toFixed(0)} km a ${totalDespues.toFixed(0)} km (ahorras ${ahorro.toFixed(0)} km). Mantuvimos tu primera ciudad como punto de partida.`);
+  } else {
+    toast('El orden actual ya era el más corto (o muy cercano) — no se hicieron cambios.');
+  }
+});
 
 document.getElementById('btnGuardarGiraBorrador').addEventListener('click', async ()=>{
   const nombre = document.getElementById('giraNombre').value.trim();
