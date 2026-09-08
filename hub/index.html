@@ -278,6 +278,20 @@
   .pill-opt:hover{ border-color:var(--wine); color:var(--ink); }
   .pill-opt:active{ transform:scale(.96); }
   .pill-opt.active{ background:var(--wine); border-color:var(--wine); color:#fff; }
+
+  /* ---------- Giras: constructor de ruta ---------- */
+  .giras-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px){ .giras-grid{ grid-template-columns:1fr; } }
+  .ciudad-cand-row{ display:flex; align-items:center; gap:12px; padding:11px 2px; border-bottom:1px solid var(--border); }
+  .ciudad-cand-row:last-child{ border-bottom:none; }
+  .ruta-nombre{ font-weight:600; font-size:13px; }
+  .ruta-meta{ font-size:11px; color:var(--ink-soft); margin-top:1px; }
+  .badge-debil{ font-size:9.5px; font-weight:700; color:var(--danger); background:rgba(181,69,58,.1); padding:2px 8px; border-radius:20px; margin-top:4px; display:inline-block; }
+  .ruta-item{ display:flex; align-items:center; gap:8px; padding:10px 2px; border-bottom:1px solid var(--border); }
+  .ruta-item:last-child{ border-bottom:none; }
+  .ruta-num{ width:24px; height:24px; border-radius:50%; background:var(--wine); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+  .ruta-btn{ display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; border:1px solid var(--border); background:var(--bg); color:var(--ink); cursor:pointer; font-size:12px; flex-shrink:0; padding:0; font-family:inherit; }
+  .ruta-btn:disabled{ opacity:.3; cursor:default; }
   .interaccion-item{ font-size:12px; padding:8px 0; border-bottom:1px dashed var(--border); }
   .interaccion-item:last-child{ border-bottom:none; }
   .interaccion-fecha{ font-size:10px; color:var(--ink-soft); }
@@ -401,11 +415,50 @@
         <div class="new-city-form" id="newCityForm">
           <input id="newCityInput" placeholder="Nombre de la ciudad nueva">
           <input id="newCityState" placeholder="Estado">
+          <input id="newCityLat" placeholder="Latitud (opcional)" style="max-width:130px;">
+          <input id="newCityLng" placeholder="Longitud (opcional)" style="max-width:130px;">
           <button class="btn-primary small" id="newCitySave">Agregar</button>
         </div>
+        <div class="sub" id="newCityHint" style="display:none; color:#DCC7CE; margin-top:4px;">¿No sabes las coordenadas? Búscala en <a href="https://www.google.com/maps" target="_blank" rel="noopener" style="color:#fff;">Google Maps</a>, clic derecho sobre el punto exacto y copia los dos números — sin esto, esta ciudad no se podrá usar en el constructor de Gira.</div>
         <div class="plaza-summary" id="plazaKpis"></div>
       </div>
       <div class="card"><h3>Cursos dados en esta plaza</h3><div class="sub">Elige uno para ver a los alumnos y su estatus</div><div id="plazaLista">Selecciona una ciudad arriba.</div></div>
+    </div>
+
+    <!-- GIRAS -->
+    <div class="view" id="view-giras">
+      <div class="subtabs" id="girasSubtabs">
+        <button class="subtab active" data-tab="constructor">Constructor de ruta</button>
+        <button class="subtab" data-tab="historial">Giras guardadas</button>
+      </div>
+
+      <div class="subview active" id="giras-constructor">
+        <div class="card" style="margin-bottom:16px;">
+          <h3><span class="spark">✦</span> Nueva gira</h3>
+          <div class="modal-field"><label>Nombre de la gira</label><input id="giraNombre" placeholder="Ej. Gira Primavera 2027"></div>
+          <div class="modal-field"><label>Curso a ofrecer</label><select id="giraCurso"><option value="">— Sin especificar —</option></select></div>
+        </div>
+
+        <div class="giras-grid">
+          <div class="card">
+            <h3>Ciudades candidatas</h3>
+            <div class="sub">Ordenadas por más tiempo sin visitar — el ⚠ marca plaza débil</div>
+            <input class="search" id="giraBuscarCiudad" placeholder="Buscar ciudad..." style="margin-bottom:12px; width:100%;">
+            <div id="giraListaCandidatas">Cargando…</div>
+          </div>
+          <div class="card">
+            <h3>Ruta en construcción</h3>
+            <div class="sub" id="giraRutaSub">Agrega ciudades desde la izquierda, en el orden en que quieras visitarlas.</div>
+            <div id="giraRutaLista"></div>
+            <div class="dato-row" style="margin-top:6px;"><span class="l">Distancia total</span><span class="v" id="giraDistanciaTotal">—</span></div>
+            <button class="btn-primary" id="btnGuardarGiraBorrador" style="margin-top:14px;">Guardar como borrador</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="subview" id="giras-historial">
+        <div id="giraHistorialLista">Cargando…</div>
+      </div>
     </div>
 
     <div class="view" id="view-ventas">
@@ -709,6 +762,7 @@ const SECCIONES = [
   { id:'historial', label:'Historial cliente', sub:'Búsqueda contra personas reales', soon:false, icon:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>' },
   { id:'cursos', label:'Cursos', sub:'Catálogo real', soon:false, icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/>' },
   { id:'plaza', label:'Ciudades / Plazas', sub:'Vista en vivo por ciudad', soon:false, icon:'<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>' },
+  { id:'giras', label:'Giras', sub:'Constructor de ruta y reactivación de alumnos', soon:false, icon:'<circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.2 17.8L15.8 6.2"/>' },
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
@@ -728,6 +782,7 @@ function setActiveSection(id){
   document.getElementById('pickerLabel').textContent = sec.label;
   if(id==='ventas') cargarVentasTab('ingresos');
   if(id==='reportes') cargarReportesTab('resumen');
+  if(id==='giras') cargarGirasTab('constructor');
   closePicker();
 }
 document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
@@ -1956,6 +2011,243 @@ document.getElementById('btnExportarBuilder').addEventListener('click', ()=>{
   exportarCSV('reporte_personalizado.csv', builderCache.encabezados, builderCache);
 });
 
+/* =========================================================
+   GIRAS — constructor de ruta asistido + reactivación de alumnos
+   ========================================================= */
+const girasCargado = { constructor:false, historial:false };
+let girasCiudadesCache = null;   // filas de vista_resumen_ciudad_gira
+let giraRutaActual = [];         // [{ciudad_id, nombre, estado, lat, lng, distancia}, ...] en construcción
+
+function distanciaKm(lat1, lng1, lat2, lng2){
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLng = (lng2-lng1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function mesesDesde(fechaStr){
+  const d = new Date(fechaStr+'T00:00:00'), hoy = new Date();
+  return Math.max(0, Math.floor((hoy - d) / (1000*60*60*24*30.44)));
+}
+async function cargarCiudadesGira(forzar){
+  if(girasCiudadesCache && !forzar) return girasCiudadesCache;
+  const { data, error } = await sb.from('vista_resumen_ciudad_gira').select('*');
+  if(error){ toast('Error cargando ciudades para Giras: ' + error.message, true); return []; }
+  girasCiudadesCache = data || [];
+  return girasCiudadesCache;
+}
+
+async function renderGiraCandidatas(filtro){
+  const cont = document.getElementById('giraListaCandidatas');
+  const ciudades = await cargarCiudadesGira();
+  const q = (filtro||'').trim().toLowerCase();
+  const yaEnRuta = new Set(giraRutaActual.map(p=>p.ciudad_id));
+  const filtradas = ciudades
+    .filter(c=>!yaEnRuta.has(c.ciudad_id))
+    .filter(c=>!q || c.nombre.toLowerCase().includes(q))
+    .sort((a,b)=>{
+      const fa = a.ultima_fecha || '0000-00-00', fb = b.ultima_fecha || '0000-00-00';
+      return fa.localeCompare(fb);
+    });
+  cont.innerHTML = filtradas.slice(0,60).map(c=>{
+    const recenciaTxt = !c.ultima_fecha ? 'Nunca visitada' : (()=>{ const m=mesesDesde(c.ultima_fecha); return m<1?'Este mes':`Hace ${m} ${m===1?'mes':'meses'}`; })();
+    return `<div class="ciudad-cand-row">
+      <div class="avatar">${iniciales(c.nombre)}</div>
+      <div style="flex:1; min-width:0;">
+        <div class="ruta-nombre">${c.nombre}${c.estado?', '+c.estado:''}</div>
+        <div class="ruta-meta">${recenciaTxt} · ${c.alumnos_historicos} alumnos · ${c.cursos_distintos} curso(s) dados</div>
+        ${c.es_debil?'<span class="badge-debil">⚠ Plaza débil</span>':''}
+      </div>
+      <button class="btn-primary small" data-add-ciudad="${c.ciudad_id}">+ Agregar</button>
+    </div>`;
+  }).join('') || '<div class="empty-note">Sin ciudades que coincidan (recuerda: solo aparecen las que ya tienen coordenadas resueltas).</div>';
+  cont.querySelectorAll('[data-add-ciudad]').forEach(btn=>{
+    btn.addEventListener('click', ()=>agregarCiudadARuta(btn.dataset.addCiudad));
+  });
+}
+
+async function agregarCiudadARuta(ciudadId){
+  const ciudades = await cargarCiudadesGira();
+  const c = ciudades.find(x=>x.ciudad_id===ciudadId);
+  if(!c) return;
+  let distancia = null;
+  if(giraRutaActual.length){
+    const anterior = giraRutaActual[giraRutaActual.length-1];
+    distancia = distanciaKm(anterior.lat, anterior.lng, c.lat, c.lng);
+  }
+  giraRutaActual.push({ ciudad_id: c.ciudad_id, nombre: c.nombre, estado: c.estado, lat: c.lat, lng: c.lng, distancia });
+  pintarGiraRuta();
+  renderGiraCandidatas(document.getElementById('giraBuscarCiudad').value);
+}
+function recalcularDistanciasRuta(){
+  giraRutaActual.forEach((p,i)=>{
+    p.distancia = i===0 ? null : distanciaKm(giraRutaActual[i-1].lat, giraRutaActual[i-1].lng, p.lat, p.lng);
+  });
+}
+function quitarDeRuta(idx){
+  giraRutaActual.splice(idx,1);
+  recalcularDistanciasRuta();
+  pintarGiraRuta();
+  renderGiraCandidatas(document.getElementById('giraBuscarCiudad').value);
+}
+function moverEnRuta(idx, delta){
+  const nuevo = idx+delta;
+  if(nuevo<0 || nuevo>=giraRutaActual.length) return;
+  [giraRutaActual[idx], giraRutaActual[nuevo]] = [giraRutaActual[nuevo], giraRutaActual[idx]];
+  recalcularDistanciasRuta();
+  pintarGiraRuta();
+}
+function pintarGiraRuta(){
+  const cont = document.getElementById('giraRutaLista');
+  if(!giraRutaActual.length){
+    cont.innerHTML = '<div class="empty-note">Todavía no agregas ninguna ciudad.</div>';
+    document.getElementById('giraDistanciaTotal').textContent = '—';
+    return;
+  }
+  cont.innerHTML = giraRutaActual.map((p,i)=>`
+    <div class="ruta-item">
+      <div class="ruta-num">${i+1}</div>
+      <div style="flex:1; min-width:0;">
+        <div class="ruta-nombre">${p.nombre}${p.estado?', '+p.estado:''}</div>
+        <div class="ruta-meta">${p.distancia!=null ? '↔ '+p.distancia.toFixed(0)+' km desde la anterior' : 'Punto de partida'}</div>
+      </div>
+      <button class="ruta-btn" data-mover="${i}" data-delta="-1" ${i===0?'disabled':''} title="Subir">↑</button>
+      <button class="ruta-btn" data-mover="${i}" data-delta="1" ${i===giraRutaActual.length-1?'disabled':''} title="Bajar">↓</button>
+      <button class="ruta-btn" data-quitar="${i}" title="Quitar">✕</button>
+    </div>`).join('');
+  cont.querySelectorAll('[data-mover]').forEach(btn=>{
+    btn.addEventListener('click', ()=>moverEnRuta(Number(btn.dataset.mover), Number(btn.dataset.delta)));
+  });
+  cont.querySelectorAll('[data-quitar]').forEach(btn=>{
+    btn.addEventListener('click', ()=>quitarDeRuta(Number(btn.dataset.quitar)));
+  });
+  const total = giraRutaActual.reduce((a,p)=>a+(p.distancia||0),0);
+  document.getElementById('giraDistanciaTotal').textContent = total ? total.toFixed(0)+' km' : '—';
+}
+document.getElementById('giraBuscarCiudad').addEventListener('input', (e)=>renderGiraCandidatas(e.target.value));
+
+document.getElementById('btnGuardarGiraBorrador').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('giraNombre').value.trim();
+  const cursoId = document.getElementById('giraCurso').value || null;
+  if(!nombre){ toast('Ponle un nombre a la gira.', true); return; }
+  if(giraRutaActual.length < 2){ toast('Agrega al menos 2 ciudades a la ruta.', true); return; }
+  const btn = document.getElementById('btnGuardarGiraBorrador'); btn.disabled=true; btn.textContent='Guardando...';
+  const { data: gira, error: errGira } = await sb.from('giras').insert({ nombre, curso_id: cursoId }).select('id').single();
+  if(errGira){ btn.disabled=false; btn.textContent='Guardar como borrador'; toast('Error: '+errGira.message, true); return; }
+  const paradas = giraRutaActual.map((p,i)=>({ gira_id: gira.id, ciudad_id: p.ciudad_id, orden: i+1, distancia_km_desde_anterior: p.distancia!=null?Number(p.distancia.toFixed(1)):null }));
+  const { error: errParadas } = await sb.from('gira_paradas').insert(paradas);
+  btn.disabled=false; btn.textContent='Guardar como borrador';
+  if(errParadas){ toast('Error guardando paradas: '+errParadas.message, true); return; }
+  toast('Gira guardada como borrador.');
+  giraRutaActual = [];
+  document.getElementById('giraNombre').value='';
+  pintarGiraRuta();
+  await renderGiraCandidatas('');
+  girasCargado.historial = false;
+});
+
+async function renderGirasHistorial(){
+  const cont = document.getElementById('giraHistorialLista');
+  cont.innerHTML = 'Cargando…';
+  const { data, error } = await sb.from('giras')
+    .select('id, nombre, estatus, creado_en, confirmada_en, cursos(nombre), gira_paradas(id, orden, ciudad_id, distancia_km_desde_anterior, ciudades(nombre, estado))')
+    .order('creado_en', {ascending:false});
+  if(error){ cont.innerHTML = '<div class="empty-note">Error: '+error.message+'</div>'; return; }
+  if(!data || data.length===0){ cont.innerHTML = '<div class="empty-note">Todavía no se ha guardado ninguna gira — arma una en "Constructor de ruta".</div>'; return; }
+  cont.innerHTML = data.map(g=>{
+    const paradas = (g.gira_paradas||[]).slice().sort((a,b)=>a.orden-b.orden);
+    const totalKm = paradas.reduce((a,p)=>a+(Number(p.distancia_km_desde_anterior)||0),0);
+    return `<div class="card" style="margin-bottom:14px;">
+      <div class="sheet-city">${g.nombre}</div>
+      <div class="sheet-curso">${g.cursos?.nombre || '(sin curso asignado)'} · ${paradas.length} ciudades · ${totalKm.toFixed(0)} km</div>
+      <div class="sheet-pill ${g.estatus==='confirmada'?'verde':'ambar'}">${g.estatus==='confirmada'?'Confirmada':'Borrador'}</div>
+      <div class="modal-notas" style="margin:12px 0;">
+        ${paradas.map(p=>`<div class="modal-notas-item">${p.orden}. ${p.ciudades?.nombre||'?'}${p.ciudades?.estado?', '+p.ciudades.estado:''}${p.distancia_km_desde_anterior?' · '+Number(p.distancia_km_desde_anterior).toFixed(0)+' km':''}</div>`).join('')}
+      </div>
+      ${g.estatus==='borrador'
+        ? `<button class="btn-primary small" data-confirmar-gira="${g.id}">Confirmar y generar lista de reactivación</button>`
+        : `<div class="sub">Confirmada el ${new Date(g.confirmada_en).toLocaleDateString('es-MX')}</div>`}
+    </div>`;
+  }).join('');
+  cont.querySelectorAll('[data-confirmar-gira]').forEach(btn=>{
+    btn.addEventListener('click', ()=>confirmarGira(btn.dataset.confirmarGira, btn));
+  });
+}
+
+/**
+ * Al confirmar una gira: junta a TODOS los alumnos históricos (cualquier
+ * curso) de las ciudades de la ruta, y los agrega como leads nuevos para
+ * el curso de esta gira — pero nunca a quien ya tenga un lead para ese
+ * mismo curso, para no duplicar ni volver a ofrecérselo dos veces.
+ */
+async function confirmarGira(giraId, btnOrigen){
+  if(!confirm('¿Confirmar esta gira y generar la lista de reactivación? Se agregarán a "Alumnos y Leads" los alumnos históricos de estas ciudades que todavía no tengan seguimiento para este curso.')) return;
+  if(btnOrigen){ btnOrigen.disabled = true; btnOrigen.textContent = 'Generando...'; }
+
+  const { data: gira, error: errGira } = await sb.from('giras').select('id, curso_id, gira_paradas(ciudad_id)').eq('id', giraId).single();
+  if(errGira){ toast('Error: '+errGira.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+  if(!gira.curso_id){ toast('Esta gira no tiene un curso asignado — no se puede generar la lista sin saber qué curso ofrecer.', true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+  const ciudadIds = [...new Set((gira.gira_paradas||[]).map(p=>p.ciudad_id))];
+
+  const { data: eventosCiudades, error: errEv } = await sb.from('eventos').select('id, ciudad_id').in('ciudad_id', ciudadIds);
+  if(errEv){ toast('Error: '+errEv.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+  const eventoIds = (eventosCiudades||[]).map(e=>e.id);
+  const ciudadPorEvento = {}; (eventosCiudades||[]).forEach(e=>{ ciudadPorEvento[e.id] = e.ciudad_id; });
+
+  let nuevosLeads = [];
+  if(eventoIds.length){
+    const { data: inscripciones, error: errInsc } = await sb.from('inscripciones').select('persona_id, evento_id').in('evento_id', eventoIds);
+    if(errInsc){ toast('Error buscando alumnos históricos: '+errInsc.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+    const personaIds = [...new Set((inscripciones||[]).map(i=>i.persona_id))];
+    const ciudadPorPersona = {};
+    (inscripciones||[]).forEach(i=>{ if(!ciudadPorPersona[i.persona_id]) ciudadPorPersona[i.persona_id] = ciudadPorEvento[i.evento_id]; });
+
+    if(personaIds.length){
+      const { data: leadsExistentes } = await sb.from('leads').select('persona_id').eq('curso_interes_id', gira.curso_id).in('persona_id', personaIds);
+      const yaTieneLead = new Set((leadsExistentes||[]).map(l=>l.persona_id));
+      const estatusInicial = ESTATUS.find(e=>e.clave==='pago_por_confirmar') || ESTATUS[0];
+      nuevosLeads = personaIds.filter(pid=>!yaTieneLead.has(pid)).map(pid=>({
+        persona_id: pid, estatus_id: estatusInicial.id,
+        curso_interes_id: gira.curso_id, ciudad_interes_id: ciudadPorPersona[pid],
+        origen: 'recuperacion',
+      }));
+    }
+  }
+
+  if(nuevosLeads.length){
+    const { error: errNuevos } = await sb.from('leads').insert(nuevosLeads);
+    if(errNuevos){ toast('Error creando leads: '+errNuevos.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar y generar lista de reactivación';} return; }
+    toast(`${nuevosLeads.length} alumno(s) agregados a Alumnos y Leads para dar seguimiento.`);
+  } else {
+    toast('Gira confirmada. No había alumnos históricos nuevos que agregar (todos ya tenían seguimiento para este curso, o ninguna de estas ciudades tiene historial).');
+  }
+
+  await sb.from('giras').update({ estatus:'confirmada', confirmada_en: new Date().toISOString() }).eq('id', giraId);
+  await renderGirasHistorial();
+  leadsCache = await cargarLeads();
+  pintarBoard();
+}
+
+document.querySelectorAll('#girasSubtabs .subtab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('#girasSubtabs .subtab').forEach(b=>b.classList.toggle('active', b===btn));
+    document.querySelectorAll('#view-giras .subview').forEach(v=>v.classList.remove('active'));
+    document.getElementById('giras-'+tab).classList.add('active');
+    cargarGirasTab(tab);
+  });
+});
+async function cargarGirasTab(tab){
+  if(tab==='constructor' && !girasCargado.constructor){
+    girasCargado.constructor = true;
+    document.getElementById('giraCurso').innerHTML = '<option value="">— Sin especificar —</option>' + CURSOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+    await renderGiraCandidatas('');
+  } else if(tab==='historial' && !girasCargado.historial){
+    girasCargado.historial = true;
+    await renderGirasHistorial();
+  }
+}
+
 async function renderCursos(){
   const cont = document.getElementById('listaCursos');
   const { data, error } = await sb.from('vista_resumen_curso').select('*')
@@ -2004,14 +2296,26 @@ function renderCiudadSelect(){
   if(CIUDADES_CON_CURSO.length) renderPlaza(CIUDADES_CON_CURSO[0].id);
 }
 document.getElementById('ciudadSelect').addEventListener('change', (e)=>{
-  if(e.target.value==='__new'){ document.getElementById('newCityForm').classList.add('open'); }
-  else { document.getElementById('newCityForm').classList.remove('open'); renderPlaza(e.target.value); }
+  if(e.target.value==='__new'){ document.getElementById('newCityForm').classList.add('open'); document.getElementById('newCityHint').style.display='block'; }
+  else { document.getElementById('newCityForm').classList.remove('open'); document.getElementById('newCityHint').style.display='none'; renderPlaza(e.target.value); }
 });
 document.getElementById('newCitySave').addEventListener('click', async ()=>{
   const nombre = document.getElementById('newCityInput').value.trim();
   const estado = document.getElementById('newCityState').value.trim();
+  const latTxt = document.getElementById('newCityLat').value.trim();
+  const lngTxt = document.getElementById('newCityLng').value.trim();
   if(!nombre){ return; }
-  const { data, error } = await sb.from('ciudades').insert({ nombre, estado: estado||null }).select('id,nombre,estado').single();
+  const payload = { nombre, estado: estado||null };
+  const lat = latTxt ? Number(latTxt) : null;
+  const lng = lngTxt ? Number(lngTxt) : null;
+  // Sin un servicio de geocodificación en vivo, no hay forma de resolver esto
+  // solo — se guarda lo que capturen a mano (viendo Google Maps) o se deja
+  // pendiente; sin coordenadas, esta ciudad simplemente no aparece como
+  // candidata en el constructor de Gira (que exige lat/lng para calcular distancia).
+  if(lat!=null && lng!=null && !Number.isNaN(lat) && !Number.isNaN(lng)){
+    payload.lat = lat; payload.lng = lng; payload.coordenadas_fuente = 'manual';
+  }
+  const { data, error } = await sb.from('ciudades').insert(payload).select('id,nombre,estado').single();
   if(error){ toast('Error: ' + error.message, true); return; }
   // se agrega local a la lista filtrada aunque todavía no tenga evento —
   // la acabas de crear a propósito para trabajarla
@@ -2020,6 +2324,8 @@ document.getElementById('newCitySave').addEventListener('click', async ()=>{
   renderCiudadSelect();
   document.getElementById('ciudadSelect').value = data.id;
   document.getElementById('newCityForm').classList.remove('open');
+  document.getElementById('newCityHint').style.display='none';
+  document.getElementById('newCityLat').value=''; document.getElementById('newCityLng').value='';
   renderPlaza(data.id);
 });
 async function renderPlaza(ciudadId){
