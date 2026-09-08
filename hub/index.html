@@ -267,10 +267,17 @@
   .pago-feed-nombre{ font-weight:600; font-size:13px; }
   .pago-feed-meta{ font-size:11px; color:var(--ink-soft); }
 
-  .builder-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:flex-end; }
-  .builder-field{ display:flex; flex-direction:column; gap:4px; }
-  .builder-field label{ font-size:10.5px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.02em; }
-  .builder-field select{ min-width:160px; }
+  .builder-intent{ font-family:'Newsreader',serif; font-size:19px; font-weight:600; color:var(--ink); margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+  .builder-intent b{ color:var(--wine); }
+  .builder-group{ margin-bottom:18px; }
+  .builder-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.02em; margin-bottom:9px; display:flex; align-items:center; gap:7px; }
+  .pill-auto{ font-size:9.5px; font-weight:700; color:#8A6D2F; text-transform:none; letter-spacing:0; background:rgba(197,166,107,.22); padding:2px 9px; border-radius:20px; opacity:0; transition:opacity .2s ease; }
+  .pill-auto.show{ opacity:1; }
+  .pill-group{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pill-opt{ display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:20px; border:1px solid var(--border); background:var(--card); font-size:13px; font-weight:600; color:var(--ink-soft); cursor:pointer; font-family:inherit; transition:background .15s, border-color .15s, color .15s, transform .1s; }
+  .pill-opt:hover{ border-color:var(--wine); color:var(--ink); }
+  .pill-opt:active{ transform:scale(.96); }
+  .pill-opt.active{ background:var(--wine); border-color:var(--wine); color:#fff; }
   .interaccion-item{ font-size:12px; padding:8px 0; border-bottom:1px dashed var(--border); }
   .interaccion-item:last-child{ border-bottom:none; }
   .interaccion-fecha{ font-size:10px; color:var(--ink-soft); }
@@ -477,24 +484,36 @@
 
       <div class="subview" id="reportes-constructor">
         <div class="chart-card">
-          <div class="builder-row">
-            <div class="builder-field"><label>Dimensión</label><select id="builderDimension">
-              <option value="ciudad">Ciudad</option>
-              <option value="estatus">Estatus</option>
-              <option value="semana">Semana</option>
-            </select></div>
-            <div class="builder-field"><label>Métrica</label><select id="builderMetrica">
-              <option value="alumnos">Alumnos (conteo)</option>
-              <option value="recaudado">Recaudado ($)</option>
-            </select></div>
-            <div class="builder-field"><label>Gráfica</label><select id="builderTipo">
-              <option value="bar">Barras</option>
-              <option value="line">Línea</option>
-              <option value="doughnut">Dona</option>
-            </select></div>
-            <button class="btn-primary small" id="btnExportarBuilder">⬇ Exportar CSV</button>
+          <div class="builder-intent" id="builderIntent">—</div>
+
+          <div class="builder-group">
+            <div class="builder-label">¿Por qué agrupamos?</div>
+            <div class="pill-group" id="builderDimension" data-value="ciudad">
+              <button class="pill-opt active" data-value="ciudad">🏙️ Ciudad</button>
+              <button class="pill-opt" data-value="estatus">🚦 Estatus</button>
+              <button class="pill-opt" data-value="semana">🗓️ Semana</button>
+            </div>
           </div>
+
+          <div class="builder-group">
+            <div class="builder-label">¿Qué queremos ver?</div>
+            <div class="pill-group" id="builderMetrica" data-value="alumnos">
+              <button class="pill-opt active" data-value="alumnos">👥 Alumnos</button>
+              <button class="pill-opt" data-value="recaudado">💰 Recaudado</button>
+            </div>
+          </div>
+
+          <div class="builder-group">
+            <div class="builder-label">¿Cómo se ve mejor?<span class="pill-auto show" id="builderAutoTag">sugerido para ti</span></div>
+            <div class="pill-group" id="builderTipo" data-value="bar">
+              <button class="pill-opt active" data-value="bar">📊 Barras</button>
+              <button class="pill-opt" data-value="line">📈 Línea</button>
+              <button class="pill-opt" data-value="doughnut">🍩 Dona</button>
+            </div>
+          </div>
+
           <div class="chart-wrap"><canvas id="chartBuilder"></canvas></div>
+          <button class="btn-primary small" id="btnExportarBuilder" style="margin-top:16px;">⬇ Exportar CSV</button>
         </div>
       </div>
     </div>
@@ -1826,9 +1845,9 @@ document.getElementById('btnExportarComparativa').addEventListener('click', ()=>
 async function renderReportesConstructor(){
   const monto = await obtenerMontoPorEvento();
   const filas = filasBaseReporte(monto);
-  const dimension = document.getElementById('builderDimension').value;
-  const metrica = document.getElementById('builderMetrica').value;
-  const tipo = document.getElementById('builderTipo').value;
+  const dimension = builderState.dimension;
+  const metrica = builderState.metrica;
+  const tipo = builderState.tipo;
 
   const agrupado = {};
   const asegurar = (key, label)=> agrupado[key] || (agrupado[key] = { label, alumnos:0, recaudado:0 });
@@ -1884,9 +1903,54 @@ document.querySelectorAll('#reportesSubtabs .subtab').forEach(btn=>{
     cargarReportesTab(tab);
   });
 });
-['builderDimension','builderMetrica','builderTipo'].forEach(id=>{
-  document.getElementById(id).addEventListener('change', renderReportesConstructor);
+/** Constructor de reportes: chips en vez de menús — cada clic dispara la
+ *  gráfica al instante, y al cambiar la dimensión se sugiere sola el tipo
+ *  de gráfica que mejor le queda (dona para estatus, línea para semana,
+ *  barras para ciudad), hasta que el usuario elige uno a mano. */
+const builderState = { dimension:'ciudad', metrica:'alumnos', tipo:'bar', tipoManual:false };
+const TIPO_SUGERIDO = { ciudad:'bar', estatus:'doughnut', semana:'line' };
+const ETIQUETA_DIMENSION = { ciudad:'ciudad', estatus:'estatus de pago', semana:'semana' };
+const ETIQUETA_METRICA = { alumnos:'Alumnos', recaudado:'Dinero recaudado' };
+
+function seleccionarPill(containerId, valor){
+  const cont = document.getElementById(containerId);
+  cont.dataset.value = valor;
+  cont.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active', b.dataset.value===valor));
+}
+function actualizarIntentBuilder(){
+  document.getElementById('builderIntent').innerHTML =
+    `${ETIQUETA_METRICA[builderState.metrica]} por <b>${ETIQUETA_DIMENSION[builderState.dimension]}</b>`;
+  document.getElementById('builderAutoTag').classList.toggle('show', !builderState.tipoManual);
+}
+function wirePillGroup(containerId, onChange){
+  document.getElementById(containerId).querySelectorAll('.pill-opt').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      seleccionarPill(containerId, btn.dataset.value);
+      onChange(btn.dataset.value);
+    });
+  });
+}
+wirePillGroup('builderDimension', (valor)=>{
+  builderState.dimension = valor;
+  if(!builderState.tipoManual){
+    builderState.tipo = TIPO_SUGERIDO[valor];
+    seleccionarPill('builderTipo', builderState.tipo);
+  }
+  actualizarIntentBuilder();
+  renderReportesConstructor();
 });
+wirePillGroup('builderMetrica', (valor)=>{
+  builderState.metrica = valor;
+  actualizarIntentBuilder();
+  renderReportesConstructor();
+});
+wirePillGroup('builderTipo', (valor)=>{
+  builderState.tipo = valor;
+  builderState.tipoManual = true;
+  actualizarIntentBuilder();
+  renderReportesConstructor();
+});
+actualizarIntentBuilder();
 document.getElementById('btnExportarBuilder').addEventListener('click', ()=>{
   if(!builderCache.encabezados){ toast('Genera primero un reporte.', true); return; }
   exportarCSV('reporte_personalizado.csv', builderCache.encabezados, builderCache);
