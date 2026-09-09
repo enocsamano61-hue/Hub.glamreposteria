@@ -861,10 +861,18 @@ async function cargarEventosProximos(){
    ========================================================= */
 const CURSO_ACTIVO_NOMBRE = 'LOS PASTELES MAS SABROSOS DE LA CHEF';
 let cursoActivoIdCache; // undefined = no consultado todavía · null = se consultó y no existe · string = id real
+function normalizarNombreCurso(s){
+  return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+}
 async function obtenerCursoActivoId(){
   if(cursoActivoIdCache !== undefined) return cursoActivoIdCache;
-  const { data } = await sb.from('cursos').select('id').eq('nombre', CURSO_ACTIVO_NOMBRE).maybeSingle();
-  cursoActivoIdCache = data ? data.id : null;
+  // Comparación insensible a mayúsculas/acentos — si el curso se renombra
+  // (typos corregidos, etc.) esto sigue encontrándolo en vez de romper
+  // Calendario/Ventas/Reportes en silencio.
+  const { data } = await sb.from('cursos').select('id, nombre');
+  const objetivo = normalizarNombreCurso(CURSO_ACTIVO_NOMBRE);
+  const match = (data||[]).find(c => normalizarNombreCurso(c.nombre) === objetivo);
+  cursoActivoIdCache = match ? match.id : null;
   return cursoActivoIdCache;
 }
 let CIUDADES_GIRA_ACTIVA = null; // null = no cargadas todavía; array (posiblemente vacío) ya cargado
