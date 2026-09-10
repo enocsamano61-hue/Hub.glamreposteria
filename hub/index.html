@@ -530,6 +530,10 @@
 
       <div class="subview active" id="logistica-catalogo">
         <div class="kpis" id="logisticaKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+          <button class="btn-outline small" id="btnEditarCursosLogistica" style="width:auto; padding:9px 14px;">⚙ Editar cursos</button>
+          <button class="btn-primary small" id="btnNuevaSede">+ Nueva sede</button>
+        </div>
         <div class="card">
           <div class="toolbar">
             <input class="search" id="logisticaBuscar" placeholder="Buscar sede o ciudad...">
@@ -541,6 +545,7 @@
               <option value="confirmada">Confirmada</option>
               <option value="rechazada">Rechazada</option>
             </select>
+            <select class="select" id="logisticaFiltroCurso"><option value="">Todos los cursos</option></select>
           </div>
           <div id="logisticaCatalogoLista">Cargando…</div>
         </div>
@@ -835,8 +840,58 @@
     </div>
 
     <div class="tab-panel" id="panelSedeHistorial">
+      <button class="btn-outline" id="btnAgregarContacto" style="margin-bottom:12px;">+ Agregar contacto</button>
+      <div id="formNuevoContacto" style="display:none; background:var(--bg); border-radius:10px; padding:12px; margin-bottom:14px;">
+        <div class="modal-field"><label>Curso</label><select id="nuevoContactoCurso"></select></div>
+        <div class="modal-field"><label>Fecha</label><input type="date" id="nuevoContactoFecha"></div>
+        <div class="modal-field"><label>Estatus de esta vez</label>
+          <select id="nuevoContactoEstatus">
+            <option value="prospecto">Prospecto</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="rechazada">Rechazada</option>
+          </select>
+        </div>
+        <div class="modal-field"><label>Motivo (si es rechazada)</label><input id="nuevoContactoMotivo"></div>
+        <div class="modal-field"><label>Anticipo (opcional)</label><input id="nuevoContactoAnticipo" placeholder="$700"></div>
+        <div class="modal-field"><label>Observaciones (opcional)</label><textarea class="textarea" id="nuevoContactoObs"></textarea></div>
+        <button class="btn-primary small" id="guardarNuevoContacto">Guardar contacto</button>
+      </div>
       <div class="timeline" id="modalSedeTimeline">Cargando…</div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalCursosLogistica">
+  <div class="modal" style="max-width:480px;">
+    <button class="close" id="closeModalCursosLogistica">✕</button>
+    <h3 style="margin-bottom:12px;">Cursos de logística</h3>
+    <div class="sub" style="margin-bottom:14px;">Esta es la lista que aparece en los selectores de curso al agregar sedes y contactos.</div>
+    <div id="listaCursosLogistica">Cargando…</div>
+    <div class="modal-field" style="margin-top:14px;"><label>Agregar curso nuevo</label>
+      <div style="display:flex; gap:8px;">
+        <input class="search" id="nuevoCursoLogisticaInput" placeholder="Nombre del curso" style="flex:1;">
+        <button class="btn-primary small" id="btnAgregarCursoLogistica">Agregar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalNuevaSede">
+  <div class="modal">
+    <button class="close" id="closeModalNuevaSede">✕</button>
+    <h3 style="margin-bottom:14px;">Nueva sede</h3>
+    <div class="modal-field"><label>Nombre de la sede</label><input id="nuevaSedeNombre" placeholder="Ej. Hotel Real del Valle"></div>
+    <div class="modal-field"><label>Ciudad</label><input id="nuevaSedeCiudad" list="listaCiudadesNuevaSede" placeholder="Escribe o elige una ciudad"><datalist id="listaCiudadesNuevaSede"></datalist></div>
+    <div class="modal-field"><label>Tipo de lugar</label>
+      <select id="nuevaSedeTipo">
+        <option>Hotel</option><option>Salón</option><option>Restaurante</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="modal-field"><label>Contacto</label><input id="nuevaSedeContacto" placeholder="Nombre de quien atiende"></div>
+    <div class="modal-field"><label>Teléfono</label><input id="nuevaSedeTelefono"></div>
+    <div class="modal-field"><label>¿Para qué curso se está negociando?</label><select id="nuevaSedeCurso"><option value="">— Sin especificar —</option></select></div>
+    <button class="btn-primary" id="guardarNuevaSede">Guardar sede</button>
   </div>
 </div>
 
@@ -2835,6 +2890,8 @@ async function buscarHistorial(q){
 const logisticaCargado = { catalogo:false, pipeline:false, calculadora:false, resumen:false };
 let logisticaSedesCache = null;    // todas las filas de `sedes`
 let logisticaConteosCache = {};    // Map sede_id -> nº de contactos históricos
+let logisticaCursosPorSede = {};   // Map sede_id -> Set(curso_catalogo_id)
+let logisticaCursosCache = [];     // catálogo de cursos de logística (activos)
 let logisticaSaltarCiudad = null;  // ciudad a preseleccionar al entrar desde Giras
 const ETIQUETA_PIPELINE = { prospecto:'Prospecto', en_proceso:'En proceso', confirmada:'Confirmada', rechazada:'Rechazada' };
 const COLOR_PIPELINE = { prospecto:'var(--champagne)', en_proceso:'var(--terracota)', confirmada:'var(--success)', rechazada:'var(--danger)' };
@@ -2843,14 +2900,22 @@ const DIAS_ESTANCADA = 14;
 
 async function cargarSedesCache(forzar){
   if(logisticaSedesCache && !forzar) return logisticaSedesCache;
-  const [{ data:sedes, error }, { data:contactos }] = await Promise.all([
+  const [{ data:sedes, error }, { data:contactos }, { data:cursosLog }] = await Promise.all([
     fetchTodasFilas('sedes', 'id, ciudad_id, ciudad_texto, estado_texto, nombre, tipo_lugar, categoria, contacto, encargado, tel_directo, telefono, correo, direccion, referencia, google_maps, ubicacion, banco, nombre_cuenta, clabe_tarjeta_cuenta, proveedor_mobiliario, rentar_externo, ac_hotel, batidora, hornos, gondola, microondas, alfombra, alberca, ventiladores, steward, responsable, capacidad_referencia, mts2_referencia, pipeline_estatus, pipeline_estatus_motivo, pipeline_actualizado_en'),
-    fetchTodasFilas('sedes_contactos', 'sede_id'),
+    fetchTodasFilas('sedes_contactos', 'sede_id, curso_catalogo_id'),
+    sb.from('logistica_cursos').select('*').eq('activo', true).order('orden'),
   ]);
   if(error){ toast('Error cargando sedes: '+error.message, true); return []; }
-  const conteos = {};
-  (contactos||[]).forEach(c=>{ conteos[c.sede_id] = (conteos[c.sede_id]||0)+1; });
+  const conteos = {}, cursosPorSede = {};
+  (contactos||[]).forEach(c=>{
+    conteos[c.sede_id] = (conteos[c.sede_id]||0)+1;
+    if(c.curso_catalogo_id){
+      (cursosPorSede[c.sede_id] = cursosPorSede[c.sede_id] || new Set()).add(c.curso_catalogo_id);
+    }
+  });
   logisticaConteosCache = conteos;
+  logisticaCursosPorSede = cursosPorSede;
+  logisticaCursosCache = cursosLog || [];
   logisticaSedesCache = sedes || [];
   return logisticaSedesCache;
 }
@@ -2899,13 +2964,17 @@ async function renderLogisticaCatalogo(){
   const ciudadesOrdenadas = [...new Set(logisticaSedesCache.map(s=>s.ciudad_texto))].sort((a,b)=>a.localeCompare(b,'es'));
   document.getElementById('logisticaFiltroCiudad').innerHTML = '<option value="">Todas las ciudades</option>' +
     ciudadesOrdenadas.map(c=>`<option value="${escapeAttr(c)}">${c}</option>`).join('');
+  document.getElementById('logisticaFiltroCurso').innerHTML = '<option value="">Todos los cursos</option>' +
+    logisticaCursosCache.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   aplicarFiltrosCatalogo();
 }
 function aplicarFiltrosCatalogo(){
   const q = (document.getElementById('logisticaBuscar').value||'').trim().toLowerCase();
   const ciudadSel = document.getElementById('logisticaFiltroCiudad').value;
   const estatusSel = document.getElementById('logisticaFiltroEstatus').value;
+  const cursoSel = document.getElementById('logisticaFiltroCurso').value;
   const filtradas = (logisticaSedesCache||[]).filter(s=>{
+    if(cursoSel && !(logisticaCursosPorSede[s.id] && logisticaCursosPorSede[s.id].has(cursoSel))) return false;
     if(ciudadSel && s.ciudad_texto !== ciudadSel) return false;
     if(estatusSel && s.pipeline_estatus !== estatusSel) return false;
     if(q && !(s.nombre.toLowerCase().includes(q) || (s.ciudad_texto||'').toLowerCase().includes(q))) return false;
@@ -2941,6 +3010,7 @@ const PRIORIDAD_PIPELINE = { en_proceso:0, prospecto:1, confirmada:2, rechazada:
 document.getElementById('logisticaBuscar').addEventListener('input', aplicarFiltrosCatalogo);
 document.getElementById('logisticaFiltroCiudad').addEventListener('change', aplicarFiltrosCatalogo);
 document.getElementById('logisticaFiltroEstatus').addEventListener('change', aplicarFiltrosCatalogo);
+document.getElementById('logisticaFiltroCurso').addEventListener('change', aplicarFiltrosCatalogo);
 
 /* ---------- Ficha de sede (modal) ---------- */
 let modalSedeId = null;
@@ -3181,6 +3251,144 @@ async function renderLogisticaResumen(){
       </div>`;
     }).join('')}`;
 }
+
+/* ---------- Catálogo de cursos de logística (editable) ---------- */
+document.getElementById('btnEditarCursosLogistica').addEventListener('click', abrirModalCursosLogistica);
+async function abrirModalCursosLogistica(){
+  const cont = document.getElementById('listaCursosLogistica');
+  cont.innerHTML = 'Cargando…';
+  document.getElementById('modalCursosLogistica').classList.add('open');
+  const { data, error } = await sb.from('logistica_cursos').select('*').order('orden');
+  if(error){ cont.innerHTML = 'Error: '+error.message; return; }
+  cont.innerHTML = (data||[]).map(c=>`
+    <div class="dato-row" style="${c.activo?'':'opacity:.45;'}">
+      <input class="search" value="${escapeAttr(c.nombre)}" data-curso-nombre="${c.id}" style="flex:1; margin-right:8px;">
+      <button class="chev-btn" data-curso-toggle="${c.id}" data-activo="${c.activo}" title="${c.activo?'Desactivar':'Reactivar'}">${c.activo?'🗑':'↺'}</button>
+    </div>`).join('') || '<div class="empty-note">Sin cursos todavía.</div>';
+  cont.querySelectorAll('[data-curso-nombre]').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const { error } = await sb.from('logistica_cursos').update({ nombre: inp.value.trim() }).eq('id', inp.dataset.cursoNombre);
+      if(error){ toast('Error: '+error.message, true); return; }
+      toast('Curso actualizado.');
+      logisticaSedesCache = null;
+    });
+  });
+  cont.querySelectorAll('[data-curso-toggle]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const activo = btn.dataset.activo === 'true';
+      const { error } = await sb.from('logistica_cursos').update({ activo: !activo }).eq('id', btn.dataset.cursoToggle);
+      if(error){ toast('Error: '+error.message, true); return; }
+      toast(!activo ? 'Curso reactivado.' : 'Curso desactivado.');
+      logisticaSedesCache = null;
+      abrirModalCursosLogistica();
+    });
+  });
+}
+document.getElementById('closeModalCursosLogistica').addEventListener('click', ()=>document.getElementById('modalCursosLogistica').classList.remove('open'));
+document.getElementById('btnAgregarCursoLogistica').addEventListener('click', async ()=>{
+  const input = document.getElementById('nuevoCursoLogisticaInput');
+  const nombre = input.value.trim();
+  if(!nombre) return;
+  const maxOrden = logisticaCursosCache.reduce((m,c)=>Math.max(m, c.orden||0), 0);
+  const { error } = await sb.from('logistica_cursos').insert({ nombre, orden: maxOrden+1 });
+  if(error){ toast('Error: '+error.message, true); return; }
+  input.value = '';
+  toast('Curso agregado.');
+  logisticaSedesCache = null;
+  abrirModalCursosLogistica();
+});
+
+/* ---------- Nueva sede ---------- */
+document.getElementById('btnNuevaSede').addEventListener('click', async ()=>{
+  await cargarSedesCache();
+  document.getElementById('nuevaSedeNombre').value = '';
+  document.getElementById('nuevaSedeCiudad').value = '';
+  document.getElementById('nuevaSedeTipo').value = 'Hotel';
+  document.getElementById('nuevaSedeContacto').value = '';
+  document.getElementById('nuevaSedeTelefono').value = '';
+  document.getElementById('listaCiudadesNuevaSede').innerHTML = CIUDADES.map(c=>`<option value="${escapeAttr(c.nombre)}">`).join('');
+  document.getElementById('nuevaSedeCurso').innerHTML = '<option value="">— Sin especificar —</option>' +
+    logisticaCursosCache.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  document.getElementById('modalNuevaSede').classList.add('open');
+});
+document.getElementById('closeModalNuevaSede').addEventListener('click', ()=>document.getElementById('modalNuevaSede').classList.remove('open'));
+document.getElementById('guardarNuevaSede').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('nuevaSedeNombre').value.trim();
+  const ciudadTexto = document.getElementById('nuevaSedeCiudad').value.trim();
+  if(!nombre || !ciudadTexto){ toast('Falta el nombre o la ciudad.', true); return; }
+  const tipo = document.getElementById('nuevaSedeTipo').value;
+  const contacto = document.getElementById('nuevaSedeContacto').value.trim() || null;
+  const telefono = document.getElementById('nuevaSedeTelefono').value.trim() || null;
+  const cursoId = document.getElementById('nuevaSedeCurso').value || null;
+  const ciudadMatch = CIUDADES.find(c=>normalizarNombreCurso(c.nombre)===normalizarNombreCurso(ciudadTexto));
+  const btn = document.getElementById('guardarNuevaSede'); btn.disabled=true; btn.textContent='Guardando...';
+  const { data: sede, error } = await sb.from('sedes').insert({
+    nombre, ciudad_texto: ciudadTexto, ciudad_id: ciudadMatch?ciudadMatch.id:null,
+    estado_texto: ciudadMatch?ciudadMatch.estado:null, tipo_lugar: tipo, contacto, tel_directo: telefono,
+    pipeline_estatus: 'prospecto',
+  }).select('id').single();
+  btn.disabled=false; btn.textContent='Guardar sede';
+  if(error){ toast('Error: '+error.message, true); return; }
+  if(cursoId){
+    const cursoNombre = (logisticaCursosCache.find(c=>c.id===cursoId)||{}).nombre;
+    await sb.from('sedes_contactos').insert({ sede_id: sede.id, curso_catalogo_id: cursoId, curso_texto: cursoNombre, estatus:'PROSPECTO', anio: String(new Date().getFullYear()) });
+  }
+  toast('Sede agregada.');
+  document.getElementById('modalNuevaSede').classList.remove('open');
+  logisticaSedesCache = null;
+  logisticaCargado.pipeline = false; logisticaCargado.calculadora = false; logisticaCargado.resumen = false;
+  await renderLogisticaCatalogo();
+});
+
+/* ---------- Agregar contacto (desde la ficha) ---------- */
+document.getElementById('btnAgregarContacto').addEventListener('click', ()=>{
+  const form = document.getElementById('formNuevoContacto');
+  const mostrar = form.style.display === 'none';
+  form.style.display = mostrar ? 'block' : 'none';
+  if(mostrar){
+    document.getElementById('nuevoContactoCurso').innerHTML = '<option value="">— Sin especificar —</option>' +
+      logisticaCursosCache.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+    document.getElementById('nuevoContactoFecha').value = new Date().toISOString().slice(0,10);
+    document.getElementById('nuevoContactoEstatus').value = 'prospecto';
+    document.getElementById('nuevoContactoMotivo').value = '';
+    document.getElementById('nuevoContactoAnticipo').value = '';
+    document.getElementById('nuevoContactoObs').value = '';
+  }
+});
+document.getElementById('guardarNuevoContacto').addEventListener('click', async ()=>{
+  if(!modalSedeId) return;
+  const cursoId = document.getElementById('nuevoContactoCurso').value || null;
+  const fecha = document.getElementById('nuevoContactoFecha').value;
+  const estatusNuevo = document.getElementById('nuevoContactoEstatus').value;
+  const motivo = document.getElementById('nuevoContactoMotivo').value.trim() || null;
+  const anticipo = document.getElementById('nuevoContactoAnticipo').value.trim() || null;
+  const obs = document.getElementById('nuevoContactoObs').value.trim() || null;
+  const cursoNombre = cursoId ? (logisticaCursosCache.find(c=>c.id===cursoId)||{}).nombre : null;
+  const fechaObj = fecha ? new Date(fecha+'T00:00:00') : new Date();
+  const MESES_TXT = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const btn = document.getElementById('guardarNuevoContacto'); btn.disabled=true; btn.textContent='Guardando...';
+  const { error: errC } = await sb.from('sedes_contactos').insert({
+    sede_id: modalSedeId, curso_catalogo_id: cursoId, curso_texto: cursoNombre,
+    anio: String(fechaObj.getFullYear()), mes: MESES_TXT[fechaObj.getMonth()],
+    estatus: ETIQUETA_PIPELINE[estatusNuevo].toUpperCase(),
+    anticipo, observaciones: obs,
+  });
+  if(errC){ btn.disabled=false; btn.textContent='Guardar contacto'; toast('Error: '+errC.message, true); return; }
+  const { error: errS } = await sb.from('sedes').update({
+    pipeline_estatus: estatusNuevo, pipeline_estatus_motivo: motivo, pipeline_actualizado_en: new Date().toISOString(),
+  }).eq('id', modalSedeId);
+  btn.disabled=false; btn.textContent='Guardar contacto';
+  if(errS){ toast('Error al actualizar estatus: '+errS.message, true); return; }
+  toast('Contacto agregado.');
+  document.getElementById('formNuevoContacto').style.display = 'none';
+  const sedeLocal = logisticaSedesCache.find(s=>s.id===modalSedeId);
+  if(sedeLocal){ sedeLocal.pipeline_estatus=estatusNuevo; sedeLocal.pipeline_estatus_motivo=motivo; sedeLocal.pipeline_actualizado_en=new Date().toISOString(); }
+  if(cursoId){ (logisticaCursosPorSede[modalSedeId] = logisticaCursosPorSede[modalSedeId]||new Set()).add(cursoId); }
+  logisticaConteosCache[modalSedeId] = (logisticaConteosCache[modalSedeId]||0)+1;
+  await abrirFichaSede(modalSedeId);
+  aplicarFiltrosCatalogo();
+  if(logisticaCargado.pipeline) renderLogisticaPipeline();
+});
 
 initAuth();
 </script>
