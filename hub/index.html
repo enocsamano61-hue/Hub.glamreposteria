@@ -328,6 +328,61 @@
     .board-toolbar{ flex-direction:column; align-items:stretch; }
   }
   @media (min-width: 761px){ .picker-overlay{ display:none !important; } }
+
+  /* ---------- LOGÍSTICA ---------- */
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  .ciudad-grupo{ margin-bottom:8px; }
+  .ciudad-header{ display:flex; align-items:baseline; gap:8px; padding:10px 2px 6px 2px; flex-wrap:wrap; }
+  .ciudad-header h4{ font-family:'Newsreader',serif; font-size:15.5px; font-weight:600; }
+  .ciudad-header .count{ font-size:11.5px; color:var(--ink-soft); }
+  .sede-row{ display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--border); cursor:pointer; flex-wrap:wrap; }
+  .sede-row:last-child{ border-bottom:none; }
+  .sede-row:hover{ background:var(--bg); }
+  .sede-nombre{ font-weight:600; font-size:13px; }
+  .sede-meta{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; }
+  .sede-cap{ font-size:12px; color:var(--ink-soft); flex-shrink:0; }
+  .sede-cap b{ color:var(--ink); font-weight:600; }
+  .sede-contacto{ font-size:11.5px; color:var(--ink-soft); flex-shrink:0; }
+  .badge{ font-size:10px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+  .badge.prospecto{ background:rgba(197,166,107,.25); color:#7A5D22; }
+  .badge.en_proceso{ background:rgba(181,111,85,.18); color:#8C4A31; }
+  .badge.confirmada{ background:rgba(85,116,92,.16); color:var(--success); }
+  .badge.rechazada{ background:rgba(181,69,58,.14); color:var(--danger); }
+  .sheet-pill.terracota{ background:rgba(181,111,85,.18); color:#8C4A31; }
+  .modal-head-sede{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .seccion-titulo{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 8px 0; }
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{ font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:20px; background:var(--bg); border:1px solid var(--border); color:var(--ink); }
+  .chip.off{ color:var(--ink-soft); opacity:.55; }
+  .timeline{ position:relative; padding-left:18px; }
+  .timeline::before{ content:''; position:absolute; left:4px; top:4px; bottom:4px; width:1px; background:var(--border); }
+  .tl-item{ position:relative; padding-bottom:16px; }
+  .tl-item:last-child{ padding-bottom:0; }
+  .tl-dot{ position:absolute; left:-18px; top:3px; width:9px; height:9px; border-radius:50%; background:var(--wine); border:2px solid var(--card); }
+  .tl-head{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .tl-curso{ font-weight:600; font-size:12.5px; }
+  .tl-fecha{ font-size:11px; color:var(--ink-soft); flex-shrink:0; }
+  .tl-meta{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+  .resultado-row{ display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .resultado-row:last-child{ border-bottom:none; }
+  .rank{ width:22px; height:22px; border-radius:50%; background:var(--wine); color:#fff; display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex-shrink:0; }
+  .r-nombre{ font-size:13px; font-weight:600; }
+  .r-meta{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; }
+  .fit-bar{ width:80px; height:6px; border-radius:20px; background:var(--border); overflow:hidden; flex-shrink:0; }
+  .fit-fill{ height:100%; background:var(--success); }
+  .fit-txt{ font-size:11px; color:var(--ink-soft); flex-shrink:0; }
+  .fit-txt b{ color:var(--ink); font-weight:700; }
+  .checklist-item{ display:flex; align-items:center; gap:8px; padding:6px 0; font-size:12.5px; }
+  .checklist-item input{ width:15px; height:15px; }
+  .parada-resumen{ padding:12px 4px; border-bottom:1px solid var(--border); }
+  .parada-resumen:last-child{ border-bottom:none; }
+  .parada-resumen-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .estancada-row{ display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .estancada-row:last-child{ border-bottom:none; }
+  @media (max-width: 760px){
+    .sede-row{ align-items:flex-start; }
+    .sede-cap, .sede-contacto{ width:auto; text-align:left; }
+  }
 </style>
 </head>
 <body>
@@ -461,6 +516,73 @@
 
       <div class="subview" id="giras-historial">
         <div id="giraHistorialLista">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- LOGÍSTICA -->
+    <div class="view" id="view-logistica">
+      <div class="subtabs" id="logisticaSubtabs">
+        <button class="subtab active" data-tab="catalogo">Catálogo</button>
+        <button class="subtab" data-tab="pipeline">Pipeline</button>
+        <button class="subtab" data-tab="calculadora">Calculadora de cupo</button>
+        <button class="subtab" data-tab="resumen">Resumen</button>
+      </div>
+
+      <div class="subview active" id="logistica-catalogo">
+        <div class="kpis" id="logisticaKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
+        <div class="card">
+          <div class="toolbar">
+            <input class="search" id="logisticaBuscar" placeholder="Buscar sede o ciudad...">
+            <select class="select" id="logisticaFiltroCiudad"><option value="">Todas las ciudades</option></select>
+            <select class="select" id="logisticaFiltroEstatus">
+              <option value="">Todos los estatus</option>
+              <option value="prospecto">Prospecto</option>
+              <option value="en_proceso">En proceso</option>
+              <option value="confirmada">Confirmada</option>
+              <option value="rechazada">Rechazada</option>
+            </select>
+          </div>
+          <div id="logisticaCatalogoLista">Cargando…</div>
+        </div>
+      </div>
+
+      <div class="subview" id="logistica-pipeline">
+        <div class="card" style="margin-bottom:16px;">
+          <h3>⚠ Negociaciones estancadas</h3>
+          <div class="sub">En proceso desde hace más de 14 días sin novedades</div>
+          <div id="logisticaEstancadas">Cargando…</div>
+        </div>
+        <div class="board" id="logisticaBoard"><div class="empty-note">Cargando…</div></div>
+      </div>
+
+      <div class="subview" id="logistica-calculadora">
+        <div class="card">
+          <h3>¿Qué sede alcanza?</h3>
+          <div class="sub">Sugiere sedes de tu catálogo con capacidad suficiente para el grupo esperado</div>
+          <div class="toolbar">
+            <select class="select" id="calcCiudad"></select>
+            <input class="search" id="calcAlumnos" type="number" placeholder="Alumnos esperados" style="max-width:200px;">
+            <button class="btn-primary small" id="btnCalcularCupo">Buscar sedes que alcancen</button>
+          </div>
+          <div id="calcResultados"></div>
+        </div>
+        <div class="card">
+          <h3>Estimar cupo por m²</h3>
+          <div class="sub">Para una sede nueva que aún no tiene capacidad registrada — regla de ≈0.22 alumnos por m²</div>
+          <div class="toolbar">
+            <input class="search" id="calcMts2" type="number" placeholder="Metros cuadrados del salón" style="max-width:240px;">
+          </div>
+          <div id="calcMts2Resultado" class="dato-row" style="display:none;"><span class="l">Cupo estimado</span><span class="v" id="calcMts2Valor">—</span></div>
+        </div>
+      </div>
+
+      <div class="subview" id="logistica-resumen">
+        <div class="card" id="logisticaResumenGira">Cargando…</div>
+        <div class="card">
+          <h3>⚠ Negociaciones estancadas</h3>
+          <div class="sub">Mismo listado que en Pipeline — más de 14 días en proceso</div>
+          <div id="logisticaResumenEstancadas">Cargando…</div>
+        </div>
       </div>
     </div>
 
@@ -671,6 +793,60 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modalSede">
+  <div class="modal" style="max-width:620px;">
+    <button class="close" id="closeModalSede">✕</button>
+    <div class="modal-head-sede">
+      <div class="avatar" id="modalSedeAvatar" style="width:40px; height:40px; font-size:14px;">—</div>
+      <div>
+        <h3 id="modalSedeNombre" style="margin-bottom:1px;">—</h3>
+        <div class="sub" id="modalSedeSub"></div>
+      </div>
+    </div>
+    <span class="sheet-pill" id="modalSedePill">—</span>
+
+    <div class="modal-field"><label>Responsable de dar seguimiento</label><input id="modalSedeResponsable" placeholder="¿Quién le está dando seguimiento?"></div>
+    <div class="toolbar" style="margin-bottom:4px;">
+      <select class="select" id="modalSedeEstatusSelect">
+        <option value="prospecto">Prospecto</option>
+        <option value="en_proceso">En proceso</option>
+        <option value="confirmada">Confirmada</option>
+        <option value="rechazada">Rechazada</option>
+      </select>
+      <input class="search" id="modalSedeMotivo" placeholder="Motivo (si es rechazada)" style="max-width:220px;">
+      <button class="btn-primary small" id="guardarSedeEstatus">Guardar</button>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabSedeDatos">Datos y contacto</button>
+      <button class="modal-tab" id="tabSedeHistorial">Historial</button>
+    </div>
+
+    <div class="tab-panel active" id="panelSedeDatos">
+      <div class="seccion-titulo">Contacto</div>
+      <div id="modalSedeContacto"></div>
+      <div class="seccion-titulo">Datos para el anticipo</div>
+      <div id="modalSedeBanco"></div>
+      <div class="seccion-titulo">Amenidades del lugar</div>
+      <div class="chips" id="modalSedeChips"></div>
+      <div class="seccion-titulo">Hospedaje del personal</div>
+      <div id="modalSedeHospedaje"></div>
+      <button class="btn-outline" id="btnImprimirSede" style="margin-top:16px;">🖨️ Vista para imprimir</button>
+    </div>
+
+    <div class="tab-panel" id="panelSedeHistorial">
+      <div class="timeline" id="modalSedeTimeline">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalImprimirSede">
+  <div class="modal" style="max-width:460px;">
+    <button class="close" id="closeModalImprimirSede">✕</button>
+    <div id="modalImprimirSedeBody"></div>
+  </div>
+</div>
+
 <!-- ===================== HOJA: DETALLE DE UN DÍA DEL CALENDARIO ===================== -->
 <div class="sheet-backdrop" id="sheetCalendarioBackdrop"></div>
 <div class="sheet" id="sheetCalendario">
@@ -766,6 +942,7 @@ const SECCIONES = [
   { id:'cursos', label:'Cursos', sub:'Catálogo real', soon:false, icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/>' },
   { id:'plaza', label:'Ciudades / Plazas', sub:'Vista en vivo por ciudad', soon:false, icon:'<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>' },
   { id:'giras', label:'Giras', sub:'Constructor de ruta y reactivación de alumnos', soon:false, icon:'<circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.2 17.8L15.8 6.2"/>' },
+  { id:'logistica', label:'Logística', sub:'Sedes, hospedaje y negociación para cada gira', soon:false, icon:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/><path d="M8 7h.01M8 11h.01M12 7h.01M12 11h.01M16 7h.01M16 11h.01"/>' },
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
@@ -786,6 +963,7 @@ function setActiveSection(id){
   if(id==='ventas') cargarVentasTab('ingresos');
   if(id==='reportes') cargarReportesTab('resumen');
   if(id==='giras') cargarGirasTab('constructor');
+  if(id==='logistica') cargarLogisticaTab('catalogo');
   closePicker();
 }
 document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
@@ -2212,11 +2390,19 @@ document.getElementById('btnGuardarGiraBorrador').addEventListener('click', asyn
   girasCargado.historial = false;
 });
 
+const CHECKLIST_PARADA_ITEMS = [
+  { key:'deposito_pagado', label:'Depósito pagado' },
+  { key:'menu_acordado', label:'Menú acordado' },
+  { key:'mesas_acordadas', label:'Mesas/sillas pactadas' },
+  { key:'factura_recibida', label:'Factura recibida' },
+  { key:'hospedaje_resuelto', label:'Hospedaje del personal resuelto' },
+];
 async function renderGirasHistorial(){
   const cont = document.getElementById('giraHistorialLista');
   cont.innerHTML = 'Cargando…';
+  await cargarSedesCache();
   const { data, error } = await sb.from('giras')
-    .select('id, nombre, estatus, creado_en, confirmada_en, reactivacion_generada_en, cursos(nombre), gira_paradas(id, orden, ciudad_id, distancia_km_desde_anterior, ciudades(nombre, estado))')
+    .select('id, nombre, estatus, creado_en, confirmada_en, reactivacion_generada_en, cursos(nombre), gira_paradas(id, orden, ciudad_id, distancia_km_desde_anterior, checklist, ciudades(nombre, estado), sedes(id, nombre, pipeline_estatus))')
     .order('creado_en', {ascending:false});
   if(error){ cont.innerHTML = '<div class="empty-note">Error: '+error.message+'</div>'; return; }
   if(!data || data.length===0){ cont.innerHTML = '<div class="empty-note">Todavía no se ha guardado ninguna gira — arma una en "Constructor de ruta".</div>'; return; }
@@ -2229,7 +2415,29 @@ async function renderGirasHistorial(){
       <div class="sheet-curso">${g.cursos?.nombre || '(sin curso asignado)'} · ${paradas.length} ciudades · ${totalKm.toFixed(0)} km</div>
       <div class="sheet-pill ${confirmada?'verde':'ambar'}">${confirmada?'Confirmada':'Borrador'}</div>
       <div class="modal-notas" style="margin:12px 0;">
-        ${paradas.map(p=>`<div class="modal-notas-item">${p.orden}. ${p.ciudades?.nombre||'?'}${p.ciudades?.estado?', '+p.ciudades.estado:''}${p.distancia_km_desde_anterior?' · '+Number(p.distancia_km_desde_anterior).toFixed(0)+' km':''}</div>`).join('')}
+        ${paradas.map(p=>{
+          const ciudadNombre = p.ciudades?.nombre || '?';
+          const sede = p.sedes;
+          const chk = p.checklist || {};
+          return `<div class="parada-resumen">
+            <div class="parada-resumen-head">
+              <b>${p.orden}. ${ciudadNombre}${p.ciudades?.estado?', '+p.ciudades.estado:''}</b>
+              ${p.distancia_km_desde_anterior?'<span class="sub" style="margin:0;">'+Number(p.distancia_km_desde_anterior).toFixed(0)+' km</span>':''}
+              <button class="btn-outline small" style="width:auto; padding:6px 12px; font-size:11.5px;" data-ver-sedes-ciudad="${escapeAttr(ciudadNombre)}">🏨 Ver sedes</button>
+            </div>
+            <div class="sub" style="margin:4px 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              ${sede ? `<span>Sede: <b>${sede.nombre}</b> <span class="badge ${sede.pipeline_estatus}">${ETIQUETA_PIPELINE[sede.pipeline_estatus]||sede.pipeline_estatus}</span></span>`
+                : `<span style="color:var(--danger);">Sin sede asignada</span>
+                   <select class="select" style="font-size:11.5px; padding:6px 8px;" data-asignar-sede-parada="${p.id}">
+                     <option value="">— Elegir sede de esta ciudad —</option>
+                     ${(logisticaSedesCache||[]).filter(s=>normalizarNombreCurso(s.ciudad_texto)===normalizarNombreCurso(ciudadNombre)).map(s=>`<option value="${s.id}">${s.nombre} (${ETIQUETA_PIPELINE[s.pipeline_estatus]})</option>`).join('')}
+                   </select>`}
+            </div>
+            ${sede ? `<div style="display:flex; flex-wrap:wrap; gap:2px 14px;">
+              ${CHECKLIST_PARADA_ITEMS.map(it=>`<label class="checklist-item"><input type="checkbox" data-parada-checklist="${p.id}" data-campo="${it.key}" ${chk[it.key]?'checked':''}> ${it.label}</label>`).join('')}
+            </div>` : ''}
+          </div>`;
+        }).join('')}
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         ${!confirmada ? `<button class="btn-primary small" data-confirmar-ruta="${g.id}">Confirmar ruta</button>` : `<span class="sub" style="margin:0;">Confirmada el ${new Date(g.confirmada_en).toLocaleDateString('es-MX')}</span>`}
@@ -2244,6 +2452,35 @@ async function renderGirasHistorial(){
   cont.querySelectorAll('[data-generar-reactivacion]').forEach(btn=>{
     btn.addEventListener('click', ()=>generarReactivacionGira(btn.dataset.generarReactivacion, btn));
   });
+  cont.querySelectorAll('[data-ver-sedes-ciudad]').forEach(btn=>{
+    btn.addEventListener('click', ()=>saltarALogisticaCiudad(btn.dataset.verSedesCiudad));
+  });
+  cont.querySelectorAll('[data-parada-checklist]').forEach(chk=>{
+    chk.addEventListener('change', ()=>toggleChecklistParada(chk.dataset.paradaChecklist, chk.dataset.campo, chk.checked));
+  });
+  cont.querySelectorAll('[data-asignar-sede-parada]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      if(sel.value) asignarSedeAParada(sel.dataset.asignarSedeParada, sel.value);
+    });
+  });
+}
+async function asignarSedeAParada(paradaId, sedeId){
+  const { error } = await sb.from('gira_paradas').update({ sede_id: sedeId }).eq('id', paradaId);
+  if(error){ toast('Error al asignar: '+error.message, true); return; }
+  toast('Sede asignada a la parada.');
+  await renderGirasHistorial();
+}
+function escapeAttr(s){ return String(s||'').replace(/"/g,'&quot;'); }
+async function toggleChecklistParada(paradaId, campo, valor){
+  const { data: parada } = await sb.from('gira_paradas').select('checklist').eq('id', paradaId).single();
+  const checklist = { ...(parada?.checklist||{}), [campo]: valor };
+  const { error } = await sb.from('gira_paradas').update({ checklist }).eq('id', paradaId);
+  if(error){ toast('Error al guardar: '+error.message, true); return; }
+  toast('Guardado.');
+}
+function saltarALogisticaCiudad(ciudadTexto){
+  logisticaSaltarCiudad = ciudadTexto;
+  setActiveSection('logistica');
 }
 
 /** Cierra la ruta de la gira — no toca Leads, solo marca que ya es una gira hecha (no un borrador). */
@@ -2568,6 +2805,360 @@ async function buscarHistorial(q){
     <h3 style="margin-top:14px; font-size:13px;">Historial de contacto</h3>
     ${(inter&&inter.length) ? inter.map(i=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(i.fecha).toLocaleString('es-MX')}</div>${i.nota||'(sin nota)'}</div>`).join('') : '<div class="empty-note">Sin interacciones todavía.</div>'}
   </div>`;
+}
+
+/* =========================================================
+   LOGÍSTICA — catálogo de sedes, pipeline de negociación,
+   calculadora de cupo y resumen de la próxima gira.
+   ========================================================= */
+const logisticaCargado = { catalogo:false, pipeline:false, calculadora:false, resumen:false };
+let logisticaSedesCache = null;    // todas las filas de `sedes`
+let logisticaConteosCache = {};    // Map sede_id -> nº de contactos históricos
+let logisticaSaltarCiudad = null;  // ciudad a preseleccionar al entrar desde Giras
+const ETIQUETA_PIPELINE = { prospecto:'Prospecto', en_proceso:'En proceso', confirmada:'Confirmada', rechazada:'Rechazada' };
+const COLOR_PIPELINE = { prospecto:'var(--champagne)', en_proceso:'var(--terracota)', confirmada:'var(--success)', rechazada:'var(--danger)' };
+const PILL_PIPELINE = { prospecto:'ambar', en_proceso:'terracota', confirmada:'verde', rechazada:'rojo' };
+const DIAS_ESTANCADA = 14;
+
+async function cargarSedesCache(forzar){
+  if(logisticaSedesCache && !forzar) return logisticaSedesCache;
+  const [{ data:sedes, error }, { data:contactos }] = await Promise.all([
+    sb.from('sedes').select('id, ciudad_id, ciudad_texto, estado_texto, nombre, tipo_lugar, categoria, contacto, encargado, tel_directo, telefono, correo, direccion, referencia, google_maps, ubicacion, banco, nombre_cuenta, clabe_tarjeta_cuenta, proveedor_mobiliario, rentar_externo, ac_hotel, batidora, hornos, gondola, microondas, alfombra, alberca, ventiladores, steward, responsable, capacidad_referencia, mts2_referencia, pipeline_estatus, pipeline_estatus_motivo, pipeline_actualizado_en'),
+    sb.from('sedes_contactos').select('sede_id'),
+  ]);
+  if(error){ toast('Error cargando sedes: '+error.message, true); return []; }
+  const conteos = {};
+  (contactos||[]).forEach(c=>{ conteos[c.sede_id] = (conteos[c.sede_id]||0)+1; });
+  logisticaConteosCache = conteos;
+  logisticaSedesCache = sedes || [];
+  return logisticaSedesCache;
+}
+
+async function cargarLogisticaTab(tab){
+  if(logisticaSaltarCiudad){
+    tab = 'catalogo';
+    document.querySelectorAll('#logisticaSubtabs .subtab').forEach(b=>b.classList.toggle('active', b.dataset.tab==='catalogo'));
+    document.querySelectorAll('#view-logistica .subview').forEach(v=>v.classList.toggle('active', v.id==='logistica-catalogo'));
+  }
+  if(tab==='catalogo' && !logisticaCargado.catalogo){ logisticaCargado.catalogo=true; await renderLogisticaCatalogo(); }
+  else if(tab==='pipeline' && !logisticaCargado.pipeline){ logisticaCargado.pipeline=true; await renderLogisticaPipeline(); }
+  else if(tab==='calculadora' && !logisticaCargado.calculadora){ logisticaCargado.calculadora=true; await renderLogisticaCalculadora(); }
+  else if(tab==='resumen' && !logisticaCargado.resumen){ logisticaCargado.resumen=true; await renderLogisticaResumen(); }
+  if(logisticaSaltarCiudad){
+    await cargarSedesCache();
+    document.getElementById('logisticaFiltroCiudad').value = logisticaSaltarCiudad;
+    document.getElementById('logisticaBuscar').value = '';
+    document.getElementById('logisticaFiltroEstatus').value = '';
+    logisticaSaltarCiudad = null;
+    aplicarFiltrosCatalogo();
+  }
+}
+document.querySelectorAll('#logisticaSubtabs .subtab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('#logisticaSubtabs .subtab').forEach(b=>b.classList.toggle('active', b===btn));
+    document.querySelectorAll('#view-logistica .subview').forEach(v=>v.classList.remove('active'));
+    document.getElementById('logistica-'+tab).classList.add('active');
+    cargarLogisticaTab(tab);
+  });
+});
+
+/* ---------- Catálogo ---------- */
+async function renderLogisticaCatalogo(){
+  document.getElementById('logisticaCatalogoLista').innerHTML = 'Cargando…';
+  await cargarSedesCache();
+  const totalContactos = Object.values(logisticaConteosCache).reduce((a,b)=>a+b,0);
+  const ciudadesUnicas = new Set(logisticaSedesCache.map(s=>s.ciudad_texto)).size;
+  const confirmadas = logisticaSedesCache.filter(s=>s.pipeline_estatus==='confirmada').length;
+  document.getElementById('logisticaKpis').innerHTML = `
+    <div class="kpi"><div class="v">${fmtNum(logisticaSedesCache.length)}</div><div class="l">Sedes en catálogo</div></div>
+    <div class="kpi"><div class="v">${fmtNum(totalContactos)}</div><div class="l">Contactos históricos</div></div>
+    <div class="kpi"><div class="v">${fmtNum(ciudadesUnicas)}</div><div class="l">Ciudades cubiertas</div></div>
+    <div class="kpi"><div class="v">${fmtNum(confirmadas)}</div><div class="l">Sedes confirmadas</div></div>`;
+  const ciudadesOrdenadas = [...new Set(logisticaSedesCache.map(s=>s.ciudad_texto))].sort((a,b)=>a.localeCompare(b,'es'));
+  document.getElementById('logisticaFiltroCiudad').innerHTML = '<option value="">Todas las ciudades</option>' +
+    ciudadesOrdenadas.map(c=>`<option value="${escapeAttr(c)}">${c}</option>`).join('');
+  aplicarFiltrosCatalogo();
+}
+function aplicarFiltrosCatalogo(){
+  const q = (document.getElementById('logisticaBuscar').value||'').trim().toLowerCase();
+  const ciudadSel = document.getElementById('logisticaFiltroCiudad').value;
+  const estatusSel = document.getElementById('logisticaFiltroEstatus').value;
+  const filtradas = (logisticaSedesCache||[]).filter(s=>{
+    if(ciudadSel && s.ciudad_texto !== ciudadSel) return false;
+    if(estatusSel && s.pipeline_estatus !== estatusSel) return false;
+    if(q && !(s.nombre.toLowerCase().includes(q) || (s.ciudad_texto||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const grupos = {};
+  filtradas.forEach(s=>{ (grupos[s.ciudad_texto] = grupos[s.ciudad_texto]||[]).push(s); });
+  const ciudadesOrdenadas = Object.keys(grupos).sort((a,b)=>a.localeCompare(b,'es'));
+  const cont = document.getElementById('logisticaCatalogoLista');
+  if(!ciudadesOrdenadas.length){ cont.innerHTML = '<div class="empty-note">Sin sedes que coincidan.</div>'; return; }
+  cont.innerHTML = ciudadesOrdenadas.slice(0,60).map(ciudad=>{
+    const sedesCiudad = grupos[ciudad].sort((a,b)=> (PRIORIDAD_PIPELINE[a.pipeline_estatus]-PRIORIDAD_PIPELINE[b.pipeline_estatus]) || a.nombre.localeCompare(b.nombre,'es'));
+    return `<div class="ciudad-grupo">
+      <div class="ciudad-header"><h4>${ciudad}${sedesCiudad[0].estado_texto?', '+sedesCiudad[0].estado_texto:''}</h4><span class="count">${sedesCiudad.length} sede${sedesCiudad.length===1?'':'s'} contactada${sedesCiudad.length===1?'':'s'}</span></div>
+      ${sedesCiudad.slice(0,25).map(s=>{
+        const n = logisticaConteosCache[s.id]||0;
+        return `<div class="sede-row" data-abrir-sede="${s.id}">
+          <div class="avatar">${iniciales(s.nombre)}</div>
+          <div style="flex:1; min-width:180px;">
+            <div class="sede-nombre">${s.nombre}</div>
+            <div class="sede-meta">${s.tipo_lugar||'Sede'} · ${n>1?'usada '+n+' veces':'contactada 1 vez'}</div>
+          </div>
+          <span class="badge ${s.pipeline_estatus}">${ETIQUETA_PIPELINE[s.pipeline_estatus]}${s.pipeline_estatus_motivo?' · '+s.pipeline_estatus_motivo:''}</span>
+          <div class="sede-cap">Cupo <b>${s.capacidad_referencia? Math.round(s.capacidad_referencia) : '—'}</b></div>
+          <div class="sede-contacto">${s.contacto||s.responsable||'—'}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+  cont.querySelectorAll('[data-abrir-sede]').forEach(row=>row.addEventListener('click', ()=>abrirFichaSede(row.dataset.abrirSede)));
+}
+const PRIORIDAD_PIPELINE = { en_proceso:0, prospecto:1, confirmada:2, rechazada:3 };
+document.getElementById('logisticaBuscar').addEventListener('input', aplicarFiltrosCatalogo);
+document.getElementById('logisticaFiltroCiudad').addEventListener('change', aplicarFiltrosCatalogo);
+document.getElementById('logisticaFiltroEstatus').addEventListener('change', aplicarFiltrosCatalogo);
+
+/* ---------- Ficha de sede (modal) ---------- */
+let modalSedeId = null;
+async function abrirFichaSede(sedeId){
+  modalSedeId = sedeId;
+  await cargarSedesCache();
+  const sede = logisticaSedesCache.find(s=>s.id===sedeId);
+  if(!sede){ toast('Sede no encontrada.', true); return; }
+  document.getElementById('modalSedeAvatar').textContent = iniciales(sede.nombre);
+  document.getElementById('modalSedeNombre').textContent = sede.nombre;
+  document.getElementById('modalSedeSub').textContent = `${sede.tipo_lugar||'Sede'} · ${sede.ciudad_texto}${sede.estado_texto?', '+sede.estado_texto:''}`;
+  const pill = document.getElementById('modalSedePill');
+  pill.className = 'sheet-pill ' + (PILL_PIPELINE[sede.pipeline_estatus]||'ambar');
+  pill.textContent = ETIQUETA_PIPELINE[sede.pipeline_estatus] + (sede.pipeline_estatus_motivo ? ' · '+sede.pipeline_estatus_motivo : '');
+  document.getElementById('modalSedeResponsable').value = sede.responsable || '';
+  document.getElementById('modalSedeEstatusSelect').value = sede.pipeline_estatus;
+  document.getElementById('modalSedeMotivo').value = sede.pipeline_estatus_motivo || '';
+
+  const contactoRows = [
+    ['Contacto', sede.contacto], ['Encargado', sede.encargado],
+    ['Teléfono directo', sede.tel_directo], ['Teléfono', sede.telefono],
+    ['Correo', sede.correo], ['Dirección', sede.direccion], ['Referencia', sede.referencia],
+    ['Ubicación', sede.google_maps ? `<a href="${sede.google_maps}" target="_blank" rel="noopener">Ver en Google Maps →</a>` : (sede.ubicacion||null)],
+  ].filter(([,v])=>v);
+  document.getElementById('modalSedeContacto').innerHTML = contactoRows.length
+    ? contactoRows.map(([l,v])=>`<div class="dato-row"><span class="l">${l}</span><span class="v">${v}</span></div>`).join('')
+    : '<div class="empty-note">Sin datos de contacto capturados.</div>';
+
+  const bancoRows = [['Banco', sede.banco], ['Nombre de cuenta', sede.nombre_cuenta], ['CLABE / cuenta', sede.clabe_tarjeta_cuenta]].filter(([,v])=>v);
+  document.getElementById('modalSedeBanco').innerHTML = bancoRows.length
+    ? bancoRows.map(([l,v])=>`<div class="dato-row"><span class="l">${l}</span><span class="v">${v}</span></div>`).join('')
+    : '<div class="empty-note">Sin datos bancarios capturados.</div>';
+
+  const amenidades = [
+    ['A/C', sede.ac_hotel], ['Batidora', sede.batidora], ['Hornos', sede.hornos],
+    ['Góndola', sede.gondola], ['Microondas', sede.microondas], ['Alfombra', sede.alfombra],
+    ['Alberca', sede.alberca], ['Ventiladores', sede.ventiladores], ['Steward', sede.steward],
+  ].filter(([,v])=>v!=null && v!=='');
+  document.getElementById('modalSedeChips').innerHTML = amenidades.length
+    ? amenidades.map(([l,v])=>{
+        const negativo = /^(no|sin|n\/?a)\b/i.test(String(v).trim());
+        return `<span class="chip${negativo?' off':''}">${negativo?'✕':'✓'} ${l}</span>`;
+      }).join('')
+    : '<div class="empty-note">Sin amenidades capturadas.</div>';
+
+  document.getElementById('modalSedeTimeline').innerHTML = 'Cargando…';
+  document.getElementById('modalSedeHospedaje').innerHTML = 'Cargando…';
+  const { data: historial, error } = await sb.from('sedes_contactos').select('*').eq('sede_id', sedeId).order('fila_original_excel', {ascending:false});
+  if(error){
+    document.getElementById('modalSedeTimeline').innerHTML = 'Error: '+error.message;
+  } else {
+    document.getElementById('modalSedeTimeline').innerHTML = (historial&&historial.length) ? historial.map(h=>`
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-head"><span class="tl-curso">${h.curso_texto||'(sin curso)'}</span><span class="tl-fecha">${[h.mes,h.anio].filter(Boolean).join(' ')||'—'}</span></div>
+        <div class="tl-meta">${h.estatus?'<b>'+h.estatus+'</b> · ':''}${h.anticipo?'Anticipo '+h.anticipo+' · ':''}${h.observaciones||''}</div>
+      </div>`).join('') : '<div class="empty-note">Sin historial de contacto.</div>';
+
+    const conHospedaje = (historial||[]).find(h=>h.hospedaje_tiers && Object.values(h.hospedaje_tiers).some(v=>v));
+    const tiers = conHospedaje?.hospedaje_tiers || {};
+    const etiquetasTiers = { '1_con':'1 persona con desayuno','1_sin':'1 persona sin desayuno','2_con':'2 personas con desayuno','2_sin':'2 personas sin desayuno','3_con':'3 personas con desayuno','3_sin':'3 personas sin desayuno','4_con':'4 personas con desayuno','4_sin':'4 personas sin desayuno','5_con':'5 personas con desayuno','5_sin':'5 personas sin desayuno','6_con':'6 personas con desayuno','6_sin':'6 personas sin desayuno','adic_con':'Persona adicional con desayuno','adic_sin':'Persona adicional sin desayuno' };
+    const filasHospedaje = Object.entries(tiers).filter(([,v])=>v).map(([k,v])=>`<div class="dato-row"><span class="l">${etiquetasTiers[k]||k}</span><span class="v">${v}</span></div>`).join('');
+    document.getElementById('modalSedeHospedaje').innerHTML = filasHospedaje || '<div class="empty-note">Sin tarifas de hospedaje capturadas para esta sede.</div>';
+  }
+
+  document.getElementById('tabSedeDatos').classList.add('active');
+  document.getElementById('tabSedeHistorial').classList.remove('active');
+  document.getElementById('panelSedeDatos').classList.add('active');
+  document.getElementById('panelSedeHistorial').classList.remove('active');
+  document.getElementById('modalSede').classList.add('open');
+}
+document.getElementById('closeModalSede').addEventListener('click', ()=>document.getElementById('modalSede').classList.remove('open'));
+document.getElementById('tabSedeDatos').addEventListener('click', ()=>{
+  document.getElementById('tabSedeDatos').classList.add('active');
+  document.getElementById('tabSedeHistorial').classList.remove('active');
+  document.getElementById('panelSedeDatos').classList.add('active');
+  document.getElementById('panelSedeHistorial').classList.remove('active');
+});
+document.getElementById('tabSedeHistorial').addEventListener('click', ()=>{
+  document.getElementById('tabSedeHistorial').classList.add('active');
+  document.getElementById('tabSedeDatos').classList.remove('active');
+  document.getElementById('panelSedeHistorial').classList.add('active');
+  document.getElementById('panelSedeDatos').classList.remove('active');
+});
+document.getElementById('guardarSedeEstatus').addEventListener('click', async ()=>{
+  if(!modalSedeId) return;
+  const btn = document.getElementById('guardarSedeEstatus'); btn.disabled=true; btn.textContent='Guardando...';
+  const nuevoEstatus = document.getElementById('modalSedeEstatusSelect').value;
+  const motivo = document.getElementById('modalSedeMotivo').value.trim() || null;
+  const responsable = document.getElementById('modalSedeResponsable').value.trim() || null;
+  const { error } = await sb.from('sedes').update({
+    pipeline_estatus: nuevoEstatus, pipeline_estatus_motivo: motivo, responsable,
+    pipeline_actualizado_en: new Date().toISOString(),
+  }).eq('id', modalSedeId);
+  btn.disabled=false; btn.textContent='Guardar';
+  if(error){ toast('Error: '+error.message, true); return; }
+  const sedeLocal = logisticaSedesCache.find(s=>s.id===modalSedeId);
+  if(sedeLocal){ sedeLocal.pipeline_estatus=nuevoEstatus; sedeLocal.pipeline_estatus_motivo=motivo; sedeLocal.responsable=responsable; sedeLocal.pipeline_actualizado_en=new Date().toISOString(); }
+  toast('Sede actualizada.');
+  aplicarFiltrosCatalogo();
+  if(logisticaCargado.pipeline) renderLogisticaPipeline();
+});
+document.getElementById('btnImprimirSede').addEventListener('click', ()=>{
+  const sede = logisticaSedesCache.find(s=>s.id===modalSedeId);
+  if(!sede) return;
+  const filas = [
+    ['Sede', sede.nombre], ['Ciudad', sede.ciudad_texto], ['Contacto', sede.contacto],
+    ['Teléfono', sede.tel_directo||sede.telefono], ['Dirección', sede.direccion],
+    ['Banco', sede.banco], ['Cuenta / CLABE', sede.clabe_tarjeta_cuenta],
+  ].filter(([,v])=>v);
+  document.getElementById('modalImprimirSedeBody').innerHTML = `<h2 style="margin-bottom:14px;">${sede.nombre}</h2>` +
+    (filas.length ? filas.map(([l,v])=>`<div class="dato-row" style="font-size:15px;"><span class="l">${l}</span><span class="v">${v}</span></div>`).join('')
+      : '<div class="empty-note">Sin datos suficientes para imprimir.</div>');
+  document.getElementById('modalImprimirSede').classList.add('open');
+});
+document.getElementById('closeModalImprimirSede').addEventListener('click', ()=>document.getElementById('modalImprimirSede').classList.remove('open'));
+
+/* ---------- Pipeline (kanban) ---------- */
+function listaEstancadas(){
+  return (logisticaSedesCache||[]).filter(s=>s.pipeline_estatus==='en_proceso' && (Date.now() - new Date(s.pipeline_actualizado_en).getTime()) > DIAS_ESTANCADA*86400000)
+    .sort((a,b)=> new Date(a.pipeline_actualizado_en) - new Date(b.pipeline_actualizado_en));
+}
+function pintarEstancadas(contId){
+  const cont = document.getElementById(contId);
+  const lista = listaEstancadas();
+  if(!lista.length){ cont.innerHTML = '<div class="empty-note">Ninguna — todo al corriente.</div>'; return; }
+  cont.innerHTML = lista.slice(0,20).map(s=>{
+    const dias = Math.floor((Date.now() - new Date(s.pipeline_actualizado_en).getTime())/86400000);
+    return `<div class="estancada-row" data-abrir-sede="${s.id}">
+      <div style="flex:1;"><b>${s.nombre}</b> · ${s.ciudad_texto}</div>
+      <span style="color:var(--danger); font-weight:600;">${dias} días sin novedad</span>
+    </div>`;
+  }).join('');
+  cont.querySelectorAll('[data-abrir-sede]').forEach(el=>el.addEventListener('click', ()=>abrirFichaSede(el.dataset.abrirSede)));
+}
+async function renderLogisticaPipeline(){
+  document.getElementById('logisticaBoard').innerHTML = 'Cargando…';
+  await cargarSedesCache();
+  pintarEstancadas('logisticaEstancadas');
+  const columnas = [
+    { key:'prospecto', titulo:'Prospecto' },
+    { key:'en_proceso', titulo:'En proceso' },
+    { key:'confirmada', titulo:'Confirmada' },
+    { key:'rechazada', titulo:'Rechazada' },
+  ];
+  document.getElementById('logisticaBoard').innerHTML = columnas.map(c=>{
+    const todasCol = logisticaSedesCache.filter(s=>s.pipeline_estatus===c.key);
+    const items = todasCol.slice().sort((a,b)=> new Date(b.pipeline_actualizado_en) - new Date(a.pipeline_actualizado_en)).slice(0,40);
+    return `<div class="column">
+      <div class="col-head"><span class="col-dot" style="background:${COLOR_PIPELINE[c.key]};"></span><span class="col-title">${c.titulo}</span><span class="col-count">${todasCol.length}</span></div>
+      <div class="col-body">
+        ${items.map(s=>{
+          const estancada = c.key==='en_proceso' && (Date.now() - new Date(s.pipeline_actualizado_en).getTime()) > DIAS_ESTANCADA*86400000;
+          return `<div class="lead-card" style="--card-accent:${COLOR_PIPELINE[c.key]};" data-abrir-sede="${s.id}">
+            <div class="lead-name">${s.nombre}${estancada?' ⚠':''}</div>
+            <div class="lead-meta">${s.ciudad_texto} · Cupo ${s.capacidad_referencia?Math.round(s.capacidad_referencia):'—'}<br>${s.responsable||s.contacto||'Sin responsable'}</div>
+          </div>`;
+        }).join('') || '<div class="empty-note">Sin sedes aquí.</div>'}
+      </div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('#logisticaBoard [data-abrir-sede]').forEach(el=>el.addEventListener('click', ()=>abrirFichaSede(el.dataset.abrirSede)));
+}
+
+/* ---------- Calculadora de cupo ---------- */
+async function renderLogisticaCalculadora(){
+  await cargarSedesCache();
+  const ciudadesOrdenadas = [...new Set(logisticaSedesCache.map(s=>s.ciudad_texto))].sort((a,b)=>a.localeCompare(b,'es'));
+  document.getElementById('calcCiudad').innerHTML = ciudadesOrdenadas.map(c=>`<option value="${escapeAttr(c)}">${c}</option>`).join('');
+}
+document.getElementById('btnCalcularCupo').addEventListener('click', ()=>{
+  const ciudad = document.getElementById('calcCiudad').value;
+  const alumnos = Number(document.getElementById('calcAlumnos').value);
+  const cont = document.getElementById('calcResultados');
+  if(!alumnos){ cont.innerHTML = '<div class="empty-note">Captura cuántos alumnos esperas.</div>'; return; }
+  const candidatas = (logisticaSedesCache||[]).filter(s=>s.ciudad_texto===ciudad && s.capacidad_referencia);
+  if(!candidatas.length){ cont.innerHTML = '<div class="empty-note">Ninguna sede de esta ciudad tiene capacidad registrada todavía — prueba la calculadora por m² de abajo, o revisa el catálogo.</div>'; return; }
+  const conCupo = candidatas.filter(s=>s.capacidad_referencia >= alumnos).sort((a,b)=>a.capacidad_referencia-b.capacidad_referencia);
+  const sinCupo = candidatas.filter(s=>s.capacidad_referencia < alumnos).sort((a,b)=>b.capacidad_referencia-a.capacidad_referencia);
+  const ordenadas = [...conCupo, ...sinCupo].slice(0,10);
+  cont.innerHTML = ordenadas.map((s,i)=>{
+    const alcanza = s.capacidad_referencia >= alumnos;
+    const pct = Math.min(100, Math.round((alumnos/s.capacidad_referencia)*100));
+    const diff = Math.abs(s.capacidad_referencia - alumnos);
+    return `<div class="resultado-row">
+      <div class="rank">${i+1}</div>
+      <div style="flex:1; min-width:140px;">
+        <div class="r-nombre">${s.nombre}</div>
+        <div class="r-meta">${s.pipeline_estatus==='rechazada'?'⚠ Rechazada antes'+(s.pipeline_estatus_motivo?' · '+s.pipeline_estatus_motivo:''):ETIQUETA_PIPELINE[s.pipeline_estatus]}</div>
+      </div>
+      <div class="fit-bar"><div class="fit-fill" style="width:${pct}%; background:${alcanza?'var(--success)':'var(--danger)'};"></div></div>
+      <div class="fit-txt">Cupo <b>${Math.round(s.capacidad_referencia)}</b> · ${alcanza?'sobran '+Math.round(diff):'faltan '+Math.round(diff)}</div>
+    </div>`;
+  }).join('');
+});
+document.getElementById('calcMts2').addEventListener('input', (e)=>{
+  const m2 = Number(e.target.value);
+  const cont = document.getElementById('calcMts2Resultado');
+  if(!m2){ cont.style.display='none'; return; }
+  document.getElementById('calcMts2Valor').textContent = '≈ ' + Math.round(m2*0.22) + ' alumnos';
+  cont.style.display='flex';
+});
+
+/* ---------- Resumen (próxima gira + estancadas) ---------- */
+async function renderLogisticaResumen(){
+  await cargarSedesCache();
+  pintarEstancadas('logisticaResumenEstancadas');
+  const cont = document.getElementById('logisticaResumenGira');
+  cont.innerHTML = 'Cargando…';
+  const { data: giras, error } = await sb.from('giras')
+    .select('id, nombre, confirmada_en, gira_paradas(id, orden, fecha, ciudad_id, checklist, ciudades(nombre, estado), sedes(id, nombre, pipeline_estatus))')
+    .eq('estatus','confirmada');
+  if(error){ cont.innerHTML = 'Error: '+error.message; return; }
+  if(!giras || !giras.length){ cont.innerHTML = '<h3>Próxima gira confirmada</h3><div class="empty-note">Todavía no hay ninguna gira confirmada.</div>'; return; }
+  const hoy = new Date().toISOString().slice(0,10);
+  let elegida = null, mejorFecha = null;
+  giras.forEach(g=>{
+    (g.gira_paradas||[]).forEach(p=>{
+      if(p.fecha && p.fecha >= hoy && (!mejorFecha || p.fecha < mejorFecha)){ mejorFecha = p.fecha; elegida = g; }
+    });
+  });
+  if(!elegida) elegida = giras.slice().sort((a,b)=>new Date(b.confirmada_en)-new Date(a.confirmada_en))[0];
+  const paradas = (elegida.gira_paradas||[]).slice().sort((a,b)=>a.orden-b.orden);
+  const listas = paradas.filter(p=>p.sedes && p.sedes.pipeline_estatus==='confirmada').length;
+  cont.innerHTML = `<h3>Próxima gira: ${elegida.nombre}</h3>
+    <div class="sub">${listas} de ${paradas.length} ciudades con sede confirmada</div>
+    ${paradas.map(p=>{
+      const sede = p.sedes;
+      const chk = p.checklist || {};
+      const hechos = CHECKLIST_PARADA_ITEMS.filter(it=>chk[it.key]).length;
+      return `<div class="parada-resumen">
+        <div class="parada-resumen-head">
+          <b>${p.orden}. ${p.ciudades?.nombre||'?'}</b>
+          ${sede ? `<span class="badge ${sede.pipeline_estatus}">${ETIQUETA_PIPELINE[sede.pipeline_estatus]}</span>` : '<span class="badge rechazada">Sin sede</span>'}
+          ${sede ? `<span class="sub" style="margin:0;">${hechos}/${CHECKLIST_PARADA_ITEMS.length} pendientes resueltos</span>` : ''}
+        </div>
+        ${sede ? `<div class="sub" style="margin:2px 0 0 0;">${sede.nombre}</div>` : ''}
+      </div>`;
+    }).join('')}`;
 }
 
 initAuth();
