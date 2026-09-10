@@ -977,11 +977,32 @@ pickerOverlay.addEventListener('click', closePicker);
 /* =========================================================
    CATÁLOGOS
    ========================================================= */
+/**
+ * Supabase/PostgREST solo regresa hasta 1000 filas por consulta aunque
+ * se pida un .limit() mayor — cualquier tabla que pueda crecer más
+ * de eso necesita paginar con .range() en vez de un solo select().
+ */
+async function fetchTodasFilas(tabla, columnas, personalizar){
+  const TAM_PAGINA = 1000;
+  let desde = 0, todas = [];
+  while(true){
+    let q = sb.from(tabla).select(columnas);
+    if(personalizar) q = personalizar(q);
+    q = q.range(desde, desde+TAM_PAGINA-1);
+    const { data, error } = await q;
+    if(error) return { data: null, error };
+    todas = todas.concat(data||[]);
+    if(!data || data.length < TAM_PAGINA) break;
+    desde += TAM_PAGINA;
+  }
+  return { data: todas, error: null };
+}
+
 async function cargarCatalogos(){
   const [{data:est, error:e1}, {data:cur, error:e2}, {data:ciu, error:e3}] = await Promise.all([
     sb.from('estatus').select('*').order('orden'),
     sb.from('cursos').select('*').order('nombre'),
-    sb.from('ciudades').select('*').order('nombre').limit(3000),
+    fetchTodasFilas('ciudades', '*', q=>q.order('nombre')),
   ]);
   if(e1||e2||e3){ toast('Error cargando catálogos: ' + (e1||e2||e3).message, true); return; }
   ESTATUS = est||[]; CURSOS = cur||[]; CIUDADES = ciu||[];
@@ -2606,7 +2627,7 @@ let CIUDADES_CON_CURSO = [];
 async function cargarCiudadesConCurso(){
   // Solo ciudades donde YA se dio un curso real (tienen evento) — no
   // todas las 1,500+ que existen solo porque algún alumno vive ahí.
-  const { data, error } = await sb.from('eventos').select('ciudades(id,nombre,estado)').limit(3000);
+  const { data, error } = await fetchTodasFilas('eventos', 'ciudades(id,nombre,estado)');
   if(error){ toast('Error cargando ciudades con curso: ' + error.message, true); return; }
   const vistas = {};
   (data||[]).forEach(e=>{ if(e.ciudades) vistas[e.ciudades.id] = e.ciudades; });
@@ -2823,8 +2844,8 @@ const DIAS_ESTANCADA = 14;
 async function cargarSedesCache(forzar){
   if(logisticaSedesCache && !forzar) return logisticaSedesCache;
   const [{ data:sedes, error }, { data:contactos }] = await Promise.all([
-    sb.from('sedes').select('id, ciudad_id, ciudad_texto, estado_texto, nombre, tipo_lugar, categoria, contacto, encargado, tel_directo, telefono, correo, direccion, referencia, google_maps, ubicacion, banco, nombre_cuenta, clabe_tarjeta_cuenta, proveedor_mobiliario, rentar_externo, ac_hotel, batidora, hornos, gondola, microondas, alfombra, alberca, ventiladores, steward, responsable, capacidad_referencia, mts2_referencia, pipeline_estatus, pipeline_estatus_motivo, pipeline_actualizado_en'),
-    sb.from('sedes_contactos').select('sede_id'),
+    fetchTodasFilas('sedes', 'id, ciudad_id, ciudad_texto, estado_texto, nombre, tipo_lugar, categoria, contacto, encargado, tel_directo, telefono, correo, direccion, referencia, google_maps, ubicacion, banco, nombre_cuenta, clabe_tarjeta_cuenta, proveedor_mobiliario, rentar_externo, ac_hotel, batidora, hornos, gondola, microondas, alfombra, alberca, ventiladores, steward, responsable, capacidad_referencia, mts2_referencia, pipeline_estatus, pipeline_estatus_motivo, pipeline_actualizado_en'),
+    fetchTodasFilas('sedes_contactos', 'sede_id'),
   ]);
   if(error){ toast('Error cargando sedes: '+error.message, true); return []; }
   const conteos = {};
