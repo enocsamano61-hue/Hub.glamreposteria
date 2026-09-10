@@ -383,6 +383,21 @@
     .sede-row{ align-items:flex-start; }
     .sede-cap, .sede-contacto{ width:auto; text-align:left; }
   }
+
+  /* ---------- Filtro desplegable "bonito" (reemplaza <select> nativos) ---------- */
+  .fdd{ position:relative; }
+  .fdd-btn{ display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:20px; border:1px solid var(--border); background:var(--card); font-family:inherit; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; white-space:nowrap; }
+  .fdd-btn:hover{ border-color:var(--wine); color:var(--ink); }
+  .fdd.open .fdd-btn, .fdd.activo .fdd-btn{ background:var(--wine); border-color:var(--wine); color:#fff; }
+  .fdd-chev{ width:11px; height:11px; opacity:.7; flex-shrink:0; transition:transform .15s ease; }
+  .fdd.open .fdd-chev{ transform:rotate(180deg); }
+  .fdd-menu{ display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:45; background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 14px 32px rgba(41,36,33,.16); padding:8px; min-width:220px; max-width:280px; }
+  .fdd.open .fdd-menu{ display:block; }
+  .fdd-buscar{ width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:12.5px; margin-bottom:6px; background:var(--card); color:var(--ink); }
+  .fdd-lista{ max-height:240px; overflow-y:auto; }
+  .fdd-item{ padding:8px 10px; border-radius:8px; font-size:12.5px; cursor:pointer; color:var(--ink); }
+  .fdd-item:hover{ background:var(--bg); }
+  .fdd-item.active{ background:var(--wine); color:#fff; }
 </style>
 </head>
 <body>
@@ -537,15 +552,18 @@
         <div class="card">
           <div class="toolbar">
             <input class="search" id="logisticaBuscar" placeholder="Buscar sede o ciudad...">
-            <select class="select" id="logisticaFiltroCiudad"><option value="">Todas las ciudades</option></select>
-            <select class="select" id="logisticaFiltroEstatus">
-              <option value="">Todos los estatus</option>
-              <option value="prospecto">Prospecto</option>
-              <option value="en_proceso">En proceso</option>
-              <option value="confirmada">Confirmada</option>
-              <option value="rechazada">Rechazada</option>
-            </select>
-            <select class="select" id="logisticaFiltroCurso"><option value="">Todos los cursos</option></select>
+            <div class="fdd" id="fddCiudad">
+              <button class="fdd-btn" type="button"><span class="fdd-label">Todas las ciudades</span><svg class="fdd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+              <div class="fdd-menu"><input class="fdd-buscar" placeholder="Buscar ciudad..."><div class="fdd-lista"></div></div>
+            </div>
+            <div class="fdd" id="fddEstatus">
+              <button class="fdd-btn" type="button"><span class="fdd-label">Todos los estatus</span><svg class="fdd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+              <div class="fdd-menu"><div class="fdd-lista"></div></div>
+            </div>
+            <div class="fdd" id="fddCurso">
+              <button class="fdd-btn" type="button"><span class="fdd-label">Todos los cursos</span><svg class="fdd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+              <div class="fdd-menu"><input class="fdd-buscar" placeholder="Buscar curso..."><div class="fdd-lista"></div></div>
+            </div>
           </div>
           <div id="logisticaCatalogoLista">Cargando…</div>
         </div>
@@ -2932,9 +2950,9 @@ async function cargarLogisticaTab(tab){
   else if(tab==='resumen' && !logisticaCargado.resumen){ logisticaCargado.resumen=true; await renderLogisticaResumen(); }
   if(logisticaSaltarCiudad){
     await cargarSedesCache();
-    document.getElementById('logisticaFiltroCiudad').value = logisticaSaltarCiudad;
+    fddCiudad.setValor(logisticaSaltarCiudad, logisticaSaltarCiudad);
     document.getElementById('logisticaBuscar').value = '';
-    document.getElementById('logisticaFiltroEstatus').value = '';
+    fddEstatus.setValor('', 'Todos los estatus');
     logisticaSaltarCiudad = null;
     aplicarFiltrosCatalogo();
   }
@@ -2962,17 +2980,15 @@ async function renderLogisticaCatalogo(){
     <div class="kpi"><div class="v">${fmtNum(ciudadesUnicas)}</div><div class="l">Ciudades cubiertas</div></div>
     <div class="kpi"><div class="v">${fmtNum(confirmadas)}</div><div class="l">Sedes confirmadas</div></div>`;
   const ciudadesOrdenadas = [...new Set(logisticaSedesCache.map(s=>s.ciudad_texto))].sort((a,b)=>a.localeCompare(b,'es'));
-  document.getElementById('logisticaFiltroCiudad').innerHTML = '<option value="">Todas las ciudades</option>' +
-    ciudadesOrdenadas.map(c=>`<option value="${escapeAttr(c)}">${c}</option>`).join('');
-  document.getElementById('logisticaFiltroCurso').innerHTML = '<option value="">Todos los cursos</option>' +
-    logisticaCursosCache.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  fddCiudad.setOpciones([{value:'', label:'Todas las ciudades'}, ...ciudadesOrdenadas.map(c=>({value:c, label:c}))]);
+  fddCurso.setOpciones([{value:'', label:'Todos los cursos'}, ...logisticaCursosCache.map(c=>({value:c.id, label:c.nombre}))]);
   aplicarFiltrosCatalogo();
 }
 function aplicarFiltrosCatalogo(){
   const q = (document.getElementById('logisticaBuscar').value||'').trim().toLowerCase();
-  const ciudadSel = document.getElementById('logisticaFiltroCiudad').value;
-  const estatusSel = document.getElementById('logisticaFiltroEstatus').value;
-  const cursoSel = document.getElementById('logisticaFiltroCurso').value;
+  const ciudadSel = fddCiudad.getValor();
+  const estatusSel = fddEstatus.getValor();
+  const cursoSel = fddCurso.getValor();
   const filtradas = (logisticaSedesCache||[]).filter(s=>{
     if(cursoSel && !(logisticaCursosPorSede[s.id] && logisticaCursosPorSede[s.id].has(cursoSel))) return false;
     if(ciudadSel && s.ciudad_texto !== ciudadSel) return false;
@@ -3008,9 +3024,57 @@ function aplicarFiltrosCatalogo(){
 }
 const PRIORIDAD_PIPELINE = { en_proceso:0, prospecto:1, confirmada:2, rechazada:3 };
 document.getElementById('logisticaBuscar').addEventListener('input', aplicarFiltrosCatalogo);
-document.getElementById('logisticaFiltroCiudad').addEventListener('change', aplicarFiltrosCatalogo);
-document.getElementById('logisticaFiltroEstatus').addEventListener('change', aplicarFiltrosCatalogo);
-document.getElementById('logisticaFiltroCurso').addEventListener('change', aplicarFiltrosCatalogo);
+
+/**
+ * Reemplaza los <select> nativos (que se sienten "de Excel") por un botón
+ * tipo chip que abre un menú con buscador — mismo look que el resto de la
+ * app. Uso: crearFiltroDesplegable('fddId', [{value,label},...], onCambio).
+ */
+function crearFiltroDesplegable(elId, opcionesIniciales, onSeleccionar){
+  const el = document.getElementById(elId);
+  const btn = el.querySelector('.fdd-btn');
+  const label = el.querySelector('.fdd-label');
+  const buscador = el.querySelector('.fdd-buscar');
+  const lista = el.querySelector('.fdd-lista');
+  let opciones = opcionesIniciales || [];
+  let valor = '';
+  function pintarLista(filtro){
+    const f = (filtro||'').toLowerCase();
+    lista.innerHTML = opciones.filter(o=>!f || o.label.toLowerCase().includes(f)).map(o=>
+      `<div class="fdd-item ${o.value===valor?'active':''}" data-valor="${escapeAttr(o.value)}">${o.label}</div>`
+    ).join('') || '<div class="empty-note" style="padding:8px;">Sin resultados.</div>';
+    lista.querySelectorAll('[data-valor]').forEach(item=>{
+      item.addEventListener('click', ()=>{
+        valor = item.dataset.valor;
+        const opt = opciones.find(o=>o.value===valor);
+        label.textContent = opt ? opt.label : (opciones[0]?opciones[0].label:'');
+        el.classList.toggle('activo', !!valor);
+        el.classList.remove('open');
+        onSeleccionar(valor);
+      });
+    });
+  }
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    document.querySelectorAll('.fdd.open').forEach(o=>{ if(o!==el) o.classList.remove('open'); });
+    const abrir = !el.classList.contains('open');
+    el.classList.toggle('open', abrir);
+    if(abrir){ if(buscador) buscador.value=''; pintarLista(''); if(buscador) buscador.focus(); }
+  });
+  if(buscador) buscador.addEventListener('input', ()=>pintarLista(buscador.value));
+  document.addEventListener('click', (e)=>{ if(!el.contains(e.target)) el.classList.remove('open'); });
+  return {
+    setOpciones(nuevas){ opciones = nuevas || []; },
+    getValor(){ return valor; },
+    setValor(v, lbl){ valor = v||''; label.textContent = lbl || (opciones[0]?opciones[0].label:''); el.classList.toggle('activo', !!valor); },
+  };
+}
+const fddCiudad = crearFiltroDesplegable('fddCiudad', [{value:'', label:'Todas las ciudades'}], aplicarFiltrosCatalogo);
+const fddEstatus = crearFiltroDesplegable('fddEstatus', [
+  {value:'', label:'Todos los estatus'}, {value:'prospecto', label:'Prospecto'},
+  {value:'en_proceso', label:'En proceso'}, {value:'confirmada', label:'Confirmada'}, {value:'rechazada', label:'Rechazada'},
+], aplicarFiltrosCatalogo);
+const fddCurso = crearFiltroDesplegable('fddCurso', [{value:'', label:'Todos los cursos'}], aplicarFiltrosCatalogo);
 
 /* ---------- Ficha de sede (modal) ---------- */
 let modalSedeId = null;
