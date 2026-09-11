@@ -34,6 +34,15 @@
   .login-error{ background:#F2E2D8; color:#7A2E1D; font-size:12px; padding:9px 12px; border-radius:8px; margin-bottom:14px; display:none; }
   .login-error.show{ display:block; }
 
+  /* ---------- BIENVENIDA (transición corta tras iniciar sesión) ---------- */
+  #bienvenidaScreen{ position:fixed; inset:0; z-index:500; display:none; align-items:center; justify-content:center; flex-direction:column; background:var(--wine-dark); text-align:center; padding:20px; opacity:0; transition:opacity .4s ease; }
+  #bienvenidaScreen.show{ display:flex; opacity:1; }
+  #bienvenidaScreen.hide{ opacity:0; }
+  .bienvenida-spark{ font-size:28px; color:var(--champagne); opacity:0; transform:translateY(8px); animation:bvIn .5s ease .05s forwards; }
+  .bienvenida-nombre{ font-family:'Newsreader', serif; font-size:30px; font-weight:600; color:#FBF3E8; margin-top:10px; opacity:0; transform:translateY(8px); animation:bvIn .5s ease .2s forwards; }
+  .bienvenida-rol{ font-size:13px; color:#DCC7CE; margin-top:6px; letter-spacing:.03em; opacity:0; transform:translateY(8px); animation:bvIn .5s ease .35s forwards; }
+  @keyframes bvIn{ to{ opacity:1; transform:translateY(0); } }
+
   /* ---------- APP SHELL ---------- */
   #appShell{ display:none; }
   #appShell.active{ display:flex; min-height:100vh; }
@@ -414,6 +423,13 @@
   </div>
 </div>
 
+<!-- ===================== BIENVENIDA ===================== -->
+<div id="bienvenidaScreen">
+  <div class="bienvenida-spark">✦</div>
+  <div class="bienvenida-nombre" id="bienvenidaNombre">Hola</div>
+  <div class="bienvenida-rol" id="bienvenidaRol"></div>
+</div>
+
 <!-- ===================== APP ===================== -->
 <div id="appShell">
   <div class="mobile-topbar">
@@ -446,7 +462,8 @@
 
     <!-- INICIO -->
     <div class="view active" id="view-inicio">
-      <div class="card" style="margin-bottom:20px;"><h1 style="font-size:22px;">Buenos días <span class="spark">✦</span></h1><p class="sub" style="margin:4px 0 0 0;">Datos en vivo desde Supabase — todavía sin migrar el histórico, así que varios números empiezan en cero.</p></div>
+      <div class="card" style="margin-bottom:20px;"><h1 style="font-size:22px;" id="saludoInicio">Buenos días <span class="spark">✦</span></h1><p class="sub" style="margin:4px 0 0 0;">Datos en vivo desde Supabase — todavía sin migrar el histórico, así que varios números empiezan en cero.</p></div>
+      <div class="card" id="pendientesCard" style="display:none; margin-bottom:20px;"><h3><span class="spark">✦</span> Tus pendientes</h3><div id="pendientesContenido" class="sub" style="margin-top:10px;">Cargando…</div></div>
       <div class="kpis" id="dashKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
       <div class="card"><h3><span class="spark">✦</span> Leads más recientes</h3><div id="actividadList" class="sub">Cargando…</div></div>
     </div>
@@ -981,12 +998,17 @@ function showLogin(){
 async function onLogin(session){
   sesionActual = session;
   document.getElementById('loginScreen').style.display='none';
+  await resolverUsuarioActual();
+  aplicarPermisosNav();
+  document.getElementById('saludoInicio').innerHTML = (usuarioActual.nombre ? 'Hola, '+usuarioActual.nombre : 'Buenos días') + ' <span class="spark">✦</span>';
   document.getElementById('appShell').classList.add('active');
   document.getElementById('whoAmI').textContent = session.user.email;
+  mostrarBienvenida();
   await cargarCatalogos();
   await cargarCiudadesConCurso();
   await resolverAsesorActual();
   await Promise.all([renderBoard(), renderDashboard(), renderCursos(), renderCiudadSelect(), renderCalendario()]);
+  await renderPendientes();
 }
 async function resolverAsesorActual(){
   if(!sesionActual) return;
@@ -999,7 +1021,9 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
   const errBox = document.getElementById('loginError');
   errBox.className = 'login-error';
   const btn = document.getElementById('loginBtn'); btn.disabled = true; btn.textContent = 'Entrando...';
+  loginExplicito = true;
   const { error } = await sb.auth.signInWithPassword({ email, password });
+  if(error) loginExplicito = false;
   btn.disabled = false; btn.textContent = 'Entrar';
   if(error){ errBox.textContent = 'No se pudo iniciar sesión: ' + error.message; errBox.className = 'login-error show'; }
 });
@@ -1046,6 +1070,63 @@ function openPicker(){ pickerMenu.classList.add('open'); pickerBtn.classList.add
 function closePicker(){ pickerMenu.classList.remove('open'); pickerBtn.classList.remove('open'); pickerOverlay.classList.remove('open'); }
 pickerBtn.addEventListener('click', ()=> pickerMenu.classList.contains('open')?closePicker():openPicker());
 pickerOverlay.addEventListener('click', closePicker);
+
+/* =========================================================
+   USUARIO ACTUAL, PERMISOS POR ROL Y BIENVENIDA
+   ========================================================= */
+let usuarioActual = null; // { nombre, rol, es_admin } — fila de public.usuarios
+async function resolverUsuarioActual(){
+  if(!sesionActual) return;
+  const { data } = await sb.from('usuarios').select('nombre, rol, es_admin').eq('email', sesionActual.user.email).maybeSingle();
+  usuarioActual = data || { nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false };
+}
+const TODAS_SECCIONES = SECCIONES.map(s=>s.id);
+// Quién ve qué en el nav. Admins (es_admin=true en public.usuarios) siempre ven todo,
+// sin importar su rol. Un rol sin entrada aquí también ve todo (para no bloquear
+// por accidente a alguien cuyo puesto no hemos mapeado todavía).
+const PERMISOS_POR_ROL = {
+  'Sistemas': TODAS_SECCIONES,
+  'Gerente': TODAS_SECCIONES,
+  'Dueña': TODAS_SECCIONES,
+  'Coordinadora': ['inicio','board','historial','cursos','plaza','giras','logistica','calendario'],
+  'Logística': ['inicio','giras','logistica','plaza','calendario'],
+  'Ventas': ['inicio','board','historial','ventas','calendario'],
+  'Ventas coordinadora': ['inicio','board','historial','ventas','reportes','calendario'],
+  'Academia e Inbox': ['inicio','board','historial','cursos','calendario'],
+  'Cobranza': ['inicio','ventas','historial','calendario'],
+};
+function seccionesPermitidas(){
+  if(!usuarioActual || usuarioActual.es_admin) return TODAS_SECCIONES;
+  return PERMISOS_POR_ROL[usuarioActual.rol] || TODAS_SECCIONES;
+}
+function aplicarPermisosNav(){
+  const permitidas = new Set(seccionesPermitidas());
+  document.querySelectorAll('#desktopNav .nav-item, #pickerMenu .picker-item').forEach(el=>{
+    el.style.display = permitidas.has(el.dataset.view) ? '' : 'none';
+  });
+  const activo = document.querySelector('#desktopNav .nav-item.active');
+  if(activo && !permitidas.has(activo.dataset.view)){
+    const primera = SECCIONES.find(s=>permitidas.has(s.id));
+    if(primera) setActiveSection(primera.id);
+  }
+}
+
+// Se activa justo antes de un signInWithPassword real, para distinguir
+// "la persona acaba de entrar" de "se restauró una sesión ya abierta" —
+// solo el primer caso dispara la pantalla de bienvenida.
+let loginExplicito = false;
+function mostrarBienvenida(){
+  if(!loginExplicito || !usuarioActual) return;
+  loginExplicito = false;
+  const overlay = document.getElementById('bienvenidaScreen');
+  document.getElementById('bienvenidaNombre').textContent = 'Hola, ' + (usuarioActual.nombre || '');
+  document.getElementById('bienvenidaRol').textContent = usuarioActual.rol || '';
+  overlay.classList.add('show');
+  setTimeout(()=>{
+    overlay.classList.add('hide');
+    setTimeout(()=>{ overlay.classList.remove('show','hide'); }, 400);
+  }, 1500);
+}
 
 /* =========================================================
    CATÁLOGOS
@@ -1104,6 +1185,52 @@ async function renderDashboard(){
   cont.innerHTML = data.map(l=>`<div class="lead-row"><div class="avatar">${(l.personas?.nombre||'?').slice(0,2).toUpperCase()}</div>
     <div class="info" style="flex:1;"><div class="lead-name">${l.personas?.nombre||'(sin nombre)'}</div><div class="lead-meta">${l.personas?.telefono_principal||''}</div></div>
     <span class="pill-veces">${l.estatus?.etiqueta||'—'}</span></div>`).join('');
+}
+
+/* ---------- "Tus pendientes" — contenido del Dashboard según el rol ---------- */
+function contarLeadsPorCategoria(catId){
+  const cat = CATEGORIAS.find(c=>c.id===catId);
+  if(!cat) return 0;
+  const ids = new Set(ESTATUS.filter(e=>cat.claves.includes(e.clave)).map(e=>e.id));
+  return leadsCache.filter(l=>ids.has(l.estatus?.id)).length;
+}
+async function renderPendientes(){
+  const card = document.getElementById('pendientesCard');
+  const cont = document.getElementById('pendientesContenido');
+  const rol = usuarioActual?.rol;
+  if(usuarioActual?.es_admin || ['Dueña','Gerente','Sistemas'].includes(rol)){
+    const monto = await obtenerMontoPorEvento();
+    const filas = filasBaseReporte(monto);
+    const totLiq = filas.reduce((a,f)=>a+f.liq,0);
+    const totAnt = filas.reduce((a,f)=>a+f.ant,0);
+    const totPend = filas.reduce((a,f)=>a+f.pend,0);
+    const totAlumnos = totLiq+totAnt+totPend;
+    const avance = totAlumnos ? Math.round((totLiq/totAlumnos)*100) : 0;
+    card.style.display='';
+    cont.innerHTML = `<div class="dato-row"><span class="l">Avance de liquidación de la gira activa</span><span class="v">${avance}%</span></div>
+      <div class="dato-row"><span class="l">Alumnos sin pago</span><span class="v" style="color:${totPend?'var(--danger)':'var(--success)'};">${totPend}</span></div>`;
+  } else if(rol === 'Logística'){
+    card.style.display='';
+    await cargarSedesCache();
+    const estancadas = listaEstancadas();
+    cont.innerHTML = `<div class="dato-row"><span class="l">Sedes estancadas (${DIAS_ESTANCADA}+ días sin novedad)</span><span class="v" style="color:${estancadas.length?'var(--danger)':'var(--success)'};">${estancadas.length}</span></div>
+      <div style="margin-top:10px;">${await obtenerProximaGiraResumenHTML()}</div>`;
+  } else if(rol === 'Coordinadora'){
+    card.style.display='';
+    cont.innerHTML = await obtenerProximaGiraResumenHTML();
+  } else if(rol === 'Ventas' || rol === 'Ventas coordinadora'){
+    card.style.display='';
+    const noContesta = contarLeadsPorCategoria('nocontesta');
+    const atencion = contarLeadsPorCategoria('atencion');
+    cont.innerHTML = `<div class="dato-row"><span class="l">Leads que no contestan</span><span class="v">${noContesta}</span></div>
+      <div class="dato-row"><span class="l">Leads que necesitan atención</span><span class="v" style="color:${atencion?'var(--danger)':'var(--success)'};">${atencion}</span></div>`;
+  } else if(rol === 'Cobranza'){
+    card.style.display='';
+    const porConfirmar = contarLeadsPorCategoria('pagos');
+    cont.innerHTML = `<div class="dato-row"><span class="l">Pagos por confirmar o en curso</span><span class="v" style="color:${porConfirmar?'var(--terracota)':'var(--success)'};">${porConfirmar}</span></div>`;
+  } else {
+    card.style.display='none';
+  }
 }
 
 /* =========================================================
@@ -3279,16 +3406,15 @@ document.getElementById('calcMts2').addEventListener('input', (e)=>{
 });
 
 /* ---------- Resumen (próxima gira + estancadas) ---------- */
-async function renderLogisticaResumen(){
-  await cargarSedesCache();
-  pintarEstancadas('logisticaResumenEstancadas');
-  const cont = document.getElementById('logisticaResumenGira');
-  cont.innerHTML = 'Cargando…';
+// Se usa tanto en el tab Resumen de Logística como en el widget "Tus
+// pendientes" del Dashboard (Coordinadora y Logística) — un solo lugar
+// que arma este bloque de HTML para no duplicar la consulta.
+async function obtenerProximaGiraResumenHTML(){
   const { data: giras, error } = await sb.from('giras')
     .select('id, nombre, confirmada_en, gira_paradas(id, orden, fecha, ciudad_id, checklist, ciudades(nombre, estado), sedes(id, nombre, pipeline_estatus))')
     .eq('estatus','confirmada');
-  if(error){ cont.innerHTML = 'Error: '+error.message; return; }
-  if(!giras || !giras.length){ cont.innerHTML = '<h3>Próxima gira confirmada</h3><div class="empty-note">Todavía no hay ninguna gira confirmada.</div>'; return; }
+  if(error) return 'Error: '+error.message;
+  if(!giras || !giras.length) return '<h3>Próxima gira confirmada</h3><div class="empty-note">Todavía no hay ninguna gira confirmada.</div>';
   const hoy = new Date().toISOString().slice(0,10);
   let elegida = null, mejorFecha = null;
   giras.forEach(g=>{
@@ -3299,7 +3425,7 @@ async function renderLogisticaResumen(){
   if(!elegida) elegida = giras.slice().sort((a,b)=>new Date(b.confirmada_en)-new Date(a.confirmada_en))[0];
   const paradas = (elegida.gira_paradas||[]).slice().sort((a,b)=>a.orden-b.orden);
   const listas = paradas.filter(p=>p.sedes && p.sedes.pipeline_estatus==='confirmada').length;
-  cont.innerHTML = `<h3>Próxima gira: ${elegida.nombre}</h3>
+  return `<h3>Próxima gira: ${elegida.nombre}</h3>
     <div class="sub">${listas} de ${paradas.length} ciudades con sede confirmada</div>
     ${paradas.map(p=>{
       const sede = p.sedes;
@@ -3314,6 +3440,13 @@ async function renderLogisticaResumen(){
         ${sede ? `<div class="sub" style="margin:2px 0 0 0;">${sede.nombre}</div>` : ''}
       </div>`;
     }).join('')}`;
+}
+async function renderLogisticaResumen(){
+  await cargarSedesCache();
+  pintarEstancadas('logisticaResumenEstancadas');
+  const cont = document.getElementById('logisticaResumenGira');
+  cont.innerHTML = 'Cargando…';
+  cont.innerHTML = await obtenerProximaGiraResumenHTML();
 }
 
 /* ---------- Catálogo de cursos de logística (editable) ---------- */
