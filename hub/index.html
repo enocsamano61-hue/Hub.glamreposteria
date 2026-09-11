@@ -333,6 +333,8 @@
     .sidebar{ display:none; }
     .mobile-topbar{ display:block; background:var(--wine-dark); padding:14px; }
     .mobile-topbar .brand{ padding:0; margin-bottom:10px; }
+    .mobile-topbar-acciones{ display:flex; gap:8px; margin-top:10px; }
+    .mobile-topbar-acciones .btn-checador, .mobile-topbar-acciones .btn-logout{ width:auto; flex:1; margin-bottom:0; }
     .topbar{ padding:16px 18px; } .view{ padding:16px; }
     .kpis{ grid-template-columns:repeat(2,1fr); }
     .cal-resumen{ grid-template-columns:repeat(2,1fr); }
@@ -444,6 +446,10 @@
       </button>
       <div class="picker-menu" id="pickerMenu"></div>
     </div>
+    <div class="mobile-topbar-acciones">
+      <button class="btn-checador js-checador-btn" style="display:none;">🕐 Checar entrada</button>
+      <button class="btn-logout js-logout-btn">Cerrar sesión</button>
+    </div>
   </div>
   <div class="picker-overlay" id="pickerOverlay"></div>
 
@@ -454,9 +460,9 @@
     </div>
     <nav id="desktopNav"></nav>
     <div class="sidebar-foot">
-      <button class="btn-checador" id="btnChecador" style="display:none;">🕐 Checar entrada</button>
-      <div class="who" id="whoAmI">—</div>
-      <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+      <button class="btn-checador js-checador-btn" style="display:none;">🕐 Checar entrada</button>
+      <div class="who js-who-am-i">—</div>
+      <button class="btn-logout js-logout-btn">Cerrar sesión</button>
     </div>
   </aside>
 
@@ -765,10 +771,15 @@
 
     <!-- USUARIOS Y PERMISOS (solo admins) -->
     <div class="view" id="view-usuarios">
-      <div class="card">
+      <div class="card" style="margin-bottom:16px;">
         <h3><span class="spark">✦</span> Usuarios y permisos</h3>
         <div class="sub">Quién es administrador (ve y edita todo, y puede dar permisos) y quién puede ver "Actividad del equipo" sin ser administrador.</div>
         <div id="listaUsuariosPermisos" style="margin-top:12px;">Cargando…</div>
+      </div>
+      <div class="card">
+        <h3>Qué secciones ve cada rol</h3>
+        <div class="sub">Marca o desmarca por rol — cambia al instante para todos los que tengan ese rol. "Inicio" siempre queda marcado para que nadie se quede sin dónde entrar.</div>
+        <div id="matrizPermisosRol" style="margin-top:12px;">Cargando…</div>
       </div>
     </div>
   </div>
@@ -1027,11 +1038,11 @@ function showLogin(){
 async function onLogin(session){
   sesionActual = session;
   document.getElementById('loginScreen').style.display='none';
-  await resolverUsuarioActual();
+  await Promise.all([resolverUsuarioActual(), cargarPermisosRol()]);
   aplicarPermisosNav();
   document.getElementById('saludoInicio').innerHTML = (usuarioActual.nombre ? 'Hola, '+usuarioActual.nombre : 'Buenos días') + ' <span class="spark">✦</span>';
   document.getElementById('appShell').classList.add('active');
-  document.getElementById('whoAmI').textContent = session.user.email;
+  document.querySelectorAll('.js-who-am-i').forEach(el=> el.textContent = session.user.email);
   mostrarBienvenida();
   iniciarChecador();
   await cargarCatalogos();
@@ -1057,7 +1068,7 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
   btn.disabled = false; btn.textContent = 'Entrar';
   if(error){ errBox.textContent = 'No se pudo iniciar sesión: ' + error.message; errBox.className = 'login-error show'; }
 });
-document.getElementById('logoutBtn').addEventListener('click', async ()=>{ await cerrarChecador(); await sb.auth.signOut(); });
+document.querySelectorAll('.js-logout-btn').forEach(btn=> btn.addEventListener('click', async ()=>{ await cerrarChecador(); await sb.auth.signOut(); }));
 window.addEventListener('pagehide', ()=>{ cerrarChecador(); });
 
 /* =========================================================
@@ -1116,10 +1127,15 @@ async function resolverUsuarioActual(){
   usuarioActual = data || { id:null, nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false, puede_ver_actividad:false };
 }
 const TODAS_SECCIONES = SECCIONES.map(s=>s.id);
-// Quién ve qué en el nav. Admins (es_admin=true en public.usuarios) siempre ven todo,
-// sin importar su rol. Un rol sin entrada aquí también ve todo (para no bloquear
-// por accidente a alguien cuyo puesto no hemos mapeado todavía).
-const PERMISOS_POR_ROL = {
+// Secciones que sí se pueden restringir por rol desde "Usuarios y permisos".
+// "Actividad del equipo" y "Usuarios y permisos" quedan fuera: esas se
+// gobiernan aparte, por es_admin/puede_ver_actividad, nunca por rol.
+const SECCIONES_ASIGNABLES_POR_ROL = SECCIONES.filter(s=>s.id!=='actividad' && s.id!=='usuarios');
+// Respaldo si un rol todavía no tiene ninguna fila en permisos_rol (rol
+// nuevo que no hemos configurado) — para no dejar a alguien sin nav por
+// accidente. Una vez que un admin toca la matriz de un rol en la UI,
+// esos valores de la base de datos mandan en vez de este respaldo.
+const PERMISOS_POR_ROL_DEFAULT = {
   'Sistemas': TODAS_SECCIONES,
   'Gerente': TODAS_SECCIONES,
   'Dueña': TODAS_SECCIONES,
@@ -1130,8 +1146,23 @@ const PERMISOS_POR_ROL = {
   'Academia e Inbox': ['inicio','board','historial','cursos','calendario'],
   'Cobranza': ['inicio','ventas','historial','calendario'],
 };
+// Cache cargado en cada login desde public.permisos_rol: { [rol]: Set(seccion_id) }.
+let PERMISOS_ROL_CACHE = null;
+async function cargarPermisosRol(){
+  const { data, error } = await sb.from('permisos_rol').select('rol, seccion_id');
+  if(error){ console.warn('No se pudo cargar permisos_rol:', error.message); PERMISOS_ROL_CACHE = {}; return; }
+  PERMISOS_ROL_CACHE = {};
+  (data||[]).forEach(r=>{
+    if(!PERMISOS_ROL_CACHE[r.rol]) PERMISOS_ROL_CACHE[r.rol] = new Set();
+    PERMISOS_ROL_CACHE[r.rol].add(r.seccion_id);
+  });
+}
 function seccionesPermitidas(){
-  const base = (!usuarioActual || usuarioActual.es_admin) ? TODAS_SECCIONES : (PERMISOS_POR_ROL[usuarioActual.rol] || TODAS_SECCIONES);
+  let base = TODAS_SECCIONES;
+  if(usuarioActual && !usuarioActual.es_admin){
+    const guardadas = PERMISOS_ROL_CACHE?.[usuarioActual.rol];
+    base = guardadas ? [...guardadas] : (PERMISOS_POR_ROL_DEFAULT[usuarioActual.rol] || TODAS_SECCIONES);
+  }
   const permitidas = new Set(base);
   // "Actividad del equipo" no sigue el mapa de roles — depende únicamente
   // de es_admin o de un permiso puntual (puede_ver_actividad) que un admin
@@ -1196,37 +1227,38 @@ async function iniciarChecador(){
 // tiene que registrarse, y para nosotros ver quién sí usa el checador.
 let checadorManualEstado = 'pendiente_entrada';
 function pintarBotonChecador(){
-  const btn = document.getElementById('btnChecador');
-  if(!sesionRegistroId){ btn.style.display = 'none'; return; }
-  btn.style.display = '';
-  btn.classList.toggle('en-turno', checadorManualEstado==='en_turno');
-  btn.textContent = checadorManualEstado==='en_turno' ? '🕐 Checar salida' : '🕐 Checar entrada';
+  document.querySelectorAll('.js-checador-btn').forEach(btn=>{
+    if(!sesionRegistroId){ btn.style.display = 'none'; return; }
+    btn.style.display = '';
+    btn.disabled = false;
+    btn.classList.toggle('en-turno', checadorManualEstado==='en_turno');
+    btn.textContent = checadorManualEstado==='en_turno' ? '🕐 Checar salida' : '🕐 Checar entrada';
+  });
 }
-document.getElementById('btnChecador').addEventListener('click', async ()=>{
-  if(!sesionRegistroId) return;
-  const btn = document.getElementById('btnChecador');
-  const ahora = new Date();
-  const horaTxt = ahora.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
-  if(checadorManualEstado === 'pendiente_entrada'){
-    btn.disabled = true;
-    const { error } = await sb.from('sesiones_usuario').update({ entrada_checada_en: ahora.toISOString() }).eq('id', sesionRegistroId);
-    btn.disabled = false;
-    if(error){ toast('Error al checar entrada: '+error.message, true); return; }
-    toast('Entrada registrada a las ' + horaTxt + '.');
-    registrarActividad('checo_entrada', horaTxt);
-    checadorManualEstado = 'en_turno';
-    pintarBotonChecador();
-  } else {
-    if(!confirm('¿Checar salida? Se registrará como el fin de tu turno de hoy.')) return;
-    btn.disabled = true;
-    const { error } = await sb.from('sesiones_usuario').update({ salida_checada_en: ahora.toISOString() }).eq('id', sesionRegistroId);
-    btn.disabled = false;
-    if(error){ toast('Error al checar salida: '+error.message, true); return; }
-    toast('Salida registrada a las ' + horaTxt + '.');
-    registrarActividad('checo_salida', horaTxt);
-    checadorManualEstado = 'pendiente_entrada';
-    pintarBotonChecador();
-  }
+document.querySelectorAll('.js-checador-btn').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    if(!sesionRegistroId) return;
+    const ahora = new Date();
+    const horaTxt = ahora.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    if(checadorManualEstado === 'pendiente_entrada'){
+      document.querySelectorAll('.js-checador-btn').forEach(b=>b.disabled = true);
+      const { error } = await sb.from('sesiones_usuario').update({ entrada_checada_en: ahora.toISOString() }).eq('id', sesionRegistroId);
+      if(error){ toast('Error al checar entrada: '+error.message, true); document.querySelectorAll('.js-checador-btn').forEach(b=>b.disabled = false); return; }
+      toast('Entrada registrada a las ' + horaTxt + '.');
+      registrarActividad('checo_entrada', horaTxt);
+      checadorManualEstado = 'en_turno';
+      pintarBotonChecador();
+    } else {
+      if(!confirm('¿Checar salida? Se registrará como el fin de tu turno de hoy.')) return;
+      document.querySelectorAll('.js-checador-btn').forEach(b=>b.disabled = true);
+      const { error } = await sb.from('sesiones_usuario').update({ salida_checada_en: ahora.toISOString() }).eq('id', sesionRegistroId);
+      if(error){ toast('Error al checar salida: '+error.message, true); document.querySelectorAll('.js-checador-btn').forEach(b=>b.disabled = false); return; }
+      toast('Salida registrada a las ' + horaTxt + '.');
+      registrarActividad('checo_salida', horaTxt);
+      checadorManualEstado = 'pendiente_entrada';
+      pintarBotonChecador();
+    }
+  });
 });
 async function latirChecador(){
   if(!sesionRegistroId) return;
@@ -1341,8 +1373,13 @@ async function renderActividad(){
 /* ---------- Vista "Usuarios y permisos" (solo admins) ---------- */
 async function renderUsuariosPermisos(){
   const cont = document.getElementById('listaUsuariosPermisos');
+  const contMatriz = document.getElementById('matrizPermisosRol');
   cont.textContent = 'Cargando…';
-  const { data: usuarios, error } = await sb.from('usuarios').select('id, nombre, rol, email, es_admin, puede_ver_actividad').order('nombre');
+  contMatriz.textContent = 'Cargando…';
+  const [{ data: usuarios, error }, { data: permisos, error: errP }] = await Promise.all([
+    sb.from('usuarios').select('id, nombre, rol, email, es_admin, puede_ver_actividad').order('nombre'),
+    sb.from('permisos_rol').select('rol, seccion_id'),
+  ]);
   if(error){ cont.textContent = 'Error: ' + error.message; return; }
   cont.innerHTML = (usuarios||[]).map(u=>`
     <div class="dato-row">
@@ -1370,6 +1407,38 @@ async function renderUsuariosPermisos(){
       const { error } = await sb.from('usuarios').update({ puede_ver_actividad: chk.checked }).eq('id', chk.dataset.toggleActividad);
       if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
       toast(chk.checked ? 'Ahora puede ver Actividad del equipo.' : 'Ya no puede ver Actividad del equipo.');
+    });
+  });
+
+  // --- Matriz de secciones por rol ---
+  if(errP){ contMatriz.textContent = 'Error: ' + errP.message; return; }
+  const permisosPorRol = {};
+  (permisos||[]).forEach(p=>{ (permisosPorRol[p.rol] = permisosPorRol[p.rol] || new Set()).add(p.seccion_id); });
+  const roles = [...new Set((usuarios||[]).map(u=>u.rol).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  contMatriz.innerHTML = `<div class="rep-table-wrap"><table class="rep-table perm-matriz">
+    <thead><tr><th>Rol</th>${SECCIONES_ASIGNABLES_POR_ROL.map(s=>`<th style="text-align:center; cursor:default;">${s.label}</th>`).join('')}</tr></thead>
+    <tbody>
+      ${roles.map(rol=>{
+        const set = permisosPorRol[rol] || new Set();
+        return `<tr><td>${rol}</td>${SECCIONES_ASIGNABLES_POR_ROL.map(s=>{
+          const fijo = s.id==='inicio';
+          const marcado = fijo || set.has(s.id);
+          return `<td style="text-align:center;"><input type="checkbox" data-perm-rol="${escapeAttr(rol)}" data-perm-seccion="${s.id}" ${marcado?'checked':''} ${fijo?'disabled title="Todos necesitan al menos Inicio"':''}></td>`;
+        }).join('')}</tr>`;
+      }).join('') || `<tr><td colspan="${SECCIONES_ASIGNABLES_POR_ROL.length+1}" class="empty-note">Sin roles todavía.</td></tr>`}
+    </tbody>
+  </table></div>`;
+  contMatriz.querySelectorAll('[data-perm-rol]').forEach(chk=>{
+    chk.addEventListener('change', async ()=>{
+      const rol = chk.dataset.permRol, seccion = chk.dataset.permSeccion;
+      chk.disabled = true;
+      const { error } = chk.checked
+        ? await sb.from('permisos_rol').insert({ rol, seccion_id: seccion })
+        : await sb.from('permisos_rol').delete().eq('rol', rol).eq('seccion_id', seccion);
+      chk.disabled = false;
+      if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
+      toast(`"${rol}" ${chk.checked?'ahora ve':'ya no ve'} "${SECCIONES.find(s=>s.id===seccion)?.label||seccion}".`);
+      cargarPermisosRol();
     });
   });
 }
