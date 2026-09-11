@@ -742,6 +742,28 @@
         <div id="listaCalendario">Cargando…</div>
       </div>
     </div>
+
+    <!-- ACTIVIDAD DEL EQUIPO (solo admins / con permiso puntual) -->
+    <div class="view" id="view-actividad">
+      <div class="card" style="margin-bottom:16px;">
+        <h3><span class="spark">✦</span> Tiempo en pantalla hoy</h3>
+        <div class="sub">Minutos activos por persona hoy, medidos por el checador de entradas/salidas</div>
+        <div class="kpis" id="actividadResumenHoy" style="margin-top:12px;"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
+      </div>
+      <div class="card" id="actividadAdminControl" style="display:none; margin-bottom:16px;">
+        <h3>Quién más puede ver esta sección</h3>
+        <div class="sub">Por default solo la ven los administradores — puedes darle acceso a alguien más sin hacerlo administrador.</div>
+        <div id="actividadTogglesUsuarios" style="margin-top:10px;">Cargando…</div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <h3>Checador — entradas y salidas</h3>
+        <div id="actividadSesiones" class="sub" style="margin-top:10px;">Cargando…</div>
+      </div>
+      <div class="card">
+        <h3>Bitácora de acciones recientes</h3>
+        <div id="actividadFeed" class="sub" style="margin-top:10px;">Cargando…</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1004,6 +1026,7 @@ async function onLogin(session){
   document.getElementById('appShell').classList.add('active');
   document.getElementById('whoAmI').textContent = session.user.email;
   mostrarBienvenida();
+  iniciarChecador();
   await cargarCatalogos();
   await cargarCiudadesConCurso();
   await resolverAsesorActual();
@@ -1027,7 +1050,8 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
   btn.disabled = false; btn.textContent = 'Entrar';
   if(error){ errBox.textContent = 'No se pudo iniciar sesión: ' + error.message; errBox.className = 'login-error show'; }
 });
-document.getElementById('logoutBtn').addEventListener('click', async ()=>{ await sb.auth.signOut(); });
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{ await cerrarChecador(); await sb.auth.signOut(); });
+window.addEventListener('pagehide', ()=>{ cerrarChecador(); });
 
 /* =========================================================
    NAVEGACIÓN
@@ -1043,6 +1067,7 @@ const SECCIONES = [
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
+  { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
 ];
 function svgIcon(p,c){ return `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`; }
 document.getElementById('desktopNav').innerHTML = SECCIONES.map((s,i)=>`<div class="nav-item ${i===0?'active':''} ${s.soon?'soon':''}" data-view="${s.id}">${svgIcon(s.icon,'nav-ico')}<span>${s.label}</span>${s.soon?'<span class="pill-soon">pronto</span>':''}</div>`).join('');
@@ -1061,6 +1086,7 @@ function setActiveSection(id){
   if(id==='reportes') cargarReportesTab('resumen');
   if(id==='giras') cargarGirasTab('constructor');
   if(id==='logistica') cargarLogisticaTab('catalogo');
+  if(id==='actividad') renderActividad();
   closePicker();
 }
 document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
@@ -1074,11 +1100,11 @@ pickerOverlay.addEventListener('click', closePicker);
 /* =========================================================
    USUARIO ACTUAL, PERMISOS POR ROL Y BIENVENIDA
    ========================================================= */
-let usuarioActual = null; // { nombre, rol, es_admin } — fila de public.usuarios
+let usuarioActual = null; // { id, nombre, rol, es_admin, puede_ver_actividad } — fila de public.usuarios
 async function resolverUsuarioActual(){
   if(!sesionActual) return;
-  const { data } = await sb.from('usuarios').select('nombre, rol, es_admin').eq('email', sesionActual.user.email).maybeSingle();
-  usuarioActual = data || { nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false };
+  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad').eq('email', sesionActual.user.email).maybeSingle();
+  usuarioActual = data || { id:null, nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false, puede_ver_actividad:false };
 }
 const TODAS_SECCIONES = SECCIONES.map(s=>s.id);
 // Quién ve qué en el nav. Admins (es_admin=true en public.usuarios) siempre ven todo,
@@ -1096,8 +1122,14 @@ const PERMISOS_POR_ROL = {
   'Cobranza': ['inicio','ventas','historial','calendario'],
 };
 function seccionesPermitidas(){
-  if(!usuarioActual || usuarioActual.es_admin) return TODAS_SECCIONES;
-  return PERMISOS_POR_ROL[usuarioActual.rol] || TODAS_SECCIONES;
+  const base = (!usuarioActual || usuarioActual.es_admin) ? TODAS_SECCIONES : (PERMISOS_POR_ROL[usuarioActual.rol] || TODAS_SECCIONES);
+  const permitidas = new Set(base);
+  // "Actividad del equipo" no sigue el mapa de roles — depende únicamente
+  // de es_admin o de un permiso puntual (puede_ver_actividad) que un admin
+  // le dé a alguien más, sin importar su rol.
+  if(usuarioActual?.es_admin || usuarioActual?.puede_ver_actividad) permitidas.add('actividad');
+  else permitidas.delete('actividad');
+  return [...permitidas];
 }
 function aplicarPermisosNav(){
   const permitidas = new Set(seccionesPermitidas());
@@ -1126,6 +1158,148 @@ function mostrarBienvenida(){
     overlay.classList.add('hide');
     setTimeout(()=>{ overlay.classList.remove('show','hide'); }, 400);
   }, 1500);
+}
+
+/* =========================================================
+   CHECADOR (entradas/salidas) Y BITÁCORA DE ACTIVIDAD
+   El "tiempo en pantalla" se mide con un latido cada 60s que solo
+   corre mientras la pestaña está visible — así no se cuenta como
+   trabajado el rato en que el Hub quedó abierto en segundo plano.
+   ========================================================= */
+let sesionRegistroId = null;
+let checadorInterval = null;
+async function iniciarChecador(){
+  if(!usuarioActual?.id) return;
+  const { data, error } = await sb.from('sesiones_usuario').insert({ usuario_id: usuarioActual.id }).select('id').single();
+  if(error){ console.warn('No se pudo iniciar el checador:', error.message); return; }
+  sesionRegistroId = data.id;
+  if(checadorInterval) clearInterval(checadorInterval);
+  checadorInterval = setInterval(()=>{ if(document.visibilityState==='visible') latirChecador(); }, 60000);
+}
+async function latirChecador(){
+  if(!sesionRegistroId) return;
+  await sb.from('sesiones_usuario').update({ ultimo_latido: new Date().toISOString() }).eq('id', sesionRegistroId);
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') latirChecador(); });
+async function cerrarChecador(){
+  if(!sesionRegistroId) return;
+  const ahora = new Date().toISOString();
+  await sb.from('sesiones_usuario').update({ fin: ahora, ultimo_latido: ahora }).eq('id', sesionRegistroId);
+  if(checadorInterval) clearInterval(checadorInterval);
+  checadorInterval = null;
+  sesionRegistroId = null;
+}
+// Bitácora — se llama justo después de cada escritura importante en el
+// Hub. Nunca debe tronar la acción real si falla: es un registro de
+// apoyo, no una validación.
+async function registrarActividad(accion, detalle){
+  if(!usuarioActual?.id) return;
+  try{
+    await sb.from('actividad_usuario').insert({ usuario_id: usuarioActual.id, sesion_id: sesionRegistroId, accion, detalle: detalle||null });
+  }catch(e){ console.warn('No se pudo registrar actividad:', e.message); }
+}
+
+/* ---------- Vista "Actividad del equipo" (admin, o con puede_ver_actividad) ---------- */
+const ACCION_LABEL = {
+  lead_creado: 'Creó un lead',
+  lead_actualizado: 'Actualizó un lead',
+  inscripcion_estatus: 'Cambió el estatus de una inscripción',
+  pago_registrado: 'Registró un pago',
+  gira_creada: 'Guardó una gira como borrador',
+  gira_confirmada: 'Confirmó una gira',
+  sede_asignada_parada: 'Asignó una sede a una parada de gira',
+  reactivacion_generada: 'Generó una lista de reactivación',
+  curso_creado: 'Creó un curso',
+  ciudad_creada: 'Creó una ciudad',
+  sede_pipeline_actualizado: 'Actualizó el estatus de una sede',
+  sede_creada: 'Agregó una sede nueva',
+  contacto_agregado: 'Agregó un contacto a una sede',
+};
+// Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
+// ya no está activa aunque nunca se haya marcado "fin" explícito
+// (cerraron la pestaña sin darle a "Cerrar sesión").
+const MINUTOS_SESION_ESTANCADA = 3;
+function estadoSesion(s){
+  const inicio = new Date(s.inicio).getTime();
+  if(s.fin){
+    const fin = new Date(s.fin).getTime();
+    return { activa:false, finEfectivo: fin, minutos: Math.max(0, Math.round((fin-inicio)/60000)) };
+  }
+  const latido = new Date(s.ultimo_latido).getTime();
+  const activa = (Date.now() - latido) <= MINUTOS_SESION_ESTANCADA*60000;
+  return { activa, finEfectivo: latido, minutos: Math.max(0, Math.round((latido-inicio)/60000)) };
+}
+async function renderActividad(){
+  const boxHoy = document.getElementById('actividadResumenHoy');
+  const boxSesiones = document.getElementById('actividadSesiones');
+  const boxFeed = document.getElementById('actividadFeed');
+  const boxAdmin = document.getElementById('actividadAdminControl');
+  boxHoy.innerHTML = '<div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div>';
+  boxSesiones.textContent = 'Cargando…';
+  boxFeed.textContent = 'Cargando…';
+
+  const [{ data: usuarios, error: errU }, { data: sesiones, error: errS }, { data: feed, error: errF }] = await Promise.all([
+    sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad').order('nombre'),
+    sb.from('sesiones_usuario').select('id, usuario_id, inicio, ultimo_latido, fin').order('inicio', { ascending:false }).limit(300),
+    sb.from('actividad_usuario').select('usuario_id, accion, detalle, creado_en').order('creado_en', { ascending:false }).limit(150),
+  ]);
+  if(errU || errS || errF){ boxSesiones.textContent = 'Error: ' + (errU||errS||errF).message; return; }
+
+  const nombrePorUsuario = {}; (usuarios||[]).forEach(u=>{ nombrePorUsuario[u.id] = u; });
+  const hoyISO = new Date().toISOString().slice(0,10);
+
+  // --- Tiempo en pantalla hoy ---
+  const minutosHoyPorUsuario = {};
+  (sesiones||[]).forEach(s=>{
+    if(!s.inicio.startsWith(hoyISO)) return;
+    const { minutos } = estadoSesion(s);
+    minutosHoyPorUsuario[s.usuario_id] = (minutosHoyPorUsuario[s.usuario_id]||0) + minutos;
+  });
+  const tiles = Object.entries(minutosHoyPorUsuario)
+    .map(([uid, min])=>({ nombre: nombrePorUsuario[uid]?.nombre || '(desconocido)', min }))
+    .sort((a,b)=>b.min-a.min);
+  boxHoy.innerHTML = tiles.length
+    ? tiles.map(t=>`<div class="kpi"><div class="v">${t.min}<span style="font-size:13px;"> min</span></div><div class="l">${t.nombre}</div></div>`).join('')
+    : '<div class="empty-note">Nadie ha iniciado sesión todavía hoy.</div>';
+
+  // --- Checador: entradas y salidas ---
+  boxSesiones.innerHTML = (sesiones||[]).slice(0,60).map(s=>{
+    const u = nombrePorUsuario[s.usuario_id];
+    const { activa, minutos } = estadoSesion(s);
+    const entrada = new Date(s.inicio).toLocaleString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    const estadoTxt = activa ? '<span style="color:var(--success); font-weight:600;">Activo ahora</span>'
+      : (s.fin ? 'Cerró sesión' : '<span style="color:var(--danger);">Sin señal — se infiere cerrada</span>');
+    return `<div class="dato-row"><span class="l">${u?.nombre||'(desconocido)'} · ${entrada}</span><span class="v">${estadoTxt} · ${minutos} min</span></div>`;
+  }).join('') || '<div class="empty-note">Sin sesiones registradas todavía.</div>';
+
+  // --- Bitácora de acciones recientes ---
+  boxFeed.innerHTML = (feed||[]).map(a=>{
+    const u = nombrePorUsuario[a.usuario_id];
+    const fecha = new Date(a.creado_en).toLocaleString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    const etiqueta = ACCION_LABEL[a.accion] || a.accion;
+    return `<div class="dato-row"><span class="l">${u?.nombre||'(desconocido)'} — ${etiqueta}${a.detalle?': '+a.detalle:''}</span><span class="v" style="font-weight:400; color:var(--ink-soft);">${fecha}</span></div>`;
+  }).join('') || '<div class="empty-note">Sin actividad registrada todavía.</div>';
+
+  // --- Control de admin: dar/quitar acceso a esta sección ---
+  if(usuarioActual?.es_admin){
+    boxAdmin.style.display = '';
+    document.getElementById('actividadTogglesUsuarios').innerHTML = (usuarios||[]).filter(u=>!u.es_admin).map(u=>`
+      <div class="dato-row">
+        <span class="l">${u.nombre} <span style="color:var(--ink-soft);">· ${u.rol||'—'}</span></span>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" data-toggle-actividad="${u.id}" ${u.puede_ver_actividad?'checked':''}> Puede ver
+        </label>
+      </div>`).join('') || '<div class="empty-note">No hay más usuarios todavía.</div>';
+    document.querySelectorAll('[data-toggle-actividad]').forEach(chk=>{
+      chk.addEventListener('change', async ()=>{
+        const { error } = await sb.from('usuarios').update({ puede_ver_actividad: chk.checked }).eq('id', chk.dataset.toggleActividad);
+        if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
+        toast(chk.checked ? 'Acceso otorgado.' : 'Acceso retirado.');
+      });
+    });
+  } else {
+    boxAdmin.style.display = 'none';
+  }
 }
 
 /* =========================================================
@@ -1475,6 +1649,8 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
 
   if(errPersona || errUpd || errInt){ toast('Error al guardar: ' + (errPersona||errUpd||errInt).message, true); return; }
   toast('Guardado.');
+  const etiquetaNueva = ESTATUS.find(e=>e.id===nuevoEstatusId)?.etiqueta || '';
+  registrarActividad('lead_actualizado', `${nombreNuevo} → ${etiquetaNueva}`);
   document.getElementById('modalLead').classList.remove('open');
   await renderBoard();
   if(diaCalendarioAbierto) await renderCalendario(true);
@@ -1516,6 +1692,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   btn.disabled = false; btn.textContent = 'Crear lead';
   if(errL){ toast('Error creando lead: ' + errL.message, true); return; }
   toast('Lead creado.');
+  registrarActividad('lead_creado', nombre);
   document.getElementById('modalNuevo').classList.remove('open');
   await renderBoard(); await renderDashboard();
 });
@@ -1921,6 +2098,8 @@ document.getElementById('guardarInscEstatus').addEventListener('click', async ()
   btn.disabled = false; btn.textContent = 'Guardar estatus';
   if(error){ toast('Error al guardar: ' + error.message, true); return; }
   toast('Estatus actualizado.');
+  const etiquetaNueva = ESTATUS.find(e=>e.id===nuevoEstatusId)?.etiqueta || '';
+  registrarActividad('inscripcion_estatus', `${modalInscDatos?.personas?.nombre||''} → ${etiquetaNueva}`);
   cerrarModalInscripcion();
   await renderCalendario(true);
 });
@@ -1954,6 +2133,7 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   if(errUpd){ toast('El pago se guardó, pero no se pudo actualizar el saldo: ' + errUpd.message, true); return; }
 
   toast('Abono registrado.');
+  registrarActividad('pago_registrado', `${fmtMoney(monto)} de ${modalInscDatos?.personas?.nombre||''}`);
   cerrarModalInscripcion();
   await renderCalendario(true);
 });
@@ -2604,6 +2784,7 @@ document.getElementById('btnGuardarGiraBorrador').addEventListener('click', asyn
   btn.disabled=false; btn.textContent='Guardar como borrador';
   if(errParadas){ toast('Error guardando paradas: '+errParadas.message, true); return; }
   toast('Gira guardada como borrador.');
+  registrarActividad('gira_creada', nombre);
   giraRutaActual = [];
   document.getElementById('giraNombre').value='';
   pintarGiraRuta();
@@ -2689,6 +2870,7 @@ async function asignarSedeAParada(paradaId, sedeId){
   const { error } = await sb.from('gira_paradas').update({ sede_id: sedeId }).eq('id', paradaId);
   if(error){ toast('Error al asignar: '+error.message, true); return; }
   toast('Sede asignada a la parada.');
+  registrarActividad('sede_asignada_parada', (logisticaSedesCache||[]).find(s=>s.id===sedeId)?.nombre || sedeId);
   await renderGirasHistorial();
 }
 function escapeAttr(s){ return String(s||'').replace(/"/g,'&quot;'); }
@@ -2711,6 +2893,7 @@ async function confirmarRutaGira(giraId, btnOrigen){
   const { error } = await sb.from('giras').update({ estatus:'confirmada', confirmada_en: new Date().toISOString() }).eq('id', giraId);
   if(error){ toast('Error: '+error.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent='Confirmar ruta';} return; }
   toast('Ruta confirmada.');
+  registrarActividad('gira_confirmada', giraId);
   await renderGirasHistorial();
 }
 
@@ -2761,6 +2944,7 @@ async function generarReactivacionGira(giraId, btnOrigen){
     const { error: errNuevos } = await sb.from('leads').insert(nuevosLeads);
     if(errNuevos){ toast('Error creando leads: '+errNuevos.message, true); if(btnOrigen){btnOrigen.disabled=false; btnOrigen.textContent=textoOriginal;} return; }
     toast(`${nuevosLeads.length} alumno(s) agregados a Alumnos y Leads para dar seguimiento.`);
+    registrarActividad('reactivacion_generada', `${nuevosLeads.length} alumno(s)`);
   } else {
     toast('Sin alumnos nuevos que agregar (todos ya tenían seguimiento para este curso, o ninguna de estas ciudades tiene historial).');
   }
@@ -2817,6 +3001,7 @@ document.getElementById('btnNuevoCurso').addEventListener('click', async ()=>{
   const { error } = await sb.from('cursos').insert({ nombre, linea, precio_base: precio?Number(precio):null });
   if(error){ toast('Error: ' + error.message, true); return; }
   toast('Curso agregado.');
+  registrarActividad('curso_creado', nombre);
   await cargarCatalogos(); await renderCursos();
 });
 
@@ -2860,6 +3045,7 @@ document.getElementById('newCitySave').addEventListener('click', async ()=>{
   }
   const { data, error } = await sb.from('ciudades').insert(payload).select('id,nombre,estado').single();
   if(error){ toast('Error: ' + error.message, true); return; }
+  registrarActividad('ciudad_creada', nombre);
   // se agrega local a la lista filtrada aunque todavía no tenga evento —
   // la acabas de crear a propósito para trabajarla
   CIUDADES_CON_CURSO.push(data);
@@ -3301,6 +3487,7 @@ document.getElementById('guardarSedeEstatus').addEventListener('click', async ()
   const sedeLocal = logisticaSedesCache.find(s=>s.id===modalSedeId);
   if(sedeLocal){ sedeLocal.pipeline_estatus=nuevoEstatus; sedeLocal.pipeline_estatus_motivo=motivo; sedeLocal.responsable=responsable; sedeLocal.pipeline_actualizado_en=new Date().toISOString(); }
   toast('Sede actualizada.');
+  registrarActividad('sede_pipeline_actualizado', `${sedeLocal?.nombre||modalSedeId} → ${ETIQUETA_PIPELINE[nuevoEstatus]||nuevoEstatus}`);
   aplicarFiltrosCatalogo();
   if(logisticaCargado.pipeline) renderLogisticaPipeline();
 });
@@ -3531,6 +3718,7 @@ document.getElementById('guardarNuevaSede').addEventListener('click', async ()=>
     await sb.from('sedes_contactos').insert({ sede_id: sede.id, curso_catalogo_id: cursoId, curso_texto: cursoNombre, estatus:'PROSPECTO', anio: String(new Date().getFullYear()) });
   }
   toast('Sede agregada.');
+  registrarActividad('sede_creada', `${nombre} (${ciudadTexto})`);
   document.getElementById('modalNuevaSede').classList.remove('open');
   logisticaSedesCache = null;
   logisticaCargado.pipeline = false; logisticaCargado.calculadora = false; logisticaCargado.resumen = false;
@@ -3577,6 +3765,7 @@ document.getElementById('guardarNuevoContacto').addEventListener('click', async 
   btn.disabled=false; btn.textContent='Guardar contacto';
   if(errS){ toast('Error al actualizar estatus: '+errS.message, true); return; }
   toast('Contacto agregado.');
+  registrarActividad('contacto_agregado', `${logisticaSedesCache.find(s=>s.id===modalSedeId)?.nombre||modalSedeId} → ${ETIQUETA_PIPELINE[estatusNuevo]}`);
   document.getElementById('formNuevoContacto').style.display = 'none';
   const sedeLocal = logisticaSedesCache.find(s=>s.id===modalSedeId);
   if(sedeLocal){ sedeLocal.pipeline_estatus=estatusNuevo; sedeLocal.pipeline_estatus_motivo=motivo; sedeLocal.pipeline_actualizado_en=new Date().toISOString(); }
