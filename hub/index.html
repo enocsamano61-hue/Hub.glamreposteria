@@ -61,6 +61,8 @@
   .sidebar-foot{ margin-top:auto; padding-top:14px; }
   .who{ font-size:11px; color:#DCC7CE; margin-bottom:8px; }
   .btn-logout{ background:rgba(255,255,255,.08); color:#EFE3DC; border:none; padding:8px 10px; border-radius:8px; font-size:11.5px; cursor:pointer; width:100%; }
+  .btn-checador{ display:flex; align-items:center; justify-content:center; gap:6px; background:var(--champagne); color:var(--wine-dark); border:none; padding:9px 10px; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; width:100%; margin-bottom:8px; }
+  .btn-checador.en-turno{ background:rgba(255,255,255,.12); color:#EFE3DC; }
 
   .mobile-topbar{ display:none; }
   .picker{ position:relative; }
@@ -452,6 +454,7 @@
     </div>
     <nav id="desktopNav"></nav>
     <div class="sidebar-foot">
+      <button class="btn-checador" id="btnChecador" style="display:none;">🕐 Checar entrada</button>
       <div class="who" id="whoAmI">—</div>
       <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
     </div>
@@ -750,11 +753,6 @@
         <div class="sub">Minutos activos por persona hoy, medidos por el checador de entradas/salidas</div>
         <div class="kpis" id="actividadResumenHoy" style="margin-top:12px;"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
       </div>
-      <div class="card" id="actividadAdminControl" style="display:none; margin-bottom:16px;">
-        <h3>Quién más puede ver esta sección</h3>
-        <div class="sub">Por default solo la ven los administradores — puedes darle acceso a alguien más sin hacerlo administrador.</div>
-        <div id="actividadTogglesUsuarios" style="margin-top:10px;">Cargando…</div>
-      </div>
       <div class="card" style="margin-bottom:16px;">
         <h3>Checador — entradas y salidas</h3>
         <div id="actividadSesiones" class="sub" style="margin-top:10px;">Cargando…</div>
@@ -762,6 +760,15 @@
       <div class="card">
         <h3>Bitácora de acciones recientes</h3>
         <div id="actividadFeed" class="sub" style="margin-top:10px;">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- USUARIOS Y PERMISOS (solo admins) -->
+    <div class="view" id="view-usuarios">
+      <div class="card">
+        <h3><span class="spark">✦</span> Usuarios y permisos</h3>
+        <div class="sub">Quién es administrador (ve y edita todo, y puede dar permisos) y quién puede ver "Actividad del equipo" sin ser administrador.</div>
+        <div id="listaUsuariosPermisos" style="margin-top:12px;">Cargando…</div>
       </div>
     </div>
   </div>
@@ -1068,6 +1075,7 @@ const SECCIONES = [
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
+  { id:'usuarios', label:'Usuarios y permisos', sub:'Quién es admin y quién puede ver la actividad del equipo', soon:false, icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/>' },
 ];
 function svgIcon(p,c){ return `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`; }
 document.getElementById('desktopNav').innerHTML = SECCIONES.map((s,i)=>`<div class="nav-item ${i===0?'active':''} ${s.soon?'soon':''}" data-view="${s.id}">${svgIcon(s.icon,'nav-ico')}<span>${s.label}</span>${s.soon?'<span class="pill-soon">pronto</span>':''}</div>`).join('');
@@ -1087,6 +1095,7 @@ function setActiveSection(id){
   if(id==='giras') cargarGirasTab('constructor');
   if(id==='logistica') cargarLogisticaTab('catalogo');
   if(id==='actividad') renderActividad();
+  if(id==='usuarios') renderUsuariosPermisos();
   closePicker();
 }
 document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
@@ -1129,6 +1138,10 @@ function seccionesPermitidas(){
   // le dé a alguien más, sin importar su rol.
   if(usuarioActual?.es_admin || usuarioActual?.puede_ver_actividad) permitidas.add('actividad');
   else permitidas.delete('actividad');
+  // "Usuarios y permisos" (dar de alta admins / permiso de ver actividad)
+  // se queda estrictamente en manos de admins, sin excepción.
+  if(usuarioActual?.es_admin) permitidas.add('usuarios');
+  else permitidas.delete('usuarios');
   return [...permitidas];
 }
 function aplicarPermisosNav(){
@@ -1175,7 +1188,46 @@ async function iniciarChecador(){
   sesionRegistroId = data.id;
   if(checadorInterval) clearInterval(checadorInterval);
   checadorInterval = setInterval(()=>{ if(document.visibilityState==='visible') latirChecador(); }, 60000);
+  checadorManualEstado = 'pendiente_entrada';
+  pintarBotonChecador();
 }
+// Botón manual "Checar entrada / Checar salida" — el sistema ya mide el
+// tiempo solo con el heartbeat, esto es para que la persona sienta que
+// tiene que registrarse, y para nosotros ver quién sí usa el checador.
+let checadorManualEstado = 'pendiente_entrada';
+function pintarBotonChecador(){
+  const btn = document.getElementById('btnChecador');
+  if(!sesionRegistroId){ btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  btn.classList.toggle('en-turno', checadorManualEstado==='en_turno');
+  btn.textContent = checadorManualEstado==='en_turno' ? '🕐 Checar salida' : '🕐 Checar entrada';
+}
+document.getElementById('btnChecador').addEventListener('click', async ()=>{
+  if(!sesionRegistroId) return;
+  const btn = document.getElementById('btnChecador');
+  const ahora = new Date();
+  const horaTxt = ahora.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+  if(checadorManualEstado === 'pendiente_entrada'){
+    btn.disabled = true;
+    const { error } = await sb.from('sesiones_usuario').update({ entrada_checada_en: ahora.toISOString() }).eq('id', sesionRegistroId);
+    btn.disabled = false;
+    if(error){ toast('Error al checar entrada: '+error.message, true); return; }
+    toast('Entrada registrada a las ' + horaTxt + '.');
+    registrarActividad('checo_entrada', horaTxt);
+    checadorManualEstado = 'en_turno';
+    pintarBotonChecador();
+  } else {
+    if(!confirm('¿Checar salida? Se registrará como el fin de tu turno de hoy.')) return;
+    btn.disabled = true;
+    const { error } = await sb.from('sesiones_usuario').update({ salida_checada_en: ahora.toISOString() }).eq('id', sesionRegistroId);
+    btn.disabled = false;
+    if(error){ toast('Error al checar salida: '+error.message, true); return; }
+    toast('Salida registrada a las ' + horaTxt + '.');
+    registrarActividad('checo_salida', horaTxt);
+    checadorManualEstado = 'pendiente_entrada';
+    pintarBotonChecador();
+  }
+});
 async function latirChecador(){
   if(!sesionRegistroId) return;
   await sb.from('sesiones_usuario').update({ ultimo_latido: new Date().toISOString() }).eq('id', sesionRegistroId);
@@ -1188,6 +1240,7 @@ async function cerrarChecador(){
   if(checadorInterval) clearInterval(checadorInterval);
   checadorInterval = null;
   sesionRegistroId = null;
+  pintarBotonChecador();
 }
 // Bitácora — se llama justo después de cada escritura importante en el
 // Hub. Nunca debe tronar la acción real si falla: es un registro de
@@ -1214,6 +1267,8 @@ const ACCION_LABEL = {
   sede_pipeline_actualizado: 'Actualizó el estatus de una sede',
   sede_creada: 'Agregó una sede nueva',
   contacto_agregado: 'Agregó un contacto a una sede',
+  checo_entrada: 'Checó su entrada',
+  checo_salida: 'Checó su salida',
 };
 // Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
 // ya no está activa aunque nunca se haya marcado "fin" explícito
@@ -1233,14 +1288,13 @@ async function renderActividad(){
   const boxHoy = document.getElementById('actividadResumenHoy');
   const boxSesiones = document.getElementById('actividadSesiones');
   const boxFeed = document.getElementById('actividadFeed');
-  const boxAdmin = document.getElementById('actividadAdminControl');
   boxHoy.innerHTML = '<div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div>';
   boxSesiones.textContent = 'Cargando…';
   boxFeed.textContent = 'Cargando…';
 
   const [{ data: usuarios, error: errU }, { data: sesiones, error: errS }, { data: feed, error: errF }] = await Promise.all([
     sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad').order('nombre'),
-    sb.from('sesiones_usuario').select('id, usuario_id, inicio, ultimo_latido, fin').order('inicio', { ascending:false }).limit(300),
+    sb.from('sesiones_usuario').select('id, usuario_id, inicio, ultimo_latido, fin, entrada_checada_en, salida_checada_en').order('inicio', { ascending:false }).limit(300),
     sb.from('actividad_usuario').select('usuario_id, accion, detalle, creado_en').order('creado_en', { ascending:false }).limit(150),
   ]);
   if(errU || errS || errF){ boxSesiones.textContent = 'Error: ' + (errU||errS||errF).message; return; }
@@ -1269,7 +1323,10 @@ async function renderActividad(){
     const entrada = new Date(s.inicio).toLocaleString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
     const estadoTxt = activa ? '<span style="color:var(--success); font-weight:600;">Activo ahora</span>'
       : (s.fin ? 'Cerró sesión' : '<span style="color:var(--danger);">Sin señal — se infiere cerrada</span>');
-    return `<div class="dato-row"><span class="l">${u?.nombre||'(desconocido)'} · ${entrada}</span><span class="v">${estadoTxt} · ${minutos} min</span></div>`;
+    const checoTxt = s.entrada_checada_en
+      ? (s.salida_checada_en ? '✓ checó entrada y salida' : '✓ checó entrada')
+      : '<span style="color:var(--terracota);">No usó el botón de checador</span>';
+    return `<div class="dato-row"><span class="l">${u?.nombre||'(desconocido)'} · ${entrada}</span><span class="v">${estadoTxt} · ${minutos} min · ${checoTxt}</span></div>`;
   }).join('') || '<div class="empty-note">Sin sesiones registradas todavía.</div>';
 
   // --- Bitácora de acciones recientes ---
@@ -1279,27 +1336,42 @@ async function renderActividad(){
     const etiqueta = ACCION_LABEL[a.accion] || a.accion;
     return `<div class="dato-row"><span class="l">${u?.nombre||'(desconocido)'} — ${etiqueta}${a.detalle?': '+a.detalle:''}</span><span class="v" style="font-weight:400; color:var(--ink-soft);">${fecha}</span></div>`;
   }).join('') || '<div class="empty-note">Sin actividad registrada todavía.</div>';
+}
 
-  // --- Control de admin: dar/quitar acceso a esta sección ---
-  if(usuarioActual?.es_admin){
-    boxAdmin.style.display = '';
-    document.getElementById('actividadTogglesUsuarios').innerHTML = (usuarios||[]).filter(u=>!u.es_admin).map(u=>`
-      <div class="dato-row">
-        <span class="l">${u.nombre} <span style="color:var(--ink-soft);">· ${u.rol||'—'}</span></span>
+/* ---------- Vista "Usuarios y permisos" (solo admins) ---------- */
+async function renderUsuariosPermisos(){
+  const cont = document.getElementById('listaUsuariosPermisos');
+  cont.textContent = 'Cargando…';
+  const { data: usuarios, error } = await sb.from('usuarios').select('id, nombre, rol, email, es_admin, puede_ver_actividad').order('nombre');
+  if(error){ cont.textContent = 'Error: ' + error.message; return; }
+  cont.innerHTML = (usuarios||[]).map(u=>`
+    <div class="dato-row">
+      <span class="l">${u.nombre} <span style="color:var(--ink-soft);">· ${u.rol||'—'} · ${u.email}</span></span>
+      <span style="display:flex; align-items:center; gap:16px;">
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" data-toggle-actividad="${u.id}" ${u.puede_ver_actividad?'checked':''}> Puede ver
+          <input type="checkbox" data-toggle-admin="${u.id}" ${u.es_admin?'checked':''} ${u.id===usuarioActual.id?'disabled title="No puedes quitarte el permiso a ti mismo"':''}> Admin
         </label>
-      </div>`).join('') || '<div class="empty-note">No hay más usuarios todavía.</div>';
-    document.querySelectorAll('[data-toggle-actividad]').forEach(chk=>{
-      chk.addEventListener('change', async ()=>{
-        const { error } = await sb.from('usuarios').update({ puede_ver_actividad: chk.checked }).eq('id', chk.dataset.toggleActividad);
-        if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
-        toast(chk.checked ? 'Acceso otorgado.' : 'Acceso retirado.');
-      });
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" data-toggle-actividad="${u.id}" ${u.puede_ver_actividad?'checked':''} ${u.es_admin?'disabled title="Ya ve todo por ser admin"':''}> Ve actividad del equipo
+        </label>
+      </span>
+    </div>`).join('') || '<div class="empty-note">Sin usuarios todavía.</div>';
+  document.querySelectorAll('[data-toggle-admin]').forEach(chk=>{
+    chk.addEventListener('change', async ()=>{
+      if(chk.checked && !confirm('¿Volver administrador a esta persona? Va a poder ver y editar TODO el Hub, y dar/quitar permisos a los demás.')){ chk.checked = false; return; }
+      const { error } = await sb.from('usuarios').update({ es_admin: chk.checked }).eq('id', chk.dataset.toggleAdmin);
+      if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
+      toast(chk.checked ? 'Ahora es administrador.' : 'Ya no es administrador.');
+      renderUsuariosPermisos();
     });
-  } else {
-    boxAdmin.style.display = 'none';
-  }
+  });
+  document.querySelectorAll('[data-toggle-actividad]').forEach(chk=>{
+    chk.addEventListener('change', async ()=>{
+      const { error } = await sb.from('usuarios').update({ puede_ver_actividad: chk.checked }).eq('id', chk.dataset.toggleActividad);
+      if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
+      toast(chk.checked ? 'Ahora puede ver Actividad del equipo.' : 'Ya no puede ver Actividad del equipo.');
+    });
+  });
 }
 
 /* =========================================================
