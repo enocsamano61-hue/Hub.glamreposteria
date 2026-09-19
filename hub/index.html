@@ -411,6 +411,40 @@
   .fdd-item{ padding:8px 10px; border-radius:8px; font-size:12.5px; cursor:pointer; color:var(--ink); }
   .fdd-item:hover{ background:var(--bg); }
   .fdd-item.active{ background:var(--wine); color:#fff; }
+
+  /* ---------- TUTORIAL: spotlight, asistente flotante y checklist ---------- */
+  .glamtut-veil{ position:fixed; inset:0; z-index:200; }
+  .glamtut-hole{ position:fixed; display:none; border-radius:12px; box-shadow:0 0 0 9999px rgba(41,36,33,.62); pointer-events:none; transition:left .2s ease, top .2s ease, width .2s ease, height .2s ease; }
+  .glamtut-bubble{ position:fixed; background:var(--wine-dark); color:#F3E9DC; border-radius:14px; padding:16px 18px; width:270px; max-width:calc(100vw - 32px); box-shadow:0 18px 40px rgba(0,0,0,.35); z-index:201; }
+  .glamtut-step{ font-size:10px; font-weight:700; color:var(--champagne); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+  .glamtut-bubble p{ font-size:13px; line-height:1.55; margin:0 0 16px 0; color:#F3E9DC; }
+  .glamtut-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .glamtut-skip{ background:none; border:none; font-size:11.5px; color:#DCC7CE; text-decoration:underline; cursor:pointer; font-family:inherit; padding:0; }
+  .glamtut-next{ background:var(--champagne); color:var(--wine-dark); border:none; padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+
+  .glamtut-fab{ position:fixed; right:24px; bottom:24px; width:52px; height:52px; border-radius:50%; background:var(--champagne); color:var(--wine-dark); border:none; font-size:20px; font-weight:700; cursor:pointer; box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:150; font-family:inherit; }
+  .glamtut-panel{ display:none; position:fixed; right:24px; bottom:86px; width:320px; max-width:calc(100vw - 32px); max-height:70vh; overflow-y:auto; background:var(--card); border-radius:16px; box-shadow:0 20px 48px rgba(41,36,33,.28); z-index:150; }
+  .glamtut-panel.open{ display:block; }
+  .glamtut-panel-head{ background:var(--wine); color:#fff; padding:16px 18px; position:sticky; top:0; }
+  .glamtut-panel-head h3{ font-size:15px; color:#fff; margin:0; }
+  .glamtut-panel-head .sub{ font-size:11.5px; color:#DCC7CE; margin-top:2px; }
+  .glamtut-panel-body{ padding:8px; }
+  .glamtut-faq{ border-bottom:1px solid var(--border); }
+  .glamtut-faq:last-child{ border-bottom:none; }
+  .glamtut-faq-q{ width:100%; text-align:left; background:none; border:none; padding:12px 10px; font-size:12.5px; font-weight:600; font-family:inherit; color:var(--ink); display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+  .glamtut-faq-q .glamtut-chev{ color:var(--ink-soft); font-size:11px; transition:transform .15s ease; }
+  .glamtut-faq-q.open .glamtut-chev{ transform:rotate(90deg); }
+  .glamtut-faq-a{ display:none; padding:0 10px 14px 10px; font-size:12px; color:var(--ink-soft); line-height:1.5; }
+  .glamtut-faq-a.open{ display:block; }
+  .glamtut-vacio{ padding:16px 12px; font-size:12px; color:var(--ink-soft); }
+
+  .glamtut-checklist-sub{ font-size:12px; color:var(--ink-soft); margin:0 0 10px 0; }
+  .glamtut-progress-track{ height:8px; background:var(--border); border-radius:20px; overflow:hidden; margin-bottom:16px; }
+  .glamtut-progress-fill{ height:100%; background:var(--success); width:0%; transition:width .3s ease; }
+  .glamtut-check-item{ display:flex; align-items:center; gap:12px; padding:9px 2px; border-bottom:1px solid var(--border); font-size:13px; }
+  .glamtut-check-item:last-child{ border-bottom:none; }
+  .glamtut-check-item input{ width:17px; height:17px; flex-shrink:0; }
+  .glamtut-check-item .done{ color:var(--ink-soft); text-decoration:line-through; }
 </style>
 </head>
 <body>
@@ -473,6 +507,12 @@
     <div class="view active" id="view-inicio">
       <div class="card" style="margin-bottom:20px;"><h1 style="font-size:22px;" id="saludoInicio">Buenos días <span class="spark">✦</span></h1><p class="sub" style="margin:4px 0 0 0;">Datos en vivo desde Supabase — todavía sin migrar el histórico, así que varios números empiezan en cero.</p></div>
       <div class="card" id="pendientesCard" style="display:none; margin-bottom:20px;"><h3><span class="spark">✦</span> Tus pendientes</h3><div id="pendientesContenido" class="sub" style="margin-top:10px;">Cargando…</div></div>
+      <div class="card" id="tutorialChecklistCard" style="display:none; margin-bottom:20px;">
+        <h3><span class="spark">✦</span> Tus primeros pasos en el Hub</h3>
+        <p class="glamtut-checklist-sub" id="tutorialChecklistSub">Cargando…</p>
+        <div class="glamtut-progress-track"><div class="glamtut-progress-fill" id="tutorialChecklistBar"></div></div>
+        <div id="tutorialChecklistLista"></div>
+      </div>
       <div class="kpis" id="dashKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
       <div class="card"><h3><span class="spark">✦</span> Leads más recientes</h3><div id="actividadList" class="sub">Cargando…</div></div>
     </div>
@@ -998,6 +1038,28 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ===================== TUTORIAL: SPOTLIGHT + ASISTENTE FLOTANTE ===================== -->
+<div class="glamtut-veil" id="glamtutVeil" style="display:none;">
+  <div class="glamtut-hole" id="glamtutHole"></div>
+  <div class="glamtut-bubble" id="glamtutBubble">
+    <div class="glamtut-step" id="glamtutStep">—</div>
+    <p id="glamtutTexto">—</p>
+    <div class="glamtut-row">
+      <button class="glamtut-skip" id="glamtutSkip">Saltar tutorial</button>
+      <button class="glamtut-next" id="glamtutNext">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<button class="glamtut-fab" id="glamtutFab" style="display:none;" aria-label="Abrir asistente">?</button>
+<div class="glamtut-panel" id="glamtutPanel">
+  <div class="glamtut-panel-head">
+    <h3>¿En qué te ayudamos?</h3>
+    <div class="sub" id="glamtutPanelSub">—</div>
+  </div>
+  <div class="glamtut-panel-body" id="glamtutPanelBody"></div>
+</div>
+
 <script>
 /* =========================================================
    CONEXIÓN — clave pública (publishable), segura para el navegador.
@@ -1013,6 +1075,11 @@ let CURSOS = [];
 let CIUDADES = [];
 let sesionActual = null;
 let asesorActualId = null; // asesor ligado al usuario logueado, para "confirmado_por" en pagos
+
+// Tutorial dentro del Hub: spotlight, asistente flotante y checklist de progreso.
+// El contenido vive en tutorial_spotlight / tutorial_faq / tutorial_pasos (editable
+// sin tocar código); lo demás es qué ya vio/completó cada usuario.
+let TUTORIAL = { spotlight:[], faq:[], pasos:[], vistasVistas:new Set(), pasosCompletados:new Set() };
 
 function toast(msg, esError){
   const t = document.getElementById('toast');
@@ -1034,6 +1101,10 @@ async function initAuth(){
 function showLogin(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').classList.remove('active');
+  document.getElementById('glamtutFab').style.display = 'none';
+  document.getElementById('glamtutPanel').classList.remove('open');
+  document.getElementById('glamtutVeil').style.display = 'none';
+  TUTORIAL = { spotlight:[], faq:[], pasos:[], vistasVistas:new Set(), pasosCompletados:new Set() };
 }
 async function onLogin(session){
   sesionActual = session;
@@ -1050,6 +1121,12 @@ async function onLogin(session){
   await resolverAsesorActual();
   await Promise.all([renderBoard(), renderDashboard(), renderCursos(), renderCiudadSelect(), renderCalendario()]);
   await renderPendientes();
+  await cargarTutorial();
+  document.getElementById('glamtutFab').style.display = usuarioActual?.id ? 'flex' : 'none';
+  renderTutorialChecklist();
+  marcarProgresoPorVista('inicio');
+  actualizarPanelAsistente('inicio');
+  mostrarSpotlightSiHaceFalta('inicio');
 }
 async function resolverAsesorActual(){
   if(!sesionActual) return;
@@ -1107,6 +1184,11 @@ function setActiveSection(id){
   if(id==='logistica') cargarLogisticaTab('catalogo');
   if(id==='actividad') renderActividad();
   if(id==='usuarios') renderUsuariosPermisos();
+  if(usuarioActual?.id){
+    marcarProgresoPorVista(id);
+    actualizarPanelAsistente(id);
+    mostrarSpotlightSiHaceFalta(id);
+  }
   closePicker();
 }
 document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
@@ -1185,6 +1267,129 @@ function aplicarPermisosNav(){
     const primera = SECCIONES.find(s=>permitidas.has(s.id));
     if(primera) setActiveSection(primera.id);
   }
+}
+
+/* =========================================================
+   TUTORIAL: SPOTLIGHT + ASISTENTE FLOTANTE + CHECKLIST
+   El contenido (mensajes, preguntas, pasos) vive en tutorial_spotlight,
+   tutorial_faq y tutorial_pasos — se puede editar desde Supabase sin
+   tocar este archivo. Lo único que se guarda por persona es qué vistas
+   ya vio (tutorial_vistas_vistas) y qué pasos ya completó
+   (tutorial_pasos_completados).
+   ========================================================= */
+async function cargarTutorial(){
+  if(!usuarioActual?.id) return;
+  const [{ data:sp }, { data:faq }, { data:pasos }, { data:vv }, { data:pc }] = await Promise.all([
+    sb.from('tutorial_spotlight').select('*').eq('activo', true).order('orden'),
+    sb.from('tutorial_faq').select('*').eq('activo', true).order('orden'),
+    sb.from('tutorial_pasos').select('*').eq('activo', true).order('orden'),
+    sb.from('tutorial_vistas_vistas').select('seccion_id').eq('usuario_id', usuarioActual.id),
+    sb.from('tutorial_pasos_completados').select('paso_id').eq('usuario_id', usuarioActual.id),
+  ]);
+  TUTORIAL.spotlight = sp || [];
+  TUTORIAL.faq = faq || [];
+  TUTORIAL.pasos = pasos || [];
+  TUTORIAL.vistasVistas = new Set((vv||[]).map(r=>r.seccion_id));
+  TUTORIAL.pasosCompletados = new Set((pc||[]).map(r=>r.paso_id));
+}
+
+async function marcarVistaVista(seccionId){
+  if(!usuarioActual?.id || TUTORIAL.vistasVistas.has(seccionId)) return;
+  TUTORIAL.vistasVistas.add(seccionId);
+  await sb.from('tutorial_vistas_vistas').upsert({ usuario_id: usuarioActual.id, seccion_id: seccionId });
+}
+function cerrarSpotlightActual(){
+  const veil = document.getElementById('glamtutVeil');
+  const seccionId = veil.dataset.seccion;
+  veil.style.display = 'none';
+  if(seccionId) marcarVistaVista(seccionId);
+}
+function mostrarSpotlightSiHaceFalta(seccionId){
+  if(!usuarioActual?.id || TUTORIAL.vistasVistas.has(seccionId)) return;
+  const item = TUTORIAL.spotlight.find(s=>s.seccion_id===seccionId);
+  if(!item){ marcarVistaVista(seccionId); return; }
+  const veil = document.getElementById('glamtutVeil');
+  const hole = document.getElementById('glamtutHole');
+  const bubble = document.getElementById('glamtutBubble');
+  const target = item.selector ? document.querySelector(item.selector) : null;
+  if(target){
+    const r = target.getBoundingClientRect();
+    hole.style.display = 'block';
+    hole.style.left = (r.left-6)+'px'; hole.style.top = (r.top-6)+'px';
+    hole.style.width = (r.width+12)+'px'; hole.style.height = (r.height+12)+'px';
+    let bx = Math.min(r.left, window.innerWidth-296);
+    let by = r.bottom+14;
+    if(by+180 > window.innerHeight) by = Math.max(14, r.top-190);
+    bubble.style.left = Math.max(14,bx)+'px'; bubble.style.top = by+'px'; bubble.style.transform = 'none';
+  } else {
+    hole.style.display = 'none';
+    bubble.style.left = '50%'; bubble.style.top = '50%'; bubble.style.transform = 'translate(-50%,-50%)';
+  }
+  document.getElementById('glamtutStep').textContent = item.titulo || 'Tip';
+  document.getElementById('glamtutTexto').textContent = item.texto || '';
+  veil.dataset.seccion = seccionId;
+  veil.style.display = 'block';
+}
+document.getElementById('glamtutNext').addEventListener('click', cerrarSpotlightActual);
+document.getElementById('glamtutSkip').addEventListener('click', async ()=>{
+  cerrarSpotlightActual();
+  for(const s of SECCIONES) await marcarVistaVista(s.id);
+  toast('Tutorial omitido — el botón "?" sigue disponible cuando quieras.');
+});
+
+function actualizarPanelAsistente(seccionId){
+  if(!usuarioActual?.id) return;
+  const rol = usuarioActual.rol || null;
+  const sec = SECCIONES.find(s=>s.id===seccionId);
+  const items = TUTORIAL.faq.filter(f=> f.seccion_id===seccionId && (!f.rol || f.rol===rol));
+  document.getElementById('glamtutPanelSub').textContent = (sec?.label || '') + (rol ? ' · '+rol : '');
+  const body = document.getElementById('glamtutPanelBody');
+  if(!items.length){
+    body.innerHTML = '<div class="glamtut-vacio">Sin preguntas frecuentes para esta vista todavía.</div>';
+    return;
+  }
+  body.innerHTML = items.map((it,i)=>`
+    <div class="glamtut-faq">
+      <button class="glamtut-faq-q" data-i="${i}"><span>${it.pregunta}</span><span class="glamtut-chev">›</span></button>
+      <div class="glamtut-faq-a" id="glamtutFaqA${i}">${it.respuesta}</div>
+    </div>`).join('');
+  body.querySelectorAll('.glamtut-faq-q').forEach(btn=> btn.addEventListener('click', ()=>{
+    const el = document.getElementById('glamtutFaqA'+btn.dataset.i);
+    const abierto = el.classList.toggle('open');
+    btn.classList.toggle('open', abierto);
+  }));
+}
+document.getElementById('glamtutFab').addEventListener('click', ()=>{
+  document.getElementById('glamtutPanel').classList.toggle('open');
+});
+
+async function marcarPasoCompletado(pasoId){
+  if(TUTORIAL.pasosCompletados.has(pasoId)) return;
+  TUTORIAL.pasosCompletados.add(pasoId);
+  await sb.from('tutorial_pasos_completados').upsert({ usuario_id: usuarioActual.id, paso_id: pasoId });
+}
+function marcarProgresoPorVista(seccionId){
+  if(!usuarioActual?.id) return;
+  const rol = usuarioActual.rol || null;
+  const pendientes = TUTORIAL.pasos.filter(p=> p.seccion_id===seccionId && (!p.rol || p.rol===rol) && !TUTORIAL.pasosCompletados.has(p.paso_id));
+  if(!pendientes.length) return;
+  pendientes.forEach(p=> marcarPasoCompletado(p.paso_id));
+  renderTutorialChecklist();
+}
+function renderTutorialChecklist(){
+  const card = document.getElementById('tutorialChecklistCard');
+  if(!usuarioActual?.id){ card.style.display = 'none'; return; }
+  const rol = usuarioActual.rol || null;
+  const pasos = TUTORIAL.pasos.filter(p=> !p.rol || p.rol===rol);
+  if(!pasos.length){ card.style.display = 'none'; return; }
+  const hechos = pasos.filter(p=> TUTORIAL.pasosCompletados.has(p.paso_id)).length;
+  card.style.display = '';
+  document.getElementById('tutorialChecklistSub').textContent = hechos+' de '+pasos.length+' completados';
+  document.getElementById('tutorialChecklistBar').style.width = Math.round((hechos/pasos.length)*100)+'%';
+  document.getElementById('tutorialChecklistLista').innerHTML = pasos.map(p=>{
+    const done = TUTORIAL.pasosCompletados.has(p.paso_id);
+    return `<label class="glamtut-check-item"><input type="checkbox" ${done?'checked':''} disabled><span class="${done?'done':''}">${p.titulo}</span></label>`;
+  }).join('');
 }
 
 // Se activa justo antes de un signInWithPassword real, para distinguir
