@@ -34,6 +34,11 @@
   .login-error{ background:#F2E2D8; color:#7A2E1D; font-size:12px; padding:9px 12px; border-radius:8px; margin-bottom:14px; display:none; }
   .login-error.show{ display:block; }
 
+  /* ---------- CAMBIO DE CONTRASEÑA OBLIGATORIO (primer ingreso) ---------- */
+  #cambiarPasswordScreen{ display:none; position:fixed; inset:0; z-index:400; align-items:center; justify-content:center; background:var(--wine-dark); padding:20px; }
+  #cambiarPasswordScreen.show{ display:flex; }
+  #cambiarPasswordScreen .btn-logout{ width:100%; margin-top:10px; }
+
   /* ---------- BIENVENIDA (transición corta tras iniciar sesión) ---------- */
   #bienvenidaScreen{ position:fixed; inset:0; z-index:500; display:none; align-items:center; justify-content:center; flex-direction:column; background:var(--wine-dark); text-align:center; padding:20px; opacity:0; transition:opacity .4s ease; }
   #bienvenidaScreen.show{ display:flex; opacity:1; }
@@ -458,6 +463,19 @@
     <div class="field"><label>Correo</label><input type="email" id="loginEmail" autocomplete="username"></div>
     <div class="field"><label>Contraseña</label><input type="password" id="loginPassword" autocomplete="current-password"></div>
     <button class="btn-primary" id="loginBtn">Entrar</button>
+  </div>
+</div>
+
+<!-- ===================== CAMBIO DE CONTRASEÑA OBLIGATORIO (primer ingreso) ===================== -->
+<div id="cambiarPasswordScreen">
+  <div class="login-card">
+    <div class="login-brand"><span class="spark">✦</span> GLAM<small>HUB</small></div>
+    <div class="login-sub">Por seguridad, crea tu nueva contraseña para continuar</div>
+    <div class="login-error" id="cambiarPasswordError"></div>
+    <div class="field"><label>Nueva contraseña</label><input type="password" id="cambiarPasswordNueva" autocomplete="new-password"></div>
+    <div class="field"><label>Confirmar contraseña</label><input type="password" id="cambiarPasswordConfirmar" autocomplete="new-password"></div>
+    <button class="btn-primary" id="cambiarPasswordBtn">Guardar y continuar</button>
+    <button class="btn-logout js-logout-btn">Cerrar sesión</button>
   </div>
 </div>
 
@@ -1101,6 +1119,7 @@ async function initAuth(){
 function showLogin(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').classList.remove('active');
+  document.getElementById('cambiarPasswordScreen').classList.remove('show');
   document.getElementById('glamtutFab').style.display = 'none';
   document.getElementById('glamtutPanel').classList.remove('open');
   document.getElementById('glamtutVeil').style.display = 'none';
@@ -1109,11 +1128,22 @@ function showLogin(){
 async function onLogin(session){
   sesionActual = session;
   document.getElementById('loginScreen').style.display='none';
-  await Promise.all([resolverUsuarioActual(), cargarPermisosRol()]);
+  await resolverUsuarioActual();
+  if(usuarioActual?.debe_cambiar_password){
+    mostrarPantallaCambiarPassword();
+    return;
+  }
+  await continuarSesion();
+}
+// Todo lo que antes hacía onLogin después de resolver al usuario, separado
+// para poder detenerlo en seco si a la persona le toca cambiar su contraseña
+// primero — y para retomarlo justo aquí en cuanto la cambia.
+async function continuarSesion(){
+  await cargarPermisosRol();
   aplicarPermisosNav();
   document.getElementById('saludoInicio').innerHTML = (usuarioActual.nombre ? 'Hola, '+usuarioActual.nombre : 'Buenos días') + ' <span class="spark">✦</span>';
   document.getElementById('appShell').classList.add('active');
-  document.querySelectorAll('.js-who-am-i').forEach(el=> el.textContent = session.user.email);
+  document.querySelectorAll('.js-who-am-i').forEach(el=> el.textContent = sesionActual.user.email);
   mostrarBienvenida();
   iniciarChecador();
   await cargarCatalogos();
@@ -1128,6 +1158,37 @@ async function onLogin(session){
   actualizarPanelAsistente('inicio');
   mostrarSpotlightSiHaceFalta('inicio');
 }
+function mostrarPantallaCambiarPassword(){
+  document.getElementById('cambiarPasswordError').className = 'login-error';
+  document.getElementById('cambiarPasswordNueva').value = '';
+  document.getElementById('cambiarPasswordConfirmar').value = '';
+  document.getElementById('cambiarPasswordScreen').classList.add('show');
+}
+document.getElementById('cambiarPasswordBtn').addEventListener('click', async ()=>{
+  const nueva = document.getElementById('cambiarPasswordNueva').value;
+  const confirmar = document.getElementById('cambiarPasswordConfirmar').value;
+  const errBox = document.getElementById('cambiarPasswordError');
+  errBox.className = 'login-error';
+  if(nueva.length < 8){
+    errBox.textContent = 'La contraseña debe tener al menos 8 caracteres.'; errBox.className = 'login-error show'; return;
+  }
+  if(nueva !== confirmar){
+    errBox.textContent = 'Las contraseñas no coinciden.'; errBox.className = 'login-error show'; return;
+  }
+  const btn = document.getElementById('cambiarPasswordBtn'); btn.disabled = true; btn.textContent = 'Guardando...';
+  const { error } = await sb.auth.updateUser({ password: nueva });
+  if(error){
+    errBox.textContent = 'No se pudo guardar: ' + error.message; errBox.className = 'login-error show';
+    btn.disabled = false; btn.textContent = 'Guardar y continuar';
+    return;
+  }
+  await sb.rpc('marcar_password_cambiada');
+  usuarioActual.debe_cambiar_password = false;
+  document.getElementById('cambiarPasswordScreen').classList.remove('show');
+  btn.disabled = false; btn.textContent = 'Guardar y continuar';
+  toast('Contraseña actualizada');
+  await continuarSesion();
+});
 async function resolverAsesorActual(){
   if(!sesionActual) return;
   const { data } = await sb.from('asesores').select('id').eq('user_id', sesionActual.user.id).maybeSingle();
@@ -1205,8 +1266,8 @@ pickerOverlay.addEventListener('click', closePicker);
 let usuarioActual = null; // { id, nombre, rol, es_admin, puede_ver_actividad } — fila de public.usuarios
 async function resolverUsuarioActual(){
   if(!sesionActual) return;
-  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad').eq('email', sesionActual.user.email).maybeSingle();
-  usuarioActual = data || { id:null, nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false, puede_ver_actividad:false };
+  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad, debe_cambiar_password').eq('email', sesionActual.user.email).maybeSingle();
+  usuarioActual = data || { id:null, nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false, puede_ver_actividad:false, debe_cambiar_password:false };
 }
 const TODAS_SECCIONES = SECCIONES.map(s=>s.id);
 // Secciones que sí se pueden restringir por rol desde "Usuarios y permisos".
