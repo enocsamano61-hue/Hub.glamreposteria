@@ -132,6 +132,7 @@
   .status-tile.open .chevron{ transform:rotate(90deg); }
   .status-tile-body{ display:none; padding:0 14px 14px 14px; grid-template-columns:repeat(auto-fill,minmax(190px,220px)); gap:8px; }
   .status-tile.open .status-tile-body{ display:grid; }
+  .status-tile.open .status-tile-body.lista{ display:block; }
 
   /* ---------- CALENDARIO: mes interactivo con resumen y hoja de detalle ---------- */
   .cal-curso-tag{ display:inline-flex; align-items:center; gap:6px; background:rgba(197,166,107,.18); color:#8A6D2F; font-size:10.5px; font-weight:600; padding:5px 10px; border-radius:8px; margin-bottom:14px; }
@@ -1709,18 +1710,63 @@ async function renderActividad(){
     ? tiles.map(t=>`<div class="kpi"><div class="v">${t.min}<span style="font-size:13px;"> min</span></div><div class="l">${t.nombre}</div></div>`).join('')
     : '<div class="empty-note">Nadie ha iniciado sesión todavía hoy.</div>';
 
-  // --- Checador: entradas y salidas ---
-  boxSesiones.innerHTML = (sesiones||[]).slice(0,60).map(s=>{
-    const u = nombrePorUsuario[s.usuario_id];
-    const { activa, minutos } = estadoSesion(s);
-    const entrada = new Date(s.inicio).toLocaleString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-    const estadoTxt = activa ? '<span style="color:var(--success); font-weight:600;">Activo ahora</span>'
-      : (s.fin ? 'Cerró sesión' : '<span style="color:var(--danger);">Sin señal — se infiere cerrada</span>');
-    const checoTxt = s.entrada_checada_en
-      ? (s.salida_checada_en ? '✓ checó entrada y salida' : '✓ checó entrada')
-      : '<span style="color:var(--terracota);">No usó el botón de checador</span>';
-    return `<div class="dato-row"><span class="l">${u?.nombre||'(desconocido)'} · ${entrada}</span><span class="v">${estadoTxt} · ${minutos} min · ${checoTxt}</span></div>`;
-  }).join('') || '<div class="empty-note">Sin sesiones registradas todavía.</div>';
+  // --- Checador: entradas y salidas, agrupado por persona y día ---
+  // Cada refresh/inicio de sesión crea una fila en sesiones_usuario, así que
+  // con varias personas usando el Hub todo el día la lista cruda se vuelve
+  // interminable. Aquí se agrupa por persona+día: una fila resumen, y el
+  // detalle de cada sesión suelta queda oculto hasta que la abren.
+  const gruposChecador = {};
+  (sesiones||[]).forEach(s=>{
+    const dia = s.inicio.slice(0,10);
+    const key = s.usuario_id+'|'+dia;
+    if(!gruposChecador[key]) gruposChecador[key] = { usuario_id:s.usuario_id, dia, sesiones:[] };
+    gruposChecador[key].sesiones.push(s);
+  });
+  const filasChecador = Object.entries(gruposChecador).map(([key, g])=>{
+    const masReciente = g.sesiones.reduce((m,s)=> s.inicio>m?s.inicio:m, g.sesiones[0].inicio);
+    const minutosTotal = g.sesiones.reduce((sum,s)=> sum + estadoSesion(s).minutos, 0);
+    const activaAhora = g.sesiones.some(s=> estadoSesion(s).activa);
+    const usoChecador = g.sesiones.some(s=> s.entrada_checada_en);
+    return { key, ...g, masReciente, minutosTotal, activaAhora, usoChecador };
+  }).sort((a,b)=> b.masReciente.localeCompare(a.masReciente)).slice(0,100);
+
+  boxSesiones.innerHTML = filasChecador.length ? filasChecador.map(g=>{
+    const u = nombrePorUsuario[g.usuario_id];
+    const fechaLabel = new Date(g.dia+'T00:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' });
+    const estadoTxt = g.activaAhora ? '<span style="color:var(--success); font-weight:600;">Activo ahora</span>' : 'Sin actividad en este momento';
+    const checoTxt = g.usoChecador ? '✓ usó el checador' : '<span style="color:var(--terracota);">No usó el checador</span>';
+    const abierto = checadorAbiertos.has(g.key);
+    const detalle = g.sesiones.slice().sort((a,b)=> b.inicio.localeCompare(a.inicio)).map(s=>{
+      const { activa, minutos } = estadoSesion(s);
+      const entrada = new Date(s.inicio).toLocaleString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+      const estSesionTxt = activa ? '<span style="color:var(--success); font-weight:600;">Activo ahora</span>'
+        : (s.fin ? 'Cerró sesión' : '<span style="color:var(--danger);">Sin señal — se infiere cerrada</span>');
+      const checoSesionTxt = s.entrada_checada_en
+        ? (s.salida_checada_en ? '✓ checó entrada y salida' : '✓ checó entrada')
+        : '<span style="color:var(--terracota);">No usó el botón de checador</span>';
+      return `<div class="dato-row"><span class="l">${entrada}</span><span class="v" style="font-weight:400;">${estSesionTxt} · ${minutos} min · ${checoSesionTxt}</span></div>`;
+    }).join('');
+    return `<div class="status-tile ${abierto?'open':''}" data-checador-key="${g.key}">
+      <div class="status-tile-header">
+        <span class="label">${u?.nombre||'(desconocido)'} · ${fechaLabel}</span>
+        <span class="count">${g.sesiones.length} sesión${g.sesiones.length===1?'':'es'} · ${g.minutosTotal} min</span>
+        <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+      <div class="status-tile-body lista">
+        <div class="dato-row" style="border-bottom:1px dashed var(--border);"><span class="l">Resumen del día</span><span class="v" style="font-weight:400;">${estadoTxt} · ${checoTxt}</span></div>
+        ${detalle}
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-note">Sin sesiones registradas todavía.</div>';
+
+  boxSesiones.querySelectorAll('.status-tile-header').forEach(h=>{
+    h.addEventListener('click', ()=>{
+      const tile = h.closest('.status-tile');
+      const key = tile.dataset.checadorKey;
+      if(checadorAbiertos.has(key)) checadorAbiertos.delete(key); else checadorAbiertos.add(key);
+      tile.classList.toggle('open');
+    });
+  });
 
   // --- Bitácora de acciones recientes ---
   boxFeed.innerHTML = (feed||[]).map(a=>{
@@ -1916,6 +1962,7 @@ let leadsCache = [];
 let eventosProximosPorCiudad = {};
 let ordenCategorias = [];       // orden actual de las 4 categorías (se actualiza al arrastrar)
 let estatusAbiertos = new Set(); // qué categorías están desplegadas, sobrevive a los re-renders
+let checadorAbiertos = new Set(); // qué días (persona+fecha) del checador están desplegados
 
 async function cargarEventosProximos(){
   const hoy = new Date().toISOString().slice(0,10);
