@@ -826,6 +826,15 @@
         <h3>Bitácora de acciones recientes</h3>
         <div id="actividadFeed" class="sub" style="margin-top:10px;">Cargando…</div>
       </div>
+
+      <!-- TUTORIAL — esta tarjeta completa se quita cuando se retire el tutorial
+           (junto con renderTutorialAvance() y su llamada en setActiveSection). -->
+      <div class="card" id="tutorialAvanceCard">
+        <h3><span class="spark">✦</span> Avance del tutorial</h3>
+        <div class="sub">Quién ya entró al Hub, qué tanto del tutorial ha visto y si ya está capturando información real — útil solo mientras el equipo se acostumbra a la plataforma.</div>
+        <div id="tutorialAvanceLista" style="margin-top:12px;">Cargando…</div>
+      </div>
+      <!-- /TUTORIAL -->
     </div>
 
     <!-- USUARIOS Y PERMISOS (solo admins) -->
@@ -1121,6 +1130,7 @@ function showLogin(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').classList.remove('active');
   document.getElementById('cambiarPasswordScreen').classList.remove('show');
+  // TUTORIAL — quitar estas 4 líneas
   document.getElementById('glamtutFab').style.display = 'none';
   document.getElementById('glamtutPanel').classList.remove('open');
   document.getElementById('glamtutVeil').style.display = 'none';
@@ -1152,6 +1162,7 @@ async function continuarSesion(){
   await resolverAsesorActual();
   await Promise.all([renderBoard(), renderDashboard(), renderCursos(), renderCiudadSelect(), renderCalendario()]);
   await renderPendientes();
+  // TUTORIAL — quitar estas 6 líneas
   await cargarTutorial();
   document.getElementById('glamtutFab').style.display = usuarioActual?.id ? 'flex' : 'none';
   renderTutorialChecklist();
@@ -1245,8 +1256,10 @@ function setActiveSection(id){
   if(id==='giras') cargarGirasTab('constructor');
   if(id==='logistica') cargarLogisticaTab('catalogo');
   if(id==='actividad') renderActividad();
+  if(id==='actividad') renderTutorialAvance(); // TUTORIAL — quitar esta línea
   if(id==='usuarios') renderUsuariosPermisos();
   if(usuarioActual?.id){
+    // TUTORIAL — quitar estas 3 líneas
     marcarProgresoPorVista(id);
     actualizarPanelAsistente(id);
     mostrarSpotlightSiHaceFalta(id);
@@ -1338,6 +1351,20 @@ function aplicarPermisosNav(){
    tocar este archivo. Lo único que se guarda por persona es qué vistas
    ya vio (tutorial_vistas_vistas) y qué pasos ya completó
    (tutorial_pasos_completados).
+
+   ES TEMPORAL — pensado solo para mientras el equipo se acostumbra al
+   Hub. Cuando ya no haga falta, para quitarlo por completo:
+   1. Borrar este bloque completo (hasta el final de renderTutorialAvance).
+   2. Borrar el CSS marcado "TUTORIAL" (bloque .glamtut-*, cerca del
+      final de las reglas de <style>).
+   3. Borrar el HTML marcado con comentarios "TUTORIAL" (el veil del
+      spotlight y el botón/panel del asistente después del toast; la
+      tarjeta de checklist en Inicio; la tarjeta "Avance del tutorial"
+      en Actividad del equipo).
+   4. Quitar las líneas marcadas "TUTORIAL —" dentro de continuarSesion(),
+      setActiveSection() y showLogin().
+   5. En Supabase: las tablas tutorial_* se pueden dejar (no estorban)
+      o borrarse con una migración aparte.
    ========================================================= */
 async function cargarTutorial(){
   if(!usuarioActual?.id) return;
@@ -1456,6 +1483,69 @@ function renderTutorialChecklist(){
     const done = TUTORIAL.pasosCompletados.has(p.paso_id);
     return `<label class="glamtut-check-item"><input type="checkbox" ${done?'checked':''} disabled><span class="${done?'done':''}">${p.titulo}</span></label>`;
   }).join('');
+}
+// Vista para administradores: quién ya entró al Hub, qué tanto del
+// tutorial ha visto/completado, y si ya está capturando información real
+// (acciones en la bitácora). Se llama desde setActiveSection('actividad').
+async function renderTutorialAvance(){
+  const cont = document.getElementById('tutorialAvanceLista');
+  if(!cont) return;
+  cont.innerHTML = 'Cargando…';
+  const [{ data:usuarios }, { data:sesiones }, { data:pasos }, { data:pasosHechos }, { data:spotlightActivo }, { data:vistas }, { data:acciones }] = await Promise.all([
+    sb.from('usuarios').select('id, nombre, rol'),
+    sb.from('sesiones_usuario').select('usuario_id, inicio'),
+    sb.from('tutorial_pasos').select('paso_id, rol').eq('activo', true),
+    sb.from('tutorial_pasos_completados').select('usuario_id, paso_id'),
+    sb.from('tutorial_spotlight').select('seccion_id').eq('activo', true),
+    sb.from('tutorial_vistas_vistas').select('usuario_id, seccion_id'),
+    sb.from('actividad_usuario').select('usuario_id, creado_en'),
+  ]);
+  const totalVistas = new Set((spotlightActivo||[]).map(s=>s.seccion_id)).size;
+  const primerIngreso = {};
+  (sesiones||[]).forEach(s=>{
+    if(!primerIngreso[s.usuario_id] || s.inicio < primerIngreso[s.usuario_id]) primerIngreso[s.usuario_id] = s.inicio;
+  });
+  const vistasPorUsuario = {};
+  (vistas||[]).forEach(v=>{
+    if(!vistasPorUsuario[v.usuario_id]) vistasPorUsuario[v.usuario_id] = new Set();
+    vistasPorUsuario[v.usuario_id].add(v.seccion_id);
+  });
+  const pasosHechosPorUsuario = {};
+  (pasosHechos||[]).forEach(p=>{
+    if(!pasosHechosPorUsuario[p.usuario_id]) pasosHechosPorUsuario[p.usuario_id] = new Set();
+    pasosHechosPorUsuario[p.usuario_id].add(p.paso_id);
+  });
+  const accionesPorUsuario = {};
+  (acciones||[]).forEach(a=>{
+    if(!accionesPorUsuario[a.usuario_id]) accionesPorUsuario[a.usuario_id] = { count:0, ultima:null };
+    const reg = accionesPorUsuario[a.usuario_id];
+    reg.count++;
+    if(!reg.ultima || a.creado_en > reg.ultima) reg.ultima = a.creado_en;
+  });
+  const filas = (usuarios||[]).map(u=>{
+    const totalPasos = (pasos||[]).filter(p=> !p.rol || p.rol===u.rol).length;
+    const acc = accionesPorUsuario[u.id] || { count:0, ultima:null };
+    return {
+      nombre: u.nombre, rol: u.rol,
+      primerIngreso: primerIngreso[u.id] || null,
+      vistasHechas: vistasPorUsuario[u.id]?.size || 0, totalVistas,
+      pasosHechos: pasosHechosPorUsuario[u.id]?.size || 0, totalPasos,
+      acciones: acc.count, ultima: acc.ultima,
+    };
+  }).sort((a,b)=> (b.primerIngreso||'').localeCompare(a.primerIngreso||''));
+  if(!filas.length){ cont.innerHTML = '<div class="empty-note">Sin usuarios registrados.</div>'; return; }
+  cont.innerHTML = `<div class="rep-table-wrap"><table class="rep-table">
+    <thead><tr><th>Persona</th><th>Rol</th><th>Primer ingreso</th><th>Vistas del tutorial</th><th>Checklist</th><th>Acciones registradas</th><th>Última actividad</th></tr></thead>
+    <tbody>${filas.map(f=>`<tr>
+      <td>${f.nombre}</td>
+      <td>${f.rol || '—'}</td>
+      <td>${f.primerIngreso ? new Date(f.primerIngreso).toLocaleDateString('es-MX') : 'Nunca ha entrado'}</td>
+      <td class="num">${f.vistasHechas} / ${f.totalVistas}</td>
+      <td class="num">${f.pasosHechos} / ${f.totalPasos}</td>
+      <td class="num">${f.acciones}</td>
+      <td>${f.ultima ? new Date(f.ultima).toLocaleString('es-MX') : '—'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
 }
 
 // Se activa justo antes de un signInWithPassword real, para distinguir
