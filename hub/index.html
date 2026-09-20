@@ -434,6 +434,7 @@
   .glamtut-panel-head h3{ font-size:15px; color:#fff; margin:0; }
   .glamtut-panel-head .sub{ font-size:11.5px; color:#DCC7CE; margin-top:2px; }
   .glamtut-panel-body{ padding:8px; }
+  .glamtut-faq-grupo{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; padding:12px 10px 6px; }
   .glamtut-faq{ border-bottom:1px solid var(--border); }
   .glamtut-faq:last-child{ border-bottom:none; }
   .glamtut-faq-q{ width:100%; text-align:left; background:none; border:none; padding:12px 10px; font-size:12.5px; font-weight:600; font-family:inherit; color:var(--ink); display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
@@ -1402,20 +1403,24 @@ function actualizarPanelAsistente(seccionId){
   if(!usuarioActual?.id) return;
   const rol = usuarioActual.rol || null;
   const sec = SECCIONES.find(s=>s.id===seccionId);
-  const items = TUTORIAL.faq.filter(f=> f.seccion_id===seccionId && (!f.rol || f.rol===rol));
+  const generales = TUTORIAL.faq.filter(f=> f.seccion_id==='general' && (!f.rol || f.rol===rol));
+  const especificas = TUTORIAL.faq.filter(f=> f.seccion_id===seccionId && (!f.rol || f.rol===rol));
   document.getElementById('glamtutPanelSub').textContent = (sec?.label || '') + (rol ? ' · '+rol : '');
   const body = document.getElementById('glamtutPanelBody');
-  if(!items.length){
+  if(!generales.length && !especificas.length){
     body.innerHTML = '<div class="glamtut-vacio">Sin preguntas frecuentes para esta vista todavía.</div>';
     return;
   }
-  body.innerHTML = items.map((it,i)=>`
-    <div class="glamtut-faq">
-      <button class="glamtut-faq-q" data-i="${i}"><span>${it.pregunta}</span><span class="glamtut-chev">›</span></button>
-      <div class="glamtut-faq-a" id="glamtutFaqA${i}">${it.respuesta}</div>
-    </div>`).join('');
+  const bloque = (titulo, items, prefijo)=> !items.length ? '' : `
+    <div class="glamtut-faq-grupo">${titulo}</div>
+    ${items.map((it,i)=>`
+      <div class="glamtut-faq">
+        <button class="glamtut-faq-q" data-id="${prefijo}${i}"><span>${it.pregunta}</span><span class="glamtut-chev">›</span></button>
+        <div class="glamtut-faq-a" id="glamtutFaqA${prefijo}${i}">${it.respuesta}</div>
+      </div>`).join('')}`;
+  body.innerHTML = bloque('Navegación general', generales, 'g') + bloque('Esta vista: '+(sec?.label||''), especificas, 'v');
   body.querySelectorAll('.glamtut-faq-q').forEach(btn=> btn.addEventListener('click', ()=>{
-    const el = document.getElementById('glamtutFaqA'+btn.dataset.i);
+    const el = document.getElementById('glamtutFaqA'+btn.dataset.id);
     const abierto = el.classList.toggle('open');
     btn.classList.toggle('open', abierto);
   }));
