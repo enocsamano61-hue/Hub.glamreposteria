@@ -1285,6 +1285,12 @@ document.getElementById('cambiarPasswordBtn').addEventListener('click', async ()
   }
   await sb.rpc('marcar_password_cambiada');
   usuarioActual.debe_cambiar_password = false;
+  // Justo después de cambiar la contraseña la sesión rota su token; se
+  // vuelve a pedir explícitamente antes de seguir para que las escrituras
+  // que dependen de auth.uid() (checador, bitácora) no fallen por usar
+  // todavía la sesión vieja en ese primer instante.
+  const { data: { session: sesionFresca } } = await sb.auth.refreshSession();
+  if(sesionFresca) sesionActual = sesionFresca;
   document.getElementById('cambiarPasswordScreen').classList.remove('show');
   btn.disabled = false; btn.textContent = 'Guardar y continuar';
   toast('Contraseña actualizada');
@@ -1662,19 +1668,39 @@ function mostrarBienvenida(){
    ========================================================= */
 let sesionRegistroId = null;
 let checadorInterval = null;
+let checadorEntradaHoyId = null; // id de la sesión (de hoy, cualquier refresco) con entrada checada y sin salida
 async function iniciarChecador(){
   if(!usuarioActual?.id) return;
-  const { data, error } = await sb.from('sesiones_usuario').insert({ usuario_id: usuarioActual.id }).select('id').single();
+  let { data, error } = await sb.from('sesiones_usuario').insert({ usuario_id: usuarioActual.id }).select('id').single();
+  if(error){
+    // Justo después de cambiar la contraseña la sesión puede tardar un
+    // instante en asentarse del todo — un reintento corto cubre ese caso
+    // en vez de dejar a la persona sin checador desde su primer ingreso.
+    await new Promise(r=>setTimeout(r, 900));
+    ({ data, error } = await sb.from('sesiones_usuario').insert({ usuario_id: usuarioActual.id }).select('id').single());
+  }
   if(error){ console.warn('No se pudo iniciar el checador:', error.message); return; }
   sesionRegistroId = data.id;
   if(checadorInterval) clearInterval(checadorInterval);
   checadorInterval = setInterval(()=>{ if(document.visibilityState==='visible') latirChecador(); }, 60000);
-  checadorManualEstado = 'pendiente_entrada';
+  await sincronizarEstadoChecador();
+}
+// El botón manual recuerda si ya se checó entrada HOY consultando la base
+// directamente — no la memoria del navegador — porque cada refresco crea
+// una fila nueva de sesión y antes eso hacía que el botón "olvidara" que
+// ya habías checado.
+async function sincronizarEstadoChecador(){
+  if(!usuarioActual?.id) return;
+  const hoyISO = new Date().toISOString().slice(0,10);
+  const { data } = await sb.from('sesiones_usuario')
+    .select('id').eq('usuario_id', usuarioActual.id)
+    .not('entrada_checada_en', 'is', null).is('salida_checada_en', null)
+    .gte('entrada_checada_en', hoyISO)
+    .order('entrada_checada_en', { ascending:false }).limit(1).maybeSingle();
+  checadorEntradaHoyId = data?.id || null;
+  checadorManualEstado = checadorEntradaHoyId ? 'en_turno' : 'pendiente_entrada';
   pintarBotonChecador();
 }
-// Botón manual "Checar entrada / Checar salida" — el sistema ya mide el
-// tiempo solo con el heartbeat, esto es para que la persona sienta que
-// tiene que registrarse, y para nosotros ver quién sí usa el checador.
 let checadorManualEstado = 'pendiente_entrada';
 function pintarBotonChecador(){
   document.querySelectorAll('.js-checador-btn').forEach(btn=>{
@@ -1696,15 +1722,17 @@ document.querySelectorAll('.js-checador-btn').forEach(btn=>{
       if(error){ toast('Error al checar entrada: '+error.message, true); document.querySelectorAll('.js-checador-btn').forEach(b=>b.disabled = false); return; }
       toast('Entrada registrada a las ' + horaTxt + '.');
       registrarActividad('checo_entrada', horaTxt);
+      checadorEntradaHoyId = sesionRegistroId;
       checadorManualEstado = 'en_turno';
       pintarBotonChecador();
     } else {
       if(!confirm('¿Checar salida? Se registrará como el fin de tu turno de hoy.')) return;
       document.querySelectorAll('.js-checador-btn').forEach(b=>b.disabled = true);
-      const { error } = await sb.from('sesiones_usuario').update({ salida_checada_en: ahora.toISOString() }).eq('id', sesionRegistroId);
+      const { error } = await sb.from('sesiones_usuario').update({ salida_checada_en: ahora.toISOString() }).eq('id', checadorEntradaHoyId || sesionRegistroId);
       if(error){ toast('Error al checar salida: '+error.message, true); document.querySelectorAll('.js-checador-btn').forEach(b=>b.disabled = false); return; }
       toast('Salida registrada a las ' + horaTxt + '.');
       registrarActividad('checo_salida', horaTxt);
+      checadorEntradaHoyId = null;
       checadorManualEstado = 'pendiente_entrada';
       pintarBotonChecador();
     }
