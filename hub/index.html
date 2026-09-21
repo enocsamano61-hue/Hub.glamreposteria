@@ -116,6 +116,8 @@
   .lead-name{ font-size:12.5px; font-weight:600; }
   .lead-meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; line-height:1.45; }
   .badge-blacklist{ display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; padding:2px 6px; border-radius:5px; background:#F2E2D8; color:var(--terracota); margin-top:6px;}
+  .badge-nuevo{ display:inline-block; font-size:9px; font-weight:700; background:rgba(197,166,107,.28); color:#7A5D22; padding:2px 7px; border-radius:20px; margin-left:6px; vertical-align:middle; }
+  .lead-ciudad{ font-size:11px; color:var(--wine); font-weight:600; margin-top:4px; }
   .empty-note{ padding:20px 4px; color:var(--ink-soft); font-size:12.5px; }
 
   /* ---------- ACORDEÓN DE ESTATUS (reemplaza el tablero horizontal) ---------- */
@@ -418,6 +420,41 @@
   .fdd-item:hover{ background:var(--bg); }
   .fdd-item.active{ background:var(--wine); color:#fff; }
 
+  /* ---------- STEWARD / AYUDANTES ---------- */
+  .apoyo-row{ display:flex; align-items:flex-start; gap:12px; padding:11px 2px; border-bottom:1px solid var(--border); }
+  .apoyo-row:last-child{ border-bottom:none; }
+  .apoyo-rol{ font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px; flex-shrink:0; margin-top:2px; white-space:nowrap; }
+  .apoyo-rol.steward{ background:rgba(90,31,43,.1); color:var(--wine); }
+  .apoyo-rol.ayudante{ background:rgba(63,131,84,.14); color:var(--success); }
+  .apoyo-info{ flex:1; min-width:0; }
+  .apoyo-nombre{ font-weight:600; font-size:13px; }
+  .apoyo-meta{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.5; }
+
+  /* ---------- NOTAS PERSONALES (bloc de notas, privado por usuario) ---------- */
+  .notas-fab{ position:fixed; left:24px; bottom:24px; width:52px; height:52px; border-radius:50%; background:var(--card); border:1.5px solid var(--border); color:var(--wine); font-size:20px; cursor:pointer; box-shadow:0 10px 24px rgba(0,0,0,.18); z-index:150; display:flex; align-items:center; justify-content:center; }
+  .notas-fab .badge{ position:absolute; top:-4px; right:-4px; background:var(--danger); color:#fff; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
+  .notas-panel{ display:none; position:fixed; left:24px; bottom:88px; width:300px; max-width:calc(100vw - 32px); max-height:70vh; overflow-y:auto; background:var(--card); border-radius:16px; box-shadow:0 20px 48px rgba(41,36,33,.28); z-index:150; padding:14px; }
+  .notas-panel.open{ display:block; }
+  .notas-panel-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .notas-panel-head h3{ font-size:14px; flex:1; margin:0; }
+  .notas-nueva{ display:flex; gap:6px; margin-bottom:12px; }
+  .notas-nueva input{ flex:1; padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:12.5px; }
+  .notas-nueva button{ background:var(--wine); color:#fff; border:none; border-radius:10px; padding:0 14px; font-size:16px; cursor:pointer; font-family:inherit; }
+  .nota-card{ border-radius:12px; padding:11px 12px; margin-bottom:8px; position:relative; }
+  .nota-card .texto{ font-size:12.5px; line-height:1.5; white-space:pre-wrap; }
+  .nota-card.hecha .texto{ text-decoration:line-through; opacity:.55; }
+  .nota-card .acciones{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  .nota-card .chk{ width:16px; height:16px; cursor:pointer; }
+  .nota-card .borrar{ background:none; border:none; color:inherit; opacity:.5; cursor:pointer; font-size:11px; padding:0; font-family:inherit; }
+  .nota-card .borrar:hover{ opacity:1; }
+  .nota-card.champagne{ background:#FBF1DC; color:#5C4A1E; }
+  .nota-card.success{ background:#E7F0E9; color:#2F4A38; }
+  .nota-card.terracota{ background:#F5E6DF; color:#6B3B26; }
+  .nota-card.wine{ background:#F2E2E6; color:#5A1F2B; }
+  .notas-color-pick{ display:flex; gap:6px; margin-bottom:12px; }
+  .notas-color-pick span{ width:18px; height:18px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
+  .notas-color-pick span.activo{ border-color:var(--ink); }
+
   /* ---------- TUTORIAL: spotlight, asistente flotante y checklist ---------- */
   .glamtut-veil{ position:fixed; inset:0; z-index:200; }
   .glamtut-hole{ position:fixed; display:none; border-radius:12px; box-shadow:0 0 0 9999px rgba(41,36,33,.62); pointer-events:none; transition:left .2s ease, top .2s ease, width .2s ease, height .2s ease; }
@@ -581,6 +618,14 @@
         <div class="plaza-summary" id="plazaKpis"></div>
       </div>
       <div class="card"><h3>Cursos dados en esta plaza</h3><div class="sub">Elige uno para ver a los alumnos y su estatus</div><div id="plazaLista">Selecciona una ciudad arriba.</div></div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <h3 style="margin-bottom:0;">Steward y ayudantes</h3>
+          <button class="btn-primary small" id="btnAgregarApoyoPlaza">+ Agregar</button>
+        </div>
+        <div class="sub">Quién apoya en esta ciudad, cuándo llega y qué se le paga</div>
+        <div id="plazaApoyoLista" style="margin-top:12px;">Selecciona una ciudad arriba.</div>
+      </div>
     </div>
 
     <!-- GIRAS -->
@@ -863,6 +908,7 @@
     <div class="modal-field"><label>Nombre</label><input id="modalNombreEdit"></div>
     <div class="modal-field"><label>Teléfono principal</label><input id="modalTelefonoEdit" placeholder="10 dígitos"></div>
     <div class="modal-field"><label>Teléfono adicional</label><input id="modalTelefonoAltEdit" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Ciudad de interés</label><select id="modalCiudadSelect"><option value="">— Sin especificar —</option></select></div>
     <div class="modal-field"><label>Estatus</label><select id="modalEstatusSelect"></select></div>
     <div class="modal-field"><label>Agregar comentario</label><textarea class="textarea" id="modalComentarioNuevo" placeholder="Qué pasó en el último contacto..."></textarea></div>
     <button class="btn-primary" id="guardarLead">Guardar cambios</button>
@@ -1046,6 +1092,25 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: STEWARD / AYUDANTE (compartido: Plaza y Calendario) ===================== -->
+<div class="modal-overlay" id="modalPersonalApoyo">
+  <div class="modal">
+    <button class="close" id="closeModalPersonalApoyo">✕</button>
+    <h3 style="margin-bottom:2px;">Steward / ayudante</h3>
+    <div class="sub" id="modalApoyoContexto" style="margin-bottom:14px;"></div>
+    <div class="modal-field"><label>Nombre</label><input id="apoyoNombre"></div>
+    <div class="modal-field"><label>Teléfono</label><input id="apoyoTelefono" placeholder="10 dígitos"></div>
+    <div class="modal-field"><label>Rol</label>
+      <select id="apoyoRol"><option value="steward">Steward</option><option value="ayudante">Ayudante</option></select>
+    </div>
+    <div class="modal-field"><label>Entrada acordada</label><input id="apoyoEntrada" placeholder="Ej. Miércoles 10:00 am"></div>
+    <div class="modal-field"><label>Salida acordada</label><input id="apoyoSalida" placeholder="Ej. Domingo 6:00 pm"></div>
+    <div class="modal-field"><label>Pago acordado</label><input id="apoyoPago" type="number" placeholder="$"></div>
+    <div class="modal-field"><label>Notas</label><textarea class="textarea" id="apoyoNotas" placeholder="Dónde se hospeda, qué trae, algún detalle extra..."></textarea></div>
+    <button class="btn-primary" id="guardarPersonalApoyo">Guardar</button>
+  </div>
+</div>
+
 <!-- ===================== HOJA: DETALLE DE UN DÍA DEL CALENDARIO ===================== -->
 <div class="sheet-backdrop" id="sheetCalendarioBackdrop"></div>
 <div class="sheet" id="sheetCalendario">
@@ -1087,6 +1152,23 @@
     <div class="sub" id="glamtutPanelSub">—</div>
   </div>
   <div class="glamtut-panel-body" id="glamtutPanelBody"></div>
+</div>
+
+<!-- ===================== BLOC DE NOTAS PERSONAL (privado por usuario) ===================== -->
+<button class="notas-fab" id="notasFab" style="display:none;" aria-label="Mis notas">📝<span class="badge" id="notasBadge" style="display:none;">0</span></button>
+<div class="notas-panel" id="notasPanel">
+  <div class="notas-panel-head"><h3>Mis notas</h3></div>
+  <div class="notas-color-pick" id="notasColorPick">
+    <span data-color="champagne" style="background:#F3E6C8;" class="activo"></span>
+    <span data-color="success" style="background:#CFE3D6;"></span>
+    <span data-color="terracota" style="background:#E9CBB9;"></span>
+    <span data-color="wine" style="background:#E3C3CB;"></span>
+  </div>
+  <div class="notas-nueva">
+    <input type="text" id="notaNuevaTexto" placeholder="Escribe un pendiente..." maxlength="280">
+    <button id="notaNuevaBtn">+</button>
+  </div>
+  <div id="notasLista"></div>
 </div>
 
 <script>
@@ -1131,6 +1213,9 @@ function showLogin(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').classList.remove('active');
   document.getElementById('cambiarPasswordScreen').classList.remove('show');
+  document.getElementById('notasFab').style.display = 'none';
+  document.getElementById('notasPanel').classList.remove('open');
+  NOTAS = [];
   // TUTORIAL — quitar estas 4 líneas
   document.getElementById('glamtutFab').style.display = 'none';
   document.getElementById('glamtutPanel').classList.remove('open');
@@ -1163,6 +1248,9 @@ async function continuarSesion(){
   await resolverAsesorActual();
   await Promise.all([renderBoard(), renderDashboard(), renderCursos(), renderCiudadSelect(), renderCalendario()]);
   await renderPendientes();
+  await cargarNotas();
+  document.getElementById('notasFab').style.display = usuarioActual?.id ? 'flex' : 'none';
+  renderNotas();
   // TUTORIAL — quitar estas 6 líneas
   await cargarTutorial();
   document.getElementById('glamtutFab').style.display = usuarioActual?.id ? 'flex' : 'none';
@@ -2081,10 +2169,12 @@ function pintarBoard(){
         const fechaBadge = evProx
           ? `<span class="pill-veces" style="margin-top:6px; display:inline-block;">📅 ${new Date(evProx.fecha).toLocaleDateString('es-MX', {day:'numeric', month:'short'})}</span>`
           : '';
+        const esNuevo = l.creado_en && (Date.now() - new Date(l.creado_en).getTime()) < 48*60*60*1000;
         return `
         <div class="lead-card" style="--card-accent:${e?.color_hex||'#ccc'}" data-lead-id="${l.id}">
-          <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}</div>
-          <div class="lead-meta">${l.personas?.telefono_principal||''}${l.cursos?.nombre?'<br>'+l.cursos.nombre:''}${l.ciudades?.nombre?' · '+l.ciudades.nombre:''}</div>
+          <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}${esNuevo?' <span class="badge-nuevo">🆕 Nuevo</span>':''}</div>
+          <div class="lead-meta">${l.personas?.telefono_principal||''}${l.cursos?.nombre?'<br>'+l.cursos.nombre:''}</div>
+          ${l.ciudades?.nombre?`<div class="lead-ciudad">📍 ${l.ciudades.nombre}</div>`:''}
           <span class="lead-tag" style="background:${e?.color_hex||'#ccc'}22; color:${e?.color_hex==='#FFFFFF'?'#8C8378':(e?.color_hex||'#333')};">${e?.etiqueta||''}</span>
           ${fechaBadge}
           ${l.personas?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}
@@ -2157,6 +2247,8 @@ async function abrirModalLead(leadId){
   document.getElementById('modalTelefonoAltEdit').value = lead.personas?.telefono_alternativo || '';
   const sel = document.getElementById('modalEstatusSelect');
   sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
+  const selCiudad = document.getElementById('modalCiudadSelect');
+  selCiudad.innerHTML = '<option value="">— Sin especificar —</option>' + CIUDADES.map(c=>`<option value="${c.id}" ${c.id===lead.ciudad_interes_id?'selected':''}>${c.nombre}${c.estado?', '+c.estado:''}</option>`).join('');
   document.getElementById('modalComentarioNuevo').value = '';
   document.getElementById('modalHistorial').innerHTML = 'Cargando...';
   document.getElementById('modalLead').classList.add('open');
@@ -2172,6 +2264,7 @@ document.getElementById('closeModalLead').addEventListener('click', ()=>document
 
 document.getElementById('guardarLead').addEventListener('click', async ()=>{
   const nuevoEstatusId = Number(document.getElementById('modalEstatusSelect').value);
+  const ciudadNueva = document.getElementById('modalCiudadSelect').value || null;
   const comentario = document.getElementById('modalComentarioNuevo').value.trim();
   const nombreNuevo = document.getElementById('modalNombreEdit').value.trim();
   const telNuevo = document.getElementById('modalTelefonoEdit').value.replace(/\D/g,'');
@@ -2187,7 +2280,7 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
     actualizado_en: new Date().toISOString()
   }).eq('id', leadAbiertoPersonaId);
 
-  const { error: errUpd } = await sb.from('leads').update({ estatus_id: nuevoEstatusId, actualizado_en: new Date().toISOString() }).eq('id', leadAbiertoId);
+  const { error: errUpd } = await sb.from('leads').update({ estatus_id: nuevoEstatusId, ciudad_interes_id: ciudadNueva, actualizado_en: new Date().toISOString() }).eq('id', leadAbiertoId);
   let errInt = null;
   if(comentario){
     const r = await sb.from('interacciones').insert({ persona_id: leadAbiertoPersonaId, lead_id: leadAbiertoId, nota: comentario, canal: 'otro' });
@@ -2197,7 +2290,8 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   btn.disabled = false; btn.textContent = 'Guardar cambios';
 
   if(errPersona || errUpd || errInt){ toast('Error al guardar: ' + (errPersona||errUpd||errInt).message, true); return; }
-  toast('Guardado.');
+  const fueraDeGira = ciudadNueva && CIUDADES_GIRA_ACTIVA.length && !CIUDADES_GIRA_ACTIVA.includes(ciudadNueva);
+  toast(fueraDeGira ? 'Guardado — pero esa ciudad no es parte de la gira activa, este lead no se verá en el tablero hasta que lo sea.' : 'Guardado.', fueraDeGira);
   const etiquetaNueva = ESTATUS.find(e=>e.id===nuevoEstatusId)?.etiqueta || '';
   registrarActividad('lead_actualizado', `${nombreNuevo} → ${etiquetaNueva}`);
   document.getElementById('modalLead').classList.remove('open');
@@ -2233,16 +2327,25 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
     if(errP){ btn.disabled=false; btn.textContent='Crear lead'; toast('Error creando persona: ' + errP.message, true); return; }
     personaId = nueva.id;
   }
-  const estatusInicial = ESTATUS.find(e=>e.clave==='pago_por_confirmar') || ESTATUS[0];
+  // Un lead recién creado empieza en "Seguimiento activo" (aún no vence su
+  // pago) — antes caía en "Pago por confirmar", dentro de la categoría
+  // "Pagos", donde nadie lo esperaba ver.
+  const estatusInicial = ESTATUS.find(e=>e.clave==='no_vence_pago') || ESTATUS[0];
   const { error: errL } = await sb.from('leads').insert({
     persona_id: personaId, estatus_id: estatusInicial.id,
     curso_interes_id: cursoId, ciudad_interes_id: ciudadId
   });
   btn.disabled = false; btn.textContent = 'Crear lead';
   if(errL){ toast('Error creando lead: ' + errL.message, true); return; }
-  toast('Lead creado.');
+  // Si la ciudad elegida no es parte de la gira activa, el tablero lo va a
+  // filtrar y parecerá que "no se guardó" — se avisa aquí mismo en vez de
+  // dejar que desaparezca en silencio.
+  const fueraDeGira = ciudadId && CIUDADES_GIRA_ACTIVA.length && !CIUDADES_GIRA_ACTIVA.includes(ciudadId);
+  toast(fueraDeGira ? 'Lead creado — pero esa ciudad no es parte de la gira activa, no se verá en el tablero hasta que lo sea.' : 'Lead creado.', fueraDeGira);
   registrarActividad('lead_creado', nombre);
   document.getElementById('modalNuevo').classList.remove('open');
+  const catNueva = CATEGORIAS.find(c=>c.claves.includes(estatusInicial.clave));
+  if(catNueva) estatusAbiertos.add(catNueva.id);
   await renderBoard(); await renderDashboard();
 });
 
@@ -2468,6 +2571,9 @@ function abrirSheetCalendario(key){
         <span style="background:var(--danger); width:${ev.pend/total*100}%"></span>
       </div>
       <div class="tap-hint">↑ Toca un número para ver a esos alumnos</div>
+      <div class="seccion-titulo" style="margin-top:14px;">Steward y ayudantes</div>
+      <div id="apoyoEvento_${ev.id}" class="sub">Cargando…</div>
+      <button class="btn-outline small" style="margin-top:6px;" data-agregar-apoyo-evento="${ev.id}" data-agregar-apoyo-ciudad="${ev.ciudadId}">+ Agregar steward/ayudante</button>
     </div>`;
   }).join('');
   document.getElementById('sheetEventos').querySelectorAll('.stat.clickable').forEach(el=>{
@@ -2475,6 +2581,12 @@ function abrirSheetCalendario(key){
       const ev = eventosDelDia[Number(el.dataset.evtIdx)];
       if(ev) abrirListaCategoriaCalendario(ev, el.dataset.cat);
     });
+  });
+  document.getElementById('sheetEventos').querySelectorAll('[data-agregar-apoyo-evento]').forEach(btn=>{
+    btn.addEventListener('click', ()=> abrirModalPersonalApoyo(btn.dataset.agregarApoyoCiudad, btn.dataset.agregarApoyoEvento, 'calendario'));
+  });
+  eventosDelDia.forEach(ev=>{
+    cargarPersonalApoyo(ev.ciudadId, ev.id).then(filas=> pintarPersonalApoyoLista('apoyoEvento_'+ev.id, filas));
   });
   document.getElementById('sheetCalendario').classList.add('open');
   document.getElementById('sheetCalendarioBackdrop').classList.add('open');
@@ -3606,10 +3718,13 @@ document.getElementById('newCitySave').addEventListener('click', async ()=>{
   document.getElementById('newCityLat').value=''; document.getElementById('newCityLng').value='';
   renderPlaza(data.id);
 });
+let plazaCiudadActualId = null;
 async function renderPlaza(ciudadId){
+  plazaCiudadActualId = ciudadId;
   const kpis = document.getElementById('plazaKpis');
   const lista = document.getElementById('plazaLista');
   kpis.innerHTML = '<div class="plaza-kpi"><div class="v">…</div><div class="l">Cargando</div></div>';
+  renderPlazaApoyo(ciudadId);
   const { data: resumen, error } = await sb.from('vista_resumen_plaza').select('*').eq('ciudad_id', ciudadId).maybeSingle();
   if(error){ kpis.innerHTML=''; lista.innerHTML = 'Error: ' + error.message; return; }
   kpis.innerHTML = [
@@ -3642,6 +3757,153 @@ async function renderPlaza(ciudadId){
     el.addEventListener('click', ()=> abrirModalAlumnos(ciudadId, cursoId, resumen?.ciudad, cursosPorId[cursoId].nombre));
   });
 }
+
+/* =========================================================
+   STEWARD Y AYUDANTES — por ciudad y, si ya se conoce, por evento
+   concreto. Se ven y se capturan desde Ciudades/Plazas y desde el
+   detalle de un día en Calendario (mismo modal para ambos).
+   ========================================================= */
+let apoyoCtxCiudadId = null, apoyoCtxEventoId = null, apoyoCtxOrigen = null; // 'plaza' | 'calendario'
+
+async function cargarPersonalApoyo(ciudadId, eventoId){
+  const { data, error } = await sb.from('personal_apoyo').select('*').eq('ciudad_id', ciudadId).order('creado_en');
+  if(error){ console.warn('No se pudo cargar personal_apoyo:', error.message); return []; }
+  if(!eventoId) return data || [];
+  // Para un evento concreto: lo suyo, más lo general de la ciudad (sin evento asignado todavía).
+  return (data||[]).filter(a=> !a.evento_id || a.evento_id===eventoId);
+}
+function pintarPersonalApoyoLista(contenedorId, filas){
+  const cont = document.getElementById(contenedorId);
+  if(!cont) return;
+  if(!filas.length){ cont.innerHTML = '<div class="empty-note">Sin steward ni ayudantes registrados todavía.</div>'; return; }
+  cont.innerHTML = filas.map(a=>{
+    const horario = [a.entrada_acordada?'Entra: '+a.entrada_acordada:'', a.salida_acordada?'Sale: '+a.salida_acordada:''].filter(Boolean).join(' · ');
+    return `<div class="apoyo-row">
+      <span class="apoyo-rol ${a.rol}">${a.rol==='steward'?'Steward':'Ayudante'}</span>
+      <div class="apoyo-info">
+        <div class="apoyo-nombre">${a.nombre}</div>
+        <div class="apoyo-meta">
+          ${[a.telefono, horario].filter(Boolean).join(' · ')}
+          ${a.pago_acordado!=null?'<br>Pago acordado: $'+Number(a.pago_acordado).toLocaleString('es-MX'):''}
+          ${a.notas?'<br>'+a.notas:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function renderPlazaApoyo(ciudadId){
+  pintarPersonalApoyoLista('plazaApoyoLista', await cargarPersonalApoyo(ciudadId, null));
+}
+document.getElementById('btnAgregarApoyoPlaza').addEventListener('click', ()=>{
+  if(!plazaCiudadActualId){ toast('Selecciona una ciudad primero.', true); return; }
+  abrirModalPersonalApoyo(plazaCiudadActualId, null, 'plaza');
+});
+function abrirModalPersonalApoyo(ciudadId, eventoId, origen){
+  apoyoCtxCiudadId = ciudadId; apoyoCtxEventoId = eventoId; apoyoCtxOrigen = origen;
+  document.getElementById('apoyoNombre').value = '';
+  document.getElementById('apoyoTelefono').value = '';
+  document.getElementById('apoyoRol').value = 'steward';
+  document.getElementById('apoyoEntrada').value = '';
+  document.getElementById('apoyoSalida').value = '';
+  document.getElementById('apoyoPago').value = '';
+  document.getElementById('apoyoNotas').value = '';
+  const ciudadNombre = CIUDADES.find(c=>c.id===ciudadId)?.nombre || 'esta ciudad';
+  document.getElementById('modalApoyoContexto').textContent = eventoId ? 'Para este evento en ' + ciudadNombre : 'Para ' + ciudadNombre + ', en general';
+  document.getElementById('modalPersonalApoyo').classList.add('open');
+}
+document.getElementById('closeModalPersonalApoyo').addEventListener('click', ()=> document.getElementById('modalPersonalApoyo').classList.remove('open'));
+document.getElementById('guardarPersonalApoyo').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('apoyoNombre').value.trim();
+  if(!nombre){ toast('Falta el nombre.', true); return; }
+  const btn = document.getElementById('guardarPersonalApoyo'); btn.disabled = true; btn.textContent = 'Guardando...';
+  const pagoVal = document.getElementById('apoyoPago').value;
+  const { error } = await sb.from('personal_apoyo').insert({
+    ciudad_id: apoyoCtxCiudadId,
+    evento_id: apoyoCtxEventoId,
+    nombre,
+    telefono: document.getElementById('apoyoTelefono').value.trim() || null,
+    rol: document.getElementById('apoyoRol').value,
+    entrada_acordada: document.getElementById('apoyoEntrada').value.trim() || null,
+    salida_acordada: document.getElementById('apoyoSalida').value.trim() || null,
+    pago_acordado: pagoVal ? Number(pagoVal) : null,
+    notas: document.getElementById('apoyoNotas').value.trim() || null,
+  });
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if(error){ toast('Error: ' + error.message, true); return; }
+  toast('Guardado.');
+  document.getElementById('modalPersonalApoyo').classList.remove('open');
+  if(apoyoCtxOrigen === 'plaza') await renderPlazaApoyo(apoyoCtxCiudadId);
+  else if(apoyoCtxOrigen === 'calendario' && diaCalendarioAbierto) abrirSheetCalendario(diaCalendarioAbierto);
+});
+
+/* =========================================================
+   BLOC DE NOTAS PERSONAL — privado por usuario, no invasivo.
+   Vive fuera de las tablas de negocio (leads, inscripciones, etc.):
+   son solo recordatorios propios de cada quien.
+   ========================================================= */
+let NOTAS = [];
+let notaColorActual = 'champagne';
+async function cargarNotas(){
+  if(!usuarioActual?.id){ NOTAS = []; return; }
+  const { data, error } = await sb.from('notas_usuario').select('*').eq('usuario_id', usuarioActual.id).order('creado_en', { ascending:false });
+  if(error){ console.warn('No se pudieron cargar las notas:', error.message); NOTAS = []; return; }
+  NOTAS = data || [];
+}
+function renderNotas(){
+  const lista = document.getElementById('notasLista');
+  const badge = document.getElementById('notasBadge');
+  if(!lista || !badge) return;
+  const pendientes = NOTAS.filter(n=>!n.completado).length;
+  badge.style.display = pendientes ? 'flex' : 'none';
+  badge.textContent = pendientes;
+  if(!NOTAS.length){ lista.innerHTML = '<div class="empty-note">Sin notas todavía — agrega una arriba.</div>'; return; }
+  lista.innerHTML = NOTAS.map(n=>`
+    <div class="nota-card ${n.color||'champagne'} ${n.completado?'hecha':''}" data-nota-id="${n.id}">
+      <div class="texto">${n.texto}</div>
+      <div class="acciones">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
+          <input type="checkbox" class="chk" ${n.completado?'checked':''}> ${n.completado?'Hecho':'Marcar hecho'}
+        </label>
+        <button class="borrar" title="Borrar nota">🗑</button>
+      </div>
+    </div>`).join('');
+  lista.querySelectorAll('.chk').forEach(chk=> chk.addEventListener('change', (ev)=>{
+    marcarNota(ev.target.closest('.nota-card').dataset.notaId, ev.target.checked);
+  }));
+  lista.querySelectorAll('.borrar').forEach(btn=> btn.addEventListener('click', (ev)=>{
+    borrarNota(ev.target.closest('.nota-card').dataset.notaId);
+  }));
+}
+async function marcarNota(id, completado){
+  const n = NOTAS.find(x=>x.id===id); if(n) n.completado = completado;
+  renderNotas();
+  await sb.from('notas_usuario').update({ completado, actualizado_en: new Date().toISOString() }).eq('id', id);
+}
+async function borrarNota(id){
+  NOTAS = NOTAS.filter(n=>n.id!==id);
+  renderNotas();
+  await sb.from('notas_usuario').delete().eq('id', id);
+}
+async function agregarNota(){
+  const input = document.getElementById('notaNuevaTexto');
+  const texto = input.value.trim();
+  if(!texto || !usuarioActual?.id) return;
+  input.value = '';
+  const { data, error } = await sb.from('notas_usuario').insert({ usuario_id: usuarioActual.id, texto, color: notaColorActual }).select('*').single();
+  if(error){ toast('No se pudo guardar la nota: ' + error.message, true); return; }
+  NOTAS.unshift(data);
+  renderNotas();
+}
+document.getElementById('notasColorPick').querySelectorAll('span').forEach(sp=>{
+  sp.addEventListener('click', ()=>{
+    notaColorActual = sp.dataset.color;
+    document.getElementById('notasColorPick').querySelectorAll('span').forEach(s=>s.classList.remove('activo'));
+    sp.classList.add('activo');
+  });
+});
+document.getElementById('notaNuevaBtn').addEventListener('click', agregarNota);
+document.getElementById('notaNuevaTexto').addEventListener('keydown', (e)=>{ if(e.key==='Enter') agregarNota(); });
+document.getElementById('notasFab').addEventListener('click', ()=> document.getElementById('notasPanel').classList.toggle('open'));
 
 /**
  * Modal compartido: alumnos de una combinación ciudad+curso, con su
