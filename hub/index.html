@@ -477,6 +477,27 @@
   .notas-color-pick span{ width:18px; height:18px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
   .notas-color-pick span.activo{ border-color:var(--ink); }
 
+  /* ---------- VENDEDOR: quién vendió, y la confirmación al cambiarlo ---------- */
+  .modal-vendedor{ background:var(--bg); border-radius:10px; padding:10px 12px; margin-bottom:12px; }
+  .vend-row{ display:flex; gap:8px; align-items:center; }
+  .vend-row select{ flex:1; padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
+  .vend-hint{ font-size:11px; color:var(--ink-soft); margin-top:6px; line-height:1.45; }
+  .vend-hint.alerta{ color:var(--danger); font-weight:600; }
+  .confirm-box{ max-width:430px; }
+  .confirm-box .aviso{ background:#FBF1DC; border-left:3px solid var(--champagne); border-radius:8px; padding:11px 13px; font-size:12.5px; line-height:1.6; margin-bottom:12px; color:#5C4A1E; }
+  .confirm-box .aviso.fuerte{ background:#F7E4E1; border-left-color:var(--danger); color:#6B2B24; }
+  .confirm-acciones{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+  .btn-ghost{ background:none; border:1px solid var(--border); color:var(--ink-soft); border-radius:10px; padding:10px 16px; font-family:inherit; font-size:13px; cursor:pointer; }
+
+  /* ---------- TAREAS ASIGNADAS dentro del bloc de notas ---------- */
+  .notas-sep{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin:16px 0 8px; }
+  .nota-card.tarea{ background:var(--card); border:1px solid var(--border); border-left:3px solid var(--wine); color:var(--ink); }
+  .nota-card.tarea.nueva{ box-shadow:0 0 0 2px var(--champagne); }
+  .nota-card .quien{ font-size:10.5px; font-weight:700; color:var(--wine); margin-bottom:5px; }
+  .nota-card .estado-tarea{ font-size:10.5px; color:var(--ink-soft); margin-top:7px; }
+  .notas-para{ display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:11.5px; color:var(--ink-soft); }
+  .notas-para select{ flex:1; padding:7px 9px; border:1px solid var(--border); border-radius:9px; font-family:inherit; font-size:12px; background:var(--card); color:var(--ink); }
+
   /* ---------- TUTORIAL: spotlight, asistente flotante y checklist ---------- */
   .glamtut-veil{ position:fixed; inset:0; z-index:200; }
   .glamtut-hole{ position:fixed; display:none; border-radius:12px; box-shadow:0 0 0 9999px rgba(41,36,33,.62); pointer-events:none; transition:left .2s ease, top .2s ease, width .2s ease, height .2s ease; }
@@ -990,6 +1011,14 @@
         <div class="sub" id="modalInscTelefono"></div>
       </div>
     </div>
+    <div class="modal-vendedor">
+      <div class="modal-notas-titulo">¿Quién vendió?</div>
+      <div class="vend-row">
+        <select id="inscVendedorSelect"></select>
+        <button class="btn-primary small" id="guardarInscVendedor">Guardar</button>
+      </div>
+      <div class="vend-hint" id="inscVendedorHint"></div>
+    </div>
     <div class="modal-notas">
       <div class="modal-notas-titulo">Comentarios</div>
       <textarea class="textarea" id="modalInscNotasEdit" placeholder="Sin comentarios todavía..." style="min-height:80px;"></textarea>
@@ -1197,6 +1226,25 @@
   <div class="glamtut-panel-body" id="glamtutPanelBody"></div>
 </div>
 
+<!-- ===================== MODAL: CONFIRMAR UNA ACCIÓN DELICADA =====================
+     Reutilizable. Se usa para reasignar una venta, que es dinero de alguien
+     más: nada de confirm() del navegador, la pregunta tiene que decir qué
+     cambia exactamente y quedar registrada. -->
+<div class="modal-overlay" id="modalConfirmar">
+  <div class="modal confirm-box">
+    <h3 id="confirmarTitulo" style="margin-bottom:12px;">—</h3>
+    <div class="aviso" id="confirmarAviso"></div>
+    <div class="modal-field" id="confirmarMotivoCampo" style="display:none;">
+      <label>Motivo (opcional)</label>
+      <input type="text" id="confirmarMotivo" placeholder="Ej.: yo la contacté y le cerré la venta" maxlength="160">
+    </div>
+    <div class="confirm-acciones">
+      <button class="btn-ghost" id="confirmarNo">Cancelar</button>
+      <button class="btn-primary small" id="confirmarSi">Sí, confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== BLOC DE NOTAS PERSONAL (privado por usuario) ===================== -->
 <button class="notas-fab" id="notasFab" style="display:none;" aria-label="Mis notas">📝<span class="badge" id="notasBadge" style="display:none;">0</span></button>
 <div class="notas-panel" id="notasPanel">
@@ -1206,6 +1254,9 @@
     <span data-color="success" style="background:#CFE3D6;"></span>
     <span data-color="terracota" style="background:#E9CBB9;"></span>
     <span data-color="wine" style="background:#E3C3CB;"></span>
+  </div>
+  <div class="notas-para" id="notasParaFila" style="display:none;">
+    <span>Para:</span><select id="notaParaSelect"></select>
   </div>
   <div class="notas-nueva">
     <input type="text" id="notaNuevaTexto" placeholder="Escribe un pendiente..." maxlength="280">
@@ -1227,8 +1278,14 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let ESTATUS = [];       // catálogo cargado de la BD
 let CURSOS = [];
 let CIUDADES = [];
+// Todo el equipo, para poder mostrar el nombre de quien vendió aunque ya no
+// venda. VENDEDORES es sólo quien SÍ aparece en el picklist hoy: eso lo manda
+// la columna usuarios.es_vendedor, no una lista escrita aquí — dar de alta o
+// de baja a un vendedor no debe requerir tocar este archivo.
+let EQUIPO = [];
+let VENDEDORES = [];
 let sesionActual = null;
-let asesorActualId = null; // asesor ligado al usuario logueado, para "confirmado_por" en pagos
+let asesorActualId = null; // = usuarioActual.id — para "confirmado_por" en pagos
 
 // Tutorial dentro del Hub: spotlight, asistente flotante y checklist de progreso.
 // El contenido vive en tutorial_spotlight / tutorial_faq / tutorial_pasos (editable
@@ -1259,6 +1316,7 @@ function showLogin(){
   document.getElementById('notasFab').style.display = 'none';
   document.getElementById('notasPanel').classList.remove('open');
   NOTAS = [];
+  if(canalNotas){ sb.removeChannel(canalNotas); canalNotas = null; }
   // TUTORIAL — quitar estas 4 líneas
   document.getElementById('glamtutFab').style.display = 'none';
   document.getElementById('glamtutPanel').classList.remove('open');
@@ -1293,7 +1351,12 @@ async function continuarSesion(){
   await renderPendientes();
   await cargarNotas();
   document.getElementById('notasFab').style.display = usuarioActual?.id ? 'flex' : 'none';
+  pintarSelectorPara();
   renderNotas();
+  escucharTareasEnVivo();
+  // Aviso al entrar: si hay tareas sin ver, que no pase desapercibido.
+  const sinVer = NOTAS.filter(n=> meAsignaron(n) && !n.visto_en && !n.completado).length;
+  if(sinVer) toast(`🔔 Tienes ${sinVer} ${sinVer===1?'tarea nueva':'tareas nuevas'} — ábrelas en el 📝 de abajo.`);
   // TUTORIAL — quitar estas 6 líneas
   await cargarTutorial();
   document.getElementById('glamtutFab').style.display = usuarioActual?.id ? 'flex' : 'none';
@@ -1339,10 +1402,11 @@ document.getElementById('cambiarPasswordBtn').addEventListener('click', async ()
   toast('Contraseña actualizada');
   await continuarSesion();
 });
+// Antes esto leía la tabla `asesores`, un padrón viejo con un solo renglón que
+// dejaba `confirmado_por` siempre en nulo. Ahora las llaves apuntan a
+// `usuarios`, así que quien confirma un pago es simplemente quien está dentro.
 async function resolverAsesorActual(){
-  if(!sesionActual) return;
-  const { data } = await sb.from('asesores').select('id').eq('user_id', sesionActual.user.id).maybeSingle();
-  asesorActualId = data?.id || null;
+  asesorActualId = usuarioActual?.id || null;
 }
 document.getElementById('loginBtn').addEventListener('click', async ()=>{
   const email = document.getElementById('loginEmail').value.trim();
@@ -1812,6 +1876,10 @@ const ACCION_LABEL = {
   inscripcion_estatus: 'Cambió el estatus de una inscripción',
   pago_registrado: 'Registró un pago',
   pago_corregido: 'Corrigió montos de una inscripción',
+  venta_asignada: 'Asignó el vendedor de una venta',
+  venta_reasignada: 'Cambió de vendedor una venta',
+  tarea_asignada: 'Le asignó una tarea a alguien',
+  tarea_completada: 'Terminó una tarea que le asignaron',
   gira_creada: 'Guardó una gira como borrador',
   gira_confirmada: 'Confirmó una gira',
   sede_asignada_parada: 'Asignó una sede a una parada de gira',
@@ -2042,6 +2110,29 @@ async function cargarCatalogos(){
   ]);
   if(e1||e2||e3){ toast('Error cargando catálogos: ' + (e1||e2||e3).message, true); return; }
   ESTATUS = est||[]; CURSOS = cur||[]; CIUDADES = ciu||[];
+  const { data: eq } = await sb.from('usuarios').select('id, nombre, rol, es_vendedor, es_admin').order('nombre');
+  EQUIPO = eq || [];
+  VENDEDORES = EQUIPO.filter(u=>u.es_vendedor);
+}
+
+/* Nombre de quien vendió. Si ya no está en el picklist (dejó de vender) se
+   marca "(histórico)" en vez de desaparecer: su venta se respeta. */
+function nombreVendedor(id){
+  if(!id) return null;
+  const u = EQUIPO.find(x=>x.id===id);
+  if(!u) return 'Alguien que ya no está en el equipo';
+  return u.nombre + (u.es_vendedor ? '' : ' (histórico)');
+}
+
+/* Opciones del picklist: los vendedores activos, más el dueño actual si ya no
+   lo es — si no, guardar cualquier otro cambio le borraría la venta sin querer. */
+function opcionesVendedor(actualId){
+  const ids = VENDEDORES.map(u=>u.id);
+  const extra = (actualId && !ids.includes(actualId)) ? [EQUIPO.find(u=>u.id===actualId)].filter(Boolean) : [];
+  return ['<option value="">— Sin asignar —</option>']
+    .concat(VENDEDORES.concat(extra).map(u=>
+      `<option value="${u.id}" ${u.id===actualId?'selected':''}>${u.nombre}${u.es_vendedor?'':' (histórico)'}</option>`))
+    .join('');
 }
 
 /* =========================================================
@@ -2186,7 +2277,7 @@ async function cargarCiudadesGiraActiva(){
 async function cargarLeads(){
   await cargarCiudadesGiraActiva();
   let query = sb.from('leads').select(`
-    id, comentario, creado_en, ciudad_interes_id,
+    id, comentario, creado_en, ciudad_interes_id, asesor_id,
     personas ( id, nombre, telefono_principal, en_lista_negra ),
     cursos ( nombre ),
     ciudades ( nombre ),
@@ -2228,10 +2319,7 @@ const VISTAS = [
   { id:'estatus',  label:'Estatus',    icon:'🎯' },
   { id:'ciudad',   label:'Ciudad',     icon:'📍' },
   { id:'cobranza', label:'Por cobrar', icon:'💰', soloInscritos:true },
-  { id:'vendedor', label:'Vendedor',   icon:'👤', bloqueada:
-      'Todavía no se puede agrupar por vendedor: <code>leads.asesor_id</code> está vacío en los 334 ' +
-      'y el vendedor solo existe como texto libre en los comentarios, con 18 variantes para 5 personas ' +
-      '(ISA CAMPAÑA, ISA CAMAPAÑA, ISA CAPAÑA…). Falta normalizarlo, igual que se hizo con ciudades y cursos.' },
+  { id:'vendedor', label:'Vendedor',   icon:'👤' },
 ];
 
 /* Inscritos = quienes ya pagaron anticipo y van al curso activo. Viven en
@@ -2242,7 +2330,7 @@ async function cargarInscritos(){
   if(!cursoId) return [];
   const hoy = new Date().toISOString().slice(0,10);
   const { data, error } = await sb.from('inscripciones').select(`
-      id, anticipo, restante, liquidado, precio_pactado, paquete,
+      id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id,
       personas ( id, nombre, telefono_principal, en_lista_negra ),
       estatus ( id, etiqueta, color_hex ),
       eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )
@@ -2310,6 +2398,35 @@ function agruparFilas(filas){
     });
   }
 
+  /* Por vendedor. "Sin vendedor asignado" va al final y es el recuadro que de
+     verdad importa: son las ventas que hoy no le cuentan a nadie en el corte. */
+  if(vistaActiva === 'vendedor'){
+    const por = {};
+    filas.forEach(r=>{
+      const key = r.asesor_id || '__sin__';
+      if(!por[key]){
+        por[key] = { id:key, label: nombreVendedor(r.asesor_id) || 'Sin vendedor asignado',
+                     color: r.asesor_id ? '#5A1F2B' : '#8C8378', items:[] };
+      }
+      por[key].items.push(r);
+    });
+    const arr = Object.values(por);
+    arr.forEach(g=>{
+      if(poblacion !== 'inscritos'){ g.extra = ''; return; }
+      // Las bajas no son dinero por cobrar: se excluyen del total del recuadro.
+      const vivos   = g.items.filter(i=> i.estatus?.id !== 6);
+      const cobrado = vivos.reduce((a,i)=> a + (Number(i.anticipo)||0), 0);
+      const debe    = vivos.reduce((a,i)=> a + (Number(i.restante)||0), 0);
+      g.extra = [cobrado>0 ? fmtMoney(cobrado)+' cobrado' : '',
+                 debe>0    ? fmtMoney(debe)+' por cobrar' : ''].filter(Boolean).join(' · ');
+    });
+    return arr.sort((a,b)=>{
+      if(a.id === '__sin__') return 1;
+      if(b.id === '__sin__') return -1;
+      return b.items.length - a.items.length || a.label.localeCompare(b.label);
+    });
+  }
+
   if(vistaActiva === 'cobranza'){
     const cubos = CUBOS_COBRANZA.map(c=>({ ...c, items:[] }));
     filas.forEach(r=>{ (cubos.find(c=>c.test(r)) || cubos[cubos.length-1]).items.push(r); });
@@ -2358,6 +2475,7 @@ function tarjetaInscrito(i){
       <div class="lead-meta">${i.personas?.telefono_principal||''}${i.paquete?'<br>'+i.paquete:''}</div>
       ${i.eventos?.ciudades?.nombre?`<div class="lead-ciudad">📍 ${i.eventos.ciudades.nombre} · ${fechaCorta(i.eventos.fecha)}</div>`:''}
       ${saldo}
+      ${vistaActiva!=='vendedor' && i.asesor_id ? `<div class="lead-meta">👤 ${nombreVendedor(i.asesor_id)}</div>` : ''}
       ${i.personas?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}
     </div>`;
 }
@@ -2469,7 +2587,7 @@ function pintarBoard(){
   if(vista.bloqueada){
     board.innerHTML = `<div class="status-tile open">
       <div class="status-tile-header"><span class="dot" style="background:#8C8378"></span>
-        <span class="label">Agrupar por vendedor — todavía no</span></div>
+        <span class="label">Agrupar por ${vista.label.toLowerCase()} — todavía no</span></div>
       <div class="status-tile-body" style="display:block;"><div class="empty-note">${vista.bloqueada}</div></div>
     </div>`;
     return;
@@ -3039,6 +3157,49 @@ function refrescarHojaAbierta(){
 document.getElementById('sheetCalendarioClose').addEventListener('click', cerrarSheetCalendario);
 document.getElementById('sheetCalendarioBackdrop').addEventListener('click', cerrarSheetCalendario);
 
+/* =========================================================
+   CONFIRMAR — pregunta modal que devuelve una promesa.
+   Se usa donde la acción afecta a otra persona (reasignar una venta ajena).
+   Devuelve null si cancelan, o el motivo escrito (cadena, posiblemente vacía)
+   si confirman — para que quien llama distinga "canceló" de "confirmó sin
+   escribir motivo".
+   ========================================================= */
+function preguntarConfirmacion({ titulo, aviso, fuerte=false, pedirMotivo=false, textoSi='Sí, confirmar' }){
+  return new Promise(resolve=>{
+    const ov = document.getElementById('modalConfirmar');
+    document.getElementById('confirmarTitulo').textContent = titulo;
+    const cajaAviso = document.getElementById('confirmarAviso');
+    cajaAviso.innerHTML = aviso;
+    cajaAviso.className = 'aviso' + (fuerte ? ' fuerte' : '');
+    document.getElementById('confirmarMotivoCampo').style.display = pedirMotivo ? '' : 'none';
+    const inpMotivo = document.getElementById('confirmarMotivo');
+    inpMotivo.value = '';
+    document.getElementById('confirmarSi').textContent = textoSi;
+    ov.classList.add('open');
+    if(pedirMotivo) setTimeout(()=>inpMotivo.focus(), 50);
+
+    const cerrar = (valor)=>{
+      ov.classList.remove('open');
+      btnSi.removeEventListener('click', onSi);
+      btnNo.removeEventListener('click', onNo);
+      ov.removeEventListener('click', onFondo);
+      document.removeEventListener('keydown', onTecla);
+      resolve(valor);
+    };
+    const btnSi = document.getElementById('confirmarSi');
+    const btnNo = document.getElementById('confirmarNo');
+    const onSi = ()=> cerrar(pedirMotivo ? inpMotivo.value.trim() : '');
+    const onNo = ()=> cerrar(null);
+    // Cancelar es lo seguro: click fuera y Escape NO confirman.
+    const onFondo = (ev)=>{ if(ev.target === ov) cerrar(null); };
+    const onTecla = (ev)=>{ if(ev.key === 'Escape') cerrar(null); };
+    btnSi.addEventListener('click', onSi);
+    btnNo.addEventListener('click', onNo);
+    ov.addEventListener('click', onFondo);
+    document.addEventListener('keydown', onTecla);
+  });
+}
+
 /* --- Modal: alumno de un evento (inscripción real) — marcar estatus / agregar pago --- */
 let modalInscId = null, modalInscDatos = null;
 
@@ -3052,7 +3213,7 @@ async function abrirModalInscripcion(inscId){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, notas_migracion, personas(nombre, telefono_principal)')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, personas(nombre, telefono_principal)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -3073,6 +3234,23 @@ async function abrirModalInscripcion(inscId){
   document.getElementById('corrPagado').value = Number(data.anticipo || 0);
   document.getElementById('corrMotivo').value = '';
   actualizarPreviewCorreccion();
+  pintarVendedorFicha();
+}
+
+/* Picklist "¿Quién vendió?" — el dato que manda para los cortes. */
+function pintarVendedorFicha(){
+  const sel  = document.getElementById('inscVendedorSelect');
+  const hint = document.getElementById('inscVendedorHint');
+  const actual = modalInscDatos?.asesor_id || '';
+  sel.innerHTML = opcionesVendedor(actual);
+  sel.value = actual;
+  if(!actual){
+    hint.className = 'vend-hint alerta';
+    hint.textContent = 'Sin vendedor — esta venta no le cuenta a nadie en el corte.';
+  } else {
+    hint.className = 'vend-hint';
+    hint.textContent = 'Cambiarlo mueve la venta de corte y queda registrado en Actividad del equipo.';
+  }
 }
 function cerrarModalInscripcion(){
   document.getElementById('modalInscripcion').classList.remove('open');
@@ -3117,6 +3295,74 @@ function actualizarPreviewCorreccion(){
 }
 ['corrPrecio','corrPagado'].forEach(id=>
   document.getElementById(id).addEventListener('input', actualizarPreviewCorreccion));
+
+/* Reasignar una venta es mover dinero de la cuenta de alguien más, así que:
+   asignar sobre vacío es directo; cambiar de dueño pregunta, y pregunta más
+   fuerte si quien lo hace se la está pasando a sí mismo. Pase lo que pase
+   queda el rastro doble — bitácora del equipo y renglón en las notas del
+   alumno — porque la bitácora se puede purgar algún día y la nota no. */
+document.getElementById('guardarInscVendedor').addEventListener('click', async ()=>{
+  if(!modalInscId || !modalInscDatos) return;
+  const nuevoId  = document.getElementById('inscVendedorSelect').value || null;
+  const previoId = modalInscDatos.asesor_id || null;
+  if(nuevoId === previoId){ toast('Ya estaba a ese nombre.', true); return; }
+
+  const alumno   = modalInscDatos.personas?.nombre || 'esta alumna';
+  const nombreDe = id => nombreVendedor(id) || 'nadie';
+  let motivo = '';
+
+  if(previoId){
+    const aMiNombre = nuevoId && usuarioActual?.id === nuevoId;
+    const aviso = nuevoId
+      ? `Esta venta está a nombre de <b>${nombreDe(previoId)}</b>.<br>` +
+        (aMiNombre ? `La vas a pasar a <b>tu nombre (${nombreDe(nuevoId)})</b>.` : `La vas a pasar a <b>${nombreDe(nuevoId)}</b>.`) +
+        `<br><br>Esto cambia a quién le cuenta <b>${alumno}</b> en el corte.`
+      : `Vas a quitarle esta venta a <b>${nombreDe(previoId)}</b> y dejarla sin dueño.<br><br>` +
+        `<b>${alumno}</b> dejará de contarle a nadie en el corte.`;
+    motivo = await preguntarConfirmacion({
+      titulo: aMiNombre ? '¿Pasar esta venta a tu nombre?' : '¿Cambiar de vendedor?',
+      aviso, fuerte: aMiNombre, pedirMotivo: true,
+      textoSi: aMiNombre ? 'Sí, es mía' : 'Sí, cambiarla',
+    });
+    if(motivo === null) return;   // cancelaron
+  }
+
+  const btn = document.getElementById('guardarInscVendedor');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  // El rastro sólo se escribe cuando hubo un dueño anterior: la primera
+  // asignación no es una disputa, es capturar lo que faltaba.
+  const cambios = { asesor_id: nuevoId };
+  if(previoId){
+    const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+    const rastro = `VENTA REASIGNADA ${hoy} por ${usuarioActual?.nombre || 'alguien'}: `
+                 + `${nombreDe(previoId)} → ${nombreDe(nuevoId)}.`
+                 + (motivo ? ` Motivo: ${motivo}` : '');
+    cambios.notas_migracion = (modalInscDatos.notas_migracion ? modalInscDatos.notas_migracion + ' || ' : '') + rastro;
+  }
+
+  const { error } = await sb.from('inscripciones').update(cambios).eq('id', modalInscId);
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if(error){ toast('No se pudo guardar el vendedor: ' + error.message, true); return; }
+
+  modalInscDatos.asesor_id = nuevoId;
+  if(cambios.notas_migracion){
+    modalInscDatos.notas_migracion = cambios.notas_migracion;
+    document.getElementById('modalInscNotasEdit').value = cambios.notas_migracion.split(' | ').join('\n');
+  }
+  pintarVendedorFicha();
+  toast(nuevoId ? `Venta a nombre de ${nombreDe(nuevoId)}.` : 'Venta sin vendedor asignado.');
+  registrarActividad(previoId ? 'venta_reasignada' : 'venta_asignada',
+    previoId ? `${alumno}: ${nombreDe(previoId)} → ${nombreDe(nuevoId)}${motivo ? ' · ' + motivo : ''}`
+             : `${alumno} → ${nombreDe(nuevoId)}`);
+
+  // El tablero se repinta para que la vista "Vendedor" no quede desfasada.
+  if(typeof inscritosCache !== 'undefined' && inscritosCache.length){
+    const fila = inscritosCache.find(i=>i.id === modalInscId);
+    if(fila) fila.asesor_id = nuevoId;
+    if(document.getElementById('view-board')?.classList.contains('active')) pintarBoard();
+  }
+});
 
 document.getElementById('guardarInscNotas').addEventListener('click', async ()=>{
   if(!modalInscId) return;
@@ -3473,18 +3719,18 @@ async function renderVentasAsesores(){
     sub.textContent = 'Curso activo · sin eventos programados todavía.';
     pintarChartBarras('chartAsesores', [], [], {});
     crearTablaOrdenable(document.getElementById('tablaAsesores'), [
-      { key:'nombre', label:'Asesor' }, { key:'monto', label:'Recaudado', num:true }, { key:'alumnos', label:'Alumnos', num:true }, { key:'liquidados', label:'Liquidados', num:true },
+      { key:'nombre', label:'Vendedor' }, { key:'monto', label:'Recaudado', num:true }, { key:'alumnos', label:'Alumnos', num:true }, { key:'liquidados', label:'Liquidados', num:true },
     ], []);
     return;
   }
   const { data, error } = await sb.from('inscripciones')
-    .select('anticipo, liquidado, asesor_id, asesores(nombre)')
+    .select('anticipo, liquidado, asesor_id, usuarios(nombre)')
     .in('evento_id', eventoIds);
   if(error){ sub.textContent = 'Error: ' + error.message; return; }
   const porAsesor = {};
   (data||[]).forEach(i=>{
     const key = i.asesor_id || 'sin_asesor';
-    const nombre = i.asesores?.nombre || 'Sin asesor asignado';
+    const nombre = i.usuarios?.nombre || 'Sin vendedor asignado';
     if(!porAsesor[key]) porAsesor[key] = { nombre, monto:0, liquidados:0, alumnos:0 };
     porAsesor[key].monto += Number(i.anticipo||0);
     porAsesor[key].alumnos += 1;
@@ -3494,7 +3740,7 @@ async function renderVentasAsesores(){
   sub.textContent = 'Curso activo · ' + filas.length + (filas.length===1 ? ' asesor con inscripciones' : ' asesores con inscripciones');
   pintarChartBarras('chartAsesores', filas.map(f=>f.nombre), filas.map(f=>f.monto), { formatter: fmtMoney, vacioTexto:'Todavía no hay inscripciones asignadas a un asesor.' });
   crearTablaOrdenable(document.getElementById('tablaAsesores'), [
-    { key:'nombre', label:'Asesor' },
+    { key:'nombre', label:'Vendedor' },
     { key:'monto', label:'Recaudado', num:true, render:v=>fmtMoney(v) },
     { key:'alumnos', label:'Alumnos', num:true },
     { key:'liquidados', label:'Liquidados', num:true },
@@ -4267,30 +4513,88 @@ document.getElementById('guardarPersonalApoyo').addEventListener('click', async 
    ========================================================= */
 let NOTAS = [];
 let notaColorActual = 'champagne';
+let canalNotas = null;   // suscripción en vivo, para no perder una tarea recién asignada
+
+/* Trae dos cosas en una sola consulta:
+     - mis notas (usuario_id = yo), personales o tareas que me dejaron;
+     - las tareas que YO asigné a otros (asignado_por = yo), para ver si ya se hicieron.
+   Las notas personales de los demás siguen siendo invisibles: eso lo garantiza
+   RLS en la base, no este filtro. */
 async function cargarNotas(){
   if(!usuarioActual?.id){ NOTAS = []; return; }
-  const { data, error } = await sb.from('notas_usuario').select('*').eq('usuario_id', usuarioActual.id).order('creado_en', { ascending:false });
+  const { data, error } = await sb.from('notas_usuario')
+    .select('*, asignador:usuarios!notas_usuario_asignado_por_fkey(nombre), destinatario:usuarios!notas_usuario_usuario_id_fkey(nombre)')
+    .or(`usuario_id.eq.${usuarioActual.id},asignado_por.eq.${usuarioActual.id}`)
+    .order('creado_en', { ascending:false });
   if(error){ console.warn('No se pudieron cargar las notas:', error.message); NOTAS = []; return; }
   NOTAS = data || [];
 }
+
+const esMia      = n => n.usuario_id === usuarioActual?.id;
+const esTarea    = n => !!n.asignado_por;
+const meAsignaron = n => esTarea(n) && esMia(n);
+const yoAsigne    = n => esTarea(n) && n.asignado_por === usuarioActual?.id && !esMia(n);
+
+function fechaNota(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const hoy = new Date();
+  const mismoDia = d.toDateString() === hoy.toDateString();
+  return mismoDia ? 'hoy ' + d.toLocaleTimeString('es-MX',{hour:'numeric',minute:'2-digit'})
+                  : d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+}
+
+function tarjetaNota(n){
+  const tarea = esTarea(n);
+  const mia   = esMia(n);
+  // Una tarea asignada sólo la borra quien la dejó: así ningún pendiente
+  // desaparece solo. (La base lo impide igual, esto es para no ofrecer el botón.)
+  const puedeBorrar = !tarea || !mia;
+  let encabezado = '';
+  if(meAsignaron(n))  encabezado = `<div class="quien">🔔 Te asignó ${n.asignador?.nombre || 'un admin'} · ${fechaNota(n.creado_en)}</div>`;
+  else if(yoAsigne(n)) encabezado = `<div class="quien">📤 Para ${n.destinatario?.nombre || 'alguien'} · ${fechaNota(n.creado_en)}</div>`;
+  const estado = yoAsigne(n)
+    ? `<div class="estado-tarea">${n.completado ? '✅ Hecha ' + fechaNota(n.completado_en) : (n.visto_en ? '👀 Ya la vio' : '⏳ Todavía no la ve')}</div>`
+    : '';
+  return `
+    <div class="nota-card ${tarea ? 'tarea' : (n.color||'champagne')} ${n.completado?'hecha':''} ${meAsignaron(n) && !n.visto_en ? 'nueva':''}" data-nota-id="${n.id}">
+      ${encabezado}
+      <div class="texto">${n.texto}</div>
+      ${estado}
+      <div class="acciones">
+        ${mia ? `<label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
+          <input type="checkbox" class="chk" ${n.completado?'checked':''}> ${n.completado?'Hecho':'Marcar hecho'}
+        </label>` : '<span></span>'}
+        ${puedeBorrar ? '<button class="borrar" title="Borrar">🗑</button>' : ''}
+      </div>
+    </div>`;
+}
+
 function renderNotas(){
   const lista = document.getElementById('notasLista');
   const badge = document.getElementById('notasBadge');
   if(!lista || !badge) return;
-  const pendientes = NOTAS.filter(n=>!n.completado).length;
-  badge.style.display = pendientes ? 'flex' : 'none';
-  badge.textContent = pendientes;
-  if(!NOTAS.length){ lista.innerHTML = '<div class="empty-note">Sin notas todavía — agrega una arriba.</div>'; return; }
-  lista.innerHTML = NOTAS.map(n=>`
-    <div class="nota-card ${n.color||'champagne'} ${n.completado?'hecha':''}" data-nota-id="${n.id}">
-      <div class="texto">${n.texto}</div>
-      <div class="acciones">
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
-          <input type="checkbox" class="chk" ${n.completado?'checked':''}> ${n.completado?'Hecho':'Marcar hecho'}
-        </label>
-        <button class="borrar" title="Borrar nota">🗑</button>
-      </div>
-    </div>`).join('');
+
+  const tareasParaMi = NOTAS.filter(meAsignaron);
+  const propias      = NOTAS.filter(n=> esMia(n) && !esTarea(n));
+  const asignadas    = NOTAS.filter(yoAsigne);
+
+  // El contador rojo: las tareas que me dejaron y todavía no veo pesan más que
+  // mis propios pendientes, así que si hay alguna nueva el número es ESE.
+  const sinVer = tareasParaMi.filter(n=> !n.visto_en && !n.completado).length;
+  const pendientes = NOTAS.filter(n=> esMia(n) && !n.completado).length;
+  const cuenta = sinVer || pendientes;
+  badge.style.display = cuenta ? 'flex' : 'none';
+  badge.textContent = cuenta;
+  badge.style.background = sinVer ? 'var(--wine)' : 'var(--danger)';
+
+  const secciones = [];
+  if(tareasParaMi.length) secciones.push('<div class="notas-sep">Tareas que te asignaron</div>' + tareasParaMi.map(tarjetaNota).join(''));
+  if(propias.length)      secciones.push((tareasParaMi.length?'<div class="notas-sep">Mis notas</div>':'') + propias.map(tarjetaNota).join(''));
+  if(asignadas.length)    secciones.push('<div class="notas-sep">Tareas que asignaste</div>' + asignadas.map(tarjetaNota).join(''));
+
+  lista.innerHTML = secciones.join('') || '<div class="empty-note">Sin notas todavía — agrega una arriba.</div>';
+
   lista.querySelectorAll('.chk').forEach(chk=> chk.addEventListener('change', (ev)=>{
     marcarNota(ev.target.closest('.nota-card').dataset.notaId, ev.target.checked);
   }));
@@ -4298,25 +4602,100 @@ function renderNotas(){
     borrarNota(ev.target.closest('.nota-card').dataset.notaId);
   }));
 }
+
 async function marcarNota(id, completado){
-  const n = NOTAS.find(x=>x.id===id); if(n) n.completado = completado;
+  const n = NOTAS.find(x=>x.id===id); if(!n) return;
+  n.completado = completado;
+  n.completado_en = completado ? new Date().toISOString() : null;
   renderNotas();
-  await sb.from('notas_usuario').update({ completado, actualizado_en: new Date().toISOString() }).eq('id', id);
+  const { error } = await sb.from('notas_usuario')
+    .update({ completado, completado_en: n.completado_en, actualizado_en: new Date().toISOString() })
+    .eq('id', id);
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  // Quien la asignó tiene que poder ver que ya se hizo, y cuándo.
+  if(completado && esTarea(n)) registrarActividad('tarea_completada', `«${n.texto}» (de ${n.asignador?.nombre || 'un admin'})`);
 }
+
 async function borrarNota(id){
-  NOTAS = NOTAS.filter(n=>n.id!==id);
+  const n = NOTAS.find(x=>x.id===id);
+  if(n && yoAsigne(n)){
+    const ok = await preguntarConfirmacion({
+      titulo: '¿Quitar esta tarea?',
+      aviso: `Se la asignaste a <b>${n.destinatario?.nombre || 'alguien'}</b>. Si la quitas le desaparece de su bloc.`,
+    });
+    if(ok === null) return;
+  }
+  NOTAS = NOTAS.filter(x=>x.id!==id);
   renderNotas();
-  await sb.from('notas_usuario').delete().eq('id', id);
+  const { error } = await sb.from('notas_usuario').delete().eq('id', id);
+  if(error){ toast('No se pudo borrar: ' + error.message, true); await cargarNotas(); renderNotas(); }
 }
+
 async function agregarNota(){
   const input = document.getElementById('notaNuevaTexto');
   const texto = input.value.trim();
   if(!texto || !usuarioActual?.id) return;
+  // El picklist "Para:" sólo existe para admins; para todos los demás
+  // paraId es siempre uno mismo y el bloc funciona igual que siempre.
+  const paraId = (usuarioActual.es_admin && document.getElementById('notaParaSelect').value) || usuarioActual.id;
+  const esAsignacion = paraId !== usuarioActual.id;
   input.value = '';
-  const { data, error } = await sb.from('notas_usuario').insert({ usuario_id: usuarioActual.id, texto, color: notaColorActual }).select('*').single();
-  if(error){ toast('No se pudo guardar la nota: ' + error.message, true); return; }
+  const fila = { usuario_id: paraId, texto, color: esAsignacion ? 'champagne' : notaColorActual };
+  if(esAsignacion) fila.asignado_por = usuarioActual.id;
+  const { data, error } = await sb.from('notas_usuario')
+    .insert(fila).select('*, asignador:usuarios!notas_usuario_asignado_por_fkey(nombre), destinatario:usuarios!notas_usuario_usuario_id_fkey(nombre)').single();
+  if(error){ toast('No se pudo guardar la nota: ' + error.message, true); input.value = texto; return; }
   NOTAS.unshift(data);
   renderNotas();
+  if(esAsignacion){
+    const quien = EQUIPO.find(u=>u.id===paraId)?.nombre || 'esa persona';
+    toast(`Tarea asignada a ${quien}.`);
+    registrarActividad('tarea_asignada', `${quien}: «${texto}»`);
+  }
+}
+
+/* El picklist "Para:" sólo se arma si quien entró es admin. */
+function pintarSelectorPara(){
+  const fila = document.getElementById('notasParaFila');
+  const sel  = document.getElementById('notaParaSelect');
+  if(!fila || !sel) return;
+  if(!usuarioActual?.es_admin){ fila.style.display = 'none'; return; }
+  fila.style.display = 'flex';
+  const otros = EQUIPO.filter(u=> u.id !== usuarioActual.id);
+  sel.innerHTML = `<option value="">Yo</option>` +
+    otros.map(u=>`<option value="${u.id}">${u.nombre}${u.rol?' · '+u.rol:''}</option>`).join('');
+}
+
+/* Marca como vistas las tareas que me asignaron, en cuanto abro el bloc.
+   Eso es lo que apaga el contador — no el hecho de recargar la página. */
+async function marcarTareasVistas(){
+  const nuevas = NOTAS.filter(n=> meAsignaron(n) && !n.visto_en);
+  if(!nuevas.length) return;
+  const ahora = new Date().toISOString();
+  nuevas.forEach(n=> n.visto_en = ahora);
+  renderNotas();
+  await sb.from('notas_usuario').update({ visto_en: ahora }).in('id', nuevas.map(n=>n.id));
+}
+
+/* Aviso en vivo: si un admin me deja una tarea mientras estoy adentro, aparece
+   sin recargar. RLS filtra del lado del servidor, así que sólo llegan filas
+   mías. Si el canal no conecta (red, plan) el Hub sigue igual que antes: la
+   tarea se ve al siguiente login. */
+function escucharTareasEnVivo(){
+  if(canalNotas){ sb.removeChannel(canalNotas); canalNotas = null; }
+  if(!usuarioActual?.id) return;
+  canalNotas = sb.channel('tareas-' + usuarioActual.id)
+    .on('postgres_changes',
+      { event:'INSERT', schema:'public', table:'notas_usuario', filter:`usuario_id=eq.${usuarioActual.id}` },
+      async (payload)=>{
+        if(!payload.new?.asignado_por) return;               // nota propia creada en otra pestaña
+        if(NOTAS.some(n=> n.id === payload.new.id)) return;  // ya la tenemos
+        await cargarNotas();
+        renderNotas();
+        const de = NOTAS.find(n=> n.id === payload.new.id)?.asignador?.nombre || 'un admin';
+        toast(`🔔 ${de} te asignó una tarea nueva.`);
+      })
+    .subscribe();
 }
 document.getElementById('notasColorPick').querySelectorAll('span').forEach(sp=>{
   sp.addEventListener('click', ()=>{
@@ -4327,7 +4706,10 @@ document.getElementById('notasColorPick').querySelectorAll('span').forEach(sp=>{
 });
 document.getElementById('notaNuevaBtn').addEventListener('click', agregarNota);
 document.getElementById('notaNuevaTexto').addEventListener('keydown', (e)=>{ if(e.key==='Enter') agregarNota(); });
-document.getElementById('notasFab').addEventListener('click', ()=> document.getElementById('notasPanel').classList.toggle('open'));
+document.getElementById('notasFab').addEventListener('click', ()=>{
+  const abierto = document.getElementById('notasPanel').classList.toggle('open');
+  if(abierto) marcarTareasVistas();
+});
 
 /**
  * Modal compartido: alumnos de una combinación ciudad+curso, con su
