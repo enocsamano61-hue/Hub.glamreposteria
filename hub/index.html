@@ -339,6 +339,17 @@
   .interaccion-item:last-child{ border-bottom:none; }
   .interaccion-fecha{ font-size:10px; color:var(--ink-soft); }
   .toast{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--wine-dark); color:#fff; padding:11px 18px; border-radius:10px; font-size:12.5px; z-index:80; display:none; }
+
+  /* Chip de sincronización: aparece cuando llegaron cambios de otra persona
+     pero el usuario está ocupado (ficha abierta, arrastrando). Nunca le
+     repintamos la pantalla debajo de los dedos — se le avisa y espera. */
+  .chip-sync{ position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-140%);
+    background:var(--wine); color:#fff; padding:9px 16px; border-radius:999px; font-size:12.5px;
+    font-weight:600; z-index:200; box-shadow:0 8px 22px rgba(41,36,33,.25); cursor:pointer;
+    display:flex; align-items:center; gap:7px; border:none; font-family:inherit;
+    transition:transform .28s cubic-bezier(.2,.9,.3,1.2); }
+  .chip-sync.visible{ transform:translateX(-50%) translateY(0); }
+  .chip-sync .punto{ width:7px; height:7px; border-radius:50%; background:var(--champagne); }
   .toast.show{ display:block; }
   .toast.err{ background:var(--danger); }
 
@@ -1202,6 +1213,9 @@
   </div>
 </div>
 
+<button class="chip-sync" id="chipSync" type="button" aria-live="polite">
+  <span class="punto"></span><span id="chipSyncTexto">Hay cambios nuevos</span> · actualizar
+</button>
 <div class="toast" id="toast"></div>
 
 <!-- ===================== TUTORIAL: SPOTLIGHT + ASISTENTE FLOTANTE ===================== -->
@@ -1275,6 +1289,23 @@ const SUPABASE_URL = 'https://bomlszsnixazhnsegeik.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_w85mi4Z_NunDmMQIcWGaaw_KqNSN2lq';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/* Cuándo fue la última vez que ESTE navegador escribió algo.
+   Sirve para no avisarle a alguien de "cambios nuevos" cuando el cambio lo
+   acaba de hacer él mismo: Realtime devuelve el eco de nuestras propias
+   escrituras igual que las de los demás. Se sella aquí, en un solo lugar,
+   envolviendo el cliente — así ningún guardado nuevo se puede olvidar de
+   marcarse. */
+let ultimaEscrituraPropia = 0;
+const _sbFrom = sb.from.bind(sb);
+sb.from = (tabla)=>{
+  const q = _sbFrom(tabla);
+  for(const metodo of ['insert','update','delete','upsert']){
+    const original = q[metodo].bind(q);
+    q[metodo] = (...args)=>{ ultimaEscrituraPropia = Date.now(); return original(...args); };
+  }
+  return q;
+};
+
 let ESTATUS = [];       // catálogo cargado de la BD
 let CURSOS = [];
 let CIUDADES = [];
@@ -1317,6 +1348,7 @@ function showLogin(){
   document.getElementById('notasPanel').classList.remove('open');
   NOTAS = [];
   if(canalNotas){ sb.removeChannel(canalNotas); canalNotas = null; }
+  detenerSincronizacion();
   // TUTORIAL — quitar estas 4 líneas
   document.getElementById('glamtutFab').style.display = 'none';
   document.getElementById('glamtutPanel').classList.remove('open');
@@ -1354,6 +1386,7 @@ async function continuarSesion(){
   pintarSelectorPara();
   renderNotas();
   escucharTareasEnVivo();
+  escucharDatosEnVivo();
   // Aviso al entrar: si hay tareas sin ver, que no pase desapercibido.
   const sinVer = NOTAS.filter(n=> meAsignaron(n) && !n.visto_en && !n.completado).length;
   if(sinVer) toast(`🔔 Tienes ${sinVer} ${sinVer===1?'tarea nueva':'tareas nuevas'} — ábrelas en el 📝 de abajo.`);
@@ -1446,6 +1479,10 @@ const pickerMenu = document.getElementById('pickerMenu');
 pickerMenu.innerHTML = SECCIONES.map((s,i)=>`<div class="picker-item ${i===0?'active':''}" data-view="${s.id}">${svgIcon(s.icon,'nav-ico')}<span>${s.label}</span></div>`).join('');
 function setActiveSection(id){
   const sec = SECCIONES.find(s=>s.id===id);
+  seccionActiva = id;
+  // Si mientras estaban en otra pantalla alguien más movió algo, esta sección
+  // quedó marcada como vieja: se reconsulta al entrar, no al recargar.
+  if(seccionesDesactualizadas.has(id)) refrescarSeccion(id);
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+id).classList.add('active');
   document.getElementById('viewTitle').textContent = sec.label;
@@ -4505,6 +4542,142 @@ document.getElementById('guardarPersonalApoyo').addEventListener('click', async 
   if(apoyoCtxOrigen === 'plaza') await renderPlazaApoyo(apoyoCtxCiudadId);
   else if(apoyoCtxOrigen === 'calendario' && diaCalendarioAbierto) abrirSheetCalendario(diaCalendarioAbierto);
 });
+
+/* =========================================================
+   SINCRONIZACIÓN EN VIVO — que dos personas vean lo mismo.
+
+   Antes, los datos se cargaban UNA vez al iniciar sesión y se quedaban
+   congelados: si Isabel cambiaba un lead, Jared no se enteraba hasta
+   recargar la página completa. Ni siquiera cambiando de sección. Dos
+   personas trabajando toda la mañana veían dos realidades distintas, que
+   con cobranza de por medio es justo lo que no queremos.
+
+   Cómo funciona, y por qué así:
+
+   1) Realtime es la CAMPANITA, no el cartero. Cuando llega el aviso de que
+      algo cambió, NO parcheamos la fila con lo que trae el mensaje: volvemos
+      a correr la consulta completa. Es a propósito — esas consultas traen
+      datos pegados de otras tablas (nombre, ciudad, estatus, fecha del
+      curso) y reconstruir eso a mano es donde se meten los errores callados:
+      una tarjeta que se queda con la ciudad vieja y nadie lo nota. Volver a
+      consultar tarda ~300 ms y siempre da el dato bueno.
+
+   2) Respiro de 1 segundo: si alguien captura 5 leads seguidos, se
+      reconsulta una vez, no cinco.
+
+   3) NUNCA se repinta debajo de los dedos. Si hay una ficha abierta o están
+      arrastrando un recuadro, se espera y aparece el chip de arriba. En
+      cuanto cierran, se actualiza solo. Sin esto, "tiempo real" se siente
+      como "se me movió la pantalla y perdí lo que escribía".
+
+   4) Red de seguridad doble, porque un canal en vivo se cae sin avisar (se
+      durmió el celular, se fue el wifi): al volver a la pestaña refresca, y
+      hay un repaso cada minuto por si el canal murió callado.
+   ========================================================= */
+const SYNC_RESPIRO_MS = 1000;   // agrupa cambios seguidos
+const SYNC_REPASO_MS  = 60000;  // por si el canal se cayó sin avisar
+const SYNC_ESPERA_MS  = 700;    // cada cuánto revisamos si ya se desocupó
+const SYNC_ECO_MS     = 2500;   // ventana para reconocer el eco de un guardado propio
+const SECCIONES_VIVAS = ['board', 'calendario', 'inicio'];
+
+let canalDatos = null;
+let syncTimer = null, syncEspera = null, syncLatido = null;
+let seccionActiva = 'inicio';
+const seccionesDesactualizadas = new Set();
+
+/* Ocupado = tiene algo abierto o está arrastrando. Repintar ahorita sería
+   quitarle el trabajo de las manos. */
+function syncOcupado(){
+  return !!(document.querySelector('.modal-overlay.open')
+         || document.querySelector('.sheet.open')
+         || document.querySelector('.status-tile.dragging'));
+}
+
+function mostrarChipSync(visible){
+  const chip = document.getElementById('chipSync');
+  if(chip) chip.classList.toggle('visible', !!visible);
+}
+
+async function refrescarSeccion(id){
+  try{
+    if(id === 'board')            await renderBoard();
+    else if(id === 'calendario')  await renderCalendario(true);
+    else if(id === 'inicio')      await renderDashboard();
+    seccionesDesactualizadas.delete(id);
+  }catch(e){
+    // Un refresco fallido no debe romper la sesión de nadie: se reintenta
+    // en el siguiente repaso.
+    console.warn('No se pudo refrescar "' + id + '":', e.message);
+  }
+}
+
+/* Sólo se reconsulta lo que la persona está viendo. Las otras secciones se
+   marcan y se refrescan en cuanto entren — mientras tanto no cuestan nada. */
+async function refrescarDatos(){
+  if(!usuarioActual?.id) return;
+  clearInterval(syncEspera); syncEspera = null;
+  mostrarChipSync(false);
+  SECCIONES_VIVAS.forEach(v=>{ if(v !== seccionActiva) seccionesDesactualizadas.add(v); });
+  if(SECCIONES_VIVAS.includes(seccionActiva)) await refrescarSeccion(seccionActiva);
+}
+
+/* Llegó un aviso de cambio. Espera el respiro; si para entonces la persona
+   está ocupada, saca el chip y se queda vigilando hasta que se desocupe. */
+function pedirRefresco(){
+  if(!usuarioActual?.id) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(()=>{
+    if(!syncOcupado()){ refrescarDatos(); return; }
+    // Está ocupado. Si el cambio es el eco de su propio guardado, su pantalla
+    // ya quedó bien y sacarle un chip sólo lo confundiría.
+    if(Date.now() - ultimaEscrituraPropia < SYNC_ECO_MS) return;
+    mostrarChipSync(true);
+    if(syncEspera) return;                       // ya estamos vigilando
+    syncEspera = setInterval(()=>{
+      if(syncOcupado()) return;
+      refrescarDatos();                          // ella misma limpia el intervalo
+    }, SYNC_ESPERA_MS);
+  }, SYNC_RESPIRO_MS);
+}
+
+/* Las 4 tablas del trabajo diario. RLS filtra del lado del servidor, así que
+   sólo llegan avisos de filas que la persona ya podía ver. */
+function escucharDatosEnVivo(){
+  if(canalDatos){ sb.removeChannel(canalDatos); canalDatos = null; }
+  if(!usuarioActual?.id) return;
+  let canal = sb.channel('operacion-' + usuarioActual.id);
+  ['leads','inscripciones','personas','eventos'].forEach(tabla=>{
+    canal = canal.on('postgres_changes', { event:'*', schema:'public', table:tabla }, pedirRefresco);
+  });
+  canalDatos = canal.subscribe((estado)=>{
+    // Si el canal se cae, el repaso de cada minuto sigue cubriendo. No se le
+    // avisa a la persona: no puede hacer nada al respecto y sólo asusta.
+    if(estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT') console.warn('Canal en vivo:', estado);
+  });
+
+  clearInterval(syncLatido);
+  syncLatido = setInterval(()=>{
+    if(document.visibilityState !== 'visible' || syncOcupado()) return;
+    refrescarDatos();
+  }, SYNC_REPASO_MS);
+}
+
+function detenerSincronizacion(){
+  if(canalDatos){ sb.removeChannel(canalDatos); canalDatos = null; }
+  clearTimeout(syncTimer);   syncTimer  = null;
+  clearInterval(syncEspera); syncEspera = null;
+  clearInterval(syncLatido); syncLatido = null;
+  seccionesDesactualizadas.clear();
+  mostrarChipSync(false);
+}
+
+// Volver a la pestaña después de un rato es el momento más probable de traer
+// datos viejos: se refresca de inmediato.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && usuarioActual?.id && !syncOcupado()) refrescarDatos();
+});
+// El chip es un botón: si le pican, no esperamos a que se desocupen.
+document.getElementById('chipSync').addEventListener('click', ()=> refrescarDatos());
 
 /* =========================================================
    BLOC DE NOTAS PERSONAL — privado por usuario, no invasivo.
