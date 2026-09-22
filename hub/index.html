@@ -316,6 +316,10 @@
   .status-tile-header .extra{ font-size:11px; color:var(--ink-soft); font-weight:600; }
   .insc-debe{ font-size:12px; font-weight:700; color:var(--danger); margin-top:5px; }
   .insc-liq{ font-size:12px; font-weight:700; color:var(--success); margin-top:5px; }
+  .aviso-corregir{ background:rgba(197,166,107,.16); border-left:3px solid var(--champagne); border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.55; color:var(--ink-soft); margin-bottom:14px; }
+  .aviso-corregir b{ color:var(--ink); }
+  .corr-preview{ background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 13px; font-size:13px; font-weight:600; margin-bottom:14px; }
+  .corr-preview .malo{ color:var(--danger); font-weight:700; }
   @media(max-width:700px){ .atajos{ grid-template-columns:repeat(2,1fr); } }
 
   /* ---------- Giras: constructor de ruta ---------- */
@@ -994,6 +998,7 @@
     <div class="modal-tabs">
       <button class="modal-tab active" id="tabInscEstatus">Marcar estatus</button>
       <button class="modal-tab" id="tabInscPago">Agregar pago</button>
+      <button class="modal-tab" id="tabInscCorregir">Corregir</button>
     </div>
 
     <div class="tab-panel active" id="panelInscEstatus">
@@ -1009,6 +1014,19 @@
       <div class="modal-field"><label>Fecha</label><input type="date" id="modalPagoFecha"></div>
       <div class="modal-field"><label>Banco (opcional)</label><input id="modalPagoBanco" placeholder="BanCoppel, transferencia..."></div>
       <button class="btn-primary" id="guardarInscPago">Registrar abono</button>
+    </div>
+
+    <div class="tab-panel" id="panelInscCorregir">
+      <div class="aviso-corregir">
+        Esto <b>reemplaza</b> lo capturado, no suma. Úsalo cuando el monto quedó
+        mal escrito o el precio cambió. Si la alumna acaba de abonar, usa
+        <b>Agregar pago</b> para que quede el registro del abono.
+      </div>
+      <div class="modal-field"><label>Precio del curso</label><input type="number" id="corrPrecio" inputmode="decimal" min="0" step="50"></div>
+      <div class="modal-field"><label>Total pagado hasta hoy</label><input type="number" id="corrPagado" inputmode="decimal" min="0" step="50"></div>
+      <div class="corr-preview" id="corrPreview">—</div>
+      <div class="modal-field"><label>¿Por qué se corrige?</label><input id="corrMotivo" placeholder="Pagó $200 de más en la puerta, se recapturó..."></div>
+      <button class="btn-primary" id="guardarInscCorreccion">Guardar corrección</button>
     </div>
   </div>
 </div>
@@ -1793,6 +1811,7 @@ const ACCION_LABEL = {
   lead_actualizado: 'Actualizó un lead',
   inscripcion_estatus: 'Cambió el estatus de una inscripción',
   pago_registrado: 'Registró un pago',
+  pago_corregido: 'Corrigió montos de una inscripción',
   gira_creada: 'Guardó una gira como borrador',
   gira_confirmada: 'Confirmó una gira',
   sede_asignada_parada: 'Asignó una sede a una parada de gira',
@@ -2334,7 +2353,7 @@ function tarjetaInscrito(i){
     : debe > 0 ? `<div class="insc-debe">Debe ${fmtMoney(debe)}</div><div class="lead-meta">pagó ${fmtMoney(pago)} de ${fmtMoney(Number(i.precio_pactado)||0)}</div>`
     : '<div class="insc-liq">Liquidado</div>';
   return `
-    <div class="lead-card" style="--card-accent:${acento}; cursor:default;" data-persona-id="${i.personas?.id||''}">
+    <div class="lead-card" style="--card-accent:${acento}" data-insc-id="${i.id}">
       <div class="lead-name">${i.personas?.nombre||'(sin nombre)'}</div>
       <div class="lead-meta">${i.personas?.telefono_principal||''}${i.paquete?'<br>'+i.paquete:''}</div>
       ${i.eventos?.ciudades?.nombre?`<div class="lead-ciudad">📍 ${i.eventos.ciudades.nombre} · ${fechaCorta(i.eventos.fecha)}</div>`:''}
@@ -2494,6 +2513,9 @@ function pintarBoard(){
   // Los inscritos no abren el modal de lead: no son leads, no tienen ese registro.
   if(poblacion === 'leads'){
     board.querySelectorAll('.lead-card').forEach(el=>el.addEventListener('click', ()=>abrirModalLead(el.dataset.leadId)));
+  } else {
+    // Los inscritos abren el mismo modal del Calendario: ahí se ajusta el pago.
+    board.querySelectorAll('.lead-card').forEach(el=>el.addEventListener('click', ()=>abrirModalInscripcion(el.dataset.inscId)));
   }
 
   // Arrastrar para reordenar solo aplica a las 4 categorías fijas de estatus;
@@ -3046,6 +3068,11 @@ async function abrirModalInscripcion(inscId){
   document.getElementById('modalPagoMonto').value = '';
   document.getElementById('modalPagoFecha').value = new Date().toISOString().slice(0,10);
   document.getElementById('modalPagoBanco').value = '';
+  // "Corregir" arranca con lo que hay hoy, para ajustar en vez de recapturar.
+  document.getElementById('corrPrecio').value = data.precio_pactado != null ? Number(data.precio_pactado) : '';
+  document.getElementById('corrPagado').value = Number(data.anticipo || 0);
+  document.getElementById('corrMotivo').value = '';
+  actualizarPreviewCorreccion();
 }
 function cerrarModalInscripcion(){
   document.getElementById('modalInscripcion').classList.remove('open');
@@ -3054,13 +3081,42 @@ function cerrarModalInscripcion(){
 document.getElementById('closeModalInscripcion').addEventListener('click', cerrarModalInscripcion);
 
 function cambiarTabInsc(tab){
-  document.getElementById('tabInscEstatus').classList.toggle('active', tab==='estatus');
-  document.getElementById('tabInscPago').classList.toggle('active', tab==='pago');
-  document.getElementById('panelInscEstatus').classList.toggle('active', tab==='estatus');
-  document.getElementById('panelInscPago').classList.toggle('active', tab==='pago');
+  for(const t of ['estatus','pago','corregir']){
+    const btn = { estatus:'tabInscEstatus', pago:'tabInscPago', corregir:'tabInscCorregir' }[t];
+    const pan = { estatus:'panelInscEstatus', pago:'panelInscPago', corregir:'panelInscCorregir' }[t];
+    document.getElementById(btn).classList.toggle('active', tab===t);
+    document.getElementById(pan).classList.toggle('active', tab===t);
+  }
 }
 document.getElementById('tabInscEstatus').addEventListener('click', ()=>cambiarTabInsc('estatus'));
 document.getElementById('tabInscPago').addEventListener('click', ()=>cambiarTabInsc('pago'));
+document.getElementById('tabInscCorregir').addEventListener('click', ()=>cambiarTabInsc('corregir'));
+
+/* Qué estatus le toca segun lo que lleva pagado. Misma regla que usa
+   "Agregar pago", para que corregir y abonar no dejen datos distintos. */
+function estatusSegunPago(pagado, precio, actual){
+  if(precio != null && pagado >= precio) return ESTATUS.find(e=>e.clave==='pagado')?.id ?? actual;
+  if(pagado > 0)                         return ESTATUS.find(e=>e.clave==='anticipo_vigente')?.id ?? actual;
+  return actual;
+}
+
+/* Vista previa en vivo: antes de guardar se ve el saldo que va a quedar y en
+   que estatus cae. Sin esto, corregir seria a ciegas. */
+function actualizarPreviewCorreccion(){
+  const precio = Number(document.getElementById('corrPrecio').value);
+  const pagado = Number(document.getElementById('corrPagado').value);
+  const caja = document.getElementById('corrPreview');
+  if(!(precio > 0)){ caja.innerHTML = '<span class="malo">Falta el precio del curso.</span>'; return; }
+  if(!(pagado >= 0)){ caja.innerHTML = '<span class="malo">El total pagado no puede ser negativo.</span>'; return; }
+  const restante = Math.max(precio - pagado, 0);
+  const etiqueta = ESTATUS.find(e=>e.id===estatusSegunPago(pagado, precio, modalInscDatos?.estatus_id))?.etiqueta || '—';
+  const sobra = pagado > precio ? ` · <span class="malo">pagó ${fmtMoney(pagado-precio)} de más</span>` : '';
+  caja.innerHTML = restante > 0
+    ? `Quedará debiendo <b>${fmtMoney(restante)}</b> · ${etiqueta}${sobra}`
+    : `Queda <b>liquidada</b> · ${etiqueta}${sobra}`;
+}
+['corrPrecio','corrPagado'].forEach(id=>
+  document.getElementById(id).addEventListener('input', actualizarPreviewCorreccion));
 
 document.getElementById('guardarInscNotas').addEventListener('click', async ()=>{
   if(!modalInscId) return;
@@ -3085,6 +3141,52 @@ document.getElementById('guardarInscEstatus').addEventListener('click', async ()
   registrarActividad('inscripcion_estatus', `${modalInscDatos?.personas?.nombre||''} → ${etiquetaNueva}`);
   cerrarModalInscripcion();
   await renderCalendario(true);
+});
+
+/* Corregir montos. A diferencia de "Agregar pago", esto REEMPLAZA lo capturado:
+   sirve para cuando el monto quedó mal escrito o el precio cambió. Por eso pide
+   motivo y deja el antes/después escrito en las notas — sin ese rastro, una
+   corrección de dinero es imposible de auditar después. */
+document.getElementById('guardarInscCorreccion').addEventListener('click', async ()=>{
+  if(!modalInscId || !modalInscDatos) return;
+  const precio = Number(document.getElementById('corrPrecio').value);
+  const pagado = Number(document.getElementById('corrPagado').value);
+  const motivo = document.getElementById('corrMotivo').value.trim();
+  if(!(precio > 0)){ toast('El precio del curso tiene que ser mayor a cero.', true); return; }
+  if(!(pagado >= 0)){ toast('El total pagado no puede ser negativo.', true); return; }
+  if(!motivo){ toast('Escribe por qué se corrige — queda en el historial.', true); return; }
+
+  const precioAntes = modalInscDatos.precio_pactado != null ? Number(modalInscDatos.precio_pactado) : null;
+  const pagadoAntes = Number(modalInscDatos.anticipo || 0);
+  if(precio === precioAntes && pagado === pagadoAntes){ toast('No cambiaste ningún monto.', true); return; }
+
+  const restante = Math.max(precio - pagado, 0);
+  const liquidado = pagado >= precio;
+  const quien = usuarioActual?.nombre || 'alguien';
+  const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+  const rastro = `CORRECCIÓN ${hoy} por ${quien}: precio ${precioAntes!=null?fmtMoney(precioAntes):'(sin precio)'}`
+               + ` → ${fmtMoney(precio)}, pagado ${fmtMoney(pagadoAntes)} → ${fmtMoney(pagado)}. Motivo: ${motivo}`;
+  const notas = (modalInscDatos.notas_migracion ? modalInscDatos.notas_migracion + ' || ' : '') + rastro;
+
+  const btn = document.getElementById('guardarInscCorreccion');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const { error } = await sb.from('inscripciones').update({
+    precio_pactado: precio, anticipo: pagado, restante, liquidado,
+    estatus_id: estatusSegunPago(pagado, precio, modalInscDatos.estatus_id),
+    notas_migracion: notas,
+  }).eq('id', modalInscId);
+  btn.disabled = false; btn.textContent = 'Guardar corrección';
+  if(error){ toast('Error al guardar la corrección: ' + error.message, true); return; }
+
+  toast(liquidado ? 'Corregido — queda liquidada.' : `Corregido — debe ${fmtMoney(restante)}.`);
+  registrarActividad('pago_corregido',
+    `${modalInscDatos?.personas?.nombre||''}: pagado ${fmtMoney(pagadoAntes)} → ${fmtMoney(pagado)} · ${motivo}`);
+  cerrarModalInscripcion();
+  await renderCalendario(true);
+  if(typeof inscritosCache !== 'undefined' && inscritosCache.length){
+    inscritosCache = await cargarInscritos();
+    if(document.getElementById('view-board')?.classList.contains('active')) pintarBoard();
+  }
 });
 
 document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
