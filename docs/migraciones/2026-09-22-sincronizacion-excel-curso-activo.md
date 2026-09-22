@@ -8,6 +8,11 @@
 Auditoría del Calendario contra el Excel y corrección de las diferencias.
 Se revisaron las 63 fechas programadas del curso activo (22 sep → 22 dic 2026).
 
+Son cuatro migraciones. Las tres primeras sincronizan quién está inscrito; la
+cuarta corrige **cuánto debe cada quien**, y salió de una observación que hizo
+un vendedor el primer día que usó el Hub. Vale leer esa parte y la sección de
+trampas antes de intentar otra migración desde este Excel.
+
 ## Resultado de la auditoría
 
 De las 63 ciudades del Calendario, 39 ya coincidían. Las 24 restantes tenían
@@ -120,17 +125,117 @@ habría fallado contra `inscripciones_persona_id_evento_id_key`.
   `telefono_alternativo`, con nota en `notas_migracion`. **Falta confirmarlo
   con ella.**
 
+### `fase4_precios_restante_y_liquidado_real_curso_activo`
+
+**Esta fase existe porque un vendedor cachó un error el primer día de uso.**
+Preguntó: *"¿por qué aparece el listado en liquidado y no en anticipo?"* Tenía
+razón, y encontrarlo destapó dinero que llevaba meses invisible.
+
+#### La causa
+
+Los cuatro campos de precio estaban en `NULL`:
+
+| Campo | Estado |
+|---|---|
+| `cursos.precio_base` | `NULL` |
+| `eventos.precio` | `NULL` |
+| `eventos.anticipo_sugerido` | `NULL` |
+| `inscripciones.precio_pactado` | `NULL` en todas |
+
+Sin precio no hay forma de calcular el restante. Y la convención heredada de la
+carga inicial ponía `liquidado = true` y `restante = 0` a cualquiera con un peso
+abonado, así que el Hub los mandaba al cubo de liquidados
+(`hub/index.html:2430`):
+
+```js
+if(i.liquidado) liquidadoPorEvento[...]++
+else if(i.anticipo > 0) anticipoPorEvento[...]++
+```
+
+Resultado: 299 personas aparecían como "Pagó el curso" cuando solo habían dado
+los $700 de anticipo. Jared habría cobrado de menos en la puerta. En Peñasco
+solo eran **$15,700** que se iban a escapar ese mismo día.
+
+#### El hallazgo bueno: pagos enterrados en las notas
+
+Al buscar la causa resultó que **la carga inicial tropezó con el mismo problema
+de encabezados desalineados** (la trampa 1 de abajo) y volcó la columna de pago
+al texto libre:
+
+```
+__col10: $700 20 AGOSTO 21:33 COPPEL
+Anticipo_2: $700 29 AGOSTO 13:06 COPPEL
+GLAM FEST: $400 09 FEBRERO + $200 23 FEBRERO
+```
+
+Esas filas figuraban con `$0` cobrado. Se recuperaron sumando los montos con `$`
+de `notas_migracion`, filtrando los `> 5000` para no tomar precios de curso ni
+el `restante` corrupto que la propia carga había marcado
+(`REVISAR MONTO: restante corrupto en migración ($61981.00)`).
+
+| Ciudad | Recuperado |
+|---|---:|
+| Los Mochis | +$4,400 |
+| San Luis Río Colorado | +$3,500 |
+| Veracruz, Tepic, Tecomán, Durango y otras | +$6,550 |
+| **Total** | **+$14,450** |
+
+Cada monto recuperado trae banco y fecha en la nota; se revisaron uno por uno
+antes de aplicar.
+
+#### La corrección
+
+Precios confirmados por el dueño: **BÁSICO $1,400 / VIP $1,900**. El anticipo
+estándar es $700; los de $500 y $600 son abonos parciales, no un precio
+distinto. VIP se detecta por `paquete` o por la palabra `VIP` en las notas
+(se validaron los 7 casos a mano: todos dicen `VIP` o `VIP LIQUIDA EN CURSO`).
+
+```
+precio_pactado = 1900 si VIP, si no 1400
+anticipo       = max(anticipo actual, suma de montos $ en las notas)
+restante       = precio_pactado − anticipo    (0 para las bajas)
+liquidado      = (anticipo >= precio_pactado)
+estatus_id     = 12 si liquidado · 11 si abonó y debe · 6 si baja · 9 si dudoso
+```
+
+Se llenó también el catálogo (`cursos.precio_base = 1400`, y por evento
+`precio = 1400` / `anticipo_sugerido = 700`) para que el Hub calcule solo de
+aquí en adelante y esto no se repita en la próxima gira.
+
+Alcance: solo el curso activo y sus **fechas futuras**. El histórico no se toca
+— ya está cerrado y moverlo alteraría los reportes de venta pasados.
+
+#### Las 16 que no se decidieron
+
+16 filas (10 de ellas en Guaymas) venían marcadas como pagadas por la carga
+inicial **sin monto en ningún campo ni en las notas**. No hay forma de saber si
+pagaron.
+
+Marcarlas como deudoras del total habría hecho que se le cobrara $1,400 a
+alguien que ya pagó. Quedaron en estatus **9 `algo_esta_mal`** con esta nota:
+
+> VERIFICAR ANTES DE COBRAR: la carga inicial la marcó como pagada pero no dejó
+> el monto en ningún campo ni en las notas. No se asume que deba el total;
+> confirmar con el vendedor o el comprobante antes de cobrar en puerta.
+
+Cuando alguien las coteje contra comprobantes, se corrigen a mano.
+
 ## Estado final
 
 | | Antes | Después |
 |---|---:|---:|
 | Alumnos del curso activo (fechas del Calendario) | 661 | **425** |
-| Pagados | — | 299 |
-| Cobrado | — | $187,509 |
+| Cobrado | $187,509 | **$201,959** |
+| Marcados "Pagó el curso" | 299 | **3** |
+| Con anticipo vigente | 0 | **305** |
+| A revisar (estatus 9) | 0 | 16 |
+| **Por cobrar en puerta** | invisible | **$354,541** |
 | `personas` | 36,328 | 36,373 |
 | `leads` | 334 | 334 |
 
-El total baja porque deja de estar inflado; pasa a ser el número real vendido.
+El conteo de alumnos baja porque deja de estar inflado; pasa a ser el número
+real vendido. Los 3 liquidados son los únicos que pagaron el total (dos VIP de
+$1,900 en Peñasco y una en Ensenada).
 
 Verificación: se replicó la consulta de `cargarCalendario()`
 (`hub/index.html:2405`) y las 63 fechas cuadran con el Excel. Integridad en
@@ -140,7 +245,7 @@ duplicados. El nombre del curso no cambió, así que `CURSO_ACTIVO_NOMBRE`
 
 ## Trampas encontradas (para la próxima vez)
 
-Tres cosas que costaron y conviene no volver a tropezar:
+Cuatro cosas que costaron y conviene no volver a tropezar:
 
 **1. Los encabezados del Excel no son confiables.** Varias hojas los traen
 desalineados o repiten la palabra `ANTICIPO`:
@@ -169,6 +274,19 @@ comparten número —madre e hija, como Elda y Akeylah en Mérida— así que
 deduplicar por teléfono los colapsa en uno. Por eso Mérida quedó en 15 y no en
 14, y Córdoba en 20 y no en 19: **la cuenta de Supabase es la correcta.**
 
+**4. El precio tiene que estar en la base, no en la cabeza de nadie.** Con
+`precio_pactado`, `eventos.precio` y `cursos.precio_base` en `NULL`, cualquier
+convención de `liquidado` es adivinanza. El síntoma no se nota en una consulta
+—los números cuadran— sino cuando alguien va a cobrar y la lista dice que ya
+pagaron. **Antes de dar por buena una migración de pagos, comprobar que exista
+el precio y que `anticipo + restante = precio_pactado` en cada fila.**
+
+Y una lección de proceso: la convención de `liquidado` venía de la carga
+inicial, se notó sospechosa al revisarla (*"$700 de $1,600 no es liquidado"*) y
+se copió igual por consistencia en lugar de preguntar. Un vendedor lo cachó en
+la primera hora de uso. **Cuando algo se siente mal al escribirlo, se levanta
+antes de aplicar, no después.**
+
 ## Pendientes
 
 - Ocho ciudades programadas con **cero alumnos**: Tlapacoyan, Teziutlán,
@@ -179,6 +297,17 @@ deduplicar por teléfono los colapsa en uno. Por eso Mérida quedó en 15 y no e
 - Los otros cursos (*Postres Virales*, *Pastelería 360°*): ~50 hojas con datos
   de 2025 sin auditar.
 - Confirmar el teléfono de Guadalupe Mariel (Los Mochis).
+- **Las 16 filas en estatus 9** (`algo_esta_mal`): cotejar contra comprobantes
+  antes de cobrar. 10 son de Guaymas (4 oct).
+- **Tepatitlán** tiene ~24 inscritos al curso activo y su evento no tiene fecha,
+  así que no aparece en el Calendario y nadie los está viendo. Solo 2 de esas 24
+  personas están en Supabase.
+- `paquete` trae valores sueltos de la captura original como `AMIGA DE KAROLA`
+  (Inés Magdalena, Peñasco). Se cobró como BÁSICO; confirmar si traía descuento.
+- La carga inicial **sí** guardó los colores de celda del Excel en las notas,
+  como `Color de estatus sin confirmar (hex #93c47d)`. Si los vendedores se
+  guían por colores, se puede recuperar ese significado como estatus — pero eso
+  ya es cambio de código.
 
 ## Nota sobre datos personales
 
