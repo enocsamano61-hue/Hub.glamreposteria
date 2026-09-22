@@ -299,6 +299,24 @@
   .pill-opt:hover{ border-color:var(--wine); color:var(--ink); }
   .pill-opt:active{ transform:scale(.96); }
   .pill-opt.active{ background:var(--wine); border-color:var(--wine); color:#fff; }
+  .pill-opt.bloqueado{ opacity:.55; }
+
+  /* ---------- ALUMNOS Y LEADS: segmento, atajos y vistas ---------- */
+  .seg{ display:inline-flex; background:var(--card); border:1px solid var(--border); border-radius:11px; padding:3px; }
+  .seg button{ border:0; background:transparent; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink-soft); padding:8px 16px; border-radius:8px; cursor:pointer; transition:background .15s, color .15s; }
+  .seg button.active{ background:var(--wine); color:#fff; }
+  .atajos{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:14px 0 18px; }
+  .atajo{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:13px 14px; cursor:pointer; text-align:left; font-family:inherit; color:inherit; transition:border-color .15s, box-shadow .15s, transform .1s; }
+  .atajo:hover{ border-color:var(--champagne); box-shadow:0 4px 14px rgba(43,35,32,.07); }
+  .atajo:active{ transform:scale(.98); }
+  .atajo .t{ font-size:11px; color:var(--ink-soft); font-weight:600; }
+  .atajo .v{ font-family:'Newsreader',serif; font-size:22px; font-weight:600; margin-top:4px; line-height:1.1; }
+  .atajo .l{ font-size:10.5px; color:var(--ink-soft); margin-top:3px; }
+  .agrupar-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.02em; margin-bottom:9px; }
+  .status-tile-header .extra{ font-size:11px; color:var(--ink-soft); font-weight:600; }
+  .insc-debe{ font-size:12px; font-weight:700; color:var(--danger); margin-top:5px; }
+  .insc-liq{ font-size:12px; font-weight:700; color:var(--success); margin-top:5px; }
+  @media(max-width:700px){ .atajos{ grid-template-columns:repeat(2,1fr); } }
 
   /* ---------- Giras: constructor de ruta ---------- */
   .giras-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
@@ -576,11 +594,18 @@
 
     <!-- ALUMNOS Y LEADS -->
     <div class="view" id="view-board">
+      <div class="seg" id="segPoblacion">
+        <button type="button" data-pob="leads" class="active">Leads</button>
+        <button type="button" data-pob="inscritos">Inscritos</button>
+      </div>
+      <div class="atajos" id="boardAtajos"></div>
       <div class="board-toolbar">
         <div class="board-filters"><input class="search" id="searchInput" placeholder="Buscar por nombre o teléfono..."></div>
         <button class="btn-primary small" id="btnNuevoLead">+ Nuevo lead</button>
       </div>
-      <div class="board" id="board"><div class="empty-note">Cargando leads…</div></div>
+      <div class="agrupar-label">¿Cómo los quieres ver?</div>
+      <div class="pill-group" id="boardVistas" style="margin-bottom:16px;"></div>
+      <div class="board" id="board"><div class="empty-note">Cargando…</div></div>
     </div>
 
     <!-- HISTORIAL CLIENTE -->
@@ -2077,7 +2102,25 @@ async function renderPendientes(){
 let leadsCache = [];
 let eventosProximosPorCiudad = {};
 let ordenCategorias = [];       // orden actual de las 4 categorías (se actualiza al arrastrar)
-let estatusAbiertos = new Set(); // qué categorías están desplegadas, sobrevive a los re-renders
+let inscritosCache = [];        // inscripciones del curso activo (segmento "Inscritos")
+let vistaActiva = 'estatus';    // cómo se agrupan los recuadros
+let poblacion   = 'leads';      // 'leads' | 'inscritos'
+// Cada vista recuerda por separado qué recuadros dejó abiertos el usuario; si
+// fuera un solo Set, abrir "Tijuana" en Ciudad abriría cualquier grupo que se
+// llamara igual en otra vista.
+const abiertosPorVista = {};
+function abiertosDe(v){ return abiertosPorVista[v] || (abiertosPorVista[v] = new Set()); }
+// Primera vez que el Hub guarda preferencias del usuario. Si el navegador las
+// bloquea (modo privado, cookies apagadas) simplemente se usan los valores por
+// defecto — nunca debe tumbar el tablero.
+const LS_VISTA = 'glam.board.vista', LS_POB = 'glam.board.poblacion';
+try {
+  vistaActiva = localStorage.getItem(LS_VISTA) || vistaActiva;
+  poblacion   = localStorage.getItem(LS_POB)   || poblacion;
+} catch(e){}
+function guardarPreferenciaBoard(){
+  try { localStorage.setItem(LS_VISTA, vistaActiva); localStorage.setItem(LS_POB, poblacion); } catch(e){}
+}
 let checadorAbiertos = new Set(); // qué días (persona+fecha) del checador están desplegados
 
 async function cargarEventosProximos(){
@@ -2152,8 +2195,187 @@ async function renderBoard(){
   await cargarEventosProximos();
   leadsCache = await cargarLeads();
   if (ordenCategorias.length !== CATEGORIAS.length) ordenCategorias = CATEGORIAS.map(c => c.id);
+  // El usuario pudo haber dejado el tablero en "Inscritos" la última vez.
+  if(poblacion === 'inscritos') inscritosCache = await cargarInscritos();
   pintarBoard();
 }
+/* =========================================================
+   VISTAS DEL TABLERO — el usuario no filtra, reagrupa.
+   Todas las vistas muestran a TODO el mundo; lo único que cambia es por
+   qué criterio se parten los recuadros. Un filtro esconde gente; esto la
+   reacomoda, que es lo que pidieron los vendedores.
+   ========================================================= */
+const VISTAS = [
+  { id:'estatus',  label:'Estatus',    icon:'🎯' },
+  { id:'ciudad',   label:'Ciudad',     icon:'📍' },
+  { id:'cobranza', label:'Por cobrar', icon:'💰', soloInscritos:true },
+  { id:'vendedor', label:'Vendedor',   icon:'👤', bloqueada:
+      'Todavía no se puede agrupar por vendedor: <code>leads.asesor_id</code> está vacío en los 334 ' +
+      'y el vendedor solo existe como texto libre en los comentarios, con 18 variantes para 5 personas ' +
+      '(ISA CAMPAÑA, ISA CAMAPAÑA, ISA CAPAÑA…). Falta normalizarlo, igual que se hizo con ciudades y cursos.' },
+];
+
+/* Inscritos = quienes ya pagaron anticipo y van al curso activo. Viven en
+   "inscripciones", no en "leads": son dos poblaciones distintas y el saldo
+   pendiente solo existe de este lado. */
+async function cargarInscritos(){
+  const cursoId = await obtenerCursoActivoId();
+  if(!cursoId) return [];
+  const hoy = new Date().toISOString().slice(0,10);
+  const { data, error } = await sb.from('inscripciones').select(`
+      id, anticipo, restante, liquidado, precio_pactado, paquete,
+      personas ( id, nombre, telefono_principal, en_lista_negra ),
+      estatus ( id, etiqueta, color_hex ),
+      eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )
+    `)
+    .eq('eventos.curso_id', cursoId)
+    .gte('eventos.fecha', hoy);
+  if(error){ toast('Error cargando inscritos: ' + error.message, true); return []; }
+  return data || [];
+}
+
+/* 'YYYY-MM-DD' a mediodía: new Date('2026-09-22') se interpreta como UTC y en
+   México se pinta un día antes. */
+function fechaCorta(iso){
+  if(!iso) return '';
+  return new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', {day:'numeric', month:'short'});
+}
+function filasActuales(){ return poblacion === 'inscritos' ? inscritosCache : leadsCache; }
+function ciudadDe(r){
+  return poblacion === 'inscritos'
+    ? { id: r.eventos?.ciudades?.id, nombre: r.eventos?.ciudades?.nombre }
+    : { id: r.ciudad_interes_id,     nombre: r.ciudades?.nombre };
+}
+
+/* Un inscrito cae en exactamente un cubo de cobranza. El orden importa:
+   'baja' y 'revisar' se sacan antes para que no contaminen "sin pago". */
+const CUBOS_COBRANZA = [
+  { id:'revisar',  label:'Por verificar',       color:'#B56F55', test:i=> i.estatus?.id === 9 },
+  { id:'baja',     label:'No van al curso',     color:'#8C8378', test:i=> i.estatus?.id === 6 },
+  { id:'liquido',  label:'Ya liquidaron',       color:'#3F8354', test:i=> i.liquidado },
+  { id:'anticipo', label:'Con anticipo, deben', color:'#C6A66B', test:i=> Number(i.anticipo) > 0 },
+  { id:'sinpago',  label:'Sin ningún pago',     color:'#C4432E', test:i=> true },
+];
+
+function agruparFilas(filas){
+  if(vistaActiva === 'ciudad'){
+    const por = {};
+    filas.forEach(r=>{
+      const c = ciudadDe(r);
+      const key = c.id || '__sin__';
+      if(!por[key]) por[key] = { id:key, label: c.nombre || 'Sin ciudad asignada',
+                                 color: c.id ? '#5A1F2B' : '#8C8378', items:[], fecha:null };
+      por[key].items.push(r);
+      const fx = poblacion === 'inscritos' ? r.eventos?.fecha : eventosProximosPorCiudad[c.id]?.fecha;
+      if(fx && (!por[key].fecha || fx < por[key].fecha)) por[key].fecha = fx;
+    });
+    const arr = Object.values(por);
+    arr.forEach(g=>{
+      const partes = [];
+      if(g.fecha) partes.push('📅 ' + fechaCorta(g.fecha));
+      if(poblacion === 'inscritos'){
+        const debe = g.items.reduce((a,r)=> a + (Number(r.restante) || 0), 0);
+        if(debe > 0) partes.push(fmtMoney(debe) + ' por cobrar');
+      }
+      g.extra = partes.join(' · ');
+    });
+    // Por fecha de curso, y "Sin ciudad asignada" siempre al final: es la
+    // bandeja de pendientes de captura, no una plaza.
+    return arr.sort((a,b)=>{
+      if(a.id === '__sin__') return 1;
+      if(b.id === '__sin__') return -1;
+      if(a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha);
+      if(a.fecha) return -1;
+      if(b.fecha) return 1;
+      return a.label.localeCompare(b.label);
+    });
+  }
+
+  if(vistaActiva === 'cobranza'){
+    const cubos = CUBOS_COBRANZA.map(c=>({ ...c, items:[] }));
+    filas.forEach(r=>{ (cubos.find(c=>c.test(r)) || cubos[cubos.length-1]).items.push(r); });
+    cubos.forEach(c=>{
+      const debe = c.items.reduce((a,r)=> a + (Number(r.restante) || 0), 0);
+      c.extra = debe > 0 ? fmtMoney(debe) + ' por cobrar' : '';
+    });
+    return cubos.filter(c=> c.items.length > 0);
+  }
+
+  // Vista por estatus: las 4 categorías de siempre, en el orden que el usuario arrastró.
+  return ordenCategorias.map(catId=>{
+    const cat = CATEGORIAS.find(c=>c.id===catId);
+    if(!cat) return null;
+    const ids = ESTATUS.filter(e=>cat.claves.includes(e.clave)).map(e=>e.id);
+    return { id:cat.id, label:cat.label, color:cat.color, extra:'',
+             items: filas.filter(r=> ids.includes(r.estatus?.id)) };
+  }).filter(Boolean);
+}
+
+function tarjetaLead(l){
+  const e = l.estatus;
+  const evProx = l.ciudad_interes_id ? eventosProximosPorCiudad[l.ciudad_interes_id] : null;
+  const esNuevo = l.creado_en && (Date.now() - new Date(l.creado_en).getTime()) < 48*60*60*1000;
+  return `
+    <div class="lead-card" style="--card-accent:${e?.color_hex||'#ccc'}" data-lead-id="${l.id}">
+      <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}${esNuevo?' <span class="badge-nuevo">🆕 Nuevo</span>':''}</div>
+      <div class="lead-meta">${l.personas?.telefono_principal||''}${l.cursos?.nombre?'<br>'+l.cursos.nombre:''}</div>
+      ${l.ciudades?.nombre?`<div class="lead-ciudad">📍 ${l.ciudades.nombre}</div>`:''}
+      <span class="lead-tag" style="background:${e?.color_hex||'#ccc'}22; color:${e?.color_hex==='#FFFFFF'?'#8C8378':(e?.color_hex||'#333')};">${e?.etiqueta||''}</span>
+      ${evProx?`<span class="pill-veces" style="margin-top:6px; display:inline-block;">📅 ${fechaCorta(evProx.fecha)}</span>`:''}
+      ${l.personas?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}
+    </div>`;
+}
+
+function tarjetaInscrito(i){
+  const debe = Number(i.restante) || 0, pago = Number(i.anticipo) || 0;
+  const acento = i.estatus?.id === 6 ? '#8C8378' : (debe > 0 ? '#C4432E' : '#3F8354');
+  const saldo = i.estatus?.id === 6 ? '<div class="lead-meta">No va al curso</div>'
+    : i.estatus?.id === 9 ? '<div class="insc-debe">Verificar antes de cobrar</div>'
+    : debe > 0 ? `<div class="insc-debe">Debe ${fmtMoney(debe)}</div><div class="lead-meta">pagó ${fmtMoney(pago)} de ${fmtMoney(Number(i.precio_pactado)||0)}</div>`
+    : '<div class="insc-liq">Liquidado</div>';
+  return `
+    <div class="lead-card" style="--card-accent:${acento}; cursor:default;" data-persona-id="${i.personas?.id||''}">
+      <div class="lead-name">${i.personas?.nombre||'(sin nombre)'}</div>
+      <div class="lead-meta">${i.personas?.telefono_principal||''}${i.paquete?'<br>'+i.paquete:''}</div>
+      ${i.eventos?.ciudades?.nombre?`<div class="lead-ciudad">📍 ${i.eventos.ciudades.nombre} · ${fechaCorta(i.eventos.fecha)}</div>`:''}
+      ${saldo}
+      ${i.personas?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}
+    </div>`;
+}
+
+/* Atajos: preguntas frecuentes con el número en vivo. Al tocarlos cambian de
+   vista y abren el recuadro que responde la pregunta. */
+function atajosDe(){
+  const filas = filasActuales();
+  if(poblacion === 'inscritos'){
+    const cobrables = filas.filter(i=> i.estatus?.id !== 6 && i.estatus?.id !== 9);
+    const deben  = cobrables.filter(i=> (Number(i.restante)||0) > 0);
+    const total  = deben.reduce((a,i)=> a + Number(i.restante), 0);
+    const prox   = filas.map(i=>i.eventos).filter(e=>e?.fecha).sort((a,b)=>a.fecha.localeCompare(b.fecha))[0];
+    const enProx = prox ? filas.filter(i=> i.eventos?.id === prox.id) : [];
+    return [
+      // Deben tanto quien abonó y falta, como quien no ha pagado nada: el atajo
+      // abre los dos recuadros para que el número y lo que se ve coincidan.
+      { t:'💰 Me deben', v:fmtMoney(total), l:`${deben.length} personas`, ir:['cobranza','anticipo','sinpago'] },
+      { t:'📅 Curso más próximo', v:prox?.ciudades?.nombre || '—', l:prox?`${enProx.length} inscritos · ${fechaCorta(prox.fecha)}`:'sin fechas',
+        ir:['ciudad', prox?.ciudades?.id || '__sin__'] },
+      { t:'⚠️ Por verificar', v:String(filas.filter(i=>i.estatus?.id===9).length), l:'monto no capturado', ir:['cobranza','revisar'] },
+      { t:'✅ Ya liquidaron', v:String(filas.filter(i=>i.liquidado).length), l:'nada que cobrar', ir:['cobranza','liquido'] },
+    ];
+  }
+  const enCat = id=>{
+    const cat = CATEGORIAS.find(c=>c.id===id); if(!cat) return 0;
+    const ids = ESTATUS.filter(e=>cat.claves.includes(e.clave)).map(e=>e.id);
+    return filas.filter(l=>ids.includes(l.estatus?.id)).length;
+  };
+  return [
+    { t:'🔴 No contesta', v:String(enCat('nocontesta')), l:'necesitan otro intento', ir:['estatus','nocontesta'] },
+    { t:'⚠️ Necesitan atención', v:String(enCat('atencion')), l:'algo está mal', ir:['estatus','atencion'] },
+    { t:'📍 Sin ciudad', v:String(filas.filter(l=>!l.ciudad_interes_id).length), l:'falta asignarles plaza', ir:['ciudad','__sin__'] },
+    { t:'🎯 En seguimiento', v:String(enCat('seguimiento')), l:'activos ahora', ir:['estatus','seguimiento'] },
+  ];
+}
+
 // Los 12 estatus reales de TIPIFICACIONES se conservan intactos — esto
 // solo los AGRUPA visualmente en 4 categorías de negocio para que el
 // acordeón no sea una lista de 12 filas. Cada tarjeta sigue mostrando
@@ -2165,64 +2387,127 @@ const CATEGORIAS = [
   { id:'atencion', label:'Necesita atención', color:'#C4432E', claves:['algo_esta_mal','no_va_al_curso'] },
 ];
 
+function pintarSegmento(){
+  document.querySelectorAll('#segPoblacion button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.pob === poblacion);
+  });
+}
+
+function pintarChips(){
+  const cont = document.getElementById('boardVistas');
+  cont.innerHTML = VISTAS.map(v=>
+    `<button type="button" class="pill-opt ${v.id===vistaActiva?'active':''} ${v.bloqueada?'bloqueado':''}" data-vista="${v.id}">
+       ${v.icon} ${v.label}${v.bloqueada?' 🔒':''}</button>`).join('');
+  cont.querySelectorAll('[data-vista]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const v = VISTAS.find(x=>x.id===b.dataset.vista);
+      vistaActiva = b.dataset.vista;
+      // "Por cobrar" solo tiene sentido sobre inscritos: el saldo vive ahí.
+      if(v?.soloInscritos && poblacion !== 'inscritos'){
+        poblacion = 'inscritos';
+        toast('El saldo pendiente vive en las inscripciones — te cambié a "Inscritos".');
+        cambiarPoblacion();   // muestra "cargando", trae los datos y repinta una sola vez
+        return;
+      }
+      guardarPreferenciaBoard();
+      pintarBoard();
+    });
+  });
+}
+
+function pintarAtajos(){
+  const cont = document.getElementById('boardAtajos');
+  const lista = atajosDe();
+  cont.innerHTML = lista.map((a,i)=>
+    `<button type="button" class="atajo" data-atajo="${i}">
+       <div class="t">${a.t}</div><div class="v">${a.v}</div><div class="l">${a.l}</div></button>`).join('');
+  cont.querySelectorAll('[data-atajo]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const a = lista[+b.dataset.atajo];
+      vistaActiva = a.ir[0];
+      a.ir.slice(1).forEach(id => abiertosDe(vistaActiva).add(id));
+      guardarPreferenciaBoard();
+      pintarBoard();
+      document.getElementById('board').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+}
+
 function pintarBoard(){
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  const filtrados = leadsCache.filter(l=>{
-    if(!q) return true;
-    const n=(l.personas?.nombre||'').toLowerCase(), t=(l.personas?.telefono_principal||'');
-    return n.includes(q) || t.includes(q);
-  });
   const board = document.getElementById('board');
   if(ESTATUS.length===0){ board.innerHTML = '<div class="empty-note">No se pudo cargar el catálogo de estatus.</div>'; return; }
+
+  pintarSegmento();
+  pintarChips();
+  pintarAtajos();
   board.className = 'status-list';
 
-  board.innerHTML = ordenCategorias.map(catId=>{
-    const cat = CATEGORIAS.find(c=>c.id===catId);
-    if(!cat) return '';
-    const estatusDeCategoria = ESTATUS.filter(e => cat.claves.includes(e.clave));
-    const idsDeCategoria = estatusDeCategoria.map(e=>e.id);
-    const items = filtrados.filter(l => idsDeCategoria.includes(l.estatus?.id));
-    const abierto = estatusAbiertos.has(cat.id);
-    return `<div class="status-tile ${abierto?'open':''}" data-estatus-id="${cat.id}">
+  let vista = VISTAS.find(v=>v.id===vistaActiva) || VISTAS[0];
+  // Preferencia guardada incoherente (p.ej. "Por cobrar" sobre leads, donde no
+  // existe el saldo): se cae a Estatus en vez de pintar cubos vacíos.
+  if(vista.soloInscritos && poblacion !== 'inscritos'){ vistaActiva = 'estatus'; vista = VISTAS[0]; }
+  if(vista.bloqueada){
+    board.innerHTML = `<div class="status-tile open">
+      <div class="status-tile-header"><span class="dot" style="background:#8C8378"></span>
+        <span class="label">Agrupar por vendedor — todavía no</span></div>
+      <div class="status-tile-body" style="display:block;"><div class="empty-note">${vista.bloqueada}</div></div>
+    </div>`;
+    return;
+  }
+
+  const filtrados = filasActuales().filter(r=>{
+    if(!q) return true;
+    const n=(r.personas?.nombre||'').toLowerCase(), t=(r.personas?.telefono_principal||'');
+    return n.includes(q) || t.includes(q);
+  });
+
+  const grupos = agruparFilas(filtrados);
+  const abiertos = abiertosDe(vistaActiva);
+  const vacio = poblacion === 'inscritos' ? 'inscritos' : 'leads';
+
+  board.innerHTML = grupos.map(g=>`
+    <div class="status-tile ${abiertos.has(g.id)?'open':''}" data-estatus-id="${g.id}">
       <div class="status-tile-header">
-        <span class="drag-handle" title="Arrastra para reordenar">⋮⋮</span>
-        <span class="dot" style="background:${cat.color}"></span>
-        <span class="label">${cat.label}</span>
-        <span class="count">${items.length}</span>
+        ${vistaActiva==='estatus' ? '<span class="drag-handle" title="Arrastra para reordenar">⋮⋮</span>' : ''}
+        <span class="dot" style="background:${g.color}"></span>
+        <span class="label">${g.label}</span>
+        ${g.extra ? `<span class="extra">${g.extra}</span>` : ''}
+        <span class="count">${g.items.length}</span>
         <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
       </div>
-      <div class="status-tile-body">${items.map(l=>{
-        const e = l.estatus;
-        const evProx = l.ciudad_interes_id ? eventosProximosPorCiudad[l.ciudad_interes_id] : null;
-        const fechaBadge = evProx
-          ? `<span class="pill-veces" style="margin-top:6px; display:inline-block;">📅 ${new Date(evProx.fecha).toLocaleDateString('es-MX', {day:'numeric', month:'short'})}</span>`
-          : '';
-        const esNuevo = l.creado_en && (Date.now() - new Date(l.creado_en).getTime()) < 48*60*60*1000;
-        return `
-        <div class="lead-card" style="--card-accent:${e?.color_hex||'#ccc'}" data-lead-id="${l.id}">
-          <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}${esNuevo?' <span class="badge-nuevo">🆕 Nuevo</span>':''}</div>
-          <div class="lead-meta">${l.personas?.telefono_principal||''}${l.cursos?.nombre?'<br>'+l.cursos.nombre:''}</div>
-          ${l.ciudades?.nombre?`<div class="lead-ciudad">📍 ${l.ciudades.nombre}</div>`:''}
-          <span class="lead-tag" style="background:${e?.color_hex||'#ccc'}22; color:${e?.color_hex==='#FFFFFF'?'#8C8378':(e?.color_hex||'#333')};">${e?.etiqueta||''}</span>
-          ${fechaBadge}
-          ${l.personas?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}
-        </div>`;
-      }).join('') || '<div class="empty-note">Sin leads en esta categoría.</div>'}</div>
-    </div>`;
-  }).join('');
+      <div class="status-tile-body">${
+        g.items.map(r=> poblacion==='inscritos' ? tarjetaInscrito(r) : tarjetaLead(r)).join('')
+        || `<div class="empty-note">Sin ${vacio} en este grupo.</div>`
+      }</div>
+    </div>`).join('') || `<div class="empty-note">Sin ${vacio} que mostrar${q?' para esa búsqueda':''}.</div>`;
 
   board.querySelectorAll('.status-tile-header').forEach(h=>{
     h.addEventListener('click', (ev)=>{
       if(ev.target.closest('.drag-handle')) return;
       const tile = h.closest('.status-tile');
       const id = tile.dataset.estatusId;
-      if(estatusAbiertos.has(id)) estatusAbiertos.delete(id); else estatusAbiertos.add(id);
+      if(abiertos.has(id)) abiertos.delete(id); else abiertos.add(id);
       tile.classList.toggle('open');
     });
   });
-  board.querySelectorAll('.lead-card').forEach(el=>el.addEventListener('click', ()=>abrirModalLead(el.dataset.leadId)));
+  // Los inscritos no abren el modal de lead: no son leads, no tienen ese registro.
+  if(poblacion === 'leads'){
+    board.querySelectorAll('.lead-card').forEach(el=>el.addEventListener('click', ()=>abrirModalLead(el.dataset.leadId)));
+  }
 
-  habilitarArrastre(board);
+  // Arrastrar para reordenar solo aplica a las 4 categorías fijas de estatus;
+  // en Ciudad y Por cobrar el orden lo manda el dato (fecha de curso, saldo).
+  if(vistaActiva === 'estatus') habilitarArrastre(board);
+}
+
+async function cambiarPoblacion(){
+  if(poblacion === 'inscritos' && inscritosCache.length === 0){
+    document.getElementById('board').innerHTML = '<div class="empty-note">Cargando inscritos…</div>';
+    inscritosCache = await cargarInscritos();
+  }
+  guardarPreferenciaBoard();
+  pintarBoard();
 }
 
 /**
@@ -2261,6 +2546,15 @@ function habilitarArrastre(container){
   });
 }
 document.getElementById('searchInput').addEventListener('input', pintarBoard);
+document.querySelectorAll('#segPoblacion button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    if(poblacion === b.dataset.pob) return;
+    poblacion = b.dataset.pob;
+    // "Por cobrar" no existe del lado de leads; se cae a Estatus.
+    if(poblacion === 'leads' && (VISTAS.find(v=>v.id===vistaActiva)||{}).soloInscritos) vistaActiva = 'estatus';
+    cambiarPoblacion();
+  });
+});
 
 /* --- Modal: detalle / actualizar estatus / comentar --- */
 let leadAbiertoId = null, leadAbiertoPersonaId = null;
@@ -2373,7 +2667,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   registrarActividad('lead_creado', nombre);
   document.getElementById('modalNuevo').classList.remove('open');
   const catNueva = CATEGORIAS.find(c=>c.claves.includes(estatusInicial.clave));
-  if(catNueva) estatusAbiertos.add(catNueva.id);
+  if(catNueva) abiertosDe('estatus').add(catNueva.id);
   await renderBoard(); await renderDashboard();
 });
 
