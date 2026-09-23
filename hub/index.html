@@ -517,6 +517,18 @@
   /* ---------- INSCRIBIR desde la ficha del lead ---------- */
   .btn-inscribir{ width:100%; background:var(--success); color:#fff; border:none; padding:12px 17px; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; margin-bottom:14px; font-family:inherit; }
   .btn-inscribir:hover{ filter:brightness(.94); }
+  /* Flujo del pago en la ficha del lead: ⚪ lead → 💜 reportado → ✅ confirmado */
+  .pago-lead{ margin-bottom:14px; }
+  .pago-botones{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pago-botones > button{ flex:1 1 140px; margin-bottom:0; }
+  .btn-reportar{ background:#7B3FA0; color:#fff; border:none; padding:12px 17px; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .btn-reportar.suave{ background:transparent; color:#7B3FA0; border:1px solid #7B3FA0; }
+  .btn-no-encontrado{ background:transparent; color:var(--danger); border:1px solid var(--danger); padding:12px 17px; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .pago-reportado{ background:rgba(123,63,160,.08); border-left:3px solid #7B3FA0; border-radius:8px; padding:10px 12px; font-size:12.5px; line-height:1.55; color:var(--ink); margin-bottom:10px; }
+  .pago-reportado b{ color:#7B3FA0; }
+  .lead-pago-rep{ font-size:11px; color:#7B3FA0; font-weight:700; margin-top:4px; }
+  .lead-anticipo{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .lead-anticipo.vencida{ color:var(--danger); font-weight:700; }
   .seg.full{ display:flex; width:100%; }
   .seg.full button{ flex:1; }
   /* Filas y chips que abren la ficha de la alumna (Plazas, Historial). */
@@ -981,6 +993,11 @@
         <div class="sub">Marca o desmarca por rol — cambia al instante para todos los que tengan ese rol. "Inicio" siempre queda marcado para que nadie se quede sin dónde entrar.</div>
         <div id="matrizPermisosRol" style="margin-top:12px;">Cargando…</div>
       </div>
+      <div class="card">
+        <h3>Qué puede hacer cada rol</h3>
+        <div class="sub">Acciones delicadas, aparte de las secciones. Los administradores siempre pueden.</div>
+        <div id="matrizAccionesRol" style="margin-top:12px;">Cargando…</div>
+      </div>
     </div>
   </div>
 </div>
@@ -991,7 +1008,14 @@
     <button class="close" id="closeModalLead">✕</button>
     <h3 id="modalLeadNombre">—</h3>
     <div class="sub" id="modalLeadTelefono" style="margin-bottom:14px;"></div>
-    <button class="btn-inscribir" id="btnInscribirLead" type="button">✅ Inscribir al curso</button>
+    <div class="pago-lead" id="leadPagoCaja">
+      <div class="pago-reportado" id="leadPagoReportado" style="display:none;"></div>
+      <div class="pago-botones">
+        <button class="btn-reportar" id="btnRegistrarPago" type="button">💜 Registrar pago</button>
+        <button class="btn-inscribir" id="btnInscribirLead" type="button">✅ Inscribir al curso</button>
+        <button class="btn-no-encontrado" id="btnPagoNoEncontrado" type="button">❌ No se encontró</button>
+      </div>
+    </div>
     <div class="modal-vendedor">
       <div class="modal-notas-titulo">¿Quién vendió?</div>
       <div class="vend-row">
@@ -1003,7 +1027,9 @@
     <div class="modal-field"><label>Nombre</label><input id="modalNombreEdit"></div>
     <div class="modal-field"><label>Teléfono principal</label><input id="modalTelefonoEdit" placeholder="10 dígitos"></div>
     <div class="modal-field"><label>Teléfono adicional</label><input id="modalTelefonoAltEdit" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Curso que tomará</label><select id="modalEventoSelect"></select></div>
     <div class="modal-field"><label>Ciudad de interés</label><select id="modalCiudadSelect"><option value="">— Sin especificar —</option></select></div>
+    <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="modalFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
     <div class="modal-field"><label>Estatus</label><select id="modalEstatusSelect"></select></div>
     <div class="modal-field"><label>Agregar comentario</label><textarea class="textarea" id="modalComentarioNuevo" placeholder="Qué pasó en el último contacto..."></textarea></div>
     <button class="btn-primary" id="guardarLead">Guardar cambios</button>
@@ -1019,8 +1045,9 @@
 <div class="modal-overlay" id="modalInscribir">
   <div class="modal">
     <button class="close" id="closeModalInscribir">✕</button>
-    <h3>Inscribir al curso</h3>
+    <h3 id="inscribirTitulo">Inscribir al curso</h3>
     <div class="sub" id="inscribirQuien" style="margin-bottom:14px;">—</div>
+    <div class="pago-reportado" id="inscribirReportado" style="display:none;"></div>
     <div class="modal-field"><label>Curso</label><select id="inscribirEvento"></select></div>
     <div class="aviso-corregir" id="inscribirAvisoCiudad" style="display:none;"></div>
     <div class="modal-field"><label>Paquete</label>
@@ -1038,6 +1065,29 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: REGISTRAR PAGO (💜) =====================
+     El vendedor avisa que la alumna ya pagó. Sigue siendo LEAD, con el pago
+     reportado, hasta que alguien con permiso "Confirmar pagos" lo encuentre. -->
+<div class="modal-overlay" id="modalRegistrarPago">
+  <div class="modal">
+    <button class="close" id="closeModalRegistrarPago">✕</button>
+    <h3>💜 Registrar pago</h3>
+    <div class="sub" id="regPagoQuien" style="margin-bottom:10px;">—</div>
+    <div class="aviso-corregir">Queda como <b>pago por confirmar</b>: sigue siendo lead y todavía no aparece en su ciudad. Cuando Cobranza lo encuentre en el banco, la inscribe.</div>
+    <div class="modal-field"><label>Curso</label><select id="regPagoEvento"></select></div>
+    <div class="modal-field"><label>Paquete</label>
+      <div class="seg full" id="regPagoPaquete">
+        <button type="button" data-paq="BASICO" class="active">Básico $1,400</button>
+        <button type="button" data-paq="VIP">VIP $1,900</button>
+      </div>
+    </div>
+    <div class="modal-field"><label>¿Cuánto pagó?</label><input type="number" id="regPagoMonto" inputmode="decimal" min="0" step="50"></div>
+    <div class="modal-field"><label>Fecha del pago</label><input type="date" id="regPagoFecha"></div>
+    <div class="modal-field"><label>Banco</label><input id="regPagoBanco" placeholder="HEY BANCO, COPPEL, OXXO..."></div>
+    <button class="btn-reportar" id="guardarRegistrarPago" style="width:100%;">💜 Registrar pago</button>
+  </div>
+</div>
+
 <!-- ===================== MODAL: NUEVO LEAD ===================== -->
 <div class="modal-overlay" id="modalNuevo">
   <div class="modal">
@@ -1045,8 +1095,10 @@
     <h3>Nuevo lead</h3>
     <div class="modal-field"><label>Nombre</label><input id="nuevoNombre"></div>
     <div class="modal-field"><label>Teléfono</label><input id="nuevoTelefono" placeholder="10 dígitos"></div>
-    <div class="modal-field"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
-    <div class="modal-field"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
+    <div class="modal-field"><label>Curso que tomará</label><select id="nuevoEvento"></select><div class="vend-hint">Busca por ciudad. Si todavía no decide, déjalo en “Aún no decide”.</div></div>
+    <div class="modal-field" id="nuevoCiudadCampo"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
+    <div class="modal-field" id="nuevoCursoCampo"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
+    <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="nuevoFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
     <div class="modal-field"><label>¿Quién vendió?</label><select id="nuevoVendedor"></select></div>
     <button class="btn-primary" id="guardarNuevoLead">Crear lead</button>
   </div>
@@ -1430,7 +1482,7 @@ async function onLogin(session){
 // para poder detenerlo en seco si a la persona le toca cambiar su contraseña
 // primero — y para retomarlo justo aquí en cuanto la cambia.
 async function continuarSesion(){
-  await cargarPermisosRol();
+  await Promise.all([cargarPermisosRol(), cargarPermisosAccion()]);
   aplicarPermisosNav();
   document.getElementById('saludoInicio').innerHTML = (usuarioActual.nombre ? 'Hola, '+usuarioActual.nombre : 'Buenos días') + ' <span class="spark">✦</span>';
   document.getElementById('appShell').classList.add('active');
@@ -1613,6 +1665,22 @@ async function cargarPermisosRol(){
     if(!PERMISOS_ROL_CACHE[r.rol]) PERMISOS_ROL_CACHE[r.rol] = new Set();
     PERMISOS_ROL_CACHE[r.rol].add(r.seccion_id);
   });
+}
+// Acciones que se dan o quitan por rol (tabla permisos_accion: fila = puede).
+const ACCIONES_POR_ROL = [
+  { id:'confirmar_pagos', label:'💳 Confirmar pagos', ayuda:'Convierte un pago reportado (💜) en inscripción, o inscribe directo.' },
+];
+let PERMISOS_ACCION_CACHE = null;   // { [rol]: Set(accion) }
+async function cargarPermisosAccion(){
+  const { data, error } = await sb.from('permisos_accion').select('rol, accion');
+  if(error){ console.warn('No se pudo cargar permisos_accion:', error.message); PERMISOS_ACCION_CACHE = {}; return; }
+  PERMISOS_ACCION_CACHE = {};
+  (data||[]).forEach(r=>{ (PERMISOS_ACCION_CACHE[r.rol] = PERMISOS_ACCION_CACHE[r.rol] || new Set()).add(r.accion); });
+}
+function puede(accion){
+  if(!usuarioActual) return false;
+  if(usuarioActual.es_admin) return true;
+  return !!PERMISOS_ACCION_CACHE?.[usuarioActual.rol]?.has(accion);
 }
 function seccionesPermitidas(){
   let base = TODAS_SECCIONES;
@@ -1975,6 +2043,10 @@ const ACCION_LABEL = {
   pago_registrado: 'Registró un pago',
   pago_corregido: 'Corrigió montos de una inscripción',
   inscripcion_creada: 'Inscribió a una alumna desde el Hub',
+  pago_reportado: '💜 Reportó un pago (por confirmar)',
+  pago_confirmado: '✅ Confirmó un pago',
+  pago_no_encontrado: '❌ No encontró un pago reportado',
+  permiso_cambiado: 'Cambió un permiso de rol',
   venta_asignada: 'Asignó el vendedor de una venta',
   venta_reasignada: 'Cambió de vendedor una venta',
   tarea_asignada: 'Le asignó una tarea a alguien',
@@ -2175,6 +2247,36 @@ async function renderUsuariosPermisos(){
       cargarPermisosRol();
     });
   });
+  renderMatrizAcciones(roles);
+}
+
+async function renderMatrizAcciones(roles){
+  const cont = document.getElementById('matrizAccionesRol');
+  const { data, error } = await sb.from('permisos_accion').select('rol, accion');
+  if(error){ cont.textContent = 'Error: ' + error.message; return; }
+  const por = {};
+  (data||[]).forEach(p=>{ (por[p.rol] = por[p.rol] || new Set()).add(p.accion); });
+  cont.innerHTML = `<div class="rep-table-wrap"><table class="rep-table perm-matriz">
+    <thead><tr><th>Rol</th>${ACCIONES_POR_ROL.map(a=>`<th style="text-align:center; cursor:default;" title="${escapeAttr(a.ayuda)}">${a.label}</th>`).join('')}</tr></thead>
+    <tbody>${roles.map(rol=>`<tr><td>${rol}</td>${ACCIONES_POR_ROL.map(a=>
+      `<td style="text-align:center;"><input type="checkbox" data-acc-rol="${escapeAttr(rol)}" data-acc="${a.id}" ${por[rol]?.has(a.id)?'checked':''}></td>`).join('')}</tr>`).join('')
+      || `<tr><td colspan="${ACCIONES_POR_ROL.length+1}" class="empty-note">Sin roles todavía.</td></tr>`}</tbody>
+  </table></div>`;
+  cont.querySelectorAll('[data-acc-rol]').forEach(chk=>{
+    chk.addEventListener('change', async ()=>{
+      const rol = chk.dataset.accRol, accion = chk.dataset.acc;
+      chk.disabled = true;
+      const { error } = chk.checked
+        ? await sb.from('permisos_accion').insert({ rol, accion })
+        : await sb.from('permisos_accion').delete().eq('rol', rol).eq('accion', accion);
+      chk.disabled = false;
+      if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
+      const etiqueta = ACCIONES_POR_ROL.find(a=>a.id===accion)?.label || accion;
+      toast(`"${rol}" ${chk.checked?'ahora puede':'ya no puede'}: ${etiqueta}.`);
+      registrarActividad('permiso_cambiado', `${rol}: ${chk.checked?'+':'−'} ${etiqueta}`);
+      cargarPermisosAccion();
+    });
+  });
 }
 
 /* =========================================================
@@ -2350,7 +2452,7 @@ async function cargarEventosCalendario(){
   const cursoId = await obtenerCursoActivoId();
   if(!cursoId){ EVENTOS_CAL = []; return; }
   const hoy = new Date().toISOString().slice(0,10);
-  const { data, error } = await sb.from('eventos').select('id, fecha, ciudad_id, ciudades(nombre, estado)')
+  const { data, error } = await sb.from('eventos').select('id, fecha, ciudad_id, curso_id, ciudades(nombre, estado)')
     .eq('curso_id', cursoId).gte('fecha', hoy).order('fecha', { ascending:true });
   if(error){ console.warn('No se pudieron cargar los cursos del Calendario:', error.message); return; }
   EVENTOS_CAL = data || [];
@@ -2565,7 +2667,9 @@ function listaBuscadora(inp, caja, { items, alElegir, alSalir }){
 
 /* Convierte un <select> de ciudades en buscador. El <select> sigue siendo la
    fuente de verdad (el resto del código lee y asigna .value como siempre);
-   sólo se esconde y se escribe en un campo de texto encima. */
+   sólo se esconde y se escribe en un campo de texto encima.
+   Sirve igual para un <select> de cursos del Calendario (value = id del
+   evento): se busca por la ciudad del curso y se muestra con su fecha. */
 function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
   if(sel._buscador) return sel._buscador;
   const caja = document.createElement('div');
@@ -2584,8 +2688,14 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
 
   const nativo = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
   const porId = ()=> new Map(CIUDADES.map(c=>[c.id, c]));
+  const eventoDe = (valor)=> (EVENTOS_CAL||[]).find(e=>e.id === valor);
   const textoDe = (valor)=>{
     if(!valor) return '';
+    const ev = eventoDe(valor);
+    if(ev){
+      const c = porId().get(ev.ciudad_id);
+      return `${c?.nombre || ev.ciudades?.nombre || '(ciudad?)'}${c?.estado ? ', ' + c.estado : ''} · ${fechaCorta(ev.fecha)}`;
+    }
     const c = porId().get(valor);
     if(c) return c.nombre + (c.estado ? ', ' + c.estado : '');
     const o = [...sel.options].find(o=>o.value === valor);
@@ -2605,14 +2715,16 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
     const actual = nativo.get.call(sel);
     const fechas = new Map();
     (EVENTOS_CAL||[]).forEach(e=>{ if(!fechas.has(e.ciudad_id)) fechas.set(e.ciudad_id, e.fecha); });
+    const eventos = new Map((EVENTOS_CAL||[]).map(e=>[e.id, e]));
     return [...sel.options].map(o=>{
-      const c = ciudades.get(o.value);
+      const ev = eventos.get(o.value);
+      const c = ciudades.get(o.value) || (ev && ciudades.get(ev.ciudad_id));
       const especial = !o.value || o.value.startsWith('__');
       return {
         value: o.value, especial, elegido: o.value === actual,
-        nombre: c ? c.nombre : o.textContent.trim(),
+        nombre: c ? c.nombre : ev ? (ev.ciudades?.nombre || '(ciudad?)') : o.textContent.trim(),
         estado: c?.estado || '', alias: c?.alias || [],
-        fecha: c ? (fechas.get(c.id) || null) : null,
+        fecha: ev ? ev.fecha : c ? (fechas.get(c.id) || null) : null,
       };
     });
   };
@@ -2654,6 +2766,19 @@ function sugerenciasDeCiudad(inp){
 buscadorDeCiudad(document.getElementById('modalCiudadSelect'));
 buscadorDeCiudad(document.getElementById('nuevoCiudad'));
 
+/* Cursos del Calendario como opciones (value = id del evento). */
+function opcionesEvento(seleccionado, textoVacio = '— Aún no decide / otra ciudad —'){
+  const lista = [...(EVENTOS_CAL||[])];
+  // Si ya tenía un curso que ya pasó (o no es de la gira activa), no se pierde
+  return `<option value="">${textoVacio}</option>`
+    + lista.map(e=>`<option value="${e.id}" ${e.id === seleccionado ? 'selected' : ''}>${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(e.fecha)}</option>`).join('')
+    + (seleccionado && !lista.some(e=>e.id === seleccionado) ? `<option value="${seleccionado}" selected>(curso anterior)</option>` : '');
+}
+buscadorDeCiudad(document.getElementById('modalEventoSelect'), { placeholder:'Busca la ciudad del curso…' });
+buscadorDeCiudad(document.getElementById('nuevoEvento'), { placeholder:'Busca la ciudad del curso…' });
+buscadorDeCiudad(document.getElementById('regPagoEvento'), { placeholder:'Busca la ciudad del curso…' });
+buscadorDeCiudad(document.getElementById('inscribirEvento'), { placeholder:'Busca la ciudad del curso…' });
+
 /* =========================================================
    GIRA ACTIVA — nombre exacto del curso que se está trabajando
    ahora mismo. Cuando arranque una gira nueva, este es el ÚNICO
@@ -2689,6 +2814,9 @@ async function cargarCiudadesGiraActiva(){
 // (así se borraba el teléfono adicional hasta el 23 sep).
 const LEAD_SELECT = `
     id, comentario, creado_en, ciudad_interes_id, asesor_id,
+    evento_id, fecha_compromiso_pago, paquete, estatus_antes_de_reporte,
+    pago_reportado_monto, pago_reportado_fecha, pago_reportado_banco, pago_reportado_por, pago_reportado_en,
+    eventos ( id, fecha, ciudad_id, ciudades ( nombre ) ),
     personas ( id, nombre, telefono_principal, telefono_alternativo, en_lista_negra ),
     cursos ( nombre ),
     ciudades ( nombre ),
@@ -2863,13 +2991,18 @@ function agruparFilas(filas){
 
 function tarjetaLead(l){
   const e = l.estatus;
-  const evProx = l.ciudad_interes_id ? eventosProximosPorCiudad[l.ciudad_interes_id] : null;
+  const evProx = l.eventos || (l.ciudad_interes_id ? eventosProximosPorCiudad[l.ciudad_interes_id] : null);
+  const hoyISO = new Date().toLocaleDateString('en-CA');
+  const anticipo = l.fecha_compromiso_pago && !pagoReportado(l)
+    ? `<div class="lead-anticipo ${l.fecha_compromiso_pago < hoyISO ? 'vencida' : ''}">💸 Anticipo ${l.fecha_compromiso_pago === hoyISO ? 'hoy' : fechaCorta(l.fecha_compromiso_pago)}${l.fecha_compromiso_pago < hoyISO ? ' · vencido' : ''}</div>` : '';
   const esNuevo = l.creado_en && (Date.now() - new Date(l.creado_en).getTime()) < 48*60*60*1000;
   return `
     <div class="lead-card" style="--card-accent:${e?.color_hex||'#ccc'}" data-lead-id="${l.id}">
       <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}${esNuevo?' <span class="badge-nuevo">🆕 Nuevo</span>':''}</div>
       <div class="lead-meta">${l.personas?.telefono_principal||''}${l.cursos?.nombre?'<br>'+l.cursos.nombre:''}</div>
       ${l.ciudades?.nombre?`<div class="lead-ciudad">📍 ${l.ciudades.nombre}</div>`:''}
+      ${pagoReportado(l)?`<div class="lead-pago-rep">💜 ${fmtMoney(l.pago_reportado_monto)} por confirmar</div>`:''}
+      ${anticipo}
       <span class="lead-tag" style="background:${e?.color_hex||'#ccc'}22; color:${e?.color_hex==='#FFFFFF'?'#8C8378':(e?.color_hex||'#333')};">${e?.etiqueta||''}</span>
       ${evProx?`<span class="pill-veces" style="margin-top:6px; display:inline-block;">📅 ${fechaCorta(evProx.fecha)}</span>`:''}
       ${l.personas?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}
@@ -3124,7 +3257,10 @@ async function abrirModalLead(leadId){
   const sel = document.getElementById('modalEstatusSelect');
   sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
   document.getElementById('modalCiudadSelect').innerHTML = opcionesCiudad(lead.ciudad_interes_id);
+  document.getElementById('modalEventoSelect').innerHTML = opcionesEvento(lead.evento_id);
+  document.getElementById('modalFechaAnticipo').value = lead.fecha_compromiso_pago || '';
   pintarVendedorLead(lead);
+  pintarPagoLead(lead);
   document.getElementById('modalComentarioNuevo').value = '';
   document.getElementById('modalHistorial').innerHTML = 'Cargando...';
   document.getElementById('modalLead').classList.add('open');
@@ -3137,10 +3273,21 @@ async function abrirModalLead(leadId){
     : '<div class="empty-note">Sin interacciones registradas todavía.</div>';
 }
 document.getElementById('closeModalLead').addEventListener('click', ()=>document.getElementById('modalLead').classList.remove('open'));
+// Elegir el curso pone su ciudad (se puede cambiar a mano después)
+document.getElementById('modalEventoSelect').addEventListener('change', e=>{
+  const ev = EVENTOS_CAL.find(x=>x.id === e.target.value);
+  if(ev?.ciudad_id){
+    const selC = document.getElementById('modalCiudadSelect');
+    if(![...selC.options].some(o=>o.value === ev.ciudad_id)) selC.innerHTML = opcionesCiudad(ev.ciudad_id);
+    selC.value = ev.ciudad_id;
+  }
+});
 
 document.getElementById('guardarLead').addEventListener('click', async ()=>{
   const nuevoEstatusId = Number(document.getElementById('modalEstatusSelect').value);
   const ciudadNueva = document.getElementById('modalCiudadSelect').value || null;
+  const eventoNuevo = document.getElementById('modalEventoSelect').value || null;
+  const fechaAnticipo = document.getElementById('modalFechaAnticipo').value || null;
   const comentario = document.getElementById('modalComentarioNuevo').value.trim();
   const nombreNuevo = document.getElementById('modalNombreEdit').value.trim();
   const telNuevo = document.getElementById('modalTelefonoEdit').value.replace(/\D/g,'');
@@ -3156,7 +3303,8 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
     actualizado_en: new Date().toISOString()
   }).eq('id', leadAbiertoPersonaId);
 
-  const { error: errUpd } = await sb.from('leads').update({ estatus_id: nuevoEstatusId, ciudad_interes_id: ciudadNueva, actualizado_en: new Date().toISOString() }).eq('id', leadAbiertoId);
+  const { error: errUpd } = await sb.from('leads').update({ estatus_id: nuevoEstatusId, ciudad_interes_id: ciudadNueva,
+    evento_id: eventoNuevo, fecha_compromiso_pago: fechaAnticipo, actualizado_en: new Date().toISOString() }).eq('id', leadAbiertoId);
   let errInt = null;
   if(comentario){
     const r = await sb.from('interacciones').insert({ persona_id: leadAbiertoPersonaId, lead_id: leadAbiertoId, nota: comentario, canal: 'otro' });
@@ -3228,6 +3376,152 @@ document.getElementById('guardarLeadVendedor').addEventListener('click', async (
 });
 
 /* =========================================================
+   FLUJO DEL PAGO: ⚪ lead → 💜 pago reportado → ✅ confirmado
+   - "Registrar pago" (cualquiera): el vendedor avisa que ya pagó. Sigue
+     siendo LEAD en "Pago por confirmar"; no aparece en su ciudad.
+   - "Confirmar pago" (permiso confirmar_pagos): lo encontró en el banco →
+     inscripción + pago, el lead se cierra y ya aparece en su ciudad.
+   - "No se encontró" (mismo permiso): regresa al estatus que tenía, con nota.
+   ========================================================= */
+const ESTATUS_POR_CONFIRMAR = ()=> ESTATUS.find(e=>e.clave==='pago_por_confirmar')?.id ?? 1;
+function pagoReportado(lead){ return !!lead?.pago_reportado_en && lead?.estatus?.id === ESTATUS_POR_CONFIRMAR(); }
+function hace(iso){
+  const min = Math.round((Date.now() - new Date(iso).getTime())/60000);
+  if(min < 60) return `hace ${Math.max(min,1)} min`;
+  if(min < 24*60) return `hace ${Math.round(min/60)} h`;
+  const d = Math.round(min/(24*60));
+  return d === 1 ? 'ayer' : `hace ${d} días`;
+}
+function eventoTexto(eventoId){
+  const ev = EVENTOS_CAL.find(e=>e.id === eventoId);
+  return ev ? `${ev.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(ev.fecha)}` : '';
+}
+function pintarPagoLead(lead){
+  const caja = document.getElementById('leadPagoReportado');
+  const bReg = document.getElementById('btnRegistrarPago');
+  const bIns = document.getElementById('btnInscribirLead');
+  const bNo  = document.getElementById('btnPagoNoEncontrado');
+  const confirma = puede('confirmar_pagos');
+  if(pagoReportado(lead)){
+    const donde = lead.eventos ? `${lead.eventos.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(lead.eventos.fecha)}` : eventoTexto(lead.evento_id);
+    caja.innerHTML = `💜 <b>Pago por confirmar: ${fmtMoney(lead.pago_reportado_monto)}</b>`
+      + `${lead.pago_reportado_banco ? ' · ' + escHtml(lead.pago_reportado_banco) : ''}`
+      + `${lead.pago_reportado_fecha ? ' · pagó el ' + fechaCorta(lead.pago_reportado_fecha) : ''}`
+      + `${donde ? '<br>Curso: ' + donde : ''}${lead.paquete ? ' · ' + (lead.paquete === 'VIP' ? 'VIP' : 'Básico') : ''}`
+      + `<br><span style="color:var(--ink-soft);">Lo reportó ${nombreVendedor(lead.pago_reportado_por) || 'alguien'} ${hace(lead.pago_reportado_en)}.`
+      + `${confirma ? '' : ' Cobranza lo confirma en cuanto lo vea en el banco.'}</span>`;
+    caja.style.display = '';
+    bReg.textContent = '✏️ Corregir pago'; bReg.classList.add('suave');
+    bIns.textContent = '✅ Confirmar pago';
+    bIns.style.display = confirma ? '' : 'none';
+    bNo.style.display  = confirma ? '' : 'none';
+  } else {
+    caja.style.display = 'none';
+    bReg.textContent = '💜 Registrar pago'; bReg.classList.remove('suave');
+    // Inscribir directo = confirmar un pago que ya se vio en el banco
+    bIns.textContent = '✅ Inscribir (pago ya confirmado)';
+    bIns.style.display = confirma ? '' : 'none';
+    bNo.style.display = 'none';
+  }
+}
+
+let regPagoPaquete = 'BASICO';
+function abrirRegistrarPago(){
+  const lead = leadAbierto(); if(!lead) return;
+  const rep = pagoReportado(lead);
+  document.getElementById('regPagoQuien').textContent = `${lead.personas?.nombre || '(sin nombre)'} · ${lead.personas?.telefono_principal || ''}`;
+  // Curso: el que ya tenía; si no, el de su ciudad
+  const deSuCiudad = EVENTOS_CAL.find(e=>e.ciudad_id && e.ciudad_id === lead.ciudad_interes_id);
+  const eventoId = lead.evento_id || deSuCiudad?.id || '';
+  document.getElementById('regPagoEvento').innerHTML = opcionesEvento(eventoId, '— Elige el curso —');
+  document.getElementById('regPagoEvento').value = eventoId;
+  regPagoPaquete = lead.paquete === 'VIP' ? 'VIP' : 'BASICO';
+  document.querySelectorAll('#regPagoPaquete button').forEach(b=>b.classList.toggle('active', b.dataset.paq === regPagoPaquete));
+  document.getElementById('regPagoMonto').value = rep ? (lead.pago_reportado_monto ?? '') : 700;
+  document.getElementById('regPagoFecha').value = rep && lead.pago_reportado_fecha ? lead.pago_reportado_fecha : new Date().toLocaleDateString('en-CA');
+  document.getElementById('regPagoBanco').value = rep ? (lead.pago_reportado_banco || '') : '';
+  document.getElementById('modalRegistrarPago').classList.add('open');
+}
+document.getElementById('btnRegistrarPago').addEventListener('click', abrirRegistrarPago);
+document.getElementById('closeModalRegistrarPago').addEventListener('click', ()=>document.getElementById('modalRegistrarPago').classList.remove('open'));
+document.querySelectorAll('#regPagoPaquete button').forEach(b=>b.addEventListener('click', ()=>{
+  regPagoPaquete = b.dataset.paq;
+  document.querySelectorAll('#regPagoPaquete button').forEach(x=>x.classList.toggle('active', x === b));
+}));
+document.getElementById('guardarRegistrarPago').addEventListener('click', async ()=>{
+  const lead = leadAbierto(); if(!lead) return;
+  const eventoId = document.getElementById('regPagoEvento').value;
+  const monto = Number(document.getElementById('regPagoMonto').value);
+  const fecha = document.getElementById('regPagoFecha').value;
+  const banco = document.getElementById('regPagoBanco').value.trim();
+  if(!eventoId){ toast('Elige a qué curso va.', true); return; }
+  if(!(monto > 0)){ toast('Pon cuánto pagó.', true); return; }
+  if(!fecha){ toast('Pon la fecha del pago.', true); return; }
+  const ev = EVENTOS_CAL.find(e=>e.id === eventoId);
+  const donde = eventoTexto(eventoId) || '(curso)';
+  const alumno = lead.personas?.nombre || 'este lead';
+  const yaEstaba = pagoReportado(lead);
+  const porConfirmar = ESTATUS_POR_CONFIRMAR();
+  const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+  const quien = usuarioActual?.nombre || 'alguien';
+  const nota = `${yaEstaba ? 'PAGO REPORTADO CORREGIDO' : 'PAGO REPORTADO'} ${hoy} por ${quien}: ${fmtMoney(monto)}${banco ? ' ' + banco : ''} (${fecha}) · ${donde} · ${regPagoPaquete === 'VIP' ? 'VIP' : 'Básico'}. Por confirmar.`;
+  // Un lead sin dueño queda a nombre de quien reporta, si vende (no le quita la venta a nadie)
+  const asesor = lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : null);
+
+  const btn = document.getElementById('guardarRegistrarPago');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const { error } = await sb.from('leads').update({
+    evento_id: eventoId, ciudad_interes_id: ev?.ciudad_id || lead.ciudad_interes_id, paquete: regPagoPaquete,
+    pago_reportado_monto: monto, pago_reportado_fecha: fecha, pago_reportado_banco: banco || null,
+    pago_reportado_por: usuarioActual?.id || null, pago_reportado_en: new Date().toISOString(),
+    // Para regresarlo a donde estaba si Cobranza no lo encuentra
+    estatus_antes_de_reporte: yaEstaba ? (lead.estatus_antes_de_reporte ?? null) : (lead.estatus?.id !== porConfirmar ? lead.estatus?.id : null),
+    estatus_id: porConfirmar, asesor_id: asesor, comentario: nota, actualizado_en: new Date().toISOString(),
+  }).eq('id', lead.id);
+  btn.disabled = false; btn.textContent = '💜 Registrar pago';
+  if(error){ toast('No se pudo registrar el pago: ' + error.message, true); return; }
+  await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: lead.id, asesor_id: usuarioActual?.id || null, nota, canal: 'otro' });
+  registrarActividad('pago_reportado', `${alumno} · ${fmtMoney(monto)} · ${donde}`);
+  document.getElementById('modalRegistrarPago').classList.remove('open');
+  document.getElementById('modalLead').classList.remove('open');
+  toast(yaEstaba ? 'Pago reportado corregido.' : '💜 Pago registrado — queda por confirmar.');
+  const cat = CATEGORIAS.find(c=>c.claves.includes('pago_por_confirmar'));
+  if(cat) abiertosDe('estatus').add(cat.id);
+  await renderBoard();
+});
+
+document.getElementById('btnPagoNoEncontrado').addEventListener('click', async ()=>{
+  const lead = leadAbierto(); if(!lead || !pagoReportado(lead)) return;
+  if(!puede('confirmar_pagos')){ toast('No tienes permiso para confirmar pagos.', true); return; }
+  const alumno = lead.personas?.nombre || 'este lead';
+  const previo = lead.estatus_antes_de_reporte || ESTATUS.find(e=>e.clave==='no_vence_pago')?.id || ESTATUS[0]?.id;
+  const etiquetaPrevia = ESTATUS.find(e=>e.id === previo)?.etiqueta || '—';
+  const reporto = nombreVendedor(lead.pago_reportado_por) || 'su vendedor';
+  const motivo = await preguntarConfirmacion({
+    titulo: '¿No se encontró el pago?',
+    aviso: `El pago de <b>${fmtMoney(lead.pago_reportado_monto)}</b>${lead.pago_reportado_banco ? ' ' + escHtml(lead.pago_reportado_banco) : ''} de <b>${escHtml(alumno)}</b> `
+         + `regresa a ${escHtml(reporto)}: el lead vuelve a <b>${escHtml(etiquetaPrevia)}</b> con una nota. No se inscribe.`,
+    pedirMotivo: true, textoSi: 'Sí, no se encontró',
+  });
+  if(motivo === null) return;
+  const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+  const nota = `PAGO NO ENCONTRADO ${hoy} por ${usuarioActual?.nombre || 'alguien'}: ${fmtMoney(lead.pago_reportado_monto)}`
+             + `${lead.pago_reportado_banco ? ' ' + lead.pago_reportado_banco : ''}${lead.pago_reportado_fecha ? ' (' + lead.pago_reportado_fecha + ')' : ''}, reportado por ${reporto}.`
+             + (motivo ? ` Motivo: ${motivo}` : '') + ' Revisa con la alumna.';
+  const { error } = await sb.from('leads').update({
+    estatus_id: previo, estatus_antes_de_reporte: null,
+    pago_reportado_monto: null, pago_reportado_fecha: null, pago_reportado_banco: null, pago_reportado_por: null, pago_reportado_en: null,
+    comentario: nota, actualizado_en: new Date().toISOString(),
+  }).eq('id', lead.id);
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: lead.id, asesor_id: usuarioActual?.id || null, nota, canal: 'otro' });
+  registrarActividad('pago_no_encontrado', `${alumno} · ${fmtMoney(lead.pago_reportado_monto)} · reportó ${reporto}`);
+  document.getElementById('modalLead').classList.remove('open');
+  toast(`Regresó a ${etiquetaPrevia}, con la nota para ${reporto}.`);
+  await renderBoard();
+});
+
+/* =========================================================
    INSCRIBIR UN LEAD AL CURSO
    Hasta el 23 sep el Hub NO podía crear inscripciones: los vendedores
    registraban la venta en el Excel y el lead se quedaba como lead, fuera
@@ -3245,8 +3539,16 @@ function estatusInicialInscripcion(pagado, precio){
 
 function abrirModalInscribir(){
   const lead = leadAbierto(); if(!lead) return;
+  if(!puede('confirmar_pagos')){ toast('No tienes permiso para confirmar pagos. Usa 💜 Registrar pago.', true); return; }
+  const rep = pagoReportado(lead);
   document.getElementById('inscribirQuien').textContent =
     `${lead.personas?.nombre || '(sin nombre)'} · ${lead.personas?.telefono_principal || ''}`;
+  document.getElementById('inscribirTitulo').textContent = rep ? '✅ Confirmar pago e inscribir' : 'Inscribir al curso';
+  document.getElementById('guardarInscribir').textContent = rep ? '✅ Confirmar e inscribir' : 'Inscribir';
+  const cajaRep = document.getElementById('inscribirReportado');
+  cajaRep.style.display = rep ? '' : 'none';
+  cajaRep.innerHTML = rep ? `💜 Reportado por <b>${escHtml(nombreVendedor(lead.pago_reportado_por) || 'alguien')}</b> ${hace(lead.pago_reportado_en)}. `
+    + 'Revisa que el monto, la fecha y el banco coincidan con lo que ves en el banco.' : '';
 
   // Su ciudad primero. Si su ciudad no tiene curso, NO se preselecciona nada:
   // tiene que escoger a propósito, para no inscribirla en la ciudad equivocada.
@@ -3257,9 +3559,10 @@ function abrirModalInscribir(){
   sel.innerHTML = (suyos.length ? '' : '<option value="">— Elige el curso —</option>')
     + (suyos.length ? `<optgroup label="Su ciudad">${suyos.map(opt).join('')}</optgroup>` : '')
     + `<optgroup label="${suyos.length ? 'Otras ciudades del Calendario' : 'Cursos del Calendario'}">${otros.map(opt).join('')}</optgroup>`;
-  sel.value = suyos[0]?.id || '';
+  const elegido = (lead.evento_id && EVENTOS_CAL.some(e=>e.id === lead.evento_id)) ? lead.evento_id : (suyos[0]?.id || '');
+  sel.value = elegido;
   const aviso = document.getElementById('inscribirAvisoCiudad');
-  if(suyos.length){ aviso.style.display = 'none'; }
+  if(elegido){ aviso.style.display = 'none'; }
   else {
     const ciudad = CIUDADES.find(c=>c.id === lead.ciudad_interes_id)?.nombre;
     aviso.innerHTML = ciudad
@@ -3268,11 +3571,11 @@ function abrirModalInscribir(){
     aviso.style.display = '';
   }
 
-  inscribirPaquete = 'BASICO';
-  document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.classList.toggle('active', b.dataset.paq === 'BASICO'));
-  document.getElementById('inscribirPagado').value = 700;
-  document.getElementById('inscribirFecha').value = new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD local
-  document.getElementById('inscribirBanco').value = '';
+  inscribirPaquete = lead.paquete === 'VIP' ? 'VIP' : 'BASICO';
+  document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.classList.toggle('active', b.dataset.paq === inscribirPaquete));
+  document.getElementById('inscribirPagado').value = rep ? (lead.pago_reportado_monto ?? 700) : 700;
+  document.getElementById('inscribirFecha').value = rep && lead.pago_reportado_fecha ? lead.pago_reportado_fecha : new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD local
+  document.getElementById('inscribirBanco').value = rep ? (lead.pago_reportado_banco || '') : '';
   // Vendedor por defecto: el dueño del lead; si no tiene, quien inscribe (si vende).
   const porDefecto = lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '');
   const selV = document.getElementById('inscribirVendedor');
@@ -3309,6 +3612,8 @@ document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.addEventListe
 
 document.getElementById('guardarInscribir').addEventListener('click', async ()=>{
   const lead = leadAbierto(); if(!lead) return;
+  if(!puede('confirmar_pagos')){ toast('No tienes permiso para confirmar pagos.', true); return; }
+  const rep = pagoReportado(lead);
   const personaId = lead.personas?.id;
   const eventoId  = document.getElementById('inscribirEvento').value;
   const precio    = PRECIO_PAQUETE[inscribirPaquete];
@@ -3328,8 +3633,9 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   if(motivo === null) return;
 
   const btn = document.getElementById('guardarInscribir');
+  const textoBtn = btn.textContent;
   btn.disabled = true; btn.textContent = 'Inscribiendo...';
-  const listo = ()=>{ btn.disabled = false; btn.textContent = 'Inscribir'; };
+  const listo = ()=>{ btn.disabled = false; btn.textContent = textoBtn; };
 
   // Ya inscrita en ese curso → no se duplica: se abre su ficha.
   const { data: ya } = await sb.from('inscripciones').select('id').eq('persona_id', personaId).eq('evento_id', eventoId).maybeSingle();
@@ -3348,6 +3654,7 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   const quien = usuarioActual?.nombre || 'alguien';
   let nota = `INSCRITA desde el Hub el ${hoy} por ${quien}. `
            + (pagado > 0 ? `Pago: ${fmtMoney(pagado)}${banco ? ' ' + banco : ''} (${fecha}).` : 'Sin pago todavía.');
+  if(rep) nota += ` Pago reportado por ${nombreVendedor(lead.pago_reportado_por) || 'alguien'} (${fmtMoney(lead.pago_reportado_monto)}); confirmado por ${quien}.`;
   const reasignada = lead.asesor_id && vendedorId !== lead.asesor_id;
   if(reasignada) nota += ' || ' + rastroReasignacion(lead.asesor_id, vendedorId, motivo);
 
@@ -3369,7 +3676,9 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   }
 
   // Se cierra el lead con la misma convención que las cargas del Excel.
-  const cierre = `CERRADO ${hoy}: inscrita desde el Hub por ${quien} en ${donde}. Su inscripción queda en la ciudad.`;
+  const cierre = rep
+    ? `CERRADO ${hoy}: pago confirmado por ${quien} (${fmtMoney(pagado)}${banco ? ' ' + banco : ''}); inscrita en ${donde}. Su inscripción queda en la ciudad.`
+    : `CERRADO ${hoy}: inscrita desde el Hub por ${quien} en ${donde}. Su inscripción queda en la ciudad.`;
   const estPagado = ESTATUS.find(e=>e.clave === 'pagado')?.id;
   await sb.from('leads').update({ estatus_id: estPagado ?? lead.estatus?.id, asesor_id: vendedorId,
                                    comentario: cierre, actualizado_en: new Date().toISOString() }).eq('id', lead.id);
@@ -3378,6 +3687,7 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
 
   registrarActividad('inscripcion_creada',
     `${alumno} → ${donde} · ${inscribirPaquete === 'VIP' ? 'VIP' : 'Básico'} · pagó ${fmtMoney(pagado)} · vendió ${nombreVendedor(vendedorId) || 'nadie'}`);
+  if(rep) registrarActividad('pago_confirmado', `${alumno} · ${fmtMoney(pagado)} · reportó ${nombreVendedor(lead.pago_reportado_por) || 'alguien'}`);
   if(reasignada) registrarActividad('venta_reasignada',
     `${alumno}: ${nombreVendedor(lead.asesor_id)} → ${nombreVendedor(vendedorId) || 'nadie'}${motivo ? ' · ' + motivo : ''}`);
 
@@ -3394,6 +3704,9 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
 function poblarSelectCursosCiudades(){
   document.getElementById('nuevoCurso').innerHTML = '<option value="">— Sin especificar —</option>' + CURSOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   document.getElementById('nuevoCiudad').innerHTML = opcionesCiudad(null);
+  document.getElementById('nuevoEvento').innerHTML = opcionesEvento(null);
+  document.getElementById('nuevoFechaAnticipo').value = '';
+  alternarCamposNuevoLead();
   // Arranca con quien lo captura, si vende; si no (Inbox, Sistemas), "Sin
   // asignar" y elige a mano. No pregunta nada: un lead nuevo no le quita
   // la venta a nadie.
@@ -3408,11 +3721,21 @@ document.getElementById('btnNuevoLead').addEventListener('click', ()=>{
   document.getElementById('modalNuevo').classList.add('open');
 });
 document.getElementById('closeModalNuevo').addEventListener('click', ()=>document.getElementById('modalNuevo').classList.remove('open'));
+// Con curso elegido, la ciudad y el curso salen de ahí; sólo si "aún no decide" se piden aparte
+function alternarCamposNuevoLead(){
+  const conCurso = !!document.getElementById('nuevoEvento').value;
+  document.getElementById('nuevoCiudadCampo').style.display = conCurso ? 'none' : '';
+  document.getElementById('nuevoCursoCampo').style.display  = conCurso ? 'none' : '';
+}
+document.getElementById('nuevoEvento').addEventListener('change', alternarCamposNuevoLead);
 document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>{
   const nombre = document.getElementById('nuevoNombre').value.trim();
   const telefono = document.getElementById('nuevoTelefono').value.replace(/\D/g,'');
-  const cursoId = document.getElementById('nuevoCurso').value || null;
-  const ciudadId = document.getElementById('nuevoCiudad').value || null;
+  const eventoId = document.getElementById('nuevoEvento').value || null;
+  const evento = EVENTOS_CAL.find(e=>e.id === eventoId);
+  const cursoId = evento ? (evento.curso_id || await obtenerCursoActivoId()) : (document.getElementById('nuevoCurso').value || null);
+  const ciudadId = evento ? evento.ciudad_id : (document.getElementById('nuevoCiudad').value || null);
+  const fechaAnticipo = document.getElementById('nuevoFechaAnticipo').value || null;
   if(!nombre || telefono.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
 
   const btn = document.getElementById('guardarNuevoLead'); btn.disabled = true; btn.textContent = 'Creando...';
@@ -3458,6 +3781,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   const { error: errL } = await sb.from('leads').insert({
     persona_id: personaId, estatus_id: estatusInicial.id,
     curso_interes_id: cursoId, ciudad_interes_id: ciudadId,
+    evento_id: eventoId, fecha_compromiso_pago: fechaAnticipo,
     asesor_id: vendedorId
   });
   btn.disabled = false; btn.textContent = 'Crear lead';
