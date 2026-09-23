@@ -1091,6 +1091,8 @@
     <div class="modal-field"><label>Nombre</label><input id="modalNombreEdit"></div>
     <div class="modal-field"><label>Teléfono principal</label><input id="modalTelefonoEdit" placeholder="10 dígitos"></div>
     <div class="modal-field"><label>Teléfono adicional</label><input id="modalTelefonoAltEdit" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Correo</label><input id="modalCorreoEdit" type="email" inputmode="email" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Fecha de nacimiento</label><input id="modalNacimientoEdit" type="date"></div>
     <div class="modal-field"><label>Curso que tomará</label><select id="modalEventoSelect"></select></div>
     <div class="modal-field"><label>Ciudad de interés</label><select id="modalCiudadSelect"><option value="">— Sin especificar —</option></select></div>
     <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="modalFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
@@ -1197,6 +1199,7 @@
       <div>
         <h3 id="modalInscNombre" style="margin-bottom:1px;">—</h3>
         <div class="sub" id="modalInscTelefono"></div>
+        <button type="button" class="btn-outline small" id="btnInscContacto" style="width:auto; padding:4px 10px; font-size:11.5px; margin-top:4px;">✏️ Datos de contacto</button>
       </div>
     </div>
     <div class="modal-vendedor">
@@ -1429,6 +1432,22 @@
      Reutilizable. Se usa para reasignar una venta, que es dinero de alguien
      más: nada de confirm() del navegador, la pregunta tiene que decir qué
      cambia exactamente y quedar registrada. -->
+<!-- ===================== MODAL: DATOS DE CONTACTO (compartido) =====================
+     El mismo formulario desde la ficha de inscripción, Historial cliente, etc. -->
+<div class="modal-overlay" id="modalContacto">
+  <div class="modal">
+    <button class="close" id="closeModalContacto">✕</button>
+    <h3>✏️ Datos de contacto</h3>
+    <div class="sub" id="contactoSub" style="margin-bottom:12px;">—</div>
+    <div class="modal-field"><label>Nombre</label><input id="contactoNombre"></div>
+    <div class="modal-field"><label>Teléfono 1</label><input id="contactoTel1" inputmode="tel" placeholder="10 dígitos"></div>
+    <div class="modal-field"><label>Teléfono 2</label><input id="contactoTel2" inputmode="tel" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Correo</label><input id="contactoCorreo" type="email" inputmode="email" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Fecha de nacimiento</label><input id="contactoNacimiento" type="date"><div class="vend-hint" id="contactoEdad"></div></div>
+    <button class="btn-primary" id="guardarContacto">Guardar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalConfirmar">
   <div class="modal confirm-box">
     <h3 id="confirmarTitulo" style="margin-bottom:12px;">—</h3>
@@ -2122,6 +2141,7 @@ const ACCION_LABEL = {
   pago_no_encontrado: '❌ No encontró un pago reportado',
   permiso_cambiado: 'Cambió un permiso de rol',
   fecha_cobro_movida: '📅 Movió una fecha de cobro',
+  contacto_editado: '✏️ Editó datos de contacto',
   venta_asignada: 'Asignó el vendedor de una venta',
   venta_reasignada: 'Cambió de vendedor una venta',
   tarea_asignada: 'Le asignó una tarea a alguien',
@@ -2892,7 +2912,7 @@ const LEAD_SELECT = `
     evento_id, fecha_compromiso_pago, paquete, estatus_antes_de_reporte,
     pago_reportado_monto, pago_reportado_fecha, pago_reportado_banco, pago_reportado_por, pago_reportado_en,
     eventos ( id, fecha, ciudad_id, ciudades ( nombre ) ),
-    personas ( id, nombre, telefono_principal, telefono_alternativo, en_lista_negra ),
+    personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra ),
     cursos ( nombre ),
     ciudades ( nombre ),
     estatus ( id, etiqueta, color_hex )
@@ -3143,7 +3163,8 @@ const CATEGORIAS = [
   { id:'pagos', label:'Pagos', color:'#3F8354', claves:['pago_por_confirmar','pago_en_curso','pagado'] },
   { id:'seguimiento', label:'Seguimiento activo', color:'#3FB6C4', claves:['no_vence_pago','pago_programado','anticipo_vigente','liquida_en_curso'] },
   { id:'nocontesta', label:'No contesta', color:'#8C8378', claves:['primer_intento','segundo_intento','tercer_intento'] },
-  { id:'atencion', label:'Necesita atención', color:'#C4432E', claves:['algo_esta_mal','no_va_al_curso'] },
+  // "Confirmar fecha": su fecha de anticipo/pago no está clara; el vendedor la confirma con la alumna
+  { id:'atencion', label:'Necesita atención', color:'#C4432E', claves:['confirmar_fecha','algo_esta_mal','no_va_al_curso'] },
 ];
 
 function pintarSegmento(){
@@ -3329,6 +3350,8 @@ async function abrirModalLead(leadId){
   document.getElementById('modalNombreEdit').value = lead.personas?.nombre || '';
   document.getElementById('modalTelefonoEdit').value = lead.personas?.telefono_principal || '';
   document.getElementById('modalTelefonoAltEdit').value = lead.personas?.telefono_alternativo || '';
+  document.getElementById('modalCorreoEdit').value = lead.personas?.correo || '';
+  document.getElementById('modalNacimientoEdit').value = lead.personas?.fecha_nacimiento || '';
   const sel = document.getElementById('modalEstatusSelect');
   sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
   document.getElementById('modalCiudadSelect').innerHTML = opcionesCiudad(lead.ciudad_interes_id);
@@ -3367,7 +3390,11 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   const nombreNuevo = document.getElementById('modalNombreEdit').value.trim();
   const telNuevo = document.getElementById('modalTelefonoEdit').value.replace(/\D/g,'');
   const telAltNuevo = document.getElementById('modalTelefonoAltEdit').value.replace(/\D/g,'');
+  const correoNuevo = document.getElementById('modalCorreoEdit').value.trim();
+  const nacimientoNuevo = document.getElementById('modalNacimientoEdit').value || null;
   if(!nombreNuevo || telNuevo.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
+  const problema = problemaContacto({ tel2: telAltNuevo, correo: correoNuevo, nacimiento: nacimientoNuevo });
+  if(problema){ toast(problema, true); return; }
 
   const btn = document.getElementById('guardarLead'); btn.disabled = true; btn.textContent = 'Guardando...';
 
@@ -3375,6 +3402,8 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
     nombre: nombreNuevo,
     telefono_principal: telNuevo,
     telefono_alternativo: telAltNuevo || null,
+    correo: correoNuevo || null,
+    fecha_nacimiento: nacimientoNuevo,
     actualizado_en: new Date().toISOString()
   }).eq('id', leadAbiertoPersonaId);
 
@@ -3448,6 +3477,80 @@ document.getElementById('guardarLeadVendedor').addEventListener('click', async (
     previoId ? `${alumno} (lead): ${nombreVendedor(previoId)} → ${nombreVendedor(nuevoId) || 'nadie'}${motivo ? ' · ' + motivo : ''}`
              : `${alumno} (lead) → ${nombreVendedor(nuevoId)}`);
   if(document.getElementById('view-board')?.classList.contains('active')) pintarBoard();
+});
+
+/* =========================================================
+   DATOS DE CONTACTO — un solo formulario para editar a la persona
+   (nombre, 2 teléfonos, correo, nacimiento) desde cualquier ficha.
+   ========================================================= */
+function edadDe(iso){
+  if(!iso) return null;
+  const n = new Date(iso + 'T12:00:00'), h = new Date();
+  let e = h.getFullYear() - n.getFullYear();
+  if(h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) e--;
+  return e;
+}
+function problemaContacto({ tel1, tel2, correo, nacimiento }){
+  if(tel1 !== undefined && tel1.length < 10) return 'El teléfono 1 no tiene 10 dígitos.';
+  if(tel2 && tel2.length < 10) return 'El teléfono 2 no tiene 10 dígitos (o déjalo vacío).';
+  if(correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return 'El correo no se ve bien escrito.';
+  if(nacimiento){
+    const e = edadDe(nacimiento);
+    if(e < 10 || e > 100) return 'Revisa la fecha de nacimiento: daría ' + e + ' años.';
+  }
+  return '';
+}
+let contactoPersona = null, contactoAlGuardar = null;
+async function abrirDatosContacto(personaId, alGuardar){
+  contactoAlGuardar = alGuardar || null;
+  const { data, error } = await sb.from('personas')
+    .select('id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento').eq('id', personaId).maybeSingle();
+  if(error || !data){ toast('No se pudieron cargar sus datos' + (error ? ': ' + error.message : '.'), true); return; }
+  contactoPersona = data;
+  document.getElementById('contactoSub').textContent = data.nombre || '(sin nombre)';
+  document.getElementById('contactoNombre').value = data.nombre || '';
+  document.getElementById('contactoTel1').value = data.telefono_principal || '';
+  document.getElementById('contactoTel2').value = data.telefono_alternativo || '';
+  document.getElementById('contactoCorreo').value = data.correo || '';
+  document.getElementById('contactoNacimiento').value = data.fecha_nacimiento || '';
+  pintarEdadContacto();
+  document.getElementById('modalContacto').classList.add('open');
+}
+function pintarEdadContacto(){
+  const e = edadDe(document.getElementById('contactoNacimiento').value);
+  document.getElementById('contactoEdad').textContent = e != null && e >= 0 ? `${e} años` : '';
+}
+document.getElementById('contactoNacimiento').addEventListener('input', pintarEdadContacto);
+document.getElementById('closeModalContacto').addEventListener('click', ()=>document.getElementById('modalContacto').classList.remove('open'));
+document.getElementById('guardarContacto').addEventListener('click', async ()=>{
+  const p = contactoPersona; if(!p) return;
+  const nombre = document.getElementById('contactoNombre').value.trim();
+  const tel1 = document.getElementById('contactoTel1').value.replace(/\D/g, '');
+  const tel2 = document.getElementById('contactoTel2').value.replace(/\D/g, '');
+  const correo = document.getElementById('contactoCorreo').value.trim();
+  const nacimiento = document.getElementById('contactoNacimiento').value || null;
+  if(!nombre){ toast('Falta el nombre.', true); return; }
+  const problema = problemaContacto({ tel1, tel2, correo, nacimiento });
+  if(problema){ toast(problema, true); return; }
+  // Un teléfono = una persona: si ese número ya es de alguien más, no se duplica
+  if(tel1 !== (p.telefono_principal || '')){
+    const { data: otro } = await sb.from('personas').select('id, nombre').eq('telefono_principal', tel1).neq('id', p.id).maybeSingle();
+    if(otro){ toast(`Ese teléfono ya es de ${otro.nombre || 'otra persona'}. Búscala en Historial cliente.`, true); return; }
+  }
+  const btn = document.getElementById('guardarContacto');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const cambios = { nombre, telefono_principal: tel1, telefono_alternativo: tel2 || null, correo: correo || null,
+                    fecha_nacimiento: nacimiento, actualizado_en: new Date().toISOString() };
+  const { error } = await sb.from('personas').update(cambios).eq('id', p.id);
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  registrarActividad('contacto_editado', nombre);
+  // Lo que ya está pintado en pantalla con esta persona se actualiza
+  leadsCache.forEach(l=>{ if(l.personas?.id === p.id) Object.assign(l.personas, cambios); });
+  document.getElementById('modalContacto').classList.remove('open');
+  toast('Datos de contacto guardados.');
+  const cb = contactoAlGuardar; contactoAlGuardar = null;
+  if(cb) cb({ id: p.id, ...cambios });
 });
 
 /* =========================================================
@@ -4528,12 +4631,12 @@ async function abrirModalInscripcion(inscId){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(nombre, telefono_principal), eventos(fecha)')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
   document.getElementById('modalInscNombre').textContent = data.personas?.nombre || '(sin nombre)';
-  document.getElementById('modalInscTelefono').textContent = data.personas?.telefono_principal || '';
+  pintarContactoFicha(data.personas);
   document.getElementById('modalInscAvatar').textContent = iniciales(data.personas?.nombre);
   document.getElementById('modalInscPrecio').textContent = data.precio_pactado!=null ? '$'+Number(data.precio_pactado).toFixed(0) : '—';
   document.getElementById('modalInscAnticipo').textContent = '$'+Number(data.anticipo||0).toFixed(0);
@@ -4552,6 +4655,23 @@ async function abrirModalInscripcion(inscId){
   pintarVendedorFicha();
   pintarProximoPagoFicha();
 }
+
+function pintarContactoFicha(p){
+  const e = edadDe(p?.fecha_nacimiento);
+  document.getElementById('modalInscTelefono').textContent = [
+    p?.telefono_principal, p?.telefono_alternativo, p?.correo,
+    p?.fecha_nacimiento ? `🎂 ${fechaCorta(p.fecha_nacimiento)}${e != null ? ' (' + e + ')' : ''}` : '',
+  ].filter(Boolean).join(' · ');
+}
+document.getElementById('btnInscContacto').addEventListener('click', ()=>{
+  const p = modalInscDatos?.personas; if(!p?.id) return;
+  abrirDatosContacto(p.id, cambios=>{
+    Object.assign(modalInscDatos.personas, cambios);
+    document.getElementById('modalInscNombre').textContent = cambios.nombre;
+    document.getElementById('modalInscAvatar').textContent = iniciales(cambios.nombre);
+    pintarContactoFicha(modalInscDatos.personas);
+  });
+});
 
 /* Próximo pago: la fecha con la que Cobranza la acomoda. Vacía = día del curso. */
 function pintarProximoPagoFicha(){
@@ -6321,8 +6441,8 @@ document.getElementById('historialSearch').addEventListener('input', (e)=>{
 async function buscarHistorial(q){
   const cont = document.getElementById('historialResultado');
   if(!q){ cont.innerHTML = '<div class="card"><div class="sub">Escribe un nombre o teléfono.</div></div>'; return; }
-  const { data, error } = await sb.from('personas').select('id, nombre, telefono_principal, en_lista_negra')
-    .or(`nombre.ilike.%${q}%,telefono_principal.ilike.%${q}%`).limit(5);
+  const { data, error } = await sb.from('personas').select('id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra')
+    .or(`nombre.ilike.%${q}%,telefono_principal.ilike.%${q}%,telefono_alternativo.ilike.%${q}%`).limit(5);
   if(error){ cont.innerHTML = '<div class="card">Error: ' + error.message + '</div>'; return; }
   if(!data || data.length===0){ cont.innerHTML = '<div class="card"><div class="sub">Sin coincidencias.</div></div>'; return; }
   const p = data[0];
@@ -6347,13 +6467,15 @@ async function buscarHistorial(q){
   cont.innerHTML = `<div class="card">
     ${p.en_lista_negra?'<div class="badge-blacklist" style="display:inline-flex; margin-bottom:10px;">⚠ Lista negra</div>':''}
     <h3>${p.nombre} <span class="pill-veces">${hist?.veces_tomo_curso ?? 0}x liquidado</span></h3>
-    <div class="sub">${p.telefono_principal}</div>
+    <div class="sub">${[p.telefono_principal, p.telefono_alternativo, p.correo, p.fecha_nacimiento ? '🎂 ' + fechaCorta(p.fecha_nacimiento) + (edadDe(p.fecha_nacimiento) != null ? ' (' + edadDe(p.fecha_nacimiento) + ')' : '') : ''].filter(Boolean).map(escHtml).join(' · ')}
+      <button type="button" class="btn-outline small" id="btnHistContacto" style="width:auto; padding:4px 10px; font-size:11.5px; margin-left:6px;">✏️ Datos de contacto</button></div>
     <div class="sub" style="margin-bottom:2px;">Historial completo (liquidado y no liquidado):</div>
     ${(todasInscripciones && todasInscripciones.length) ? '<div class="hint-tocar">Toca un curso para abrir su ficha (pagos y vendedor).</div>' : ''}
     <div>${cursosHtml}</div>
     <h3 style="margin-top:14px; font-size:13px;">Historial de contacto</h3>
     ${(inter&&inter.length) ? inter.map(i=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(i.fecha).toLocaleString('es-MX')}</div>${i.nota||'(sin nota)'}</div>`).join('') : '<div class="empty-note">Sin interacciones todavía.</div>'}
   </div>`;
+  document.getElementById('btnHistContacto').addEventListener('click', ()=>abrirDatosContacto(p.id, ()=>buscarHistorial(q)));
   cont.querySelectorAll('[data-insc-id]').forEach(chip=>chip.addEventListener('click', ()=>{
     alCerrarFichaInscripcion = ()=>buscarHistorial(q);
     abrirModalInscripcion(chip.dataset.inscId);
