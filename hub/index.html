@@ -1033,6 +1033,7 @@
     <div class="modal-field"><label>Teléfono</label><input id="nuevoTelefono" placeholder="10 dígitos"></div>
     <div class="modal-field"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
     <div class="modal-field"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
+    <div class="modal-field"><label>¿Quién vendió?</label><select id="nuevoVendedor"></select></div>
     <button class="btn-primary" id="guardarNuevoLead">Crear lead</button>
   </div>
 </div>
@@ -2392,15 +2393,19 @@ async function cargarCiudadesGiraActiva(){
   CIUDADES_GIRA_ACTIVA = [...new Set((eventos||[]).map(e=>e.ciudad_id).filter(Boolean))];
 }
 
-async function cargarLeads(){
-  await cargarCiudadesGiraActiva();
-  let query = sb.from('leads').select(`
+// Qué trae cada lead. Vive en un solo lugar: si el tablero y "abrir el lead que
+// ya existe" pidieran campos distintos, la ficha se abriría con datos a medias
+// (así se borraba el teléfono adicional hasta el 23 sep).
+const LEAD_SELECT = `
     id, comentario, creado_en, ciudad_interes_id, asesor_id,
     personas ( id, nombre, telefono_principal, telefono_alternativo, en_lista_negra ),
     cursos ( nombre ),
     ciudades ( nombre ),
     estatus ( id, etiqueta, color_hex )
-  `).order('creado_en', {ascending:false});
+  `;
+async function cargarLeads(){
+  await cargarCiudadesGiraActiva();
+  let query = sb.from('leads').select(LEAD_SELECT).order('creado_en', {ascending:false});
   // Solo leads de las ciudades que pertenecen a la gira en curso, MÁS los
   // que todavía no tienen ciudad asignada (leads recién llegados de
   // campaña que aún no se clasifican a una parada — p.ej. la bandeja de
@@ -3098,6 +3103,13 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
 function poblarSelectCursosCiudades(){
   document.getElementById('nuevoCurso').innerHTML = '<option value="">— Sin especificar —</option>' + CURSOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   document.getElementById('nuevoCiudad').innerHTML = opcionesCiudad(null);
+  // Arranca con quien lo captura, si vende; si no (Inbox, Sistemas), "Sin
+  // asignar" y elige a mano. No pregunta nada: un lead nuevo no le quita
+  // la venta a nadie.
+  const porDefecto = VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '';
+  const selV = document.getElementById('nuevoVendedor');
+  selV.innerHTML = opcionesVendedor(porDefecto);
+  selV.value = porDefecto;
 }
 document.getElementById('btnNuevoLead').addEventListener('click', ()=>{
   poblarSelectCursosCiudades();
@@ -3114,9 +3126,35 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
 
   const btn = document.getElementById('guardarNuevoLead'); btn.disabled = true; btn.textContent = 'Creando...';
 
+  const vendedorId = document.getElementById('nuevoVendedor').value || null;
+
   let personaId;
   const { data: existente } = await sb.from('personas').select('id').eq('telefono_principal', telefono).maybeSingle();
-  if(existente){ personaId = existente.id; }
+  if(existente){
+    // Un teléfono = una persona = un lead. Si ya tiene lead, NO se crea otro
+    // (así quedó duplicada Luz Erika el 22 sep): se ofrece abrir el que existe.
+    const { data: suyos } = await sb.from('leads').select(LEAD_SELECT).eq('persona_id', existente.id)
+      .order('creado_en', { ascending:false }).limit(1);
+    const previo = (suyos || [])[0];
+    if(previo){
+      btn.disabled = false; btn.textContent = 'Crear lead';
+      const ciudad = previo.ciudades?.nombre || 'sin ciudad';
+      const dueno  = nombreVendedor(previo.asesor_id) || 'nadie';
+      const abrir = await preguntarConfirmacion({
+        titulo: 'Este número ya es lead',
+        aviso: `<b>${previo.personas?.nombre || '(sin nombre)'}</b> (${telefono}) ya es lead de <b>${dueno}</b> · ${ciudad} · ${previo.estatus?.etiqueta || 'sin estatus'}.<br><br>`
+             + 'No se crea otro. Ábrelo y actualízalo ahí.',
+        textoSi: 'Abrir su lead',
+      });
+      if(abrir === null) return;
+      document.getElementById('modalNuevo').classList.remove('open');
+      // Si es de una ciudad fuera de la gira no está en el tablero: se trae.
+      if(!leadsCache.some(l=>l.id === previo.id)) leadsCache.push(previo);
+      abrirModalLead(previo.id);
+      return;
+    }
+    personaId = existente.id;
+  }
   else {
     const { data: nueva, error: errP } = await sb.from('personas').insert({ nombre, telefono_principal: telefono }).select('id').single();
     if(errP){ btn.disabled=false; btn.textContent='Crear lead'; toast('Error creando persona: ' + errP.message, true); return; }
@@ -3126,14 +3164,10 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   // pago) — antes caía en "Pago por confirmar", dentro de la categoría
   // "Pagos", donde nadie lo esperaba ver.
   const estatusInicial = ESTATUS.find(e=>e.clave==='no_vence_pago') || ESTATUS[0];
-  // Quien levanta el lead queda como su vendedor por defecto — sólo si vende.
-  // Si lo captura alguien de Inbox o Sistemas, se queda sin dueño hasta que
-  // un vendedor lo tome (desde la ficha, con su confirmación).
-  const soyVendedor = VENDEDORES.some(u=>u.id === usuarioActual?.id);
   const { error: errL } = await sb.from('leads').insert({
     persona_id: personaId, estatus_id: estatusInicial.id,
     curso_interes_id: cursoId, ciudad_interes_id: ciudadId,
-    asesor_id: soyVendedor ? usuarioActual.id : null
+    asesor_id: vendedorId
   });
   btn.disabled = false; btn.textContent = 'Crear lead';
   if(errL){ toast('Error creando lead: ' + errL.message, true); return; }
