@@ -500,6 +500,17 @@
   .confirm-acciones{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
   .btn-ghost{ background:none; border:1px solid var(--border); color:var(--ink-soft); border-radius:10px; padding:10px 16px; font-family:inherit; font-size:13px; cursor:pointer; }
 
+  /* ---------- INSCRIBIR desde la ficha del lead ---------- */
+  .btn-inscribir{ width:100%; background:var(--success); color:#fff; border:none; padding:12px 17px; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; margin-bottom:14px; font-family:inherit; }
+  .btn-inscribir:hover{ filter:brightness(.94); }
+  .seg.full{ display:flex; width:100%; }
+  .seg.full button{ flex:1; }
+  /* Filas y chips que abren la ficha de la alumna (Plazas, Historial). */
+  .clicable{ cursor:pointer; }
+  .lead-row.clicable:hover{ background:var(--bg); }
+  .curso-chip.clicable:hover{ border-color:var(--wine); }
+  .hint-tocar{ font-size:11px; color:var(--ink-soft); margin:2px 0 8px; }
+
   /* ---------- TAREAS ASIGNADAS dentro del bloc de notas ---------- */
   .notas-sep{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin:16px 0 8px; }
   .nota-card.tarea{ background:var(--card); border:1px solid var(--border); border-left:3px solid var(--wine); color:var(--ink); }
@@ -966,6 +977,15 @@
     <button class="close" id="closeModalLead">✕</button>
     <h3 id="modalLeadNombre">—</h3>
     <div class="sub" id="modalLeadTelefono" style="margin-bottom:14px;"></div>
+    <button class="btn-inscribir" id="btnInscribirLead" type="button">✅ Inscribir al curso</button>
+    <div class="modal-vendedor">
+      <div class="modal-notas-titulo">¿Quién vendió?</div>
+      <div class="vend-row">
+        <select id="leadVendedorSelect"></select>
+        <button class="btn-primary small" id="guardarLeadVendedor">Guardar</button>
+      </div>
+      <div class="vend-hint" id="leadVendedorHint"></div>
+    </div>
     <div class="modal-field"><label>Nombre</label><input id="modalNombreEdit"></div>
     <div class="modal-field"><label>Teléfono principal</label><input id="modalTelefonoEdit" placeholder="10 dígitos"></div>
     <div class="modal-field"><label>Teléfono adicional</label><input id="modalTelefonoAltEdit" placeholder="Opcional"></div>
@@ -975,6 +995,32 @@
     <button class="btn-primary" id="guardarLead">Guardar cambios</button>
     <h3 style="font-size:13px; margin-top:18px;">Historial de contacto</h3>
     <div id="modalHistorial">—</div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: INSCRIBIR UN LEAD AL CURSO =====================
+     Hasta el 23 sep el Hub no tenía forma de crear una inscripción: los vendedores
+     registraban la venta en el Excel (hoja LPMSDLC) y el lead se quedaba como lead.
+     Esto la crea con su pago y su vendedor, y cierra el lead. -->
+<div class="modal-overlay" id="modalInscribir">
+  <div class="modal">
+    <button class="close" id="closeModalInscribir">✕</button>
+    <h3>Inscribir al curso</h3>
+    <div class="sub" id="inscribirQuien" style="margin-bottom:14px;">—</div>
+    <div class="modal-field"><label>Curso</label><select id="inscribirEvento"></select></div>
+    <div class="aviso-corregir" id="inscribirAvisoCiudad" style="display:none;"></div>
+    <div class="modal-field"><label>Paquete</label>
+      <div class="seg full" id="inscribirPaquete">
+        <button type="button" data-paq="BASICO" class="active">Básico $1,400</button>
+        <button type="button" data-paq="VIP">VIP $1,900</button>
+      </div>
+    </div>
+    <div class="modal-field"><label>¿Cuánto pagó?</label><input type="number" id="inscribirPagado" inputmode="decimal" min="0" step="50"></div>
+    <div class="modal-field"><label>Fecha del pago</label><input type="date" id="inscribirFecha"></div>
+    <div class="modal-field"><label>Banco</label><input id="inscribirBanco" placeholder="HEY BANCO, COPPEL, OXXO..."></div>
+    <div class="modal-field"><label>¿Quién vendió?</label><select id="inscribirVendedor"></select></div>
+    <div class="corr-preview" id="inscribirPreview">—</div>
+    <button class="btn-primary" id="guardarInscribir">Inscribir</button>
   </div>
 </div>
 
@@ -1913,6 +1959,7 @@ const ACCION_LABEL = {
   inscripcion_estatus: 'Cambió el estatus de una inscripción',
   pago_registrado: 'Registró un pago',
   pago_corregido: 'Corrigió montos de una inscripción',
+  inscripcion_creada: 'Inscribió a una alumna desde el Hub',
   venta_asignada: 'Asignó el vendedor de una venta',
   venta_reasignada: 'Cambió de vendedor una venta',
   tarea_asignada: 'Le asignó una tarea a alguien',
@@ -2281,6 +2328,40 @@ async function cargarEventosProximos(){
   });
 }
 
+/* Cursos del Calendario (curso activo, de hoy en adelante). Los usa el botón
+   Inscribir y el orden de las listas de ciudades. */
+let EVENTOS_CAL = [];
+async function cargarEventosCalendario(){
+  const cursoId = await obtenerCursoActivoId();
+  if(!cursoId){ EVENTOS_CAL = []; return; }
+  const hoy = new Date().toISOString().slice(0,10);
+  const { data, error } = await sb.from('eventos').select('id, fecha, ciudad_id, ciudades(nombre, estado)')
+    .eq('curso_id', cursoId).gte('fecha', hoy).order('fecha', { ascending:true });
+  if(error){ console.warn('No se pudieron cargar los cursos del Calendario:', error.message); return; }
+  EVENTOS_CAL = data || [];
+}
+
+/* Lista de ciudades con las que tienen curso próximo HASTA ARRIBA, por fecha.
+   Son cientos en orden alfabético y varias se guardaron con su nombre oficial
+   ("Heroica De Guaymas" vive en la H, no en la G): los vendedores no las
+   encontraban. */
+function opcionesCiudad(seleccionada){
+  const nombre = c => c.nombre + (c.estado ? ', ' + c.estado : '');
+  const opt = (id, texto) => `<option value="${id}" ${id === seleccionada ? 'selected' : ''}>${texto}</option>`;
+  const vistos = new Set(), arriba = [];
+  EVENTOS_CAL.forEach(e=>{
+    if(vistos.has(e.ciudad_id)) return;
+    const c = CIUDADES.find(x=>x.id === e.ciudad_id);
+    if(!c) return;
+    vistos.add(c.id);
+    arriba.push(opt(c.id, `${nombre(c)} · 📅 ${fechaCorta(e.fecha)}`));
+  });
+  const resto = CIUDADES.filter(c=>!vistos.has(c.id)).map(c=>opt(c.id, nombre(c)));
+  return '<option value="">— Sin especificar —</option>'
+    + (arriba.length ? `<optgroup label="📅 Con curso próximo">${arriba.join('')}</optgroup>` : '')
+    + `<optgroup label="${arriba.length ? 'Todas las demás' : 'Ciudades'}">${resto.join('')}</optgroup>`;
+}
+
 /* =========================================================
    GIRA ACTIVA — nombre exacto del curso que se está trabajando
    ahora mismo. Cuando arranque una gira nueva, este es el ÚNICO
@@ -2315,7 +2396,7 @@ async function cargarLeads(){
   await cargarCiudadesGiraActiva();
   let query = sb.from('leads').select(`
     id, comentario, creado_en, ciudad_interes_id, asesor_id,
-    personas ( id, nombre, telefono_principal, en_lista_negra ),
+    personas ( id, nombre, telefono_principal, telefono_alternativo, en_lista_negra ),
     cursos ( nombre ),
     ciudades ( nombre ),
     estatus ( id, etiqueta, color_hex )
@@ -2339,7 +2420,7 @@ async function cargarLeads(){
   return data || [];
 }
 async function renderBoard(){
-  await cargarEventosProximos();
+  await Promise.all([cargarEventosProximos(), cargarEventosCalendario()]);
   leadsCache = await cargarLeads();
   if (ordenCategorias.length !== CATEGORIAS.length) ordenCategorias = CATEGORIAS.map(c => c.id);
   // El usuario pudo haber dejado el tablero en "Inscritos" la última vez.
@@ -2746,8 +2827,8 @@ async function abrirModalLead(leadId){
   document.getElementById('modalTelefonoAltEdit').value = lead.personas?.telefono_alternativo || '';
   const sel = document.getElementById('modalEstatusSelect');
   sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
-  const selCiudad = document.getElementById('modalCiudadSelect');
-  selCiudad.innerHTML = '<option value="">— Sin especificar —</option>' + CIUDADES.map(c=>`<option value="${c.id}" ${c.id===lead.ciudad_interes_id?'selected':''}>${c.nombre}${c.estado?', '+c.estado:''}</option>`).join('');
+  document.getElementById('modalCiudadSelect').innerHTML = opcionesCiudad(lead.ciudad_interes_id);
+  pintarVendedorLead(lead);
   document.getElementById('modalComentarioNuevo').value = '';
   document.getElementById('modalHistorial').innerHTML = 'Cargando...';
   document.getElementById('modalLead').classList.add('open');
@@ -2798,10 +2879,225 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   if(diaCalendarioAbierto) await renderCalendario(true);
 });
 
+/* =========================================================
+   FICHA DEL LEAD — ¿Quién vendió?
+   El rastro de un cambio de dueño va al historial de contacto
+   (interacciones), NO al comentario del lead: "Guardar cambios"
+   sobrescribe ese comentario con cada contacto nuevo y el rastro se
+   perdería a la siguiente llamada.
+   ========================================================= */
+function leadAbierto(){ return leadsCache.find(l=>l.id === leadAbiertoId) || null; }
+
+function pintarVendedorLead(lead){
+  const sel  = document.getElementById('leadVendedorSelect');
+  const hint = document.getElementById('leadVendedorHint');
+  const actual = lead?.asesor_id || '';
+  sel.innerHTML = opcionesVendedor(actual);
+  sel.value = actual;
+  if(!actual){
+    hint.className = 'vend-hint alerta';
+    hint.textContent = 'Sin vendedor — si se inscribe así, la venta no le cuenta a nadie en el corte.';
+  } else {
+    hint.className = 'vend-hint';
+    hint.textContent = 'Cambiarlo queda registrado en su historial y en Actividad del equipo.';
+  }
+}
+
+document.getElementById('guardarLeadVendedor').addEventListener('click', async ()=>{
+  const lead = leadAbierto(); if(!lead) return;
+  const nuevoId  = document.getElementById('leadVendedorSelect').value || null;
+  const previoId = lead.asesor_id || null;
+  if(nuevoId === previoId){ toast('Ya estaba a ese nombre.', true); return; }
+  const alumno = lead.personas?.nombre || 'este lead';
+  const motivo = await preguntarCambioVendedor(previoId, nuevoId, alumno);
+  if(motivo === null) return;
+
+  const btn = document.getElementById('guardarLeadVendedor');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const { error } = await sb.from('leads').update({ asesor_id: nuevoId, actualizado_en: new Date().toISOString() }).eq('id', lead.id);
+  if(!error && previoId){
+    await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: lead.id, asesor_id: usuarioActual?.id || null,
+      nota: rastroReasignacion(previoId, nuevoId, motivo), canal: 'otro' });
+  }
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if(error){ toast('No se pudo guardar el vendedor: ' + error.message, true); return; }
+
+  lead.asesor_id = nuevoId;
+  pintarVendedorLead(lead);
+  toast(nuevoId ? `Lead a nombre de ${nombreVendedor(nuevoId)}.` : 'Lead sin vendedor asignado.');
+  registrarActividad(previoId ? 'venta_reasignada' : 'venta_asignada',
+    previoId ? `${alumno} (lead): ${nombreVendedor(previoId)} → ${nombreVendedor(nuevoId) || 'nadie'}${motivo ? ' · ' + motivo : ''}`
+             : `${alumno} (lead) → ${nombreVendedor(nuevoId)}`);
+  if(document.getElementById('view-board')?.classList.contains('active')) pintarBoard();
+});
+
+/* =========================================================
+   INSCRIBIR UN LEAD AL CURSO
+   Hasta el 23 sep el Hub NO podía crear inscripciones: los vendedores
+   registraban la venta en el Excel y el lead se quedaba como lead, fuera
+   del Calendario. Eso obligaba a cargas manuales cada día.
+   ========================================================= */
+// Precios confirmados por Dirección el 22 sep. El anticipo estándar es $700;
+// $500 o $600 cuentan como abono, no como un precio distinto.
+const PRECIO_PAQUETE = { BASICO:1400, VIP:1900 };
+let inscribirPaquete = 'BASICO';
+
+function estatusInicialInscripcion(pagado, precio){
+  if(!(pagado > 0)) return ESTATUS.find(e=>e.clave==='pago_por_confirmar')?.id ?? ESTATUS[0]?.id;
+  return estatusSegunPago(pagado, precio, null);
+}
+
+function abrirModalInscribir(){
+  const lead = leadAbierto(); if(!lead) return;
+  document.getElementById('inscribirQuien').textContent =
+    `${lead.personas?.nombre || '(sin nombre)'} · ${lead.personas?.telefono_principal || ''}`;
+
+  // Su ciudad primero. Si su ciudad no tiene curso, NO se preselecciona nada:
+  // tiene que escoger a propósito, para no inscribirla en la ciudad equivocada.
+  const suyos = EVENTOS_CAL.filter(e=>e.ciudad_id && e.ciudad_id === lead.ciudad_interes_id);
+  const otros = EVENTOS_CAL.filter(e=>!suyos.includes(e));
+  const opt = e => `<option value="${e.id}">${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(e.fecha)}</option>`;
+  const sel = document.getElementById('inscribirEvento');
+  sel.innerHTML = (suyos.length ? '' : '<option value="">— Elige el curso —</option>')
+    + (suyos.length ? `<optgroup label="Su ciudad">${suyos.map(opt).join('')}</optgroup>` : '')
+    + `<optgroup label="${suyos.length ? 'Otras ciudades del Calendario' : 'Cursos del Calendario'}">${otros.map(opt).join('')}</optgroup>`;
+  sel.value = suyos[0]?.id || '';
+  const aviso = document.getElementById('inscribirAvisoCiudad');
+  if(suyos.length){ aviso.style.display = 'none'; }
+  else {
+    const ciudad = CIUDADES.find(c=>c.id === lead.ciudad_interes_id)?.nombre;
+    aviso.innerHTML = ciudad
+      ? `<b>${ciudad}</b> no tiene curso en el Calendario. Elige a qué curso la inscribes.`
+      : 'Este lead no tiene ciudad. Elige a qué curso la inscribes.';
+    aviso.style.display = '';
+  }
+
+  inscribirPaquete = 'BASICO';
+  document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.classList.toggle('active', b.dataset.paq === 'BASICO'));
+  document.getElementById('inscribirPagado').value = 700;
+  document.getElementById('inscribirFecha').value = new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD local
+  document.getElementById('inscribirBanco').value = '';
+  // Vendedor por defecto: el dueño del lead; si no tiene, quien inscribe (si vende).
+  const porDefecto = lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '');
+  const selV = document.getElementById('inscribirVendedor');
+  selV.innerHTML = opcionesVendedor(porDefecto);
+  selV.value = porDefecto;
+  actualizarPreviewInscribir();
+  document.getElementById('modalInscribir').classList.add('open');
+}
+
+function actualizarPreviewInscribir(){
+  const caja = document.getElementById('inscribirPreview');
+  const precio = PRECIO_PAQUETE[inscribirPaquete];
+  const pagado = Number(document.getElementById('inscribirPagado').value);
+  if(!(pagado >= 0)){ caja.innerHTML = '<span class="malo">El monto pagado no puede ser negativo.</span>'; return; }
+  const etiqueta = ESTATUS.find(e=>e.id === estatusInicialInscripcion(pagado, precio))?.etiqueta || '—';
+  const restante = Math.max(precio - pagado, 0);
+  let html = restante > 0 ? `Queda debiendo <b>${fmtMoney(restante)}</b> · ${etiqueta}` : `Queda <b>liquidada</b> · ${etiqueta}`;
+  if(pagado > precio) html += ` · <span class="malo">pagó ${fmtMoney(pagado - precio)} de más</span>`;
+  if(!document.getElementById('inscribirVendedor').value) html += '<br><span class="malo">Sin vendedor: no le contará a nadie en el corte.</span>';
+  caja.innerHTML = html;
+}
+
+document.getElementById('btnInscribirLead').addEventListener('click', abrirModalInscribir);
+document.getElementById('closeModalInscribir').addEventListener('click', ()=>document.getElementById('modalInscribir').classList.remove('open'));
+document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.addEventListener('click', ()=>{
+  inscribirPaquete = b.dataset.paq;
+  document.querySelectorAll('#inscribirPaquete button').forEach(x=>x.classList.toggle('active', x === b));
+  actualizarPreviewInscribir();
+}));
+['inscribirPagado','inscribirVendedor'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', actualizarPreviewInscribir);
+  document.getElementById(id).addEventListener('change', actualizarPreviewInscribir);
+});
+
+document.getElementById('guardarInscribir').addEventListener('click', async ()=>{
+  const lead = leadAbierto(); if(!lead) return;
+  const personaId = lead.personas?.id;
+  const eventoId  = document.getElementById('inscribirEvento').value;
+  const precio    = PRECIO_PAQUETE[inscribirPaquete];
+  const pagado    = Number(document.getElementById('inscribirPagado').value);
+  const fecha     = document.getElementById('inscribirFecha').value;
+  const banco     = document.getElementById('inscribirBanco').value.trim();
+  const vendedorId = document.getElementById('inscribirVendedor').value || null;
+  const alumno    = lead.personas?.nombre || 'esta alumna';
+  if(!eventoId){ toast('Elige a qué curso la inscribes.', true); return; }
+  if(!(pagado >= 0)){ toast('El monto pagado no puede ser negativo.', true); return; }
+  if(pagado > 0 && !fecha){ toast('Pon la fecha del pago.', true); return; }
+
+  // Si el vendedor elegido no es el dueño del lead, es una reasignación:
+  // misma confirmación que en cualquier ficha, o este botón serviría para
+  // quitarle ventas a otro sin que quedara registro.
+  const motivo = await preguntarCambioVendedor(lead.asesor_id || null, vendedorId, alumno);
+  if(motivo === null) return;
+
+  const btn = document.getElementById('guardarInscribir');
+  btn.disabled = true; btn.textContent = 'Inscribiendo...';
+  const listo = ()=>{ btn.disabled = false; btn.textContent = 'Inscribir'; };
+
+  // Ya inscrita en ese curso → no se duplica: se abre su ficha.
+  const { data: ya } = await sb.from('inscripciones').select('id').eq('persona_id', personaId).eq('evento_id', eventoId).maybeSingle();
+  if(ya){
+    listo();
+    toast('Ya estaba inscrita en ese curso — te abro su ficha.');
+    document.getElementById('modalInscribir').classList.remove('open');
+    document.getElementById('modalLead').classList.remove('open');
+    abrirModalInscripcion(ya.id);
+    return;
+  }
+
+  const ev = EVENTOS_CAL.find(e=>e.id === eventoId);
+  const donde = `${ev?.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(ev?.fecha)}`;
+  const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+  const quien = usuarioActual?.nombre || 'alguien';
+  let nota = `INSCRITA desde el Hub el ${hoy} por ${quien}. `
+           + (pagado > 0 ? `Pago: ${fmtMoney(pagado)}${banco ? ' ' + banco : ''} (${fecha}).` : 'Sin pago todavía.');
+  const reasignada = lead.asesor_id && vendedorId !== lead.asesor_id;
+  if(reasignada) nota += ' || ' + rastroReasignacion(lead.asesor_id, vendedorId, motivo);
+
+  const { data: ins, error } = await sb.from('inscripciones').insert({
+    persona_id: personaId, evento_id: eventoId,
+    precio_pactado: precio, paquete: inscribirPaquete,
+    anticipo: pagado, restante: Math.max(precio - pagado, 0), liquidado: pagado >= precio,
+    estatus_id: estatusInicialInscripcion(pagado, precio),
+    asesor_id: vendedorId, notas_migracion: nota,
+  }).select('id').single();
+  if(error){ listo(); toast('No se pudo inscribir: ' + error.message, true); return; }
+
+  // El pago también queda en el historial de pagos, igual que "Agregar pago".
+  let avisoPago = '';
+  if(pagado > 0){
+    const { error: errPago } = await sb.from('pagos').insert({
+      inscripcion_id: ins.id, monto: pagado, fecha, banco: banco || null, confirmado_por: asesorActualId || null });
+    if(errPago) avisoPago = ' (ojo: el pago no quedó en el historial de pagos: ' + errPago.message + ')';
+  }
+
+  // Se cierra el lead con la misma convención que las cargas del Excel.
+  const cierre = `CERRADO ${hoy}: inscrita desde el Hub por ${quien} en ${donde}. Su inscripción queda en la ciudad.`;
+  const estPagado = ESTATUS.find(e=>e.clave === 'pagado')?.id;
+  await sb.from('leads').update({ estatus_id: estPagado ?? lead.estatus?.id, asesor_id: vendedorId,
+                                   comentario: cierre, actualizado_en: new Date().toISOString() }).eq('id', lead.id);
+  await sb.from('interacciones').insert({ persona_id: personaId, lead_id: lead.id, asesor_id: usuarioActual?.id || null,
+                                           nota: cierre + (reasignada ? ' ' + rastroReasignacion(lead.asesor_id, vendedorId, motivo) : ''), canal: 'otro' });
+
+  registrarActividad('inscripcion_creada',
+    `${alumno} → ${donde} · ${inscribirPaquete === 'VIP' ? 'VIP' : 'Básico'} · pagó ${fmtMoney(pagado)} · vendió ${nombreVendedor(vendedorId) || 'nadie'}`);
+  if(reasignada) registrarActividad('venta_reasignada',
+    `${alumno}: ${nombreVendedor(lead.asesor_id)} → ${nombreVendedor(vendedorId) || 'nadie'}${motivo ? ' · ' + motivo : ''}`);
+
+  listo();
+  document.getElementById('modalInscribir').classList.remove('open');
+  document.getElementById('modalLead').classList.remove('open');
+  toast(`Inscrita en ${donde}.` + avisoPago, !!avisoPago);
+  await renderBoard();
+  await renderCalendario(true);
+  abrirModalInscripcion(ins.id);   // para que vea su ficha ya con pago y vendedor
+});
+
 /* --- Modal: nuevo lead --- */
 function poblarSelectCursosCiudades(){
   document.getElementById('nuevoCurso').innerHTML = '<option value="">— Sin especificar —</option>' + CURSOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
-  document.getElementById('nuevoCiudad').innerHTML = '<option value="">— Sin especificar —</option>' + CIUDADES.map(c=>`<option value="${c.id}">${c.nombre}${c.estado?', '+c.estado:''}</option>`).join('');
+  document.getElementById('nuevoCiudad').innerHTML = opcionesCiudad(null);
 }
 document.getElementById('btnNuevoLead').addEventListener('click', ()=>{
   poblarSelectCursosCiudades();
@@ -2830,9 +3126,14 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   // pago) — antes caía en "Pago por confirmar", dentro de la categoría
   // "Pagos", donde nadie lo esperaba ver.
   const estatusInicial = ESTATUS.find(e=>e.clave==='no_vence_pago') || ESTATUS[0];
+  // Quien levanta el lead queda como su vendedor por defecto — sólo si vende.
+  // Si lo captura alguien de Inbox o Sistemas, se queda sin dueño hasta que
+  // un vendedor lo tome (desde la ficha, con su confirmación).
+  const soyVendedor = VENDEDORES.some(u=>u.id === usuarioActual?.id);
   const { error: errL } = await sb.from('leads').insert({
     persona_id: personaId, estatus_id: estatusInicial.id,
-    curso_interes_id: cursoId, ciudad_interes_id: ciudadId
+    curso_interes_id: cursoId, ciudad_interes_id: ciudadId,
+    asesor_id: soyVendedor ? usuarioActual.id : null
   });
   btn.disabled = false; btn.textContent = 'Crear lead';
   if(errL){ toast('Error creando lead: ' + errL.message, true); return; }
@@ -3289,9 +3590,15 @@ function pintarVendedorFicha(){
     hint.textContent = 'Cambiarlo mueve la venta de corte y queda registrado en Actividad del equipo.';
   }
 }
+/* Quien abre la ficha desde una lista que no se refresca sola (Plazas,
+   Historial) deja aquí qué hacer al cerrarla — si no, la lista seguiría
+   mostrando el pago o el vendedor de antes de la corrección. */
+let alCerrarFichaInscripcion = null;
 function cerrarModalInscripcion(){
   document.getElementById('modalInscripcion').classList.remove('open');
   modalInscId = null; modalInscDatos = null;
+  const cb = alCerrarFichaInscripcion; alCerrarFichaInscripcion = null;
+  if(cb) cb();
 }
 document.getElementById('closeModalInscripcion').addEventListener('click', cerrarModalInscripcion);
 
@@ -3338,6 +3645,34 @@ function actualizarPreviewCorreccion(){
    fuerte si quien lo hace se la está pasando a sí mismo. Pase lo que pase
    queda el rastro doble — bitácora del equipo y renglón en las notas del
    alumno — porque la bitácora se puede purgar algún día y la nota no. */
+/* Reglas de reasignación, compartidas por la ficha de la alumna, la del lead
+   y el botón Inscribir — si cada una tuviera su copia, tarde o temprano una
+   dejaría de preguntar.
+   Devuelve null si cancelaron; si no, el motivo ('' si no escribieron nada).
+   Asignar sobre vacío no pregunta: no es una disputa, es capturar lo que faltaba. */
+async function preguntarCambioVendedor(previoId, nuevoId, alumno){
+  if(!previoId || previoId === nuevoId) return '';
+  const nombreDe = id => nombreVendedor(id) || 'nadie';
+  const aMiNombre = nuevoId && usuarioActual?.id === nuevoId;
+  const aviso = nuevoId
+    ? `Esta venta está a nombre de <b>${nombreDe(previoId)}</b>.<br>` +
+      (aMiNombre ? `La vas a pasar a <b>tu nombre (${nombreDe(nuevoId)})</b>.` : `La vas a pasar a <b>${nombreDe(nuevoId)}</b>.`) +
+      `<br><br>Esto cambia a quién le cuenta <b>${alumno}</b> en el corte.`
+    : `Vas a quitarle esta venta a <b>${nombreDe(previoId)}</b> y dejarla sin dueño.<br><br>` +
+      `<b>${alumno}</b> dejará de contarle a nadie en el corte.`;
+  return preguntarConfirmacion({
+    titulo: aMiNombre ? '¿Pasar esta venta a tu nombre?' : '¿Cambiar de vendedor?',
+    aviso, fuerte: aMiNombre, pedirMotivo: true,
+    textoSi: aMiNombre ? 'Sí, es mía' : 'Sí, cambiarla',
+  });
+}
+function rastroReasignacion(previoId, nuevoId, motivo){
+  const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+  return `VENTA REASIGNADA ${hoy} por ${usuarioActual?.nombre || 'alguien'}: `
+       + `${nombreVendedor(previoId) || 'nadie'} → ${nombreVendedor(nuevoId) || 'nadie'}.`
+       + (motivo ? ` Motivo: ${motivo}` : '');
+}
+
 document.getElementById('guardarInscVendedor').addEventListener('click', async ()=>{
   if(!modalInscId || !modalInscDatos) return;
   const nuevoId  = document.getElementById('inscVendedorSelect').value || null;
@@ -3346,36 +3681,17 @@ document.getElementById('guardarInscVendedor').addEventListener('click', async (
 
   const alumno   = modalInscDatos.personas?.nombre || 'esta alumna';
   const nombreDe = id => nombreVendedor(id) || 'nadie';
-  let motivo = '';
-
-  if(previoId){
-    const aMiNombre = nuevoId && usuarioActual?.id === nuevoId;
-    const aviso = nuevoId
-      ? `Esta venta está a nombre de <b>${nombreDe(previoId)}</b>.<br>` +
-        (aMiNombre ? `La vas a pasar a <b>tu nombre (${nombreDe(nuevoId)})</b>.` : `La vas a pasar a <b>${nombreDe(nuevoId)}</b>.`) +
-        `<br><br>Esto cambia a quién le cuenta <b>${alumno}</b> en el corte.`
-      : `Vas a quitarle esta venta a <b>${nombreDe(previoId)}</b> y dejarla sin dueño.<br><br>` +
-        `<b>${alumno}</b> dejará de contarle a nadie en el corte.`;
-    motivo = await preguntarConfirmacion({
-      titulo: aMiNombre ? '¿Pasar esta venta a tu nombre?' : '¿Cambiar de vendedor?',
-      aviso, fuerte: aMiNombre, pedirMotivo: true,
-      textoSi: aMiNombre ? 'Sí, es mía' : 'Sí, cambiarla',
-    });
-    if(motivo === null) return;   // cancelaron
-  }
+  const motivo = await preguntarCambioVendedor(previoId, nuevoId, alumno);
+  if(motivo === null) return;   // cancelaron
 
   const btn = document.getElementById('guardarInscVendedor');
   btn.disabled = true; btn.textContent = 'Guardando...';
 
-  // El rastro sólo se escribe cuando hubo un dueño anterior: la primera
-  // asignación no es una disputa, es capturar lo que faltaba.
+  // El rastro sólo se escribe cuando hubo un dueño anterior.
   const cambios = { asesor_id: nuevoId };
   if(previoId){
-    const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
-    const rastro = `VENTA REASIGNADA ${hoy} por ${usuarioActual?.nombre || 'alguien'}: `
-                 + `${nombreDe(previoId)} → ${nombreDe(nuevoId)}.`
-                 + (motivo ? ` Motivo: ${motivo}` : '');
-    cambios.notas_migracion = (modalInscDatos.notas_migracion ? modalInscDatos.notas_migracion + ' || ' : '') + rastro;
+    cambios.notas_migracion = (modalInscDatos.notas_migracion ? modalInscDatos.notas_migracion + ' || ' : '')
+                            + rastroReasignacion(previoId, nuevoId, motivo);
   }
 
   const { error } = await sb.from('inscripciones').update(cambios).eq('id', modalInscId);
@@ -4900,7 +5216,7 @@ async function abrirModalAlumnos(ciudadId, cursoId, ciudadNombre, cursoNombre){
   document.getElementById('modalAlumnos').classList.add('open');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('liquidado, anticipo, notas_migracion, eventos!inner(ciudad_id, curso_id), personas(nombre, telefono_principal, vip, en_lista_negra)')
+    .select('id, liquidado, anticipo, notas_migracion, eventos!inner(ciudad_id, curso_id), personas(nombre, telefono_principal, vip, en_lista_negra)')
     .eq('eventos.ciudad_id', ciudadId).eq('eventos.curso_id', cursoId);
   if(error){ lista.innerHTML = 'Error: ' + error.message; return; }
   if(!data || data.length===0){ lista.innerHTML = '<div class="empty-note">Sin alumnos registrados todavía.</div>'; return; }
@@ -4914,7 +5230,7 @@ async function abrirModalAlumnos(ciudadId, cursoId, ciudadNombre, cursoNombre){
     // como texto libre dentro de notas_migracion — se muestra tal cual,
     // no se inventan columnas que la migración no dejó separadas.
     const comentario = i.notas_migracion ? `<div class="lead-meta" style="margin-top:4px;">${i.notas_migracion}</div>` : '';
-    return `<div class="lead-row">
+    return `<div class="lead-row clicable" data-insc-id="${i.id}" title="Abrir su ficha: pagos y vendedor">
       <div class="avatar">${(p?.nombre||'?').slice(0,2).toUpperCase()}</div>
       <div style="flex:1;">
         <div class="lead-name">${p?.nombre||'(sin nombre)'} ${p?.vip?'<span class="pill-veces">★ VIP</span>':''} ${p?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}</div>
@@ -4924,6 +5240,11 @@ async function abrirModalAlumnos(ciudadId, cursoId, ciudadNombre, cursoNombre){
       <span class="pill-pago ${pago}">${pagoTxt}</span>
     </div>`;
   }).join('');
+  lista.insertAdjacentHTML('afterbegin', '<div class="hint-tocar">Toca a una alumna para abrir su ficha (pagos y vendedor).</div>');
+  lista.querySelectorAll('[data-insc-id]').forEach(row=>row.addEventListener('click', ()=>{
+    alCerrarFichaInscripcion = ()=>abrirModalAlumnos(ciudadId, cursoId, ciudadNombre, cursoNombre);
+    abrirModalInscripcion(row.dataset.inscId);
+  }));
 }
 document.getElementById('closeModalAlumnos').addEventListener('click', ()=>document.getElementById('modalAlumnos').classList.remove('open'));
 
@@ -4981,7 +5302,7 @@ async function buscarHistorial(q){
     // TODAS las inscripciones, liquidadas o no — antes solo se veían
     // las pagadas y un intento fallido (ej. "2V no contesta") quedaba
     // invisible, como si el contacto nunca hubiera existido.
-    sb.from('inscripciones').select('liquidado, restante, creado_en, eventos(fecha, ciudades(nombre), cursos(nombre)), estatus(etiqueta, color_hex)')
+    sb.from('inscripciones').select('id, liquidado, restante, creado_en, eventos(fecha, ciudades(nombre), cursos(nombre)), estatus(etiqueta, color_hex)')
       .eq('persona_id', p.id).order('creado_en', {ascending:false}),
   ]);
   const cursosHtml = (todasInscripciones && todasInscripciones.length)
@@ -4989,7 +5310,7 @@ async function buscarHistorial(q){
         const ev = ins.eventos;
         const est = ins.estatus;
         const colorPunto = est?.color_hex || '#ccc';
-        return `<span class="curso-chip"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorPunto};border:1px solid rgba(0,0,0,.1);"></span>
+        return `<span class="curso-chip clicable" data-insc-id="${ins.id}" title="Abrir su ficha: pagos y vendedor"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorPunto};border:1px solid rgba(0,0,0,.1);"></span>
           <b>${ev?.ciudades?.nombre || '(ciudad?)'}</b> · ${ev?.cursos?.nombre || '(curso?)'} · ${ev?.fecha ? new Date(ev.fecha).toLocaleDateString('es-MX') : 'sin fecha'} · ${est?.etiqueta || 'sin estatus'}</span>`;
       }).join('')
     : '<div class="empty-note">Sin ningún registro de curso o intento todavía.</div>';
@@ -4998,10 +5319,15 @@ async function buscarHistorial(q){
     <h3>${p.nombre} <span class="pill-veces">${hist?.veces_tomo_curso ?? 0}x liquidado</span></h3>
     <div class="sub">${p.telefono_principal}</div>
     <div class="sub" style="margin-bottom:2px;">Historial completo (liquidado y no liquidado):</div>
+    ${(todasInscripciones && todasInscripciones.length) ? '<div class="hint-tocar">Toca un curso para abrir su ficha (pagos y vendedor).</div>' : ''}
     <div>${cursosHtml}</div>
     <h3 style="margin-top:14px; font-size:13px;">Historial de contacto</h3>
     ${(inter&&inter.length) ? inter.map(i=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(i.fecha).toLocaleString('es-MX')}</div>${i.nota||'(sin nota)'}</div>`).join('') : '<div class="empty-note">Sin interacciones todavía.</div>'}
   </div>`;
+  cont.querySelectorAll('[data-insc-id]').forEach(chip=>chip.addEventListener('click', ()=>{
+    alCerrarFichaInscripcion = ()=>buscarHistorial(q);
+    abrirModalInscripcion(chip.dataset.inscId);
+  }));
 }
 
 /* =========================================================
