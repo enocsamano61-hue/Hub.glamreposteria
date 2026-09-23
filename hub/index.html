@@ -453,6 +453,20 @@
   .fdd-item:hover{ background:var(--bg); }
   .fdd-item.active{ background:var(--wine); color:#fff; }
 
+  /* ---------- Buscador de ciudad (reemplaza el <select> de ciudades) ---------- */
+  .bc{ position:relative; }
+  .bc-input{ width:100%; }
+  .bc-lista{ display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:60; background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 14px 32px rgba(41,36,33,.16); padding:6px; max-height:280px; overflow-y:auto; text-align:left; }
+  .bc.open .bc-lista{ display:block; }
+  .bc-grupo{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); padding:8px 10px 4px; }
+  .bc-item{ padding:8px 10px; border-radius:8px; font-size:13px; cursor:pointer; color:var(--ink); line-height:1.3; }
+  .bc-item.activo{ background:var(--bg); }
+  .bc-item.elegido{ font-weight:600; }
+  .bc-item .bc-edo{ color:var(--ink-soft); }
+  .bc-item .bc-cal{ float:right; margin-left:8px; font-size:11.5px; color:var(--wine); font-weight:600; }
+  .bc-item .bc-via{ display:block; font-size:11px; color:var(--ink-soft); }
+  .bc-vacio{ padding:10px; font-size:12.5px; color:var(--ink-soft); }
+
   /* ---------- STEWARD / AYUDANTES ---------- */
   .apoyo-row{ display:flex; align-items:flex-start; gap:12px; padding:11px 2px; border-bottom:1px solid var(--border); }
   .apoyo-row:last-child{ border-bottom:none; }
@@ -1202,7 +1216,7 @@
     <button class="close" id="closeModalNuevaSede">✕</button>
     <h3 style="margin-bottom:14px;">Nueva sede</h3>
     <div class="modal-field"><label>Nombre de la sede</label><input id="nuevaSedeNombre" placeholder="Ej. Hotel Real del Valle"></div>
-    <div class="modal-field"><label>Ciudad</label><input id="nuevaSedeCiudad" list="listaCiudadesNuevaSede" placeholder="Escribe o elige una ciudad"><datalist id="listaCiudadesNuevaSede"></datalist></div>
+    <div class="modal-field"><label>Ciudad</label><input id="nuevaSedeCiudad" placeholder="Escribe la ciudad…"></div>
     <div class="modal-field"><label>Tipo de lugar</label>
       <select id="nuevaSedeTipo">
         <option>Hotel</option><option>Salón</option><option>Restaurante</option><option>Otro</option>
@@ -2357,11 +2371,288 @@ function opcionesCiudad(seleccionada){
     vistos.add(c.id);
     arriba.push(opt(c.id, `${nombre(c)} · 📅 ${fechaCorta(e.fecha)}`));
   });
-  const resto = CIUDADES.filter(c=>!vistos.has(c.id)).map(c=>opt(c.id, nombre(c)));
+  // Las hojas del Excel que se colaron como "ciudades" (Online, Cancelados…) no se
+  // ofrecen; sólo se muestran si ya es la ciudad guardada, para no perderla.
+  const resto = CIUDADES.filter(c=>!vistos.has(c.id) && (!c.oculta || c.id === seleccionada)).map(c=>opt(c.id, nombre(c)));
   return '<option value="">— Sin especificar —</option>'
     + (arriba.length ? `<optgroup label="📅 Con curso próximo">${arriba.join('')}</optgroup>` : '')
     + `<optgroup label="${arriba.length ? 'Todas las demás' : 'Ciudades'}">${resto.join('')}</optgroup>`;
 }
+
+/* =========================================================
+   BUSCADOR DE CIUDAD — encuentra la ciudad aunque no se escriba igual:
+   sin acentos ni mayúsculas, ignora "Cd", "Ciudad", "Heroica", "de"…,
+   busca también en los nombres viejos (alias: "Cd Obregon" encuentra
+   "Ciudad Obregón") y tolera errores de dedo ("hermosiyo", "juares").
+   Las ciudades con curso próximo en el Calendario salen primero.
+   ========================================================= */
+const PALABRAS_VACIAS_CIUDAD = new Set(['cd','ciudad','heroica','h','de','del','la','las','los','el','y','mpio','municipio']);
+const SINONIMOS_CIUDAD = { pto:'puerto', sta:'santa', sto:'santo', sn:'san', gral:'general', fco:'francisco' };
+const ESTADO_POR_ABREV = {
+  ags:'aguascalientes', bc:'baja california', bcs:'baja california sur', camp:'campeche', chis:'chiapas',
+  chih:'chihuahua', coah:'coahuila', col:'colima', dgo:'durango', gto:'guanajuato', gro:'guerrero',
+  hgo:'hidalgo', jal:'jalisco', edomex:'estado de mexico', mex:'estado de mexico', mich:'michoacan',
+  mor:'morelos', nay:'nayarit', nl:'nuevo leon', oax:'oaxaca', pue:'puebla', qro:'queretaro',
+  qroo:'quintana roo', slp:'san luis potosi', sin:'sinaloa', son:'sonora', tab:'tabasco',
+  tamps:'tamaulipas', tamp:'tamaulipas', tlax:'tlaxcala', ver:'veracruz', yuc:'yucatan', zac:'zacatecas',
+};
+function normTexto(s){
+  return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+function tokensCiudad(s){
+  return normTexto(s).split(' ').map(t=>SINONIMOS_CIUDAD[t]||t).filter(t=>t && !PALABRAS_VACIAS_CIUDAD.has(t));
+}
+function distanciaEdicion(a, b){
+  // Letras de más, de menos, cambiadas o volteadas ("hermosilo", "juares", "meirda")
+  const m = a.length, n = b.length;
+  if(!m) return n; if(!n) return m;
+  const d = Array.from({length:m+1}, (_,i)=>[i]);
+  for(let j=0;j<=n;j++) d[0][j] = j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){
+    d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1] + (a[i-1]===b[j-1]?0:1));
+    if(i>1 && j>1 && a[i-1]===b[j-2] && a[i-2]===b[j-1]) d[i][j] = Math.min(d[i][j], d[i-2][j-2]+1);
+  }
+  return d[m][n];
+}
+function toleranciaTypos(largo){ return largo<=3 ? 0 : largo<=6 ? 1 : 2; }
+function parecidoPalabra(q, c){
+  if(c === q) return 1;
+  if(c.startsWith(q)) return q.length>=2 ? 0.9 : 0.6;
+  const tol = toleranciaTypos(q.length);
+  if(tol){
+    if(distanciaEdicion(q, c) <= tol) return 0.75;
+    if(c.length > q.length && distanciaEdicion(q, c.slice(0, q.length)) <= tol) return 0.65;
+  }
+  if(q.length>=4 && c.includes(q)) return 0.6;
+  return 0;
+}
+/* Qué tanto se parece lo escrito a un nombre: 0 = nada, 100 = idéntico. */
+function parecidoNombre(qToks, texto){
+  const cToks = tokensCiudad(texto);
+  if(!qToks.length || !cToks.length) return 0;
+  const qJ = qToks.join(''), cJ = cToks.join('');
+  if(qJ === cJ) return 100;
+  let puntos = 0, suma = 0;
+  const usados = new Set();
+  for(const q of qToks){
+    let mejor = 0, idx = -1;
+    cToks.forEach((c,i)=>{ if(usados.has(i)) return; const p = parecidoPalabra(q, c); if(p > mejor){ mejor = p; idx = i; } });
+    if(!mejor){ suma = 0; break; }
+    usados.add(idx); suma += mejor;
+  }
+  if(suma) puntos = 50 + 40*suma/qToks.length - Math.min(10, (cToks.length - qToks.length)*2)
+                  + (parecidoPalabra(qToks[0], cToks[0]) >= 0.9 ? 8 : 0);
+  // Escrita junta o separada: "villa hermosa", "sanluis"
+  if(qJ.length>=3 && cJ.startsWith(qJ)) puntos = Math.max(puntos, 85);
+  else {
+    const tol = toleranciaTypos(qJ.length);
+    if(tol && (distanciaEdicion(qJ, cJ) <= tol || (cJ.length > qJ.length && distanciaEdicion(qJ, cJ.slice(0, qJ.length)) <= tol))) puntos = Math.max(puntos, 70);
+  }
+  return Math.min(100, Math.round(puntos));
+}
+/* items: [{ nombre, estado, alias, fecha, ... }] → los que se parecen, mejor primero.
+   Cada resultado trae `puntos` y `via` (el nombre viejo con el que coincidió). */
+function buscarCiudades(texto, items){
+  let qToks = tokensCiudad(texto);
+  // "celaya gto": la abreviatura del estado sólo filtra, no es parte del nombre
+  let estadoPedido = null;
+  if(qToks.length > 1){
+    const abrev = qToks.find(t=>ESTADO_POR_ABREV[t]);
+    if(abrev){ estadoPedido = ESTADO_POR_ABREV[abrev]; qToks = qToks.filter(t=>t !== abrev); }
+  }
+  if(!qToks.length) return [];
+  const res = [];
+  items.forEach(it=>{
+    let puntos = parecidoNombre(qToks, it.nombre), via = null;
+    if(it.estado){ const p = parecidoNombre(qToks, it.nombre + ' ' + it.estado); if(p > puntos) puntos = p; }
+    (it.alias||[]).forEach(a=>{ const p = parecidoNombre(qToks, a); if(p > puntos){ puntos = p; via = a; } });
+    if(puntos < 60) return;
+    if(estadoPedido && it.estado) puntos += normTexto(it.estado) === estadoPedido ? 6 : -15;
+    if(it.fecha) puntos += 12;
+    if(puntos >= 60) res.push({ ...it, puntos, via });
+  });
+  return res.sort((a,b)=> b.puntos - a.puntos || (a.fecha||'9').localeCompare(b.fecha||'9') || a.nombre.localeCompare(b.nombre, 'es'));
+}
+function itemsDeCiudades(lista){
+  const fechas = new Map();
+  (EVENTOS_CAL||[]).forEach(e=>{ if(!fechas.has(e.ciudad_id)) fechas.set(e.ciudad_id, e.fecha); });
+  return lista.map(c=>({ value:c.id, nombre:c.nombre, estado:c.estado||'', alias:c.alias||[], fecha:fechas.get(c.id)||null, ciudad:c }));
+}
+/* La ciudad que corresponde EXACTAMENTE a un texto (por nombre o por un nombre
+   viejo), o null. Para enlazar texto libre sin inventar coincidencias. */
+function ciudadPorTexto(texto){
+  const q = tokensCiudad(texto).join('');
+  if(!q) return null;
+  return CIUDADES.find(c=>tokensCiudad(c.nombre).join('') === q)
+      || CIUDADES.find(c=>(c.alias||[]).some(a=>tokensCiudad(a).join('') === q))
+      || null;
+}
+function escHtml(s){ return String(s??'').replace(/[&<>"]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+
+/* Lista desplegable debajo de un campo de texto. La usan el buscador que
+   reemplaza a los <select> de ciudad y las sugerencias de texto libre. */
+function listaBuscadora(inp, caja, { items, alElegir, alSalir }){
+  const lista = document.createElement('div');
+  lista.className = 'bc-lista';
+  caja.appendChild(lista);
+  let visibles = [], activo = -1;
+  // Al entrar, el campo trae la ciudad ya elegida: se muestra la lista completa
+  // hasta que la persona empiece a escribir.
+  let tecleado = false;
+  const pintarItem = (it, i, elegido)=>{
+    if(it.especial) return `<div class="bc-item ${i===activo?'activo':''}" data-i="${i}">${escHtml(it.nombre)}</div>`;
+    return `<div class="bc-item ${i===activo?'activo':''} ${elegido?'elegido':''}" data-i="${i}">`
+      + (it.fecha ? `<span class="bc-cal">📅 ${fechaCorta(it.fecha)}</span>` : '')
+      + `${escHtml(it.nombre)}${it.estado ? `<span class="bc-edo">, ${escHtml(it.estado)}</span>` : ''}`
+      + (it.via ? `<span class="bc-via">escrita antes como “${escHtml(it.via)}”</span>` : '')
+      + `</div>`;
+  };
+  function pintar(){
+    const todos = items();
+    const q = tecleado ? inp.value.trim() : '';
+    const normales = todos.filter(it=>!it.especial);
+    const vacio = todos.find(it=>it.especial && !it.value);
+    const extras = todos.filter(it=>it.especial && it.value);
+    const elegido = todos.find(it=>it.elegido)?.value;
+    let html = '';
+    if(!q){
+      const conCurso = normales.filter(it=>it.fecha).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      const demas = normales.filter(it=>!it.fecha);
+      visibles = [...(vacio?[vacio]:[]), ...conCurso, ...demas, ...extras];
+      activo = -1;
+      let i = 0;
+      if(vacio) html += pintarItem(vacio, i++);
+      if(conCurso.length) html += '<div class="bc-grupo">📅 Con curso próximo</div>' + conCurso.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
+      if(demas.length) html += `<div class="bc-grupo">${conCurso.length ? 'Todas las demás' : 'Ciudades'}</div>` + demas.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
+      html += extras.map(it=>pintarItem(it, i++)).join('');
+    } else {
+      const hallados = buscarCiudades(q, normales).slice(0, 40);
+      visibles = [...hallados, ...extras];
+      activo = visibles.length ? 0 : -1;
+      html = hallados.map((it,i)=>pintarItem(it, i, it.value===elegido)).join('')
+        || `<div class="bc-vacio">No encontré “${escHtml(q)}”. Revisa cómo se escribe o prueba sólo una parte del nombre.</div>`;
+      html += extras.map((it,k)=>pintarItem(it, hallados.length + k)).join('');
+    }
+    lista.innerHTML = html;
+    caja.classList.add('open');
+    lista.querySelector('.bc-item.activo, .bc-item.elegido')?.scrollIntoView({ block:'nearest' });
+  }
+  function cerrar(){ caja.classList.remove('open'); activo = -1; }
+  function marcar(i){
+    activo = Math.max(0, Math.min(visibles.length-1, i));
+    lista.querySelectorAll('.bc-item').forEach(el=>el.classList.toggle('activo', Number(el.dataset.i) === activo));
+    lista.querySelector('.bc-item.activo')?.scrollIntoView({ block:'nearest' });
+  }
+  // mousedown (no click): así elegir no le quita el foco al campo antes de tiempo
+  lista.addEventListener('mousedown', ev=>{
+    const el = ev.target.closest('.bc-item');
+    ev.preventDefault();
+    if(!el) return;
+    const it = visibles[Number(el.dataset.i)];
+    cerrar(); alElegir(it);
+  });
+  inp.addEventListener('focus', ()=>{ tecleado = false; inp.select(); pintar(); });
+  inp.addEventListener('input', ()=>{ tecleado = true; pintar(); });
+  inp.addEventListener('keydown', ev=>{
+    if(ev.key === 'ArrowDown'){ ev.preventDefault(); if(!caja.classList.contains('open')){ tecleado = false; pintar(); } marcar(activo+1); }
+    else if(ev.key === 'ArrowUp'){ ev.preventDefault(); marcar(activo-1); }
+    else if(ev.key === 'Enter' && caja.classList.contains('open') && activo >= 0){ ev.preventDefault(); const it = visibles[activo]; cerrar(); alElegir(it); }
+    else if(ev.key === 'Escape' && caja.classList.contains('open')){ ev.preventDefault(); ev.stopPropagation(); cerrar(); alSalir(); }
+  });
+  inp.addEventListener('blur', ()=>{ cerrar(); alSalir(); });
+  return { pintar, cerrar };
+}
+
+/* Convierte un <select> de ciudades en buscador. El <select> sigue siendo la
+   fuente de verdad (el resto del código lee y asigna .value como siempre);
+   sólo se esconde y se escribe en un campo de texto encima. */
+function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
+  if(sel._buscador) return sel._buscador;
+  const caja = document.createElement('div');
+  caja.className = 'bc';
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.autocomplete = 'off'; inp.spellcheck = false;
+  inp.className = 'bc-input' + (sel.classList.contains('select') ? ' select' : '');
+  inp.placeholder = placeholder;
+  inp.id = sel.id + 'Buscar';
+  // Hereda el tamaño/fondo que traía el <select> (p.ej. el de Plazas)
+  ['maxWidth','marginTop'].forEach(k=>{ if(sel.style[k]) caja.style[k] = sel.style[k]; });
+  if(sel.style.background) inp.style.background = sel.style.background;
+  caja.appendChild(inp);
+  sel.after(caja);
+  sel.style.display = 'none';
+
+  const nativo = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  const porId = ()=> new Map(CIUDADES.map(c=>[c.id, c]));
+  const textoDe = (valor)=>{
+    if(!valor) return '';
+    const c = porId().get(valor);
+    if(c) return c.nombre + (c.estado ? ', ' + c.estado : '');
+    const o = [...sel.options].find(o=>o.value === valor);
+    return o ? o.textContent : '';
+  };
+  const mostrarElegida = ()=>{ if(document.activeElement !== inp) inp.value = textoDe(nativo.get.call(sel)); };
+  // Si el código asigna sel.value = …, el campo de texto lo refleja
+  Object.defineProperty(sel, 'value', {
+    configurable: true,
+    get(){ return nativo.get.call(sel); },
+    set(v){ nativo.set.call(sel, v); mostrarElegida(); },
+  });
+  new MutationObserver(mostrarElegida).observe(sel, { childList:true, subtree:true, attributes:true });
+
+  const items = ()=>{
+    const ciudades = porId();
+    const actual = nativo.get.call(sel);
+    const fechas = new Map();
+    (EVENTOS_CAL||[]).forEach(e=>{ if(!fechas.has(e.ciudad_id)) fechas.set(e.ciudad_id, e.fecha); });
+    return [...sel.options].map(o=>{
+      const c = ciudades.get(o.value);
+      const especial = !o.value || o.value.startsWith('__');
+      return {
+        value: o.value, especial, elegido: o.value === actual,
+        nombre: c ? c.nombre : o.textContent.trim(),
+        estado: c?.estado || '', alias: c?.alias || [],
+        fecha: c ? (fechas.get(c.id) || null) : null,
+      };
+    });
+  };
+  const ctl = listaBuscadora(inp, caja, {
+    items,
+    alElegir(it){
+      inp.value = textoDe(it.value);
+      if(nativo.get.call(sel) !== it.value || it.value.startsWith('__')){
+        nativo.set.call(sel, it.value);
+        sel.dispatchEvent(new Event('change', { bubbles:true }));
+      }
+      inp.value = textoDe(nativo.get.call(sel));
+      inp.blur();
+    },
+    alSalir(){ inp.value = textoDe(nativo.get.call(sel)); },
+  });
+  mostrarElegida();
+  sel._buscador = { input: inp, abrir: ()=>inp.focus(), refrescar: mostrarElegida, ...ctl };
+  return sel._buscador;
+}
+
+/* Sugerencias de ciudad para un campo de TEXTO libre (p.ej. la ciudad de una sede
+   nueva): se puede escribir lo que sea, pero si eliges una, queda enlazada. */
+function sugerenciasDeCiudad(inp){
+  if(inp._sugerencias) return inp._sugerencias;
+  const caja = document.createElement('div');
+  caja.className = 'bc';
+  inp.after(caja); caja.appendChild(inp);
+  inp.autocomplete = 'off';
+  const ctl = listaBuscadora(inp, caja, {
+    items: ()=> itemsDeCiudades(CIUDADES.filter(c=>!c.oculta)),
+    alElegir(it){ inp.value = it.nombre; inp.dataset.ciudadId = it.value; inp.blur(); },
+    alSalir(){},
+  });
+  inp.addEventListener('input', ()=>{ delete inp.dataset.ciudadId; });
+  inp._sugerencias = ctl;
+  return ctl;
+}
+buscadorDeCiudad(document.getElementById('modalCiudadSelect'));
+buscadorDeCiudad(document.getElementById('nuevoCiudad'));
 
 /* =========================================================
    GIRA ACTIVA — nombre exacto del curso que se está trabajando
@@ -4543,14 +4834,14 @@ async function renderGirasHistorial(){
             <div class="parada-resumen-head">
               <b>${p.orden}. ${ciudadNombre}${p.ciudades?.estado?', '+p.ciudades.estado:''}</b>
               ${p.distancia_km_desde_anterior?'<span class="sub" style="margin:0;">'+Number(p.distancia_km_desde_anterior).toFixed(0)+' km</span>':''}
-              <button class="btn-outline small" style="width:auto; padding:6px 12px; font-size:11.5px;" data-ver-sedes-ciudad="${escapeAttr(ciudadNombre)}">🏨 Ver sedes</button>
+              <button class="btn-outline small" style="width:auto; padding:6px 12px; font-size:11.5px;" data-ver-sedes-ciudad="${escapeAttr(ciudadNombre)}" data-ciudad-id="${p.ciudad_id||''}">🏨 Ver sedes</button>
             </div>
             <div class="sub" style="margin:4px 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               ${sede ? `<span>Sede: <b>${sede.nombre}</b> <span class="badge ${sede.pipeline_estatus}">${ETIQUETA_PIPELINE[sede.pipeline_estatus]||sede.pipeline_estatus}</span></span>`
                 : `<span style="color:var(--danger);">Sin sede asignada</span>
                    <select class="select" style="font-size:11.5px; padding:6px 8px;" data-asignar-sede-parada="${p.id}">
                      <option value="">— Elegir sede de esta ciudad —</option>
-                     ${(logisticaSedesCache||[]).filter(s=>normalizarNombreCurso(s.ciudad_texto)===normalizarNombreCurso(ciudadNombre)).map(s=>`<option value="${s.id}">${s.nombre} (${ETIQUETA_PIPELINE[s.pipeline_estatus]})</option>`).join('')}
+                     ${(logisticaSedesCache||[]).filter(s=>(p.ciudad_id && s.ciudad_id===p.ciudad_id) || normalizarNombreCurso(s.ciudad_texto)===normalizarNombreCurso(ciudadNombre)).map(s=>`<option value="${s.id}">${s.nombre} (${ETIQUETA_PIPELINE[s.pipeline_estatus]})</option>`).join('')}
                    </select>`}
             </div>
             ${sede ? `<div style="display:flex; flex-wrap:wrap; gap:2px 14px;">
@@ -4573,7 +4864,7 @@ async function renderGirasHistorial(){
     btn.addEventListener('click', ()=>generarReactivacionGira(btn.dataset.generarReactivacion, btn));
   });
   cont.querySelectorAll('[data-ver-sedes-ciudad]').forEach(btn=>{
-    btn.addEventListener('click', ()=>saltarALogisticaCiudad(btn.dataset.verSedesCiudad));
+    btn.addEventListener('click', ()=>saltarALogisticaCiudad(btn.dataset.verSedesCiudad, btn.dataset.ciudadId));
   });
   cont.querySelectorAll('[data-parada-checklist]').forEach(chk=>{
     chk.addEventListener('change', ()=>toggleChecklistParada(chk.dataset.paradaChecklist, chk.dataset.campo, chk.checked));
@@ -4599,8 +4890,9 @@ async function toggleChecklistParada(paradaId, campo, valor){
   if(error){ toast('Error al guardar: '+error.message, true); return; }
   toast('Guardado.');
 }
-function saltarALogisticaCiudad(ciudadTexto){
+function saltarALogisticaCiudad(ciudadTexto, ciudadId){
   logisticaSaltarCiudad = ciudadTexto;
+  logisticaSaltarCiudadId = ciudadId || null;
   setActiveSection('logistica');
 }
 
@@ -4730,10 +5022,10 @@ let CIUDADES_CON_CURSO = [];
 async function cargarCiudadesConCurso(){
   // Solo ciudades donde YA se dio un curso real (tienen evento) — no
   // todas las 1,500+ que existen solo porque algún alumno vive ahí.
-  const { data, error } = await fetchTodasFilas('eventos', 'ciudades(id,nombre,estado)');
+  const { data, error } = await fetchTodasFilas('eventos', 'ciudades(id,nombre,estado,oculta)');
   if(error){ toast('Error cargando ciudades con curso: ' + error.message, true); return; }
   const vistas = {};
-  (data||[]).forEach(e=>{ if(e.ciudades) vistas[e.ciudades.id] = e.ciudades; });
+  (data||[]).forEach(e=>{ if(e.ciudades && !e.ciudades.oculta) vistas[e.ciudades.id] = e.ciudades; });
   CIUDADES_CON_CURSO = Object.values(vistas).sort((a,b)=>a.nombre.localeCompare(b.nombre));
 }
 function renderCiudadSelect(){
@@ -4741,6 +5033,7 @@ function renderCiudadSelect(){
   sel.innerHTML = CIUDADES_CON_CURSO.map(c=>`<option value="${c.id}">${c.nombre}${c.estado?', '+c.estado:''}</option>`).join('') + `<option value="__new">+ Nueva ciudad…</option>`;
   if(CIUDADES_CON_CURSO.length) renderPlaza(CIUDADES_CON_CURSO[0].id);
 }
+buscadorDeCiudad(document.getElementById('ciudadSelect'), { placeholder:'Busca una ciudad…' });
 document.getElementById('ciudadSelect').addEventListener('change', (e)=>{
   if(e.target.value==='__new'){ document.getElementById('newCityForm').classList.add('open'); document.getElementById('newCityHint').style.display='block'; }
   else { document.getElementById('newCityForm').classList.remove('open'); document.getElementById('newCityHint').style.display='none'; renderPlaza(e.target.value); }
@@ -4751,6 +5044,30 @@ document.getElementById('newCitySave').addEventListener('click', async ()=>{
   const latTxt = document.getElementById('newCityLat').value.trim();
   const lngTxt = document.getElementById('newCityLng').value.trim();
   if(!nombre){ return; }
+  // Antes de crearla, ¿ya existe con otro nombre? ("Cd Obregon" = "Ciudad Obregón")
+  const parecida = buscarCiudades(nombre + (estado ? ' ' + estado : ''), itemsDeCiudades(CIUDADES.filter(c=>!c.oculta)))[0];
+  if(parecida && parecida.puntos >= 85){
+    const c = parecida.ciudad;
+    const crearOtra = await preguntarConfirmacion({
+      titulo: 'Esa ciudad ya existe',
+      aviso: `Encontré <b>${escHtml(c.nombre)}${c.estado ? ', ' + escHtml(c.estado) : ''}</b>`
+        + (parecida.via ? ` (antes escrita como “${escHtml(parecida.via)}”)` : '')
+        + `. Para no tener la misma ciudad dos veces, mejor usa esa.<br><br>Si cancelas, te llevo a ella.`,
+      textoSi: 'Crear otra de todos modos',
+    });
+    if(crearOtra === null){
+      if(!CIUDADES_CON_CURSO.some(x=>x.id === c.id)){
+        CIUDADES_CON_CURSO.push({ id:c.id, nombre:c.nombre, estado:c.estado });
+        CIUDADES_CON_CURSO.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+        renderCiudadSelect();
+      }
+      document.getElementById('ciudadSelect').value = c.id;
+      document.getElementById('newCityForm').classList.remove('open');
+      document.getElementById('newCityHint').style.display='none';
+      renderPlaza(c.id);
+      return;
+    }
+  }
   const payload = { nombre, estado: estado||null };
   const lat = latTxt ? Number(latTxt) : null;
   const lng = lngTxt ? Number(lngTxt) : null;
@@ -4764,6 +5081,7 @@ document.getElementById('newCitySave').addEventListener('click', async ()=>{
   const { data, error } = await sb.from('ciudades').insert(payload).select('id,nombre,estado').single();
   if(error){ toast('Error: ' + error.message, true); return; }
   registrarActividad('ciudad_creada', nombre);
+  CIUDADES.push({ ...data, alias:[], oculta:false });
   // se agrega local a la lista filtrada aunque todavía no tenga evento —
   // la acabas de crear a propósito para trabajarla
   CIUDADES_CON_CURSO.push(data);
@@ -5374,6 +5692,7 @@ let logisticaConteosCache = {};    // Map sede_id -> nº de contactos histórico
 let logisticaCursosPorSede = {};   // Map sede_id -> Set(curso_catalogo_id)
 let logisticaCursosCache = [];     // catálogo de cursos de logística (activos)
 let logisticaSaltarCiudad = null;  // ciudad a preseleccionar al entrar desde Giras
+let logisticaSaltarCiudadId = null;
 const ETIQUETA_PIPELINE = { prospecto:'Prospecto', en_proceso:'En proceso', confirmada:'Confirmada', rechazada:'Rechazada' };
 const COLOR_PIPELINE = { prospecto:'var(--champagne)', en_proceso:'var(--terracota)', confirmada:'var(--success)', rechazada:'var(--danger)' };
 const PILL_PIPELINE = { prospecto:'ambar', en_proceso:'terracota', confirmada:'verde', rechazada:'rojo' };
@@ -5413,6 +5732,11 @@ async function cargarLogisticaTab(tab){
   else if(tab==='resumen' && !logisticaCargado.resumen){ logisticaCargado.resumen=true; await renderLogisticaResumen(); }
   if(logisticaSaltarCiudad){
     await cargarSedesCache();
+    // Las sedes guardan la ciudad como se escribió ("Guaymas"); la gira trae el
+    // nombre oficial ("Heroica Guaymas"). Se busca por la ciudad enlazada.
+    const porId = logisticaSaltarCiudadId && (logisticaSedesCache||[]).find(s=>s.ciudad_id===logisticaSaltarCiudadId);
+    if(porId) logisticaSaltarCiudad = porId.ciudad_texto;
+    logisticaSaltarCiudadId = null;
     fddCiudad.setValor(logisticaSaltarCiudad, logisticaSaltarCiudad);
     document.getElementById('logisticaBuscar').value = '';
     fddEstatus.setValor('', 'Todos los estatus');
@@ -5493,7 +5817,7 @@ document.getElementById('logisticaBuscar').addEventListener('input', aplicarFilt
  * tipo chip que abre un menú con buscador — mismo look que el resto de la
  * app. Uso: crearFiltroDesplegable('fddId', [{value,label},...], onCambio).
  */
-function crearFiltroDesplegable(elId, opcionesIniciales, onSeleccionar){
+function crearFiltroDesplegable(elId, opcionesIniciales, onSeleccionar, { difuso = false } = {}){
   const el = document.getElementById(elId);
   const btn = el.querySelector('.fdd-btn');
   const label = el.querySelector('.fdd-label');
@@ -5502,8 +5826,11 @@ function crearFiltroDesplegable(elId, opcionesIniciales, onSeleccionar){
   let opciones = opcionesIniciales || [];
   let valor = '';
   function pintarLista(filtro){
-    const f = (filtro||'').toLowerCase();
-    lista.innerHTML = opciones.filter(o=>!f || o.label.toLowerCase().includes(f)).map(o=>
+    const f = (filtro||'').toLowerCase().trim();
+    const visibles = !f ? opciones
+      : difuso ? buscarCiudades(f, opciones.filter(o=>o.value).map(o=>({ ...o, nombre:o.label })))
+      : opciones.filter(o=>o.label.toLowerCase().includes(f));
+    lista.innerHTML = visibles.map(o=>
       `<div class="fdd-item ${o.value===valor?'active':''}" data-valor="${escapeAttr(o.value)}">${o.label}</div>`
     ).join('') || '<div class="empty-note" style="padding:8px;">Sin resultados.</div>';
     lista.querySelectorAll('[data-valor]').forEach(item=>{
@@ -5532,7 +5859,7 @@ function crearFiltroDesplegable(elId, opcionesIniciales, onSeleccionar){
     setValor(v, lbl){ valor = v||''; label.textContent = lbl || (opciones[0]?opciones[0].label:''); el.classList.toggle('activo', !!valor); },
   };
 }
-const fddCiudad = crearFiltroDesplegable('fddCiudad', [{value:'', label:'Todas las ciudades'}], aplicarFiltrosCatalogo);
+const fddCiudad = crearFiltroDesplegable('fddCiudad', [{value:'', label:'Todas las ciudades'}], aplicarFiltrosCatalogo, { difuso:true });
 const fddEstatus = crearFiltroDesplegable('fddEstatus', [
   {value:'', label:'Todos los estatus'}, {value:'prospecto', label:'Prospecto'},
   {value:'en_proceso', label:'En proceso'}, {value:'confirmada', label:'Confirmada'}, {value:'rechazada', label:'Rechazada'},
@@ -5708,6 +6035,7 @@ async function renderLogisticaCalculadora(){
   await cargarSedesCache();
   const ciudadesOrdenadas = [...new Set(logisticaSedesCache.map(s=>s.ciudad_texto))].sort((a,b)=>a.localeCompare(b,'es'));
   document.getElementById('calcCiudad').innerHTML = ciudadesOrdenadas.map(c=>`<option value="${escapeAttr(c)}">${c}</option>`).join('');
+  buscadorDeCiudad(document.getElementById('calcCiudad'));
 }
 document.getElementById('btnCalcularCupo').addEventListener('click', ()=>{
   const ciudad = document.getElementById('calcCiudad').value;
@@ -5837,10 +6165,11 @@ document.getElementById('btnNuevaSede').addEventListener('click', async ()=>{
   await cargarSedesCache();
   document.getElementById('nuevaSedeNombre').value = '';
   document.getElementById('nuevaSedeCiudad').value = '';
+  delete document.getElementById('nuevaSedeCiudad').dataset.ciudadId;
   document.getElementById('nuevaSedeTipo').value = 'Hotel';
   document.getElementById('nuevaSedeContacto').value = '';
   document.getElementById('nuevaSedeTelefono').value = '';
-  document.getElementById('listaCiudadesNuevaSede').innerHTML = CIUDADES.map(c=>`<option value="${escapeAttr(c.nombre)}">`).join('');
+  sugerenciasDeCiudad(document.getElementById('nuevaSedeCiudad'));
   document.getElementById('nuevaSedeCurso').innerHTML = '<option value="">— Sin especificar —</option>' +
     logisticaCursosCache.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   document.getElementById('modalNuevaSede').classList.add('open');
@@ -5854,7 +6183,8 @@ document.getElementById('guardarNuevaSede').addEventListener('click', async ()=>
   const contacto = document.getElementById('nuevaSedeContacto').value.trim() || null;
   const telefono = document.getElementById('nuevaSedeTelefono').value.trim() || null;
   const cursoId = document.getElementById('nuevaSedeCurso').value || null;
-  const ciudadMatch = CIUDADES.find(c=>normalizarNombreCurso(c.nombre)===normalizarNombreCurso(ciudadTexto));
+  const idElegida = document.getElementById('nuevaSedeCiudad').dataset.ciudadId;
+  const ciudadMatch = (idElegida && CIUDADES.find(c=>c.id===idElegida)) || ciudadPorTexto(ciudadTexto);
   const btn = document.getElementById('guardarNuevaSede'); btn.disabled=true; btn.textContent='Guardando...';
   const { data: sede, error } = await sb.from('sedes').insert({
     nombre, ciudad_texto: ciudadTexto, ciudad_id: ciudadMatch?ciudadMatch.id:null,
