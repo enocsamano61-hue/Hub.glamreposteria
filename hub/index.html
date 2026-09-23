@@ -3813,6 +3813,8 @@ async function cargarCobranza(){
   const finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
   let qL = sb.from('leads').select(LEAD_SELECT + ', monto_anticipo');
   if(finales.length) qL = qL.not('estatus_id', 'in', `(${finales.join(',')})`);
+  // Mismos leads que el tablero: los de ciudades de la gira activa (o sin ciudad)
+  if(CIUDADES_GIRA_ACTIVA?.length) qL = qL.or(`ciudad_interes_id.in.(${CIUDADES_GIRA_ACTIVA.join(',')}),ciudad_interes_id.is.null`);
   const [rl, ri] = await Promise.all([
     qL,
     cursoId ? sb.from('inscripciones').select(`
