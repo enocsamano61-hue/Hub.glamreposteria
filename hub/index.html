@@ -529,6 +529,46 @@
   .lead-pago-rep{ font-size:11px; color:#7B3FA0; font-weight:700; margin-top:4px; }
   .lead-anticipo{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
   .lead-anticipo.vencida{ color:var(--danger); font-weight:700; }
+  .vend-row input[type=date]{ flex:1; padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
+
+  /* ---------- COBRANZA ---------- */
+  .cob-cabeza{ margin-bottom:14px; }
+  .cob-dia{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .cob-dia input[type=date]{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; background:var(--card); color:var(--ink); }
+  .cob-dia .btn-outline{ width:auto; padding:8px 14px; }
+  .cob-dia-texto{ font-size:13px; color:var(--ink-soft); }
+  .cob-filtros{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .cob-filtros select, .cob-filtros input{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
+  .cob-filtros input{ flex:1; min-width:160px; }
+  .cob-atajos{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .cob-atajo{ border:1px solid var(--border); background:var(--card); border-radius:20px; padding:7px 12px; font-size:12.5px; font-weight:600; color:var(--ink); cursor:pointer; font-family:inherit; }
+  .cob-atajo b{ font-weight:800; }
+  .cob-atajo .cob-suma{ color:var(--ink-soft); font-weight:500; }
+  .cob-atajo.vacio{ opacity:.45; }
+  .cob-grupo{ background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:12px; overflow:hidden; }
+  .cob-grupo > summary{ list-style:none; cursor:pointer; padding:13px 16px; display:flex; align-items:center; gap:10px; font-weight:700; font-size:14px; }
+  .cob-grupo > summary::-webkit-details-marker{ display:none; }
+  .cob-grupo > summary .cob-cuenta{ margin-left:auto; font-size:12px; font-weight:600; color:var(--ink-soft); }
+  .cob-grupo > summary .cob-ayuda{ font-weight:400; font-size:12px; color:var(--ink-soft); }
+  .cob-lista{ border-top:1px solid var(--border); }
+  .cob-fila{ display:flex; gap:10px; padding:11px 16px; border-bottom:1px solid var(--border); cursor:pointer; align-items:flex-start; }
+  .cob-fila:last-child{ border-bottom:none; }
+  .cob-fila:hover{ background:var(--bg); }
+  .cob-main{ flex:1; min-width:0; }
+  .cob-nombre{ font-weight:700; font-size:13.5px; }
+  .cob-tipo{ display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; margin-left:6px; vertical-align:middle; }
+  .cob-tipo.lead{ background:rgba(169,74,107,.12); color:#A94A6B; }
+  .cob-tipo.insc{ background:rgba(63,131,84,.12); color:var(--success); }
+  .cob-meta{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .cob-nota{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cob-lado{ text-align:right; flex-shrink:0; }
+  .cob-monto{ font-weight:800; font-size:14px; }
+  .cob-fecha{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+  .cob-fecha.vencida{ color:var(--danger); font-weight:700; }
+  .cob-acciones{ display:flex; gap:6px; justify-content:flex-end; margin-top:6px; }
+  .cob-acciones a, .cob-acciones button{ border:1px solid var(--border); background:var(--card); border-radius:8px; padding:4px 8px; font-size:12px; cursor:pointer; text-decoration:none; color:var(--ink); font-family:inherit; }
+  .cob-mover-input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+  @media (max-width:600px){ .cob-grupo > summary .cob-ayuda{ display:none; } .cob-filtros select{ flex:1; } }
   .seg.full{ display:flex; width:100%; }
   .seg.full button{ flex:1; }
   /* Filas y chips que abren la ficha de la alumna (Plazas, Historial). */
@@ -955,6 +995,30 @@
       </div>
     </div>
 
+    <!-- COBRANZA — a quién cobrarle y cuándo -->
+    <div class="view" id="view-cobranza">
+      <div class="card cob-cabeza">
+        <div class="cob-dia">
+          <button class="btn-outline small" id="cobDiaAnt" title="Día anterior">‹</button>
+          <input type="date" id="cobDia">
+          <button class="btn-outline small" id="cobDiaSig" title="Día siguiente">›</button>
+          <button class="btn-outline small" id="cobDiaHoy">Hoy</button>
+          <span class="cob-dia-texto" id="cobDiaTexto"></span>
+        </div>
+        <div class="cob-filtros">
+          <div class="seg" id="cobQuien">
+            <button type="button" data-q="todos" class="active">Todos</button>
+            <button type="button" data-q="leads">Leads</button>
+            <button type="button" data-q="inscritas">Inscritas</button>
+          </div>
+          <select id="cobVendedor"></select>
+          <input id="cobBuscar" placeholder="Buscar nombre o teléfono…">
+        </div>
+        <div class="cob-atajos" id="cobAtajos"></div>
+      </div>
+      <div id="cobGrupos">Cargando…</div>
+    </div>
+
     <!-- ACTIVIDAD DEL EQUIPO (solo admins / con permiso puntual) -->
     <div class="view" id="view-actividad">
       <div class="card" style="margin-bottom:16px;">
@@ -1142,6 +1206,14 @@
         <button class="btn-primary small" id="guardarInscVendedor">Guardar</button>
       </div>
       <div class="vend-hint" id="inscVendedorHint"></div>
+    </div>
+    <div class="modal-vendedor" id="inscProximoPagoCaja">
+      <div class="modal-notas-titulo">Próximo pago</div>
+      <div class="vend-row">
+        <input type="date" id="inscProximoPago">
+        <button class="btn-primary small" id="guardarInscProximoPago">Guardar</button>
+      </div>
+      <div class="vend-hint" id="inscProximoPagoHint"></div>
     </div>
     <div class="modal-notas">
       <div class="modal-notas-titulo">Comentarios</div>
@@ -1581,6 +1653,7 @@ const SECCIONES = [
   { id:'giras', label:'Giras', sub:'Constructor de ruta y reactivación de alumnos', soon:false, icon:'<circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.2 17.8L15.8 6.2"/>' },
   { id:'logistica', label:'Logística', sub:'Sedes, hospedaje y negociación para cada gira', soon:false, icon:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/><path d="M8 7h.01M8 11h.01M12 7h.01M12 11h.01M16 7h.01M16 11h.01"/>' },
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+  { id:'cobranza', label:'Cobranza', sub:'A quién cobrarle y cuándo: anticipos de leads y saldos de inscritas', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 13v5M10.5 14.2h2.3a1 1 0 0 1 0 2h-1.6a1 1 0 0 0 0 2h2.3"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
@@ -1610,6 +1683,7 @@ function setActiveSection(id){
   if(id==='actividad') renderActividad();
   if(id==='actividad') renderTutorialAvance(); // TUTORIAL — quitar esta línea
   if(id==='usuarios') renderUsuariosPermisos();
+  if(id==='cobranza') renderCobranza();
   if(usuarioActual?.id){
     // TUTORIAL — quitar estas 3 líneas
     marcarProgresoPorVista(id);
@@ -1653,7 +1727,7 @@ const PERMISOS_POR_ROL_DEFAULT = {
   'Ventas': ['inicio','board','historial','ventas','calendario'],
   'Ventas coordinadora': ['inicio','board','historial','ventas','reportes','calendario'],
   'Academia e Inbox': ['inicio','board','historial','cursos','calendario'],
-  'Cobranza': ['inicio','ventas','historial','calendario'],
+  'Cobranza': ['inicio','ventas','cobranza','historial','calendario'],
 };
 // Cache cargado en cada login desde public.permisos_rol: { [rol]: Set(seccion_id) }.
 let PERMISOS_ROL_CACHE = null;
@@ -2047,6 +2121,7 @@ const ACCION_LABEL = {
   pago_confirmado: '✅ Confirmó un pago',
   pago_no_encontrado: '❌ No encontró un pago reportado',
   permiso_cambiado: 'Cambió un permiso de rol',
+  fecha_cobro_movida: '📅 Movió una fecha de cobro',
   venta_asignada: 'Asignó el vendedor de una venta',
   venta_reasignada: 'Cambió de vendedor una venta',
   tarea_asignada: 'Le asignó una tarea a alguien',
@@ -3700,6 +3775,257 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   abrirModalInscripcion(ins.id);   // para que vea su ficha ya con pago y vendedor
 });
 
+/* =========================================================
+   COBRANZA — a quién cobrarle y cuándo (vista de Cinthia)
+   - Leads, por su fecha de anticipo (fecha_compromiso_pago).
+   - Inscritas que deben, por su próximo pago; si no tiene, el día del curso.
+   Todo se acomoda contra el DÍA elegido (hoy por defecto): vencidos, ese
+   día, los 7 siguientes, más adelante. Los pagos reportados (💜) van aparte,
+   hasta arriba: son lo primero que hay que confirmar.
+   ========================================================= */
+let cobDia = null;            // 'YYYY-MM-DD'
+let cobQuien = 'todos';       // todos | leads | inscritas
+let cobDatos = { leads:[], inscritas:[] };
+const cobAbiertos = new Set(['confirmar','vencidos','hoy','semana']);
+const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','despues','sinfecha'];
+const COB_ICONO = { confirmar:'🟣', vencidos:'🔴', hoy:'🟠', semana:'🟡', despues:'⚪', sinfecha:'⚫' };
+function hoyISO(){ return new Date().toLocaleDateString('en-CA'); }
+function sumarDias(iso, n){ const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); }
+function diasEntre(a, b){ return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5); }
+function etiquetaGrupoCob(id){
+  const esHoy = cobDia === hoyISO();
+  const dia = new Date(cobDia + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'short', day:'numeric', month:'short' });
+  return {
+    confirmar: ['Por confirmar', 'pagos que reportaron los vendedores'],
+    vencidos:  ['Vencidos', esHoy ? 'ya pasó su fecha' : `antes del ${dia}`],
+    hoy:       [esHoy ? 'Hoy' : `El ${dia}`, ''],
+    semana:    [esHoy ? 'Esta semana' : 'Los 7 días siguientes', 'los próximos 7 días'],
+    despues:   ['Más adelante', ''],
+    sinfecha:  ['Sin fecha', 'leads sin fecha de anticipo'],
+  }[id];
+}
+
+async function cargarCobranza(){
+  const cursoId = await obtenerCursoActivoId();
+  // Inscritas de cursos de la gira activa, incluyendo los de las últimas 2
+  // semanas: si el curso ya pasó y sigue debiendo, es un vencido.
+  const desde = sumarDias(hoyISO(), -14);
+  const finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
+  let qL = sb.from('leads').select(LEAD_SELECT + ', monto_anticipo');
+  if(finales.length) qL = qL.not('estatus_id', 'in', `(${finales.join(',')})`);
+  const [rl, ri] = await Promise.all([
+    qL,
+    cursoId ? sb.from('inscripciones').select(`
+        id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago,
+        personas ( id, nombre, telefono_principal ),
+        estatus ( id, clave, etiqueta ),
+        eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )`)
+      .eq('eventos.curso_id', cursoId).gte('eventos.fecha', desde)
+      .eq('liquidado', false).gt('restante', 0)
+      : Promise.resolve({ data:[], error:null }),
+  ]);
+  if(rl.error || ri.error){ toast('Error cargando Cobranza: ' + (rl.error || ri.error).message, true); return false; }
+  cobDatos = {
+    leads: rl.data || [],
+    inscritas: (ri.data || []).filter(i=>i.estatus?.clave !== 'no_va_al_curso'),
+  };
+  return true;
+}
+
+function itemsCobranza(){
+  const q = normTexto(document.getElementById('cobBuscar').value);
+  const qTel = document.getElementById('cobBuscar').value.replace(/\D/g, '');
+  const vend = document.getElementById('cobVendedor').value;
+  const items = [];
+  if(cobQuien !== 'inscritas') cobDatos.leads.forEach(l=>{
+    const conf = l.estatus?.id === ESTATUS_POR_CONFIRMAR();
+    items.push({
+      tipo:'lead', id:l.id, nombre:l.personas?.nombre || '(sin nombre)', tel:l.personas?.telefono_principal || '',
+      vendedor:l.asesor_id || '', porConfirmar:conf, reportadoEn:l.pago_reportado_en,
+      donde: l.eventos ? `${l.eventos.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(l.eventos.fecha)}` : (l.ciudades?.nombre || 'sin ciudad'),
+      fecha: l.fecha_compromiso_pago || null,
+      monto: conf ? (l.pago_reportado_monto ?? null) : (l.monto_anticipo ?? null),
+      queEs: conf ? 'reportado' : 'anticipo',
+      nota: l.comentario || '', raw:l,
+    });
+  });
+  if(cobQuien !== 'leads') cobDatos.inscritas.forEach(i=>{
+    items.push({
+      tipo:'insc', id:i.id, nombre:i.personas?.nombre || '(sin nombre)', tel:i.personas?.telefono_principal || '',
+      vendedor:i.asesor_id || '',
+      donde: `${i.eventos?.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(i.eventos?.fecha)}`,
+      fecha: i.fecha_proximo_pago || i.eventos?.fecha || null, fechaEsCurso: !i.fecha_proximo_pago,
+      monto: Number(i.restante) || 0, queEs:'debe', nota:'', raw:i,
+    });
+  });
+  return items.filter(it=>{
+    if(vend === '__sin' && it.vendedor) return false;
+    if(vend && vend !== '__sin' && it.vendedor !== vend) return false;
+    if(q && !normTexto(it.nombre).includes(q) && !(qTel.length >= 3 && it.tel.includes(qTel))) return false;
+    return true;
+  });
+}
+function grupoCobranza(it){
+  if(it.tipo === 'lead' && it.porConfirmar) return 'confirmar';
+  if(!it.fecha) return 'sinfecha';
+  if(it.fecha < cobDia) return 'vencidos';
+  if(it.fecha === cobDia) return 'hoy';
+  if(it.fecha <= sumarDias(cobDia, 7)) return 'semana';
+  return 'despues';
+}
+function filaCobranza(it, grupo){
+  let cuando = '';
+  if(grupo === 'confirmar') cuando = it.reportadoEn ? hace(it.reportadoEn) : 'sin datos del pago';
+  else if(!it.fecha) cuando = 'sin fecha';
+  else if(grupo === 'vencidos'){ const n = diasEntre(it.fecha, cobDia); cuando = `venció ${fechaCorta(it.fecha)} · ${n === 1 ? 'hace 1 día' : 'hace ' + n + ' días'}`; }
+  else if(grupo === 'hoy') cuando = cobDia === hoyISO() ? 'hoy' : fechaCorta(it.fecha);
+  else cuando = fechaCorta(it.fecha);
+  if(it.fechaEsCurso && grupo !== 'confirmar') cuando += ' (día del curso)';
+  const vend = nombreVendedor(it.vendedor);
+  const monto = it.monto != null && it.monto !== '' ? `${fmtMoney(it.monto)}` : '—';
+  const tel = it.tel.replace(/\D/g, '');
+  return `<div class="cob-fila" data-cob-tipo="${it.tipo}" data-cob-id="${it.id}">
+    <div class="cob-main">
+      <div class="cob-nombre">${escHtml(it.nombre)}<span class="cob-tipo ${it.tipo}">${it.tipo === 'lead' ? 'Lead' : 'Inscrita'}</span></div>
+      <div class="cob-meta">📍 ${escHtml(it.donde)}${vend ? ' · ' + escHtml(vend) : ' · <span style="color:var(--danger);">sin vendedor</span>'}</div>
+      ${it.nota ? `<div class="cob-nota" title="${escapeAttr(it.nota)}">${escHtml(it.nota)}</div>` : ''}
+    </div>
+    <div class="cob-lado">
+      <div class="cob-monto">${monto}</div>
+      <div class="cob-fecha ${grupo === 'vencidos' ? 'vencida' : ''}">${it.queEs} · ${cuando}</div>
+      <div class="cob-acciones">
+        ${tel.length >= 10 ? `<a href="https://wa.me/52${tel.slice(-10)}" target="_blank" rel="noopener" data-cob-no-abrir title="WhatsApp">💬</a>` : ''}
+        ${grupo !== 'confirmar' ? `<button type="button" data-cob-mover title="Mover la fecha">📅</button><input type="date" class="cob-mover-input" value="${it.fecha && !it.fechaEsCurso ? it.fecha : ''}">` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function pintarCobranza(){
+  const items = itemsCobranza();
+  const por = Object.fromEntries(COB_GRUPOS.map(g=>[g, []]));
+  items.forEach(it=> por[grupoCobranza(it)].push(it));
+  por.confirmar.sort((a,b)=> (a.reportadoEn || '').localeCompare(b.reportadoEn || '') || a.nombre.localeCompare(b.nombre, 'es'));
+  ['vencidos','hoy','semana','despues'].forEach(g=> por[g].sort((a,b)=> a.fecha.localeCompare(b.fecha) || a.nombre.localeCompare(b.nombre, 'es')));
+  por.sinfecha.sort((a,b)=> a.nombre.localeCompare(b.nombre, 'es'));
+  const suma = g => por[g].reduce((t,it)=> t + (Number(it.monto) || 0), 0);
+
+  const esHoy = cobDia === hoyISO();
+  document.getElementById('cobDiaTexto').textContent =
+    new Date(cobDia + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' }) + (esHoy ? ' · hoy' : '');
+  document.getElementById('cobAtajos').innerHTML = COB_GRUPOS.map(g=>{
+    const [label] = etiquetaGrupoCob(g);
+    return `<button type="button" class="cob-atajo ${por[g].length ? '' : 'vacio'}" data-cob-ir="${g}">${COB_ICONO[g]} ${label} <b>${por[g].length}</b>`
+      + `${suma(g) ? ` <span class="cob-suma">· ${fmtMoney(suma(g))}</span>` : ''}</button>`;
+  }).join('');
+  document.getElementById('cobGrupos').innerHTML = COB_GRUPOS.map(g=>{
+    const [label, ayuda] = etiquetaGrupoCob(g);
+    const lista = por[g];
+    const vacio = g === 'hoy' ? '<div class="empty-note" style="padding:12px 16px;">Nadie para este día ✨</div>'
+                : '<div class="empty-note" style="padding:12px 16px;">Nadie.</div>';
+    return `<details class="cob-grupo" id="cobG-${g}" data-cob-grupo="${g}" ${cobAbiertos.has(g) ? 'open' : ''}>
+      <summary><span>${COB_ICONO[g]}</span> ${label}${ayuda ? ` <span class="cob-ayuda">${ayuda}</span>` : ''}
+        <span class="cob-cuenta">${lista.length}${suma(g) ? ' · ' + fmtMoney(suma(g)) : ''}</span></summary>
+      <div class="cob-lista">${lista.length ? lista.map(it=>filaCobranza(it, g)).join('') : vacio}</div>
+    </details>`;
+  }).join('');
+}
+
+async function renderCobranza(){
+  if(!cobDia) cobDia = hoyISO();
+  document.getElementById('cobDia').value = cobDia;
+  const selV = document.getElementById('cobVendedor');
+  const vActual = selV.value;
+  selV.innerHTML = '<option value="">Todos los vendedores</option>'
+    + VENDEDORES.map(u=>`<option value="${u.id}">${u.nombre}</option>`).join('')
+    + '<option value="__sin">Sin vendedor</option>';
+  selV.value = vActual;
+  if(!cobDatos.leads.length && !cobDatos.inscritas.length) document.getElementById('cobGrupos').innerHTML = 'Cargando…';
+  if(await cargarCobranza()) pintarCobranza();
+}
+
+// Cuando se cierran las fichas que se abrieron desde aquí (y las que se
+// encadenan: Confirmar pago → Inscribir → ficha de la inscripción), se
+// vuelve a consultar: lo que se hizo ahí cambia a quién hay que cobrarle.
+function alCerrarTodasLasFichas(cb){
+  const obs = new MutationObserver(()=>{
+    if(document.querySelector('.modal-overlay.open')) return;
+    obs.disconnect(); cb();
+  });
+  obs.observe(document.body, { subtree:true, attributes:true, attributeFilter:['class'] });
+}
+async function moverFechaCobro(tipo, id, fecha){
+  const it = itemsCobranza().find(x=>x.tipo === tipo && x.id === id);
+  if(!it) return;
+  const antes = it.fechaEsCurso ? null : it.fecha;
+  if((fecha || null) === antes) return;
+  const quien = usuarioActual?.nombre || 'alguien';
+  const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short'});
+  let error;
+  if(tipo === 'lead'){
+    ({ error } = await sb.from('leads').update({ fecha_compromiso_pago: fecha || null, actualizado_en: new Date().toISOString() }).eq('id', id));
+    if(!error) await sb.from('interacciones').insert({ persona_id: it.raw.personas?.id, lead_id: id, asesor_id: usuarioActual?.id || null, canal:'otro',
+      nota: `FECHA DE ANTICIPO MOVIDA ${hoy} por ${quien}: ${antes ? fechaCorta(antes) : 'sin fecha'} → ${fecha ? fechaCorta(fecha) : 'sin fecha'}.` });
+  } else {
+    ({ error } = await sb.from('inscripciones').update({ fecha_proximo_pago: fecha || null }).eq('id', id));
+  }
+  if(error){ toast('No se pudo mover la fecha: ' + error.message, true); return; }
+  registrarActividad('fecha_cobro_movida', `${it.nombre}: ${antes ? fechaCorta(antes) : 'sin fecha'} → ${fecha ? fechaCorta(fecha) : 'sin fecha'}`);
+  toast(`${it.nombre}: ${fecha ? 'ahora el ' + fechaCorta(fecha) : 'sin fecha'}.`);
+  if(tipo === 'lead') it.raw.fecha_compromiso_pago = fecha || null; else it.raw.fecha_proximo_pago = fecha || null;
+  pintarCobranza();
+}
+
+document.getElementById('cobDia').addEventListener('change', e=>{ if(e.target.value){ cobDia = e.target.value; pintarCobranza(); } });
+document.getElementById('cobDiaAnt').addEventListener('click', ()=>{ cobDia = sumarDias(cobDia || hoyISO(), -1); document.getElementById('cobDia').value = cobDia; pintarCobranza(); });
+document.getElementById('cobDiaSig').addEventListener('click', ()=>{ cobDia = sumarDias(cobDia || hoyISO(), 1); document.getElementById('cobDia').value = cobDia; pintarCobranza(); });
+document.getElementById('cobDiaHoy').addEventListener('click', ()=>{ cobDia = hoyISO(); document.getElementById('cobDia').value = cobDia; pintarCobranza(); });
+document.querySelectorAll('#cobQuien button').forEach(b=>b.addEventListener('click', ()=>{
+  cobQuien = b.dataset.q;
+  document.querySelectorAll('#cobQuien button').forEach(x=>x.classList.toggle('active', x === b));
+  pintarCobranza();
+}));
+document.getElementById('cobVendedor').addEventListener('change', pintarCobranza);
+document.getElementById('cobBuscar').addEventListener('input', pintarCobranza);
+document.getElementById('cobAtajos').addEventListener('click', e=>{
+  const b = e.target.closest('[data-cob-ir]'); if(!b) return;
+  const g = b.dataset.cobIr;
+  cobAbiertos.add(g);
+  const det = document.getElementById('cobG-' + g);
+  det.open = true;
+  det.scrollIntoView({ behavior:'smooth', block:'start' });
+});
+const cobGrupos = document.getElementById('cobGrupos');
+cobGrupos.addEventListener('toggle', e=>{
+  const g = e.target.dataset?.cobGrupo; if(!g) return;
+  if(e.target.open) cobAbiertos.add(g); else cobAbiertos.delete(g);
+}, true);
+cobGrupos.addEventListener('click', async e=>{
+  if(e.target.closest('[data-cob-no-abrir]')) return;
+  const fila = e.target.closest('.cob-fila'); if(!fila) return;
+  const tipo = fila.dataset.cobTipo, id = fila.dataset.cobId;
+  if(e.target.closest('[data-cob-mover]')){
+    const inp = fila.querySelector('.cob-mover-input');
+    try{ inp.showPicker(); } catch(_){ inp.style.cssText = 'position:static; opacity:1; width:auto; height:auto; pointer-events:auto;'; inp.focus(); }
+    return;
+  }
+  if(e.target.closest('.cob-mover-input')) return;
+  if(tipo === 'lead'){
+    const l = cobDatos.leads.find(x=>x.id === id); if(!l) return;
+    if(!leadsCache.some(x=>x.id === id)) leadsCache.push(l);
+    await abrirModalLead(id);
+  } else {
+    alCerrarFichaInscripcion = null;
+    await abrirModalInscripcion(id);
+  }
+  alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza') renderCobranza(); });
+});
+cobGrupos.addEventListener('change', e=>{
+  const inp = e.target.closest('.cob-mover-input'); if(!inp) return;
+  const fila = inp.closest('.cob-fila');
+  moverFechaCobro(fila.dataset.cobTipo, fila.dataset.cobId, inp.value);
+});
+
 /* --- Modal: nuevo lead --- */
 function poblarSelectCursosCiudades(){
   document.getElementById('nuevoCurso').innerHTML = '<option value="">— Sin especificar —</option>' + CURSOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
@@ -4200,7 +4526,7 @@ async function abrirModalInscripcion(inscId){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, personas(nombre, telefono_principal)')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(nombre, telefono_principal), eventos(fecha)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -4222,7 +4548,32 @@ async function abrirModalInscripcion(inscId){
   document.getElementById('corrMotivo').value = '';
   actualizarPreviewCorreccion();
   pintarVendedorFicha();
+  pintarProximoPagoFicha();
 }
+
+/* Próximo pago: la fecha con la que Cobranza la acomoda. Vacía = día del curso. */
+function pintarProximoPagoFicha(){
+  const d = modalInscDatos;
+  const caja = document.getElementById('inscProximoPagoCaja');
+  const debe = d && !d.liquidado && Number(d.restante) > 0;
+  caja.style.display = debe ? '' : 'none';
+  if(!debe) return;
+  document.getElementById('inscProximoPago').value = d.fecha_proximo_pago || '';
+  document.getElementById('inscProximoPagoHint').textContent = d.fecha_proximo_pago
+    ? `Cobranza le da seguimiento el ${fechaCorta(d.fecha_proximo_pago)}.`
+    : `Sin fecha: Cobranza toma el día del curso${d.eventos?.fecha ? ' (' + fechaCorta(d.eventos.fecha) + ')' : ''} como límite.`;
+}
+document.getElementById('guardarInscProximoPago').addEventListener('click', async ()=>{
+  const d = modalInscDatos; if(!d) return;
+  const fecha = document.getElementById('inscProximoPago').value || null;
+  if(fecha === (d.fecha_proximo_pago || null)){ toast('Esa fecha ya estaba.', true); return; }
+  const { error } = await sb.from('inscripciones').update({ fecha_proximo_pago: fecha }).eq('id', d.id);
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  registrarActividad('fecha_cobro_movida', `${d.personas?.nombre || 'inscrita'}: próximo pago ${fecha ? fechaCorta(fecha) : 'sin fecha (día del curso)'}`);
+  d.fecha_proximo_pago = fecha;
+  pintarProximoPagoFicha();
+  toast(fecha ? `Próximo pago: ${fechaCorta(fecha)}.` : 'Sin fecha: queda el día del curso como límite.');
+});
 
 /* Picklist "¿Quién vendió?" — el dato que manda para los cortes. */
 function pintarVendedorFicha(){
@@ -5570,7 +5921,7 @@ const SYNC_RESPIRO_MS = 1000;   // agrupa cambios seguidos
 const SYNC_REPASO_MS  = 60000;  // por si el canal se cayó sin avisar
 const SYNC_ESPERA_MS  = 700;    // cada cuánto revisamos si ya se desocupó
 const SYNC_ECO_MS     = 2500;   // ventana para reconocer el eco de un guardado propio
-const SECCIONES_VIVAS = ['board', 'calendario', 'inicio'];
+const SECCIONES_VIVAS = ['board', 'calendario', 'inicio', 'cobranza'];
 
 let canalDatos = null;
 let syncTimer = null, syncEspera = null, syncLatido = null;
@@ -5595,6 +5946,7 @@ async function refrescarSeccion(id){
     if(id === 'board')            await renderBoard();
     else if(id === 'calendario')  await renderCalendario(true);
     else if(id === 'inicio')      await renderDashboard();
+    else if(id === 'cobranza')    await renderCobranza();
     seccionesDesactualizadas.delete(id);
   }catch(e){
     // Un refresco fallido no debe romper la sesión de nadie: se reintenta
