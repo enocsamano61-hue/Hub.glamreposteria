@@ -1224,6 +1224,8 @@
     <h3>Nuevo lead</h3>
     <div class="modal-field"><label>Nombre</label><input id="nuevoNombre"></div>
     <div class="modal-field"><label>Teléfono</label><input id="nuevoTelefono" inputmode="tel" placeholder="10 dígitos"><div class="lada-sug" id="nuevoLadaSug"></div></div>
+    <div class="modal-field"><label>Correo</label><input id="nuevoCorreo" type="email" inputmode="email" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Fecha de nacimiento</label><input id="nuevoNacimiento" type="date"><div class="vend-hint" id="nuevoEdad"></div></div>
     <div class="modal-field"><label>Curso que tomará</label><select id="nuevoEvento"></select><div class="vend-hint">Busca por ciudad. Si todavía no decide, déjalo en “Aún no decide”.</div></div>
     <div class="modal-field" id="nuevoCiudadCampo"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
     <div class="modal-field" id="nuevoCursoCampo"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
@@ -3537,8 +3539,9 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   const telAltNuevo = document.getElementById('modalTelefonoAltEdit').value.replace(/\D/g,'');
   const correoNuevo = document.getElementById('modalCorreoEdit').value.trim();
   const nacimientoNuevo = document.getElementById('modalNacimientoEdit').value || null;
-  if(!nombreNuevo || telNuevo.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
-  const problema = problemaContacto({ tel2: telAltNuevo, correo: correoNuevo, nacimiento: nacimientoNuevo });
+  if(!nombreNuevo){ toast('Falta el nombre.', true); return; }
+  const antes = leadAbierto()?.personas || {};
+  const problema = problemaContacto({ tel1: telNuevo, tel2: telAltNuevo, correo: correoNuevo, nacimiento: nacimientoNuevo }, antes);
   if(problema){ toast(problema, true); return; }
 
   const btn = document.getElementById('guardarLead'); btn.disabled = true; btn.textContent = 'Guardando...';
@@ -3635,11 +3638,18 @@ function edadDe(iso){
   if(h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) e--;
   return e;
 }
-function problemaContacto({ tel1, tel2, correo, nacimiento }){
-  if(tel1 !== undefined && tel1.length < 10) return 'El teléfono 1 no tiene 10 dígitos.';
-  if(tel2 && tel2.length < 10) return 'El teléfono 2 no tiene 10 dígitos (o déjalo vacío).';
-  if(correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return 'El correo no se ve bien escrito.';
-  if(nacimiento){
+/* Sólo se revisa lo que la persona cambió (`antes` = la fila de personas como
+   estaba). Miles de fichas traen del Excel notas en el correo ("N/T", "NO
+   TIENE", "SE ENVIA INFO POR WPP") o teléfonos cortos: si se revisara todo,
+   nadie podría corregirles el teléfono sin borrar antes el correo, ni
+   agregarles el correo sin arreglar el teléfono. */
+function problemaContacto({ tel1, tel2, correo, nacimiento }, antes = {}){
+  const digitos = v => String(v || '').replace(/\D/g, '');
+  const cambio = (nuevo, previo) => nuevo !== undefined && String(nuevo || '') !== String(previo || '');
+  if(cambio(tel1, digitos(antes.telefono_principal)) && tel1.length < 10) return 'El teléfono 1 no tiene 10 dígitos.';
+  if(cambio(tel2, digitos(antes.telefono_alternativo)) && tel2 && tel2.length < 10) return 'El teléfono 2 no tiene 10 dígitos (o déjalo vacío).';
+  if(cambio(correo, String(antes.correo || '').trim()) && correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return 'El correo no se ve bien escrito.';
+  if(cambio(nacimiento, antes.fecha_nacimiento) && nacimiento){
     const e = edadDe(nacimiento);
     if(e < 10 || e > 100) return 'Revisa la fecha de nacimiento: daría ' + e + ' años.';
   }
@@ -3675,7 +3685,7 @@ document.getElementById('guardarContacto').addEventListener('click', async ()=>{
   const correo = document.getElementById('contactoCorreo').value.trim();
   const nacimiento = document.getElementById('contactoNacimiento').value || null;
   if(!nombre){ toast('Falta el nombre.', true); return; }
-  const problema = problemaContacto({ tel1, tel2, correo, nacimiento });
+  const problema = problemaContacto({ tel1, tel2, correo, nacimiento }, p);
   if(problema){ toast(problema, true); return; }
   // Un teléfono = una persona: si ese número ya es de alguien más, no se duplica
   if(tel1 !== (p.telefono_principal || '')){
@@ -4704,10 +4714,16 @@ function poblarSelectCursosCiudades(){
 document.getElementById('btnNuevoLead').addEventListener('click', ()=>{
   poblarSelectCursosCiudades();
   document.getElementById('nuevoNombre').value=''; document.getElementById('nuevoTelefono').value='';
+  document.getElementById('nuevoCorreo').value=''; document.getElementById('nuevoNacimiento').value='';
+  document.getElementById('nuevoEdad').textContent = '';
   document.getElementById('nuevoLadaSug').innerHTML = '';
   document.getElementById('modalNuevo').classList.add('open');
 });
 document.getElementById('closeModalNuevo').addEventListener('click', ()=>document.getElementById('modalNuevo').classList.remove('open'));
+document.getElementById('nuevoNacimiento').addEventListener('input', ()=>{
+  const e = edadDe(document.getElementById('nuevoNacimiento').value);
+  document.getElementById('nuevoEdad').textContent = e != null && e >= 0 ? `${e} años` : '';
+});
 // Con curso elegido, la ciudad y el curso salen de ahí; sólo si "aún no decide" se piden aparte
 function alternarCamposNuevoLead(){
   const conCurso = !!document.getElementById('nuevoEvento').value;
@@ -4723,7 +4739,11 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   const cursoId = evento ? (evento.curso_id || await obtenerCursoActivoId()) : (document.getElementById('nuevoCurso').value || null);
   const ciudadId = evento ? evento.ciudad_id : (document.getElementById('nuevoCiudad').value || null);
   const fechaAnticipo = document.getElementById('nuevoFechaAnticipo').value || null;
+  const correo = document.getElementById('nuevoCorreo').value.trim();
+  const nacimiento = document.getElementById('nuevoNacimiento').value || null;
   if(!nombre || telefono.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
+  const problema = problemaContacto({ correo, nacimiento });
+  if(problema){ toast(problema, true); return; }
 
   const btn = document.getElementById('guardarNuevoLead'); btn.disabled = true; btn.textContent = 'Creando...';
 
@@ -4755,9 +4775,19 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
       return;
     }
     personaId = existente.id;
+    // Ya existía (alumna de otro curso, sin lead abierto): sólo se agrega lo
+    // que se capturó; lo vacío no le borra el correo o la fecha que ya tenía.
+    const extra = {};
+    if(correo) extra.correo = correo;
+    if(nacimiento) extra.fecha_nacimiento = nacimiento;
+    if(Object.keys(extra).length){
+      const { error: errX } = await sb.from('personas').update({ ...extra, actualizado_en: new Date().toISOString() }).eq('id', personaId);
+      if(errX){ btn.disabled=false; btn.textContent='Crear lead'; toast('No se pudo guardar el correo o la fecha: ' + errX.message, true); return; }
+    }
   }
   else {
-    const { data: nueva, error: errP } = await sb.from('personas').insert({ nombre, telefono_principal: telefono }).select('id').single();
+    const { data: nueva, error: errP } = await sb.from('personas')
+      .insert({ nombre, telefono_principal: telefono, correo: correo || null, fecha_nacimiento: nacimiento }).select('id').single();
     if(errP){ btn.disabled=false; btn.textContent='Crear lead'; toast('Error creando persona: ' + errP.message, true); return; }
     personaId = nueva.id;
   }
