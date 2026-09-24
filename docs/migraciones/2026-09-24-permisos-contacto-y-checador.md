@@ -57,3 +57,17 @@ ajenas.
 
 Si esos roles deben confirmar pagos: Usuarios y permisos → "Qué puede hacer cada rol" → marcar
 💳 Confirmar pagos.
+
+## Correo y fecha de nacimiento para todos, también al crear el lead
+
+- **Ficha del lead** (Alumnos y leads → Leads → tarjeta): los campos Correo y Fecha de nacimiento
+  ya estaban en `main` desde el 23 sep, para todos los roles. Lo que no dejaba guardarlos era la
+  validación de la Causa 1: un teléfono de menos de 10 dígitos o una nota en el correo rechazaban
+  el guardado. Con el arreglo de arriba ya se guardan.
+- **Nuevo lead:** se agregan Correo y Fecha de nacimiento (con la edad), los dos opcionales. Un
+  correo mal escrito se rechaza. Si el teléfono ya era de una persona sin lead abierto, sólo se le
+  agrega lo que se capturó: un campo vacío no le borra el correo o la fecha que ya tenía.
+
+Verificado en Chromium con Supabase simulado (usuario de Ventas): el lead se crea con
+`correo` y `fecha_nacimiento` en `personas`; con "no tiene" en el correo sale
+*"El correo no se ve bien escrito"* y no se crea.
