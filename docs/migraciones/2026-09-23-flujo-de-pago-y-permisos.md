@@ -57,3 +57,17 @@ ven con los botones normales y se pueden confirmar o registrar.
 
 Pruebas: `prueba_pagos` 58/58. Regresión: ciudades 61, vendedor 23, ui 50, sync 29, inscribir
 76 (la prueba de inscribir ahora da a Isabel el rol Ventas con el permiso).
+
+## Arreglo 24 sep — "Could not embed because more than one relationship was found for 'leads' and 'estatus'"
+
+`estatus_antes_de_reporte` y `pago_reportado_por` se crearon con llave foránea. Eso dejó dos
+relaciones de `leads` hacia `estatus` y dos hacia `usuarios`. La API ya no sabía cuál usar en
+`estatus(...)` y la carga de leads falló en producción.
+
+Migración `flujo_pagos_02_quitar_fk_ambiguas`: se quitaron esas dos llaves. Las columnas y sus
+datos se quedan; el Hub ya valida esos valores.
+
+Lección: **no agregar una segunda llave foránea hacia una tabla que ya se embebe desde la
+misma tabla**. Si alguna vez hace falta, hay que nombrar la relación en cada `select`
+(`estatus!leads_estatus_id_fkey(...)`). Las pruebas del Hub simulan Supabase y no detectan
+esto: después de cambiar llaves foráneas, se prueba contra la API real.
