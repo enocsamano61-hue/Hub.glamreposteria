@@ -71,3 +71,9 @@ Lección: **no agregar una segunda llave foránea hacia una tabla que ya se embe
 misma tabla**. Si alguna vez hace falta, hay que nombrar la relación en cada `select`
 (`estatus!leads_estatus_id_fkey(...)`). Las pruebas del Hub simulan Supabase y no detectan
 esto: después de cambiar llaves foráneas, se prueba contra la API real.
+
+Segunda parte del arreglo: aunque la llave ya no existía, la API siguió dando el error unos
+minutos. Guarda una copia de la estructura de la base y el `NOTIFY pgrst, 'reload schema'`
+que venía dentro de la migración no la actualizó. Se mandó otra vez, suelto, a las 00:19 UTC.
+En los registros de la API, la última petición del Hub que falló fue a las 00:15:57; desde las
+00:20 todas responden 200.
