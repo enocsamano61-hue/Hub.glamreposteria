@@ -555,6 +555,29 @@
 
   /* ---------- COBRANZA ---------- */
   .cob-cabeza{ margin-bottom:14px; }
+  .cob-dia .cob-registrar{ width:auto; margin-left:auto; padding:8px 14px; }
+  .cob-acciones button[data-cob-cobrar]{ background:var(--wine); border-color:var(--wine); color:#fff; font-weight:600; }
+  /* Cobro directo: la ficha de la inscrita sólo con el abono */
+  #modalInscripcion.solo-cobro .modal-vendedor,
+  #modalInscripcion.solo-cobro .modal-notas,
+  #modalInscripcion.solo-cobro .modal-tabs{ display:none; }
+  .cobro-ficha-completa{ display:none; margin:10px auto 0; background:none; border:none; color:var(--ink-soft); text-decoration:underline; font-family:inherit; font-size:12.5px; cursor:pointer; }
+  #modalInscripcion.solo-cobro .cobro-ficha-completa{ display:block; }
+  .cobro-resumen{ display:flex; flex-wrap:wrap; gap:6px 14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px 13px; font-size:13px; margin-bottom:12px; }
+  .cobro-resumen b{ font-size:14px; }
+  .cobro-resumen .debe{ color:var(--danger); }
+  #cobroLiquida{ width:auto; white-space:nowrap; }
+  #modalPagoMonto{ flex:1; }
+  .corr-preview .bueno{ color:var(--success); font-weight:700; }
+  .cobb-buscar{ width:100%; padding:11px 13px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink); box-sizing:border-box; }
+  .cobb-resultados{ margin-top:12px; max-height:55vh; overflow-y:auto; }
+  .cobb-persona{ border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+  .cobb-persona .quien{ font-size:13.5px; margin-bottom:6px; }
+  .cobb-persona .quien span{ color:var(--ink-soft); font-size:12.5px; }
+  .cobb-op{ display:flex; justify-content:space-between; gap:10px; width:100%; text-align:left; border:1px solid var(--border); background:var(--card); color:var(--ink); border-radius:8px; padding:8px 10px; margin-top:6px; font-family:inherit; font-size:12.5px; cursor:pointer; }
+  .cobb-op:hover{ border-color:var(--ink-soft); }
+  .cobb-op .debe{ color:var(--danger); font-weight:700; white-space:nowrap; }
+  .cobb-op .ok{ color:var(--ink-soft); white-space:nowrap; }
   .cob-dia{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .cob-dia input[type=date]{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; background:var(--card); color:var(--ink); }
   .cob-dia .btn-outline{ width:auto; padding:8px 14px; }
@@ -1043,6 +1066,7 @@
           <button class="btn-outline small" id="cobDiaSig" title="Día siguiente">›</button>
           <button class="btn-outline small" id="cobDiaHoy">Hoy</button>
           <span class="cob-dia-texto" id="cobDiaTexto"></span>
+          <button class="btn-primary small cob-registrar" id="cobRegistrarPago" type="button">💵 Registrar pago</button>
         </div>
         <div class="cob-filtros">
           <div class="seg" id="cobQuien">
@@ -1229,6 +1253,17 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: REGISTRAR PAGO (buscar a cualquier alumna o lead) ===================== -->
+<div class="modal-overlay" id="modalBuscarCobro">
+  <div class="modal">
+    <button class="close" id="closeModalBuscarCobro">✕</button>
+    <h3>💵 Registrar pago</h3>
+    <div class="sub" style="margin-bottom:12px;">Busca por nombre o teléfono. Salen todas sus inscripciones y sus leads abiertos, aunque no estén en la lista de Cobranza.</div>
+    <input id="cobbBuscar" class="cobb-buscar" placeholder="Nombre o teléfono…" autocomplete="off">
+    <div id="cobbResultados" class="cobb-resultados"></div>
+  </div>
+</div>
+
 <!-- ===================== MODAL: ALUMNO DE UN EVENTO (inscripción) — marcar estatus / agregar pago ===================== -->
 <div class="modal-overlay" id="modalInscripcion">
   <div class="modal">
@@ -1278,10 +1313,18 @@
     </div>
 
     <div class="tab-panel" id="panelInscPago">
-      <div class="modal-field"><label>Monto del abono</label><input type="number" id="modalPagoMonto" placeholder="700" inputmode="decimal"></div>
+      <div class="cobro-resumen" id="cobroResumen">—</div>
+      <div class="modal-field"><label>Monto del abono</label>
+        <div class="vend-row"><input type="number" id="modalPagoMonto" placeholder="700" inputmode="decimal" min="0" step="50">
+        <button type="button" class="btn-outline small" id="cobroLiquida">Liquida todo</button></div></div>
       <div class="modal-field"><label>Fecha</label><input type="date" id="modalPagoFecha"></div>
       <div class="modal-field"><label>Banco (opcional)</label><input id="modalPagoBanco" placeholder="BanCoppel, transferencia..."></div>
+      <div class="corr-preview" id="cobroPreview">—</div>
+      <div class="modal-field" id="cobroProximoCaja"><label>Próximo pago (lo que le quede)</label>
+        <input type="date" id="cobroProximo">
+        <div class="vend-hint" id="cobroProximoHint"></div></div>
       <button class="btn-primary" id="guardarInscPago">Registrar abono</button>
+      <button type="button" class="cobro-ficha-completa" id="cobroFichaCompleta">Ver ficha completa</button>
     </div>
 
     <div class="tab-panel" id="panelInscCorregir">
@@ -4102,6 +4145,7 @@ function filaCobranza(it, grupo){
       <div class="cob-fecha ${grupo === 'vencidos' ? 'vencida' : ''}">${it.queEs} · ${cuando}</div>
       <div class="cob-acciones">
         ${tel.length >= 10 ? `<button type="button" data-cob-wa title="WhatsApp">💬</button>` : ''}
+        <button type="button" data-cob-cobrar title="${it.tipo === 'lead' ? (puede('confirmar_pagos') ? 'Confirmar pago e inscribir' : 'Registrar el pago') : 'Registrar un abono'}">💵 Cobrar</button>
         ${grupo !== 'confirmar' ? `<button type="button" data-cob-mover title="Mover la fecha">📅</button><input type="date" class="cob-mover-input" value="${it.fecha && !it.fechaEsCurso ? it.fecha : ''}">` : ''}
       </div>
     </div>
@@ -4227,6 +4271,17 @@ cobGrupos.addEventListener('click', async e=>{
       debe: tipo === 'insc' ? it.monto : null });
     return;
   }
+  if(e.target.closest('[data-cob-cobrar]')){
+    if(tipo === 'lead'){
+      const l = cobDatos.leads.find(x=>x.id === id); if(!l) return;
+      await cobrarLead(l);
+    } else {
+      alCerrarFichaInscripcion = null;
+      await abrirModalInscripcion(id, { soloCobro:true });
+    }
+    alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza') renderCobranza(); });
+    return;
+  }
   if(tipo === 'lead'){
     const l = cobDatos.leads.find(x=>x.id === id); if(!l) return;
     if(!leadsCache.some(x=>x.id === id)) leadsCache.push(l);
@@ -4241,6 +4296,89 @@ cobGrupos.addEventListener('change', e=>{
   const inp = e.target.closest('.cob-mover-input'); if(!inp) return;
   const fila = inp.closest('.cob-fila');
   moverFechaCobro(fila.dataset.cobTipo, fila.dataset.cobId, inp.value);
+});
+
+/* 💵 Cobrar a un lead: con permiso, "Confirmar pago" (inscribe y registra el
+   anticipo); sin permiso, "Registrar pago" para que Cobranza lo confirme.
+   La ficha del lead queda abierta debajo. */
+async function cobrarLead(lead){
+  const i = leadsCache.findIndex(x=>x.id === lead.id);
+  if(i >= 0) leadsCache[i] = lead; else leadsCache.push(lead);
+  await abrirModalLead(lead.id);
+  if(puede('confirmar_pagos')) abrirModalInscribir(); else abrirRegistrarPago();
+}
+
+/* 💵 Registrar pago: buscar a cualquier persona, aunque no esté en la lista */
+let cobbTimer = null, cobbPersonas = [];
+function abrirBuscarCobro(){
+  document.getElementById('cobbBuscar').value = '';
+  document.getElementById('cobbResultados').innerHTML = '<div class="empty-note">Escribe al menos 3 letras del nombre o 4 números del teléfono.</div>';
+  document.getElementById('modalBuscarCobro').classList.add('open');
+  setTimeout(()=>document.getElementById('cobbBuscar').focus(), 50);
+}
+function cerrarBuscarCobro(){ document.getElementById('modalBuscarCobro').classList.remove('open'); }
+async function buscarParaCobro(texto){
+  const cont = document.getElementById('cobbResultados');
+  // Fuera lo que rompe el filtro de la API: comas, paréntesis, comodines
+  const limpio = texto.replace(/[,()*%\\.:"']/g, ' ').trim().replace(/\s+/g, ' ');
+  const digitos = limpio.replace(/\D/g, '');
+  const porTel = digitos.length >= 4 && digitos.length >= limpio.replace(/\s/g, '').length - 1;
+  if(!porTel && limpio.length < 3){ cont.innerHTML = '<div class="empty-note">Escribe al menos 3 letras del nombre o 4 números del teléfono.</div>'; return; }
+  cont.innerHTML = '<div class="empty-note">Buscando…</div>';
+  const filtro = porTel
+    ? `telefono_principal.ilike.*${digitos}*,telefono_alternativo.ilike.*${digitos}*`
+    : `nombre.ilike.*${limpio.replace(/ /g, '*')}*`;
+  const { data, error } = await sb.from('personas').select(`
+      id, nombre, telefono_principal,
+      inscripciones!inscripciones_persona_id_fkey ( id, anticipo, restante, liquidado, precio_pactado, eventos ( fecha, ciudades ( nombre ) ) ),
+      leads!leads_persona_id_fkey ( id, estatus_id )`)
+    .or(filtro).order('nombre').limit(20);
+  if(document.getElementById('cobbBuscar').value !== texto) return;   // ya escribió otra cosa
+  if(error){ cont.innerHTML = `<div class="empty-note">No se pudo buscar: ${escHtml(error.message)}</div>`; return; }
+  const finales = new Set(ESTATUS.filter(e=>e.es_final).map(e=>e.id));
+  cobbPersonas = (data || []).map(p=>({ ...p,
+    inscripciones: (p.inscripciones || []).sort((a,b)=> (b.eventos?.fecha || '').localeCompare(a.eventos?.fecha || '')),
+    leads: (p.leads || []).filter(l=>!finales.has(l.estatus_id)),
+  }));
+  if(!cobbPersonas.length){ cont.innerHTML = '<div class="empty-note">Nadie con ese nombre o teléfono.</div>'; return; }
+  cont.innerHTML = cobbPersonas.map(p=>{
+    const ops = p.inscripciones.map(i=>{
+      const debe = debeDe(i);
+      return `<button type="button" class="cobb-op" data-cobb-insc="${i.id}">
+        <span>🎓 ${escHtml(i.eventos?.ciudades?.nombre || '(ciudad?)')} · ${i.eventos?.fecha ? fechaCorta(i.eventos.fecha) : 'sin fecha'}</span>
+        ${debe > 0 ? `<span class="debe">debe ${fmtMoney(debe)}</span>` : '<span class="ok">✅ liquidada</span>'}</button>`;
+    }).concat(p.leads.map(l=>{
+      const est = ESTATUS.find(e=>e.id === l.estatus_id);
+      return `<button type="button" class="cobb-op" data-cobb-lead="${l.id}">
+        <span>⚪ Lead · ${escHtml(est?.etiqueta || 'sin estatus')}</span><span class="ok">${puede('confirmar_pagos') ? 'confirmar pago' : 'registrar pago'}</span></button>`;
+    }));
+    return `<div class="cobb-persona"><div class="quien"><b>${escHtml(p.nombre || '(sin nombre)')}</b> <span>${escHtml(p.telefono_principal || '')}</span></div>
+      ${ops.length ? ops.join('') : '<div class="sub">Sin inscripciones ni leads abiertos.</div>'}</div>`;
+  }).join('');
+}
+document.getElementById('cobRegistrarPago').addEventListener('click', abrirBuscarCobro);
+document.getElementById('closeModalBuscarCobro').addEventListener('click', cerrarBuscarCobro);
+document.getElementById('cobbBuscar').addEventListener('input', e=>{
+  clearTimeout(cobbTimer);
+  const texto = e.target.value;
+  cobbTimer = setTimeout(()=>buscarParaCobro(texto), 300);
+});
+document.getElementById('cobbResultados').addEventListener('click', async e=>{
+  const bI = e.target.closest('[data-cobb-insc]'), bL = e.target.closest('[data-cobb-lead]');
+  if(!bI && !bL) return;
+  if(bI){
+    cerrarBuscarCobro();
+    alCerrarFichaInscripcion = null;
+    await abrirModalInscripcion(bI.dataset.cobbInsc, { soloCobro:true });
+  } else {
+    bL.disabled = true;
+    const { data, error } = await sb.from('leads').select(LEAD_SELECT).eq('id', bL.dataset.cobbLead).single();
+    bL.disabled = false;
+    if(error){ toast('No se pudo abrir el lead: ' + error.message, true); return; }
+    cerrarBuscarCobro();
+    await cobrarLead(data);
+  }
+  alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza') renderCobranza(); });
 });
 
 /* =========================================================
@@ -5060,14 +5198,18 @@ function preguntarConfirmacion({ titulo, aviso, fuerte=false, pedirMotivo=false,
 /* --- Modal: alumno de un evento (inscripción real) — marcar estatus / agregar pago --- */
 let modalInscId = null, modalInscDatos = null;
 
-async function abrirModalInscripcion(inscId){
+/* soloCobro: se abre directo en el abono, sin vendedor, comentarios ni
+   pestañas (el 💵 Cobrar de Cobranza). "Ver ficha completa" regresa todo. */
+async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   modalInscId = inscId;
   document.getElementById('modalInscNombre').textContent = 'Cargando…';
   document.getElementById('modalInscTelefono').textContent = '';
   document.getElementById('modalInscAvatar').textContent = '—';
   document.getElementById('modalInscNotasEdit').value = '';
+  document.getElementById('cobroResumen').textContent = 'Cargando…';
+  document.getElementById('modalInscripcion').classList.toggle('solo-cobro', soloCobro);
   document.getElementById('modalInscripcion').classList.add('open');
-  cambiarTabInsc('estatus');
+  cambiarTabInsc(soloCobro ? 'pago' : 'estatus');
 
   const { data, error } = await sb.from('inscripciones')
     .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha, sede, ciudades(nombre))')
@@ -5086,6 +5228,9 @@ async function abrirModalInscripcion(inscId){
   document.getElementById('modalPagoMonto').value = '';
   document.getElementById('modalPagoFecha').value = new Date().toISOString().slice(0,10);
   document.getElementById('modalPagoBanco').value = '';
+  document.getElementById('cobroProximo').value = data.fecha_proximo_pago || '';
+  pintarCobro();
+  if(soloCobro) setTimeout(()=>document.getElementById('modalPagoMonto').focus(), 50);
   // "Corregir" arranca con lo que hay hoy, para ajustar en vez de recapturar.
   document.getElementById('corrPrecio').value = data.precio_pactado != null ? Number(data.precio_pactado) : '';
   document.getElementById('corrPagado').value = Number(data.anticipo || 0);
@@ -5162,7 +5307,7 @@ function pintarVendedorFicha(){
    mostrando el pago o el vendedor de antes de la corrección. */
 let alCerrarFichaInscripcion = null;
 function cerrarModalInscripcion(){
-  document.getElementById('modalInscripcion').classList.remove('open');
+  document.getElementById('modalInscripcion').classList.remove('open', 'solo-cobro');
   modalInscId = null; modalInscDatos = null;
   const cb = alCerrarFichaInscripcion; alCerrarFichaInscripcion = null;
   if(cb) cb();
@@ -5355,13 +5500,73 @@ document.getElementById('guardarInscCorreccion').addEventListener('click', async
   }
 });
 
+/* Cómo queda la inscrita con un abono. La usan la vista previa y el guardado,
+   para que lo que se ve antes de guardar sea exactamente lo que se guarda. */
+function calcularAbono(d, monto){
+  const nuevoAnticipo = Number(d.anticipo || 0) + monto;
+  const precio = d.precio_pactado != null ? Number(d.precio_pactado) : null;
+  const nuevoRestante = precio != null ? Math.max(precio - nuevoAnticipo, 0) : Math.max(Number(d.restante || 0) - monto, 0);
+  const liquidado = precio != null ? nuevoAnticipo >= precio : nuevoRestante <= 0;
+  const sobra = precio != null ? Math.max(nuevoAnticipo - precio, 0) : Math.max(monto - Number(d.restante || 0), 0);
+  return { nuevoAnticipo, nuevoRestante, liquidado, precio, sobra };
+}
+function debeDe(d){ return d.liquidado ? 0 : calcularAbono(d, 0).nuevoRestante; }
+
+function pintarCobro(){
+  const d = modalInscDatos; if(!d) return;
+  const debe = debeDe(d);
+  const precio = d.precio_pactado != null ? Number(d.precio_pactado) : null;
+  document.getElementById('cobroResumen').innerHTML =
+    `<span>Precio <b>${precio != null ? fmtMoney(precio) : '—'}</b></span>`
+    + `<span>Pagado <b>${fmtMoney(Number(d.anticipo || 0))}</b></span>`
+    + (debe > 0 ? `<span class="debe">Debe <b>${fmtMoney(debe)}</b></span>` : '<span>✅ <b>Liquidada</b></span>');
+  document.getElementById('cobroLiquida').style.display = debe > 0 ? '' : 'none';
+  const monto = Number(document.getElementById('modalPagoMonto').value);
+  const caja = document.getElementById('cobroPreview');
+  let quedaDebiendo = debe > 0;
+  if(!(monto > 0)){
+    caja.innerHTML = debe > 0 ? `Escribe el monto. Debe <b>${fmtMoney(debe)}</b>.` : 'Ya no debe nada. Si pagó algo más, escribe el monto.';
+  } else {
+    const r = calcularAbono(d, monto);
+    quedaDebiendo = !r.liquidado;
+    const sobra = r.sobra > 0 ? ` · <span class="malo">son ${fmtMoney(r.sobra)} más de lo que debe</span>` : '';
+    caja.innerHTML = r.liquidado
+      ? `<span class="bueno">✅ Queda liquidada</span>${sobra}`
+      : `Con este abono queda debiendo <b>${fmtMoney(r.nuevoRestante)}</b>`;
+  }
+  // La fecha del próximo pago sólo tiene sentido si le va a quedar saldo
+  document.getElementById('cobroProximoCaja').style.display = quedaDebiendo ? '' : 'none';
+  const fp = document.getElementById('cobroProximo').value;
+  document.getElementById('cobroProximoHint').textContent = fp
+    ? `Cobranza le da seguimiento el ${fechaCorta(fp)}.`
+    : `Sin fecha: Cobranza toma el día del curso${d.eventos?.fecha ? ' (' + fechaCorta(d.eventos.fecha) + ')' : ''} como límite.`;
+}
+document.getElementById('modalPagoMonto').addEventListener('input', pintarCobro);
+document.getElementById('cobroProximo').addEventListener('input', pintarCobro);
+document.getElementById('cobroLiquida').addEventListener('click', ()=>{
+  const d = modalInscDatos; if(!d) return;
+  document.getElementById('modalPagoMonto').value = debeDe(d);
+  pintarCobro();
+});
+document.getElementById('cobroFichaCompleta').addEventListener('click', ()=>{
+  document.getElementById('modalInscripcion').classList.remove('solo-cobro');
+});
+
 document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   if(!modalInscId || !modalInscDatos) return;
+  const d = modalInscDatos;
   const monto = Number(document.getElementById('modalPagoMonto').value);
   const fecha = document.getElementById('modalPagoFecha').value;
   const banco = document.getElementById('modalPagoBanco').value.trim();
   if(!monto || monto <= 0){ toast('Ingresa un monto válido.', true); return; }
   if(!fecha){ toast('Selecciona una fecha.', true); return; }
+  const r = calcularAbono(d, monto);
+  if(r.sobra > 0){
+    const ok = await preguntarConfirmacion({ titulo:`Son ${fmtMoney(r.sobra)} más de lo que debe`,
+      aviso:`${escHtml(d.personas?.nombre || 'La alumna')} debe <b>${fmtMoney(debeDe(d))}</b> y vas a registrar <b>${fmtMoney(monto)}</b>. ¿Así fue?`,
+      textoSi:'Sí, registrar' });
+    if(ok === null) return;
+  }
 
   const btn = document.getElementById('guardarInscPago'); btn.disabled = true; btn.textContent = 'Guardando...';
 
@@ -5370,21 +5575,22 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   });
   if(errPago){ btn.disabled = false; btn.textContent = 'Registrar abono'; toast('Error al registrar el pago: ' + errPago.message, true); return; }
 
-  const nuevoAnticipo = Number(modalInscDatos.anticipo || 0) + monto;
-  const precio = modalInscDatos.precio_pactado != null ? Number(modalInscDatos.precio_pactado) : null;
-  const nuevoRestante = precio != null ? Math.max(precio - nuevoAnticipo, 0) : Math.max(Number(modalInscDatos.restante || 0) - monto, 0);
-  const liquidado = precio != null ? nuevoAnticipo >= precio : nuevoRestante <= 0;
-  const update = { anticipo: nuevoAnticipo, restante: nuevoRestante, liquidado };
-  if(liquidado){
+  const update = { anticipo: r.nuevoAnticipo, restante: r.nuevoRestante, liquidado: r.liquidado };
+  if(r.liquidado){
     const estatusPagado = ESTATUS.find(e=>e.clave==='pagado');
     if(estatusPagado) update.estatus_id = estatusPagado.id;
   }
+  const proximo = document.getElementById('cobroProximo').value || null;
+  const fechaMovida = !r.liquidado && proximo !== (d.fecha_proximo_pago || null);
+  if(fechaMovida) update.fecha_proximo_pago = proximo;
   const { error: errUpd } = await sb.from('inscripciones').update(update).eq('id', modalInscId);
   btn.disabled = false; btn.textContent = 'Registrar abono';
   if(errUpd){ toast('El pago se guardó, pero no se pudo actualizar el saldo: ' + errUpd.message, true); return; }
 
-  toast('Abono registrado.');
-  registrarActividad('pago_registrado', `${fmtMoney(monto)} de ${modalInscDatos?.personas?.nombre||''}`);
+  const nombre = d.personas?.nombre || '';
+  toast(r.liquidado ? `Abono registrado. ${nombre} queda liquidada ✅` : `Abono registrado. Debe ${fmtMoney(r.nuevoRestante)}.`);
+  registrarActividad('pago_registrado', `${fmtMoney(monto)} de ${nombre}`);
+  if(fechaMovida) registrarActividad('fecha_cobro_movida', `${nombre || 'inscrita'}: próximo pago ${proximo ? fechaCorta(proximo) : 'sin fecha (día del curso)'}`);
   cerrarModalInscripcion();
   await renderCalendario(true);
 });
