@@ -3537,8 +3537,9 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   const telAltNuevo = document.getElementById('modalTelefonoAltEdit').value.replace(/\D/g,'');
   const correoNuevo = document.getElementById('modalCorreoEdit').value.trim();
   const nacimientoNuevo = document.getElementById('modalNacimientoEdit').value || null;
-  if(!nombreNuevo || telNuevo.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
-  const problema = problemaContacto({ tel2: telAltNuevo, correo: correoNuevo, nacimiento: nacimientoNuevo });
+  if(!nombreNuevo){ toast('Falta el nombre.', true); return; }
+  const antes = leadAbierto()?.personas || {};
+  const problema = problemaContacto({ tel1: telNuevo, tel2: telAltNuevo, correo: correoNuevo, nacimiento: nacimientoNuevo }, antes);
   if(problema){ toast(problema, true); return; }
 
   const btn = document.getElementById('guardarLead'); btn.disabled = true; btn.textContent = 'Guardando...';
@@ -3635,11 +3636,18 @@ function edadDe(iso){
   if(h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) e--;
   return e;
 }
-function problemaContacto({ tel1, tel2, correo, nacimiento }){
-  if(tel1 !== undefined && tel1.length < 10) return 'El teléfono 1 no tiene 10 dígitos.';
-  if(tel2 && tel2.length < 10) return 'El teléfono 2 no tiene 10 dígitos (o déjalo vacío).';
-  if(correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return 'El correo no se ve bien escrito.';
-  if(nacimiento){
+/* Sólo se revisa lo que la persona cambió (`antes` = la fila de personas como
+   estaba). Miles de fichas traen del Excel notas en el correo ("N/T", "NO
+   TIENE", "SE ENVIA INFO POR WPP") o teléfonos cortos: si se revisara todo,
+   nadie podría corregirles el teléfono sin borrar antes el correo, ni
+   agregarles el correo sin arreglar el teléfono. */
+function problemaContacto({ tel1, tel2, correo, nacimiento }, antes = {}){
+  const digitos = v => String(v || '').replace(/\D/g, '');
+  const cambio = (nuevo, previo) => nuevo !== undefined && String(nuevo || '') !== String(previo || '');
+  if(cambio(tel1, digitos(antes.telefono_principal)) && tel1.length < 10) return 'El teléfono 1 no tiene 10 dígitos.';
+  if(cambio(tel2, digitos(antes.telefono_alternativo)) && tel2 && tel2.length < 10) return 'El teléfono 2 no tiene 10 dígitos (o déjalo vacío).';
+  if(cambio(correo, String(antes.correo || '').trim()) && correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return 'El correo no se ve bien escrito.';
+  if(cambio(nacimiento, antes.fecha_nacimiento) && nacimiento){
     const e = edadDe(nacimiento);
     if(e < 10 || e > 100) return 'Revisa la fecha de nacimiento: daría ' + e + ' años.';
   }
@@ -3675,7 +3683,7 @@ document.getElementById('guardarContacto').addEventListener('click', async ()=>{
   const correo = document.getElementById('contactoCorreo').value.trim();
   const nacimiento = document.getElementById('contactoNacimiento').value || null;
   if(!nombre){ toast('Falta el nombre.', true); return; }
-  const problema = problemaContacto({ tel1, tel2, correo, nacimiento });
+  const problema = problemaContacto({ tel1, tel2, correo, nacimiento }, p);
   if(problema){ toast(problema, true); return; }
   // Un teléfono = una persona: si ese número ya es de alguien más, no se duplica
   if(tel1 !== (p.telefono_principal || '')){
