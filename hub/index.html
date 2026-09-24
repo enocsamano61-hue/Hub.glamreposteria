@@ -535,6 +535,24 @@
   .lada-sug button.usada{ background:var(--wine); color:#fff; }
   .vend-row input[type=date]{ flex:1; padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
 
+  /* ---------- MENSAJES / WHATSAPP ---------- */
+  .msj-card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:10px; cursor:pointer; }
+  .msj-card:hover{ border-color:var(--wine); }
+  .msj-titulo{ font-weight:700; font-size:13.5px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .msj-texto{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; line-height:1.45; white-space:pre-wrap; max-height:5.8em; overflow:hidden; }
+  .msj-var{ display:inline-block; background:rgba(90,31,43,.1); color:var(--wine); border-radius:6px; padding:0 4px; font-size:11.5px; font-weight:600; }
+  .msj-pill{ font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; background:var(--bg); color:var(--ink-soft); }
+  .msj-foto{ margin-top:8px; max-height:120px; max-width:100%; border-radius:10px; display:block; }
+  .msj-grupo{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); margin:14px 0 8px; }
+  .msj-vars{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .msj-vars button{ border:1px dashed var(--wine); background:transparent; color:var(--wine); border-radius:8px; padding:3px 8px; font-size:11.5px; cursor:pointer; font-family:inherit; }
+  .wa-opcion{ border:1px solid var(--border); border-radius:10px; padding:9px 11px; margin-bottom:7px; font-size:13px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .wa-opcion.sel{ border:2px solid #25D366; background:rgba(37,211,102,.07); }
+  .wa-preview{ width:100%; min-height:110px; background:#DCF8C6; border:none; border-radius:10px; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.45; color:#1f2d1f; resize:vertical; }
+  .btn-wa{ width:100%; background:#25D366; color:#fff; border:none; padding:12px 17px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:8px; }
+  .btn-wa.contorno{ background:transparent; color:#128C4B; border:1px solid #25D366; }
+  .btn-wa-mini{ border:none; background:#25D366; color:#fff; border-radius:8px; padding:5px 9px; font-size:13px; cursor:pointer; flex-shrink:0; }
+
   /* ---------- COBRANZA ---------- */
   .cob-cabeza{ margin-bottom:14px; }
   .cob-dia{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -999,6 +1017,23 @@
       </div>
     </div>
 
+    <!-- MENSAJES PREDETERMINADOS (WhatsApp) -->
+    <div class="view" id="view-mensajes">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin-bottom:2px;">💬 Mensajes predeterminados</h3>
+            <div class="sub" style="margin:0;">Escríbelos una vez y mándalos por WhatsApp desde el Calendario, la ficha o Cobranza, sin copiar y pegar.</div>
+          </div>
+          <button class="btn-primary small" id="btnNuevoMensaje" style="width:auto;">+ Nuevo mensaje</button>
+        </div>
+        <div class="msj-grupo">Míos</div>
+        <div id="msjMios">Cargando…</div>
+        <div class="msj-grupo">Del equipo</div>
+        <div id="msjEquipo">—</div>
+      </div>
+    </div>
+
     <!-- COBRANZA — a quién cobrarle y cuándo -->
     <div class="view" id="view-cobranza">
       <div class="card cob-cabeza">
@@ -1075,7 +1110,7 @@
   <div class="modal">
     <button class="close" id="closeModalLead">✕</button>
     <h3 id="modalLeadNombre">—</h3>
-    <div class="sub" id="modalLeadTelefono" style="margin-bottom:14px;"></div>
+    <div class="sub" id="modalLeadTelefono" style="margin-bottom:14px; display:flex; gap:8px; align-items:center;"></div>
     <div class="pago-lead" id="leadPagoCaja">
       <div class="pago-reportado" id="leadPagoReportado" style="display:none;"></div>
       <div class="pago-botones">
@@ -1204,6 +1239,7 @@
         <h3 id="modalInscNombre" style="margin-bottom:1px;">—</h3>
         <div class="sub" id="modalInscTelefono"></div>
         <button type="button" class="btn-outline small" id="btnInscContacto" style="width:auto; padding:4px 10px; font-size:11.5px; margin-top:4px;">✏️ Datos de contacto</button>
+        <button type="button" class="btn-wa-mini" id="btnInscWhats" style="margin-top:4px;">💬 WhatsApp</button>
       </div>
     </div>
     <div class="modal-vendedor">
@@ -1436,6 +1472,47 @@
      Reutilizable. Se usa para reasignar una venta, que es dinero de alguien
      más: nada de confirm() del navegador, la pregunta tiene que decir qué
      cambia exactamente y quedar registrada. -->
+<!-- ===================== MODAL: EDITAR MENSAJE PREDETERMINADO ===================== -->
+<div class="modal-overlay" id="modalMensaje">
+  <div class="modal">
+    <button class="close" id="closeModalMensaje">✕</button>
+    <h3 id="msjEditorTitulo">Nuevo mensaje</h3>
+    <div class="modal-field"><label>Nombre del mensaje</label><input id="msjTitulo" placeholder="Ej. Recordatorio de anticipo"></div>
+    <div class="modal-field"><label>Texto</label>
+      <textarea class="textarea" id="msjTexto" style="min-height:140px;" placeholder="Hola {nombre} 💕 te recuerdo que…"></textarea>
+      <div class="vend-hint">Toca un dato para ponerlo donde está el cursor; se llena solo con los datos de cada alumna:</div>
+      <div class="msj-vars" id="msjVars"></div>
+    </div>
+    <div class="modal-field"><label>Foto (opcional)</label>
+      <input type="file" id="msjFoto" accept="image/jpeg,image/png,image/webp">
+      <img id="msjFotoPrevia" class="msj-foto" style="display:none;" alt="">
+      <button type="button" class="btn-outline small" id="msjQuitarFoto" style="display:none; width:auto; margin-top:6px;">Quitar foto</button>
+    </div>
+    <label style="display:flex; gap:8px; align-items:center; font-size:13px; margin:4px 0 14px; cursor:pointer;">
+      <input type="checkbox" id="msjCompartido"> Compartirlo con todo el equipo
+    </label>
+    <button class="btn-primary" id="guardarMensaje">Guardar</button>
+    <button class="btn-outline" id="borrarMensaje" style="margin-top:8px; color:var(--danger); border-color:var(--danger);">Borrar mensaje</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ENVIAR WHATSAPP ===================== -->
+<div class="modal-overlay" id="modalWhats">
+  <div class="modal">
+    <button class="close" id="closeModalWhats">✕</button>
+    <h3 id="waTitulo">Enviar WhatsApp</h3>
+    <div class="sub" id="waSub" style="margin-bottom:10px;">—</div>
+    <div class="msj-grupo" style="margin-top:4px;">Elige el mensaje</div>
+    <div id="waOpciones"></div>
+    <img id="waFoto" class="msj-foto" style="display:none; max-height:160px;" alt="">
+    <textarea class="wa-preview" id="waTexto" style="margin-top:8px;"></textarea>
+    <div class="vend-hint">Puedes ajustar el texto antes de mandarlo.</div>
+    <button class="btn-wa" id="waEnviarFoto" style="display:none;">📷 Enviar foto + texto</button>
+    <div class="vend-hint" id="waFotoAyuda" style="display:none; text-align:center;"></div>
+    <button class="btn-wa" id="waEnviar">💬 Abrir WhatsApp con el mensaje</button>
+  </div>
+</div>
+
 <!-- ===================== MODAL: DATOS DE CONTACTO (compartido) =====================
      El mismo formulario desde la ficha de inscripción, Historial cliente, etc. -->
 <div class="modal-overlay" id="modalContacto">
@@ -1677,6 +1754,7 @@ const SECCIONES = [
   { id:'logistica', label:'Logística', sub:'Sedes, hospedaje y negociación para cada gira', soon:false, icon:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/><path d="M8 7h.01M8 11h.01M12 7h.01M12 11h.01M16 7h.01M16 11h.01"/>' },
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'cobranza', label:'Cobranza', sub:'A quién cobrarle y cuándo: anticipos de leads y saldos de inscritas', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 13v5M10.5 14.2h2.3a1 1 0 0 1 0 2h-1.6a1 1 0 0 0 0 2h2.3"/>' },
+  { id:'mensajes', label:'Mensajes', sub:'Mensajes predeterminados para WhatsApp', soon:false, icon:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
@@ -1707,6 +1785,7 @@ function setActiveSection(id){
   if(id==='actividad') renderTutorialAvance(); // TUTORIAL — quitar esta línea
   if(id==='usuarios') renderUsuariosPermisos();
   if(id==='cobranza') renderCobranza();
+  if(id==='mensajes') renderMensajes();
   if(usuarioActual?.id){
     // TUTORIAL — quitar estas 3 líneas
     marcarProgresoPorVista(id);
@@ -1745,12 +1824,12 @@ const PERMISOS_POR_ROL_DEFAULT = {
   'Sistemas': TODAS_SECCIONES,
   'Gerente': TODAS_SECCIONES,
   'Dueña': TODAS_SECCIONES,
-  'Coordinadora': ['inicio','board','historial','cursos','plaza','giras','logistica','calendario'],
-  'Logística': ['inicio','giras','logistica','plaza','calendario'],
-  'Ventas': ['inicio','board','historial','ventas','calendario'],
-  'Ventas coordinadora': ['inicio','board','historial','ventas','reportes','calendario'],
-  'Academia e Inbox': ['inicio','board','historial','cursos','calendario'],
-  'Cobranza': ['inicio','ventas','cobranza','historial','calendario'],
+  'Coordinadora': ['inicio','mensajes','board','historial','cursos','plaza','giras','logistica','calendario'],
+  'Logística': ['inicio','mensajes','giras','logistica','plaza','calendario'],
+  'Ventas': ['inicio','mensajes','board','historial','ventas','calendario'],
+  'Ventas coordinadora': ['inicio','mensajes','board','historial','ventas','reportes','calendario'],
+  'Academia e Inbox': ['inicio','mensajes','board','historial','cursos','calendario'],
+  'Cobranza': ['inicio','mensajes','ventas','cobranza','historial','calendario'],
 };
 // Cache cargado en cada login desde public.permisos_rol: { [rol]: Set(seccion_id) }.
 let PERMISOS_ROL_CACHE = null;
@@ -2146,6 +2225,10 @@ const ACCION_LABEL = {
   permiso_cambiado: 'Cambió un permiso de rol',
   fecha_cobro_movida: '📅 Movió una fecha de cobro',
   contacto_editado: '✏️ Editó datos de contacto',
+  whatsapp_enviado: '💬 Mandó un WhatsApp',
+  mensaje_creado: '💬 Creó un mensaje predeterminado',
+  mensaje_editado: '💬 Editó un mensaje predeterminado',
+  mensaje_borrado: '💬 Borró un mensaje predeterminado',
   venta_asignada: 'Asignó el vendedor de una venta',
   venta_reasignada: 'Cambió de vendedor una venta',
   tarea_asignada: 'Le asignó una tarea a alguien',
@@ -2551,7 +2634,7 @@ async function cargarEventosCalendario(){
   const cursoId = await obtenerCursoActivoId();
   if(!cursoId){ EVENTOS_CAL = []; return; }
   const hoy = new Date().toISOString().slice(0,10);
-  const { data, error } = await sb.from('eventos').select('id, fecha, ciudad_id, curso_id, ciudades(nombre, estado)')
+  const { data, error } = await sb.from('eventos').select('id, fecha, ciudad_id, curso_id, sede, ciudades(nombre, estado)')
     .eq('curso_id', cursoId).gte('fecha', hoy).order('fecha', { ascending:true });
   if(error){ console.warn('No se pudieron cargar los cursos del Calendario:', error.message); return; }
   EVENTOS_CAL = data || [];
@@ -3350,7 +3433,8 @@ async function abrirModalLead(leadId){
   if(!lead) return;
   leadAbiertoId = leadId; leadAbiertoPersonaId = lead.personas?.id;
   document.getElementById('modalLeadNombre').textContent = lead.personas?.nombre || '(sin nombre)';
-  document.getElementById('modalLeadTelefono').textContent = lead.personas?.telefono_principal || '';
+  document.getElementById('modalLeadTelefono').innerHTML = `<span>${escHtml(lead.personas?.telefono_principal || '')}</span>`
+    + (lead.personas?.telefono_principal ? '<button type="button" class="btn-wa-mini" id="btnLeadWhats">💬 WhatsApp</button>' : '');
   document.getElementById('modalNombreEdit').value = lead.personas?.nombre || '';
   document.getElementById('modalTelefonoEdit').value = lead.personas?.telefono_principal || '';
   document.getElementById('modalTelefonoAltEdit').value = lead.personas?.telefono_alternativo || '';
@@ -3375,6 +3459,15 @@ async function abrirModalLead(leadId){
     : '<div class="empty-note">Sin interacciones registradas todavía.</div>';
 }
 document.getElementById('closeModalLead').addEventListener('click', ()=>document.getElementById('modalLead').classList.remove('open'));
+document.getElementById('modalLeadTelefono').addEventListener('click', e=>{
+  if(!e.target.closest('#btnLeadWhats')) return;
+  const l = leadAbierto(); if(!l) return;
+  const ev = l.eventos || (l.evento_id && EVENTOS_CAL.find(x=>x.id === l.evento_id)) || (l.ciudad_interes_id && EVENTOS_CAL.find(x=>x.ciudad_id === l.ciudad_interes_id));
+  const evCal = ev && EVENTOS_CAL.find(x=>x.id === (ev.id || l.evento_id));
+  abrirEnviarWhatsApp({ nombre:l.personas?.nombre, telefono:l.personas?.telefono_principal, personaId:l.personas?.id, leadId:l.id,
+    ciudad: ev?.ciudades?.nombre || l.ciudades?.nombre || '', fecha: ev?.fecha || '', sede: evCal?.sede || '',
+    debe: pagoReportado(l) ? null : undefined });
+});
 // Elegir el curso pone su ciudad (se puede cambiar a mano después)
 document.getElementById('modalEventoSelect').addEventListener('change', e=>{
   const ev = EVENTOS_CAL.find(x=>x.id === e.target.value);
@@ -4003,7 +4096,7 @@ function filaCobranza(it, grupo){
       <div class="cob-monto">${monto}</div>
       <div class="cob-fecha ${grupo === 'vencidos' ? 'vencida' : ''}">${it.queEs} · ${cuando}</div>
       <div class="cob-acciones">
-        ${tel.length >= 10 ? `<a href="https://wa.me/52${tel.slice(-10)}" target="_blank" rel="noopener" data-cob-no-abrir title="WhatsApp">💬</a>` : ''}
+        ${tel.length >= 10 ? `<button type="button" data-cob-wa title="WhatsApp">💬</button>` : ''}
         ${grupo !== 'confirmar' ? `<button type="button" data-cob-mover title="Mover la fecha">📅</button><input type="date" class="cob-mover-input" value="${it.fecha && !it.fechaEsCurso ? it.fecha : ''}">` : ''}
       </div>
     </div>
@@ -4119,6 +4212,16 @@ cobGrupos.addEventListener('click', async e=>{
     return;
   }
   if(e.target.closest('.cob-mover-input')) return;
+  if(e.target.closest('[data-cob-wa]')){
+    const it = itemsCobranza().find(x=>x.tipo === tipo && x.id === id); if(!it) return;
+    const r = it.raw;
+    const ev = tipo === 'lead' ? (r.eventos || (r.evento_id && EVENTOS_CAL.find(x=>x.id === r.evento_id))) : r.eventos;
+    const evCal = ev && EVENTOS_CAL.find(x=>x.id === ev.id);
+    abrirEnviarWhatsApp({ nombre: it.nombre, telefono: it.tel, personaId: r.personas?.id, leadId: tipo === 'lead' ? id : null,
+      ciudad: ev?.ciudades?.nombre || (tipo === 'lead' ? r.ciudades?.nombre : '') || '', fecha: ev?.fecha || '', sede: evCal?.sede || '',
+      debe: tipo === 'insc' ? it.monto : null });
+    return;
+  }
   if(tipo === 'lead'){
     const l = cobDatos.leads.find(x=>x.id === id); if(!l) return;
     if(!leadsCache.some(x=>x.id === id)) leadsCache.push(l);
@@ -4205,6 +4308,239 @@ document.getElementById('nuevoLadaSug').addEventListener('click', e=>{
   selE.dispatchEvent(new Event('change'));
   if(!ev) document.getElementById('nuevoCiudad').value = ciudadId;
   document.querySelectorAll('#nuevoLadaSug button').forEach(x=>x.classList.toggle('usada', x === b));
+});
+
+/* =========================================================
+   MENSAJES PREDETERMINADOS + ENVIAR POR WHATSAPP
+   Cada vendedor guarda sus mensajes (con foto opcional); los marcados
+   "del equipo" los ven todos. Desde el Calendario, las fichas y Cobranza
+   el 💬 abre WhatsApp en el chat de la alumna con el texto ya armado.
+   Límite de WhatsApp: un enlace a un número sólo lleva TEXTO. La foto se
+   manda con "Compartir" del celular (WhatsApp pide elegir el chat).
+   ========================================================= */
+const VARIABLES_MENSAJE = [
+  { v:'{nombre}',          ayuda:'su primer nombre' },
+  { v:'{nombre_completo}', ayuda:'nombre completo' },
+  { v:'{ciudad}',          ayuda:'ciudad del curso' },
+  { v:'{fecha}',           ayuda:'fecha del curso' },
+  { v:'{sede}',            ayuda:'lugar del curso' },
+  { v:'{debe}',            ayuda:'lo que le falta pagar' },
+  { v:'{vendedor}',        ayuda:'tu nombre' },
+];
+let MENSAJES = null;
+async function cargarMensajes(){
+  const { data, error } = await sb.from('mensajes_predeterminados').select('*').order('titulo');
+  if(error){ toast('No se pudieron cargar los mensajes: ' + error.message, true); MENSAJES = MENSAJES || []; return MENSAJES; }
+  MENSAJES = data || [];
+  return MENSAJES;
+}
+function tituloCaso(s){ return String(s || '').toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b)=>a + b.toUpperCase()); }
+function rellenarMensaje(texto, d){
+  const primer = tituloCaso(String(d.nombre || '').trim().split(/\s+/)[0] || '');
+  const fechaLarga = d.fecha ? new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' }).replace(',', '') : '';
+  const valores = {
+    '{nombre}': primer, '{nombre_completo}': tituloCaso(d.nombre || ''), '{ciudad}': d.ciudad || '',
+    '{fecha}': fechaLarga, '{sede}': d.sede || '', '{debe}': d.debe != null && d.debe !== '' ? fmtMoney(d.debe) : '',
+    '{vendedor}': usuarioActual?.nombre || '',
+  };
+  return String(texto || '').replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor)\}/g, m=>valores[m] ?? m);
+}
+function pintarVariables(texto){
+  return escHtml(texto).replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor)\}/g, '<span class="msj-var">{$1}</span>');
+}
+function puedeEditarMensaje(m){ return m && (m.usuario_id === usuarioActual?.id || usuarioActual?.es_admin); }
+
+async function renderMensajes(){
+  await cargarMensajes();
+  const tarjeta = m => `<div class="msj-card" data-msj-id="${m.id}">
+      <div class="msj-titulo">${escHtml(m.titulo)}${m.foto_url ? '<span class="msj-pill">📷 con foto</span>' : ''}${m.compartido ? '<span class="msj-pill">equipo</span>' : ''}
+        ${m.usuario_id !== usuarioActual?.id ? `<span class="msj-pill">de ${escHtml(EQUIPO.find(u=>u.id===m.usuario_id)?.nombre || '?')}</span>` : ''}</div>
+      <div class="msj-texto">${pintarVariables(m.texto)}</div>
+      ${m.foto_url ? `<img class="msj-foto" src="${escapeAttr(m.foto_url)}" alt="" loading="lazy">` : ''}
+    </div>`;
+  const mios = MENSAJES.filter(m=>m.usuario_id === usuarioActual?.id);
+  const equipo = MENSAJES.filter(m=>m.usuario_id !== usuarioActual?.id && m.compartido);
+  document.getElementById('msjMios').innerHTML = mios.map(tarjeta).join('')
+    || '<div class="empty-note">Todavía no tienes mensajes. Crea el primero con "+ Nuevo mensaje".</div>';
+  document.getElementById('msjEquipo').innerHTML = equipo.map(tarjeta).join('')
+    || '<div class="empty-note">Nadie ha compartido mensajes todavía.</div>';
+}
+document.getElementById('view-mensajes').addEventListener('click', e=>{
+  const c = e.target.closest('[data-msj-id]'); if(!c) return;
+  const m = MENSAJES?.find(x=>x.id === c.dataset.msjId);
+  if(!m) return;
+  if(!puedeEditarMensaje(m)){ toast('Este mensaje es de ' + (EQUIPO.find(u=>u.id===m.usuario_id)?.nombre || 'otra persona') + '; lo puedes usar pero no editar.'); return; }
+  abrirEditorMensaje(m);
+});
+
+// ── Editor ──
+let msjEditando = null, msjFotoNueva = null, msjQuitarFoto = false;
+document.getElementById('msjVars').innerHTML = VARIABLES_MENSAJE.map(x=>`<button type="button" data-var="${x.v}" title="${x.ayuda}">${x.v}</button>`).join('');
+document.getElementById('msjVars').addEventListener('click', e=>{
+  const b = e.target.closest('[data-var]'); if(!b) return;
+  const ta = document.getElementById('msjTexto');
+  const i = ta.selectionStart ?? ta.value.length, f = ta.selectionEnd ?? ta.value.length;
+  ta.value = ta.value.slice(0, i) + b.dataset.var + ta.value.slice(f);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = i + b.dataset.var.length;
+});
+function pintarFotoEditor(url){
+  const img = document.getElementById('msjFotoPrevia');
+  img.style.display = url ? '' : 'none';
+  if(url) img.src = url;
+  document.getElementById('msjQuitarFoto').style.display = url ? '' : 'none';
+}
+function abrirEditorMensaje(m){
+  msjEditando = m || null; msjFotoNueva = null; msjQuitarFoto = false;
+  document.getElementById('msjEditorTitulo').textContent = m ? 'Editar mensaje' : 'Nuevo mensaje';
+  document.getElementById('msjTitulo').value = m?.titulo || '';
+  document.getElementById('msjTexto').value = m?.texto || '';
+  document.getElementById('msjCompartido').checked = !!m?.compartido;
+  document.getElementById('msjFoto').value = '';
+  pintarFotoEditor(m?.foto_url || null);
+  document.getElementById('borrarMensaje').style.display = m ? '' : 'none';
+  document.getElementById('modalMensaje').classList.add('open');
+}
+document.getElementById('btnNuevoMensaje').addEventListener('click', ()=>abrirEditorMensaje(null));
+document.getElementById('closeModalMensaje').addEventListener('click', ()=>document.getElementById('modalMensaje').classList.remove('open'));
+document.getElementById('msjFoto').addEventListener('change', e=>{
+  const f = e.target.files?.[0];
+  if(!f) return;
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type)){ toast('La foto tiene que ser JPG, PNG o WEBP.', true); e.target.value = ''; return; }
+  if(f.size > 5 * 1024 * 1024){ toast('La foto pesa más de 5 MB.', true); e.target.value = ''; return; }
+  msjFotoNueva = f; msjQuitarFoto = false;
+  pintarFotoEditor(URL.createObjectURL(f));
+});
+document.getElementById('msjQuitarFoto').addEventListener('click', ()=>{
+  msjFotoNueva = null; msjQuitarFoto = true;
+  document.getElementById('msjFoto').value = '';
+  pintarFotoEditor(null);
+});
+document.getElementById('guardarMensaje').addEventListener('click', async ()=>{
+  const titulo = document.getElementById('msjTitulo').value.trim();
+  const texto = document.getElementById('msjTexto').value.trim();
+  const compartido = document.getElementById('msjCompartido').checked;
+  if(!titulo || !texto){ toast('Ponle nombre y texto al mensaje.', true); return; }
+  const btn = document.getElementById('guardarMensaje');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const listo = ()=>{ btn.disabled = false; btn.textContent = 'Guardar'; };
+  let foto_url = msjEditando?.foto_url || null, foto_path = msjEditando?.foto_path || null;
+  const fotoVieja = foto_path;
+  if(msjQuitarFoto){ foto_url = null; foto_path = null; }
+  if(msjFotoNueva){
+    const ext = { 'image/jpeg':'jpg', 'image/png':'png', 'image/webp':'webp' }[msjFotoNueva.type] || 'jpg';
+    const ruta = `${usuarioActual?.id || 'sin-usuario'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: errF } = await sb.storage.from('mensajes').upload(ruta, msjFotoNueva, { contentType: msjFotoNueva.type, upsert:false });
+    if(errF){ listo(); toast('No se pudo subir la foto: ' + errF.message, true); return; }
+    foto_path = ruta;
+    foto_url = sb.storage.from('mensajes').getPublicUrl(ruta).data.publicUrl;
+  }
+  const datos = { titulo, texto, compartido, foto_url, foto_path, actualizado_en: new Date().toISOString() };
+  const { error } = msjEditando
+    ? await sb.from('mensajes_predeterminados').update(datos).eq('id', msjEditando.id)
+    : await sb.from('mensajes_predeterminados').insert({ ...datos, usuario_id: usuarioActual?.id });
+  listo();
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  // La foto anterior ya no se usa: se borra del almacenamiento
+  if(fotoVieja && fotoVieja !== foto_path) sb.storage.from('mensajes').remove([fotoVieja]);
+  registrarActividad(msjEditando ? 'mensaje_editado' : 'mensaje_creado', titulo + (compartido ? ' (equipo)' : ''));
+  document.getElementById('modalMensaje').classList.remove('open');
+  toast('Mensaje guardado.');
+  renderMensajes();
+});
+document.getElementById('borrarMensaje').addEventListener('click', async ()=>{
+  const m = msjEditando; if(!m) return;
+  const ok = await preguntarConfirmacion({ titulo:'¿Borrar este mensaje?', aviso:`Se borra <b>${escHtml(m.titulo)}</b>${m.compartido ? ' para todo el equipo' : ''}.`, textoSi:'Sí, borrarlo' });
+  if(ok === null) return;
+  const { error } = await sb.from('mensajes_predeterminados').delete().eq('id', m.id);
+  if(error){ toast('No se pudo borrar: ' + error.message, true); return; }
+  if(m.foto_path) sb.storage.from('mensajes').remove([m.foto_path]);
+  registrarActividad('mensaje_borrado', m.titulo);
+  document.getElementById('modalMensaje').classList.remove('open');
+  toast('Mensaje borrado.');
+  renderMensajes();
+});
+
+// ── Enviar ──
+function numeroWhatsApp(tel){
+  const d = String(tel || '').replace(/\D/g, '');
+  if(d.length === 10) return '52' + d;               // celular de México
+  if(d.length === 12 && d.startsWith('52')) return d;
+  if(d.length === 13 && d.startsWith('521')) return '52' + d.slice(3);
+  return d.length >= 11 ? d : '';                      // extranjero con lada de país (p.ej. 1 + 10)
+}
+let waDatos = null, waElegido = null;
+async function abrirEnviarWhatsApp(datos){
+  const numero = numeroWhatsApp(datos.telefono);
+  if(!numero){ toast('Ese número no está completo (10 dígitos).', true); return; }
+  waDatos = { ...datos, numero };
+  if(!MENSAJES) await cargarMensajes();
+  document.getElementById('waTitulo').textContent = 'Enviar WhatsApp a ' + tituloCaso(datos.nombre || '');
+  document.getElementById('waSub').textContent = [datos.telefono, datos.ciudad && datos.fecha ? `${datos.ciudad} · ${fechaCorta(datos.fecha)}` : datos.ciudad].filter(Boolean).join(' · ');
+  const mios = MENSAJES.filter(m=>m.usuario_id === usuarioActual?.id);
+  const equipo = MENSAJES.filter(m=>m.usuario_id !== usuarioActual?.id && m.compartido);
+  const opciones = [...mios, ...equipo];
+  document.getElementById('waOpciones').innerHTML = opciones.map(m=>
+      `<div class="wa-opcion" data-wa-msj="${m.id}"><span>${escHtml(m.titulo)}</span><span>${m.foto_url ? '📷' : ''}${equipo.includes(m) ? ' <span class="msj-pill">equipo</span>' : ''}</span></div>`).join('')
+    + `<div class="wa-opcion" data-wa-msj=""><span>✍️ Escribir uno nuevo…</span></div>`
+    + (opciones.length ? '' : '<div class="vend-hint">Aún no hay mensajes guardados: créalos en la sección Mensajes.</div>');
+  elegirMensajeWa(opciones[0]?.id || '');
+  document.getElementById('modalWhats').classList.add('open');
+}
+function elegirMensajeWa(id){
+  waElegido = (MENSAJES || []).find(m=>m.id === id) || null;
+  document.querySelectorAll('#waOpciones .wa-opcion').forEach(o=>o.classList.toggle('sel', o.dataset.waMsj === (id || '')));
+  document.getElementById('waTexto').value = waElegido ? rellenarMensaje(waElegido.texto, waDatos) : '';
+  const img = document.getElementById('waFoto');
+  const conFoto = !!waElegido?.foto_url;
+  img.style.display = conFoto ? '' : 'none';
+  if(conFoto) img.src = waElegido.foto_url;
+  // Compartir archivos sólo existe en celulares (Android/iPhone)
+  const puedeCompartir = conFoto && typeof navigator.canShare === 'function';
+  document.getElementById('waEnviarFoto').style.display = puedeCompartir ? '' : 'none';
+  const ayuda = document.getElementById('waFotoAyuda');
+  ayuda.style.display = conFoto ? '' : 'none';
+  ayuda.innerHTML = !conFoto ? '' : puedeCompartir
+    ? 'WhatsApp te pedirá elegir el chat: queda hasta arriba si ya le escribiste. El texto también queda copiado por si acaso.'
+    : `La foto sólo se puede mandar desde el celular. Aquí la puedes <a href="${escapeAttr(waElegido.foto_url)}" target="_blank" rel="noopener" download>descargar</a>.`;
+  document.getElementById('waEnviar').textContent = conFoto ? '💬 Sólo texto (directo a su número)' : '💬 Abrir WhatsApp con el mensaje';
+  document.getElementById('waEnviar').classList.toggle('contorno', conFoto && puedeCompartir);
+  if(!waElegido) document.getElementById('waTexto').focus();
+}
+document.getElementById('waOpciones').addEventListener('click', e=>{
+  const o = e.target.closest('[data-wa-msj]'); if(o) elegirMensajeWa(o.dataset.waMsj);
+});
+document.getElementById('closeModalWhats').addEventListener('click', ()=>document.getElementById('modalWhats').classList.remove('open'));
+function registrarEnvioWa(conFoto){
+  const d = waDatos; if(!d) return;
+  const titulo = waElegido?.titulo || 'mensaje escrito a mano';
+  registrarActividad('whatsapp_enviado', `${titulo}${conFoto ? ' 📷' : ''} → ${d.nombre || d.telefono}`);
+  if(d.personaId) sb.from('interacciones').insert({ persona_id: d.personaId, lead_id: d.leadId || null, asesor_id: usuarioActual?.id || null,
+    canal:'whatsapp', nota:`WHATSAPP (${titulo}${conFoto ? ', con foto' : ''}) enviado desde el Hub por ${usuarioActual?.nombre || 'alguien'}.` });
+}
+document.getElementById('waEnviar').addEventListener('click', ()=>{
+  const texto = document.getElementById('waTexto').value.trim();
+  if(!texto){ toast('Escribe el mensaje.', true); return; }
+  window.open(`https://wa.me/${waDatos.numero}?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
+  registrarEnvioWa(false);
+  document.getElementById('modalWhats').classList.remove('open');
+});
+document.getElementById('waEnviarFoto').addEventListener('click', async ()=>{
+  const texto = document.getElementById('waTexto').value.trim();
+  const m = waElegido; if(!m?.foto_url) return;
+  try{
+    try{ await navigator.clipboard.writeText(texto); } catch(_){}
+    const resp = await fetch(m.foto_url);
+    const blob = await resp.blob();
+    const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+    const archivo = new File([blob], `glam.${ext}`, { type: blob.type });
+    if(!navigator.canShare({ files:[archivo] })) throw new Error('Este teléfono no deja compartir fotos desde el navegador.');
+    await navigator.share({ files:[archivo], text: texto });
+    registrarEnvioWa(true);
+    document.getElementById('modalWhats').classList.remove('open');
+  } catch(err){
+    if(err?.name === 'AbortError') return;   // canceló el menú de compartir
+    toast('No se pudo compartir la foto: ' + (err?.message || err) + ' Manda el texto directo y adjunta la foto a mano.', true);
+  }
 });
 
 /* --- Modal: nuevo lead --- */
@@ -4336,7 +4672,7 @@ async function renderCalendario(preservarMes){
   // Solo eventos del curso en curso — antes traía eventos de CUALQUIER
   // curso con fecha futura (incluía tarjetas ajenas a la gira actual).
   const { data: eventos, error } = await sb.from('eventos')
-    .select('id, fecha, ciudad_id, ciudades(nombre), cursos(nombre)')
+    .select('id, fecha, ciudad_id, sede, ciudades(nombre), cursos(nombre)')
     .eq('curso_id', cursoId)
     .not('fecha', 'is', null).gte('fecha', new Date().toISOString().slice(0,10))
     .order('fecha', {ascending:true});
@@ -4400,7 +4736,7 @@ async function renderCalendario(preservarMes){
     }
     if(!calendarioDias[e.fecha]) calendarioDias[e.fecha] = [];
     calendarioDias[e.fecha].push({
-      id: e.id, ciudadId: e.ciudad_id, tieneInscripciones: eventosConInscripcion.has(e.id),
+      id: e.id, ciudadId: e.ciudad_id, tieneInscripciones: eventosConInscripcion.has(e.id), fecha: e.fecha, sede: e.sede || '',
       ciudad: e.ciudades?.nombre || '(ciudad?)', liq: liquidados, ant: conAnticipo, pend: sinPago
     });
   });
@@ -4582,6 +4918,7 @@ function iniciales(nombre){
  * inscripción (ciudad todavía no llega su turno en la gira), se lee de
  * "leads" — mismo dato que usa el resumen del calendario para esos días.
  */
+let listaCalendarioFilas = [];
 async function abrirListaCategoriaCalendario(ev, categoria){
   listaCalendarioActual = { ev, categoria };
   document.getElementById('sheetListaLabel').textContent = CATEGORIA_LABEL_CAL[categoria];
@@ -4593,6 +4930,7 @@ async function abrirListaCategoriaCalendario(ev, categoria){
     const { data, error } = await sb.from('inscripciones')
       .select('id, anticipo, restante, precio_pactado, liquidado, personas(id, nombre, telefono_principal)')
       .eq('evento_id', ev.id);
+    listaCalendarioFilas = data || [];
     if(error){ document.getElementById('sheetListaBody').innerHTML = 'Error: ' + error.message; return; }
     const filas = (data||[]).filter(i=>{
       if(categoria==='liq') return i.liquidado;
@@ -4608,14 +4946,24 @@ async function abrirListaCategoriaCalendario(ev, categoria){
           <div class="alumno-tel">${i.personas?.telefono_principal || ''}</div>
         </div>
         <div class="alumno-monto">${i.precio_pactado!=null ? '$'+Number(i.precio_pactado).toFixed(0) : (Number(i.anticipo)>0 ? '$'+Number(i.anticipo).toFixed(0) : '—')}</div>
+        <button type="button" class="btn-wa-mini" data-wa-insc="${i.id}" title="Enviar WhatsApp">💬</button>
       </div>`).join('') : '<div class="empty-note">Sin alumnos en esta categoría.</div>';
     document.getElementById('sheetListaBody').querySelectorAll('.alumno-row').forEach(row=>{
-      row.addEventListener('click', ()=>abrirModalInscripcion(row.dataset.inscId));
+      row.addEventListener('click', (e)=>{
+        if(e.target.closest('[data-wa-insc]')){
+          const i = listaCalendarioFilas.find(x=>x.id === row.dataset.inscId);
+          abrirEnviarWhatsApp({ nombre:i?.personas?.nombre, telefono:i?.personas?.telefono_principal, personaId:i?.personas?.id,
+            ciudad:ev.ciudad, fecha:ev.fecha, sede:ev.sede, debe: i && !i.liquidado ? Number(i.restante) || 0 : 0 });
+          return;
+        }
+        abrirModalInscripcion(row.dataset.inscId);
+      });
     });
   } else {
     const { data, error } = await sb.from('leads')
       .select('id, estatus(clave), personas(id, nombre, telefono_principal)')
       .eq('ciudad_interes_id', ev.ciudadId);
+    listaCalendarioFilas = data || [];
     if(error){ document.getElementById('sheetListaBody').innerHTML = 'Error: ' + error.message; return; }
     const filas = (data||[]).filter(l=>{
       const clave = l.estatus?.clave;
@@ -4631,9 +4979,18 @@ async function abrirListaCategoriaCalendario(ev, categoria){
           <div class="alumno-nombre">${l.personas?.nombre || '(sin nombre)'}</div>
           <div class="alumno-tel">${l.personas?.telefono_principal || ''}</div>
         </div>
+        <button type="button" class="btn-wa-mini" data-wa-lead="${l.id}" title="Enviar WhatsApp">💬</button>
       </div>`).join('') : '<div class="empty-note">Sin contactos en esta categoría.</div>';
     document.getElementById('sheetListaBody').querySelectorAll('.alumno-row').forEach(row=>{
-      row.addEventListener('click', ()=>abrirModalLead(row.dataset.leadId));
+      row.addEventListener('click', (e)=>{
+        if(e.target.closest('[data-wa-lead]')){
+          const l = listaCalendarioFilas.find(x=>x.id === row.dataset.leadId);
+          abrirEnviarWhatsApp({ nombre:l?.personas?.nombre, telefono:l?.personas?.telefono_principal, personaId:l?.personas?.id, leadId:l?.id,
+            ciudad:ev.ciudad, fecha:ev.fecha, sede:ev.sede });
+          return;
+        }
+        abrirModalLead(row.dataset.leadId);
+      });
     });
   }
 }
@@ -4708,7 +5065,7 @@ async function abrirModalInscripcion(inscId){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha)')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha, sede, ciudades(nombre))')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -4740,6 +5097,12 @@ function pintarContactoFicha(p){
     p?.fecha_nacimiento ? `🎂 ${fechaCorta(p.fecha_nacimiento)}${e != null ? ' (' + e + ')' : ''}` : '',
   ].filter(Boolean).join(' · ');
 }
+document.getElementById('btnInscWhats').addEventListener('click', ()=>{
+  const d = modalInscDatos; if(!d) return;
+  abrirEnviarWhatsApp({ nombre:d.personas?.nombre, telefono:d.personas?.telefono_principal, personaId:d.personas?.id,
+    ciudad:d.eventos?.ciudades?.nombre || '', fecha:d.eventos?.fecha || '', sede:d.eventos?.sede || '',
+    debe: d.liquidado ? 0 : Number(d.restante) || 0 });
+});
 document.getElementById('btnInscContacto').addEventListener('click', ()=>{
   const p = modalInscDatos?.personas; if(!p?.id) return;
   abrirDatosContacto(p.id, cambios=>{
