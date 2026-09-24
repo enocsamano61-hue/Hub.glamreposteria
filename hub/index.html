@@ -1572,7 +1572,12 @@
    ========================================================= */
 const SUPABASE_URL = 'https://bomlszsnixazhnsegeik.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_w85mi4Z_NunDmMQIcWGaaw_KqNSN2lq';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/* Nada de lo que responde la base se guarda en la caché del navegador.
+   Chrome guarda para siempre una respuesta 300 sin encabezados de caché: un
+   error pasajero de la API se quedaba "pegado" aunque la base ya estuviera bien. */
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  global: { fetch: (url, opciones) => fetch(url, { ...opciones, cache: 'no-store' }) }
+});
 
 /* Cuándo fue la última vez que ESTE navegador escribió algo.
    Sirve para no avisarle a alguien de "cambios nuevos" cuando el cambio lo
@@ -2533,7 +2538,7 @@ async function renderDashboard(){
     {v: CIUDADES.length, l:'Plazas cargadas'},
   ].map(k=>`<div class="kpi"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
 
-  const { data, error } = await sb.from('leads').select('id, creado_en, personas(nombre, telefono_principal), estatus(etiqueta)')
+  const { data, error } = await sb.from('leads').select('id, creado_en, personas(nombre, telefono_principal), estatus!leads_estatus_id_fkey(etiqueta)')
     .order('creado_en', {ascending:false}).limit(6);
   const cont = document.getElementById('actividadList');
   if(error){ cont.textContent = 'Error: ' + error.message; return; }
@@ -3002,7 +3007,7 @@ const LEAD_SELECT = `
     personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra ),
     cursos ( nombre ),
     ciudades ( nombre ),
-    estatus ( id, etiqueta, color_hex )
+    estatus!leads_estatus_id_fkey ( id, etiqueta, color_hex )
   `;
 async function cargarLeads(){
   await cargarCiudadesGiraActiva();
@@ -4707,7 +4712,7 @@ async function renderCalendario(preservarMes){
   const resumenLeadsPorCiudad = {};
   if(ciudadesSinInscripcion.length){
     const { data: leadsData } = await sb.from('leads')
-      .select('ciudad_interes_id, estatus(clave)')
+      .select('ciudad_interes_id, estatus!leads_estatus_id_fkey(clave)')
       .in('ciudad_interes_id', ciudadesSinInscripcion);
     (leadsData||[]).forEach(l=>{
       const cid = l.ciudad_interes_id;
@@ -4961,7 +4966,7 @@ async function abrirListaCategoriaCalendario(ev, categoria){
     });
   } else {
     const { data, error } = await sb.from('leads')
-      .select('id, estatus(clave), personas(id, nombre, telefono_principal)')
+      .select('id, estatus!leads_estatus_id_fkey(clave), personas(id, nombre, telefono_principal)')
       .eq('ciudad_interes_id', ev.ciudadId);
     listaCalendarioFilas = data || [];
     if(error){ document.getElementById('sheetListaBody').innerHTML = 'Error: ' + error.message; return; }

@@ -77,3 +77,23 @@ minutos. Guarda una copia de la estructura de la base y el `NOTIFY pgrst, 'reloa
 que venía dentro de la migración no la actualizó. Se mandó otra vez, suelto, a las 00:19 UTC.
 En los registros de la API, la última petición del Hub que falló fue a las 00:15:57; desde las
 00:20 todas responden 200.
+
+### Tercera parte — el error se quedó guardado en Chrome
+
+La base ya respondía bien desde las 00:20 UTC, pero el aviso seguía saliendo en el Hub. La API
+contestaba el error con código **300** y sin encabezados de caché, y **Chrome guarda una
+respuesta 300 para siempre**. El Hub repetía exactamente la misma petición y el navegador
+contestaba con el error guardado sin preguntarle al servidor (esas peticiones ya ni aparecían en
+los registros). Recargar la página no lo quita.
+
+Arreglo en `hub/index.html`:
+
+- El cliente de Supabase pide todo con `cache: 'no-store'`: nada que responda la base se guarda
+  en el navegador. Así un error pasajero de la API desaparece en cuanto la base se arregla.
+- Las 4 consultas de leads que traen el estatus nombran la relación
+  (`estatus!leads_estatus_id_fkey`): una segunda llave hacia `estatus` ya no las rompería.
+
+Verificado en Chromium: con el cliente anterior el error guardado se repetía; con `no-store`
+la petición llega al servidor y se recupera. Las 4 consultas nuevas responden 200 en la API real.
+Pruebas: vendedor 23, ui 50, sync 29, inscribir 76, ciudades 61, pagos 58, cobranza 44,
+contacto 15, ladas 16, mensajes 28.
