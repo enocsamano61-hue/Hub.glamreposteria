@@ -529,6 +529,10 @@
   .lead-pago-rep{ font-size:11px; color:#7B3FA0; font-weight:700; margin-top:4px; }
   .lead-anticipo{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
   .lead-anticipo.vencida{ color:var(--danger); font-weight:700; }
+  .lada-sug{ font-size:12px; color:var(--ink-soft); margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .lada-sug:empty{ display:none; }
+  .lada-sug button{ border:1px solid var(--wine); background:rgba(90,31,43,.06); color:var(--wine); border-radius:14px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .lada-sug button.usada{ background:var(--wine); color:#fff; }
   .vend-row input[type=date]{ flex:1; padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
 
   /* ---------- COBRANZA ---------- */
@@ -1160,7 +1164,7 @@
     <button class="close" id="closeModalNuevo">✕</button>
     <h3>Nuevo lead</h3>
     <div class="modal-field"><label>Nombre</label><input id="nuevoNombre"></div>
-    <div class="modal-field"><label>Teléfono</label><input id="nuevoTelefono" placeholder="10 dígitos"></div>
+    <div class="modal-field"><label>Teléfono</label><input id="nuevoTelefono" inputmode="tel" placeholder="10 dígitos"><div class="lada-sug" id="nuevoLadaSug"></div></div>
     <div class="modal-field"><label>Curso que tomará</label><select id="nuevoEvento"></select><div class="vend-hint">Busca por ciudad. Si todavía no decide, déjalo en “Aún no decide”.</div></div>
     <div class="modal-field" id="nuevoCiudadCampo"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
     <div class="modal-field" id="nuevoCursoCampo"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
@@ -4131,6 +4135,78 @@ cobGrupos.addEventListener('change', e=>{
   moverFechaCobro(fila.dataset.cobTipo, fila.dataset.cobId, inp.value);
 });
 
+/* =========================================================
+   CIUDAD SUGERIDA POR LA LADA (tabla `ladas`, base de GitHub)
+   55/56, 33 y 81 son ladas de 2 dígitos; las demás, de 3. Una localidad
+   sólo cuenta si también cuadra el estado (la lada 686 tiene ejidos que se
+   llaman "Chihuahua" o "Durango").
+   ========================================================= */
+const LADAS_CACHE = {};
+function ladaDe(tel){
+  const d = String(tel || '').replace(/\D/g, '').slice(-10);
+  if(d.length < 10) return null;
+  const dos = d.slice(0, 2);
+  if(dos === '56') return '55';
+  return ['55','33','81'].includes(dos) ? dos : d.slice(0, 3);
+}
+async function ciudadesPorLada(tel){
+  const lada = ladaDe(tel);
+  if(!lada) return null;
+  if(!LADAS_CACHE[lada]){
+    const { data, error } = await sb.from('ladas').select('lada, estado, localidades').eq('lada', lada);
+    if(error) return null;
+    LADAS_CACHE[lada] = data || [];
+  }
+  const filas = LADAS_CACHE[lada];
+  const clave = t => tokensCiudad(t).join('');
+  const encontradas = new Map();
+  filas.forEach(f=>{
+    const edo = normTexto(f.estado);
+    const deEseEstado = CIUDADES.filter(c=>!c.oculta && normTexto(c.estado) === edo);
+    // CDMX: las localidades son alcaldías; la ciudad es una sola
+    if(edo === 'ciudad de mexico') deEseEstado.forEach(c=>encontradas.set(c.id, c));
+    (f.localidades || []).forEach(loc=>{
+      const variantes = [loc, loc.split('(')[0], (loc.match(/\(([^)]+)\)/) || [])[1]].filter(Boolean).map(clave).filter(Boolean);
+      deEseEstado.forEach(c=>{
+        const suyas = [c.nombre, ...(c.alias || [])].map(clave);
+        if(variantes.some(v=>suyas.includes(v))) encontradas.set(c.id, c);
+      });
+    });
+  });
+  return { lada, estados: [...new Set(filas.map(f=>f.estado))], ciudades: [...encontradas.values()] };
+}
+let ladaSugTimer = null;
+function pintarSugerenciaLada(){
+  clearTimeout(ladaSugTimer);
+  const caja = document.getElementById('nuevoLadaSug');
+  const tel = document.getElementById('nuevoTelefono').value;
+  if(!ladaDe(tel)){ caja.innerHTML = ''; return; }
+  ladaSugTimer = setTimeout(async ()=>{
+    const r = await ciudadesPorLada(tel);
+    if(!r || (!r.ciudades.length && !r.estados.length)){ caja.innerHTML = ''; return; }
+    const fechas = new Map();
+    (EVENTOS_CAL || []).forEach(e=>{ if(!fechas.has(e.ciudad_id)) fechas.set(e.ciudad_id, e); });
+    const ciudades = r.ciudades.sort((a,b)=> (fechas.has(b.id) - fechas.has(a.id)) || a.nombre.localeCompare(b.nombre, 'es'));
+    caja.innerHTML = `📍 Lada ${r.lada}${r.estados.length ? ' · ' + escHtml(r.estados.join(' / ')) : ''}`
+      + (ciudades.length ? ' — parece de ' + ciudades.map(c=>{
+          const ev = fechas.get(c.id);
+          return `<button type="button" data-lada-ciudad="${c.id}">${escHtml(c.nombre)}${ev ? ' · 📅 ' + fechaCorta(ev.fecha) : ''}</button>`;
+        }).join('') : '');
+  }, 250);
+}
+document.getElementById('nuevoTelefono').addEventListener('input', pintarSugerenciaLada);
+document.getElementById('nuevoLadaSug').addEventListener('click', e=>{
+  const b = e.target.closest('[data-lada-ciudad]'); if(!b) return;
+  const ciudadId = b.dataset.ladaCiudad;
+  // Si su ciudad tiene curso próximo, se elige ese curso; si no, sólo la ciudad
+  const ev = (EVENTOS_CAL || []).find(x=>x.ciudad_id === ciudadId);
+  const selE = document.getElementById('nuevoEvento');
+  selE.value = ev ? ev.id : '';
+  selE.dispatchEvent(new Event('change'));
+  if(!ev) document.getElementById('nuevoCiudad').value = ciudadId;
+  document.querySelectorAll('#nuevoLadaSug button').forEach(x=>x.classList.toggle('usada', x === b));
+});
+
 /* --- Modal: nuevo lead --- */
 function poblarSelectCursosCiudades(){
   document.getElementById('nuevoCurso').innerHTML = '<option value="">— Sin especificar —</option>' + CURSOS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
@@ -4149,6 +4225,7 @@ function poblarSelectCursosCiudades(){
 document.getElementById('btnNuevoLead').addEventListener('click', ()=>{
   poblarSelectCursosCiudades();
   document.getElementById('nuevoNombre').value=''; document.getElementById('nuevoTelefono').value='';
+  document.getElementById('nuevoLadaSug').innerHTML = '';
   document.getElementById('modalNuevo').classList.add('open');
 });
 document.getElementById('closeModalNuevo').addEventListener('click', ()=>document.getElementById('modalNuevo').classList.remove('open'));
