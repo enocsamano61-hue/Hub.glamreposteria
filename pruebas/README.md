@@ -22,6 +22,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `arnes.js` | Arma la página de prueba (CDN → `vendor/`), instala la base en memoria, entra como un usuario de ejemplo y da ayudas (`check`, `ops`, `fallar`, `captura`). |
 | `vendor/` | Copias locales de supabase-js 2 y Chart.js 4.4.4. |
 | `correr_todas.js` | Corre cada `prueba_*.js` y dice cuáles fallaron. |
+| `prueba_calendario.js` | Calendario: tarjetas por curso (avance y estado) y hoja del día. |
 | `prueba_humo.js` | Todas las secciones del menú abren sin errores de JS (admin y Logística). |
 | `prueba_ficha.js` | Ficha de la inscrita: cobro primero, guardado automático, modo Cobranza. |
 | `prueba_precios.js` | Sección Precios. |

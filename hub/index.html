@@ -182,6 +182,41 @@
   .cal-dot.ambar{ background:var(--champagne); }
   .cal-dot.rojo{ background:var(--danger); }
   .cal-legend{ display:flex; gap:16px; justify-content:center; margin-top:16px; font-size:10px; color:var(--ink-soft); flex-wrap:wrap; }
+  /* Tarjeta de curso en el mes (fase 5): ciudad, alumnas, avance y estado */
+  .cal-grid{ gap:6px; }
+  .cal-cell.cal-tarjeta{ min-height:118px; background:var(--card); border:1px solid var(--border); padding:6px 8px 8px; gap:1px; transition:border-color .15s, box-shadow .15s; }
+  .cal-cell.cal-tarjeta:hover, .cal-cell.cal-tarjeta:focus-visible{ border-color:var(--wine); box-shadow:0 2px 8px rgba(41,36,33,.06); outline:none; }
+  .cal-cell.cal-tarjeta.today{ border-color:var(--wine); box-shadow:inset 0 0 0 1px var(--wine); }
+  .cal-cell.cal-tarjeta.pasado{ filter:none; opacity:1; background:var(--bg); }
+  .cal-tarjeta .cal-city{ font-size:11.5px; letter-spacing:.03em; text-transform:uppercase; margin-top:2px; }
+  .cal-tarjeta .cal-n, .cal-tarjeta .cal-cob{ font-size:11px; color:var(--ink-soft); line-height:1.3; }
+  .cal-tarjeta .cal-av{ font-size:11.5px; font-weight:700; line-height:1.3; }
+  .cal-barra{ display:block; width:100%; height:5px; border-radius:999px; background:var(--border); overflow:hidden; margin-top:auto; }
+  .cal-barra i{ display:block; height:100%; border-radius:999px; background:var(--success); }
+  .cal-est{ font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px; line-height:1.3; margin-top:4px; }
+  .cal-est.ok{ color:var(--success); }
+  .cal-est.prox{ color:var(--wine); }
+  .cal-est.aten{ color:var(--terracota); }
+  .cal-est.paso{ color:var(--ink-soft); }
+  .cal-legend .cal-est{ margin:0; font-size:11px; }
+  @media (max-width:700px){
+    .cal-cell.cal-tarjeta{ min-height:80px; padding:4px 4px 5px; }
+    .cal-tarjeta .cal-city{ font-size:9.5px; letter-spacing:0; }
+    .cal-tarjeta .cal-n, .cal-tarjeta .cal-cob, .cal-tarjeta .cal-av, .cal-est-txt{ display:none; }
+    .cal-tarjeta .cal-est{ margin-top:3px; font-size:12px; }
+  }
+  /* Hoja del día como centro de operaciones */
+  .hoja-sub{ font-size:12.5px; color:var(--ink-soft); margin:4px 0 8px; }
+  .hoja-est{ font-size:12px; margin:0 0 10px; }
+  .hoja-tiles{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0 8px; }
+  .hoja-tile{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:var(--card); }
+  .hoja-tile .v{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .hoja-tile .l{ font-size:11px; color:var(--ink-soft); }
+  .hoja-barra{ margin:4px 0 10px; }
+  .hoja-filas{ display:flex; flex-direction:column; }
+  .hoja-fila{ display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border:0; border-bottom:1px solid var(--border); background:none; font-family:inherit; font-size:13.5px; color:var(--ink); cursor:pointer; text-align:left; }
+  .hoja-fila:hover{ background:var(--bg); }
+  .hoja-fila b{ font-variant-numeric:tabular-nums; }
   .cal-legend span{ display:inline-flex; align-items:center; gap:5px; }
   .cal-legend i{ width:6px; height:6px; border-radius:50%; display:inline-block; }
 
@@ -5178,13 +5213,6 @@ let calendarioMesIdx = 0;
 
 function calPad(n){ return String(n).padStart(2,'0'); }
 function calMismoDia(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
-function clasificarCalendario(liq, ant, pend){
-  const total = liq + ant + pend;
-  if(total === 0) return 'verde';
-  if(pend/total >= 0.5) return 'rojo';
-  if(pend > 0 || ant > 0) return 'ambar';
-  return 'verde';
-}
 
 async function renderCalendario(preservarMes){
   const mesPrevio = (preservarMes && calendarioMeses[calendarioMesIdx]) ? { ...calendarioMeses[calendarioMesIdx] } : null;
@@ -5200,7 +5228,7 @@ async function renderCalendario(preservarMes){
   // quita nada del Calendario, queda como histórico y se sigue pudiendo editar.
   const inicioGira = await obtenerInicioGira();
   const { data: eventos, error } = await sb.from('eventos')
-    .select('id, fecha, ciudad_id, sede, ciudades(nombre), cursos(nombre)')
+    .select('id, fecha, ciudad_id, sede, recepcion_cerrada_en, ciudades(nombre), cursos(nombre)')
     .eq('curso_id', cursoId)
     .not('fecha', 'is', null).gte('fecha', inicioGira)
     .order('fecha', {ascending:true});
@@ -5215,12 +5243,25 @@ async function renderCalendario(preservarMes){
   // LIQUIDO de la hoja de Excel.
   const eventoIds = eventos.map(e=>e.id);
   const { data: inscripcionesData } = await sb.from('inscripciones')
-    .select('evento_id, liquidado, anticipo').in('evento_id', eventoIds);
+    .select('evento_id, liquidado, anticipo, restante, precio_pactado, estatus_id, asistencia').in('evento_id', eventoIds);
   const liquidadoPorEvento = {}, anticipoPorEvento = {}, sinPagoPorEvento = {};
   const eventosConInscripcion = new Set();
+  // Resumen para la tarjeta del día: quién llegó, quién debe y cuánto se ha cobrado.
+  // "No va al curso" y "Perdió anticipo" no cuentan (igual que en Recepción).
+  const resumenPorEvento = {};
   (inscripcionesData||[]).forEach(i=>{
     if(!i.evento_id) return;
     eventosConInscripcion.add(i.evento_id);
+    const r = resumenPorEvento[i.evento_id] = resumenPorEvento[i.evento_id] || { total:0, llegaron:0, liquidadas:0, deben:0, noLlegaron:0, cobrado:0, pendiente:0, debenLlegaron:0 };
+    r.cobrado += Number(i.anticipo || 0);
+    if(!fueraDeRecepcion(i)){
+      const debe = debeDe(i);
+      r.total++;
+      if(i.asistencia === 'llego') r.llegaron++;
+      if(i.asistencia === 'no_llego') r.noLlegaron++;
+      if(debe === 0) r.liquidadas++;
+      else if(claveEstatus(i.estatus_id) !== 'no_llego'){ r.deben++; r.pendiente += debe; if(i.asistencia === 'llego') r.debenLlegaron += debe; }
+    }
     if(i.liquidado) liquidadoPorEvento[i.evento_id] = (liquidadoPorEvento[i.evento_id]||0)+1;
     else if(i.anticipo && i.anticipo > 0) anticipoPorEvento[i.evento_id] = (anticipoPorEvento[i.evento_id]||0)+1;
     else sinPagoPorEvento[i.evento_id] = (sinPagoPorEvento[i.evento_id]||0)+1;
@@ -5263,9 +5304,11 @@ async function renderCalendario(preservarMes){
       liquidados = r.liquidado; conAnticipo = r.anticipo; sinPago = r.sinPago;
     }
     if(!calendarioDias[e.fecha]) calendarioDias[e.fecha] = [];
+    const res = resumenPorEvento[e.id] || { total: liquidados + conAnticipo + sinPago, llegaron:0, liquidadas: liquidados, deben: conAnticipo + sinPago, noLlegaron:0, cobrado:0, pendiente:0, debenLlegaron:0 };
     calendarioDias[e.fecha].push({
       id: e.id, ciudadId: e.ciudad_id, tieneInscripciones: eventosConInscripcion.has(e.id), fecha: e.fecha, sede: e.sede || '',
-      ciudad: e.ciudades?.nombre || '(ciudad?)', liq: liquidados, ant: conAnticipo, pend: sinPago
+      ciudad: e.ciudades?.nombre || '(ciudad?)', liq: liquidados, ant: conAnticipo, pend: sinPago,
+      ...res, cerrada: !!e.recepcion_cerrada_en,
     });
   });
 
@@ -5303,6 +5346,37 @@ async function renderCalendario(preservarMes){
   }
 }
 
+/* Estado de un curso para la tarjeta del día: se lee de un vistazo, con
+   ícono + texto (no solo color). Los días que pasaron sin usar Recepción
+   no se marcan como pendientes: antes no existía y se verían todos en rojo. */
+function estadoCursoCal(ev){
+  const hoy = hoyISO();
+  if(ev.fecha < hoy){
+    if(!ev.cerrada && !ev.llegaron) return { cls:'paso', txt:'✔ Pasó' };
+    if(!ev.cerrada) return { cls:'aten', txt:'⚠ Falta cerrar recepción' };
+    if(ev.debenLlegaron > 0) return { cls:'aten', txt:`⚠ Quedan ${fmtMoney(ev.debenLlegaron)}` };
+    return { cls:'ok', txt:'✓ Todo en orden' };
+  }
+  if(ev.fecha === hoy) return ev.cerrada ? { cls:'ok', txt:'✓ Recepción cerrada' } : { cls:'prox', txt:'● Recepción hoy' };
+  const dias = Math.round((new Date(ev.fecha + 'T12:00:00') - new Date(hoy + 'T12:00:00')) / 86400000);
+  if(dias <= 7) return { cls:'prox', txt: dias === 1 ? '● Mañana' : `● En ${dias} días` };
+  return null;
+}
+/* Suma los cursos de un mismo día (casi siempre es uno). */
+function juntarCursosDelDia(evs){
+  const suma = k => evs.reduce((s, ev)=>s + (Number(ev[k]) || 0), 0);
+  return { fecha: evs[0].fecha, ciudad: [...new Set(evs.map(ev=>ev.ciudad))].join(' · '),
+    total: suma('total'), llegaron: suma('llegaron'), liquidadas: suma('liquidadas'), deben: suma('deben'),
+    noLlegaron: suma('noLlegaron'), cobrado: suma('cobrado'), pendiente: suma('pendiente'), debenLlegaron: suma('debenLlegaron'),
+    cerrada: evs.every(ev=>ev.cerrada), tieneInscripciones: evs.some(ev=>ev.tieneInscripciones) };
+}
+/* La línea de avance: llegaron (si ya hubo recepción) o liquidadas. */
+function avanceCursoCal(ev){
+  if(!ev.total) return { txt: ev.tieneInscripciones ? 'Sin alumnas' : 'Sin inscritas', pct: 0 };
+  if(ev.llegaron || ev.cerrada) return { txt:`${ev.llegaron}/${ev.total} llegaron`, pct: ev.llegaron / ev.total };
+  return { txt:`${ev.liquidadas}/${ev.total} liquidadas`, pct: ev.liquidadas / ev.total };
+}
+
 function pintarCalendarioMes(){
   const cont = document.getElementById('listaCalendario');
   const { y, m } = calendarioMeses[calendarioMesIdx];
@@ -5320,10 +5394,10 @@ function pintarCalendarioMes(){
   let relleno = 1;
   while(celdas.length % 7 !== 0) celdas.push({ dia: relleno++, fuera:true });
 
-  let totLiq=0, totAnt=0, totPend=0, totEventos=0;
+  let totCursos=0, totAlumnas=0, totLiq=0, totPendiente=0;
   celdas.forEach(c=>{
     if(c.fuera || !calendarioDias[c.key]) return;
-    calendarioDias[c.key].forEach(ev=>{ totLiq+=ev.liq; totAnt+=ev.ant; totPend+=ev.pend; totEventos++; });
+    calendarioDias[c.key].forEach(ev=>{ totCursos++; totAlumnas += ev.total; totLiq += ev.liquidadas; totPendiente += ev.pendiente; });
   });
 
   const tituloMes = first.toLocaleDateString('es-MX', { month:'long', year:'numeric' });
@@ -5333,25 +5407,29 @@ function pintarCalendarioMes(){
     const eventosDelDia = calendarioDias[c.key];
     const esHoy = calMismoDia(c.fecha, hoy);
     if(!eventosDelDia) return `<div class="cal-cell ${esHoy?'today':''}"><span class="num">${c.dia}</span></div>`;
-    let liq=0, ant=0, pend=0;
-    eventosDelDia.forEach(ev=>{ liq+=ev.liq; ant+=ev.ant; pend+=ev.pend; });
-    const clase = clasificarCalendario(liq, ant, pend);
-    const ciudadesTxt = [...new Set(eventosDelDia.map(ev=>ev.ciudad))].join(' · ');
+    const ev = juntarCursosDelDia(eventosDelDia);
+    const est = estadoCursoCal(ev);
+    const av = avanceCursoCal(ev);
     const pasado = c.key < hoyISO();
-    return `<div class="cal-cell has-evt ${clase} ${esHoy?'today':''} ${pasado?'pasado':''}" data-key="${c.key}" title="${ciudadesTxt}${pasado ? ' · ya pasó (se puede abrir y editar)' : ''}">
-      <span class="num">${c.dia}</span>${pasado ? '<span class="cal-paso">✔<span class="cal-paso-txt"> pasó</span></span>' : ''}
-      <span class="cal-city">${ciudadesTxt}</span>
-      <span class="cal-mini-stats">${liq?`<span class="ms liq">✓ ${liq}</span>`:''}${ant?`<span class="ms ant">◐ ${ant}</span>`:''}${pend?`<span class="ms pend">! ${pend}</span>`:''}</span>
+    return `<div class="cal-cell has-evt cal-tarjeta ${est ? 'est-' + est.cls : ''} ${esHoy?'today':''} ${pasado?'pasado':''}" data-key="${c.key}" role="button" tabindex="0"
+        title="${escapeAttr(ev.ciudad)} · ${escapeAttr(av.txt)}${est ? ' · ' + escapeAttr(est.txt) : ''}">
+      <span class="num">${c.dia}</span>
+      <span class="cal-city">${escHtml(ev.ciudad)}</span>
+      <span class="cal-n">${ev.total} alumna${ev.total === 1 ? '' : 's'}</span>
+      <span class="cal-av">${escHtml(av.txt)}</span>
+      ${ev.cobrado ? `<span class="cal-cob">${fmtMoney(ev.cobrado)} cobrado</span>` : ''}
+      <span class="cal-barra"><i style="width:${Math.round(av.pct * 100)}%"></i></span>
+      ${est ? `<span class="cal-est ${est.cls}"><span class="cal-est-ico">${escHtml(est.txt.slice(0, 1))}</span><span class="cal-est-txt">${escHtml(est.txt.slice(2))}</span></span>` : ''}
     </div>`;
   }).join('');
 
   cont.innerHTML = `
     <div class="cal-curso-tag">📚 Curso activo · <b>${CURSO_ACTIVO_NOMBRE}</b></div>
     <div class="cal-resumen">
-      <div class="cal-stat tot"><div class="v">${totEventos}</div><div class="l">Eventos</div></div>
-      <div class="cal-stat liq"><div class="v">${totLiq}</div><div class="l">Liquidados</div></div>
-      <div class="cal-stat ant"><div class="v">${totAnt}</div><div class="l">Anticipo</div></div>
-      <div class="cal-stat pend"><div class="v">${totPend}</div><div class="l">Sin pago</div></div>
+      <div class="cal-stat tot"><div class="v">${totCursos}</div><div class="l">Cursos del mes</div></div>
+      <div class="cal-stat"><div class="v">${fmtNum(totAlumnas)}</div><div class="l">Alumnas</div></div>
+      <div class="cal-stat liq"><div class="v">${fmtNum(totLiq)}</div><div class="l">Liquidadas</div></div>
+      <div class="cal-stat ant"><div class="v">${fmtMoney(totPendiente)}</div><div class="l">Por cobrar</div></div>
     </div>
     <div class="cal-nav">
       <button id="calPrev" ${calendarioMesIdx===0?'disabled':''} aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 6l-6 6 6 6"/></svg></button>
@@ -5359,15 +5437,19 @@ function pintarCalendarioMes(){
       <button id="calNext" ${calendarioMesIdx===calendarioMeses.length-1?'disabled':''} aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
     <div class="cal-dow"><span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span></div>
-    <div class="cal-grid" style="${totEventos?'':'display:none;'}">${gridHtml}</div>
-    ${totEventos ? '' : '<div class="empty-note" style="text-align:center;">Sin cursos programados este mes todavía.</div>'}
+    <div class="cal-grid" style="${totCursos?'':'display:none;'}">${gridHtml}</div>
+    ${totCursos ? '' : '<div class="empty-note" style="text-align:center;">Sin cursos programados este mes todavía.</div>'}
     <div class="cal-legend">
-      <span><i style="background:var(--success)"></i>Al día</span>
-      <span><i style="background:var(--champagne)"></i>En seguimiento</span>
-      <span><i style="background:var(--danger)"></i>Necesita atención</span>
+      <span class="cal-est ok">✓ Todo en orden</span>
+      <span class="cal-est prox">● Recepción próxima</span>
+      <span class="cal-est aten">⚠ Requiere atención</span>
+      <span class="cal-est paso">✔ Pasó</span>
     </div>`;
 
-  cont.querySelectorAll('.has-evt').forEach(el=>el.addEventListener('click', ()=>abrirSheetCalendario(el.dataset.key)));
+  cont.querySelectorAll('.has-evt').forEach(el=>{
+    el.addEventListener('click', ()=>abrirSheetCalendario(el.dataset.key));
+    el.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); abrirSheetCalendario(el.dataset.key); } });
+  });
   document.getElementById('calPrev').addEventListener('click', ()=>{ if(calendarioMesIdx>0){ calendarioMesIdx--; pintarCalendarioMes(); } });
   document.getElementById('calNext').addEventListener('click', ()=>{ if(calendarioMesIdx<calendarioMeses.length-1){ calendarioMesIdx++; pintarCalendarioMes(); } });
 }
@@ -5383,31 +5465,46 @@ function abrirSheetCalendario(key){
   document.getElementById('sheetFecha').textContent = fecha.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' })
     + (key < hoyISO() ? ' · ✔ ya pasó (histórico, se puede editar)' : '');
   document.getElementById('sheetEventos').innerHTML = eventosDelDia.map((ev, idx)=>{
-    const clase = clasificarCalendario(ev.liq, ev.ant, ev.pend);
-    const total = (ev.liq + ev.ant + ev.pend) || 1;
-    const pillTxt = clase==='rojo' ? 'Necesita seguimiento' : clase==='ambar' ? 'En seguimiento' : 'Al día';
+    const est = estadoCursoCal(ev);
+    const av = avanceCursoCal(ev);
+    // Ya hubo recepción (o es hoy): lo importante es quién llegó. Antes: quién ya liquidó.
+    const modoLlegada = ev.fecha <= hoyISO() && (ev.llegaron || ev.cerrada || ev.fecha === hoyISO());
+    const tiles = modoLlegada
+      ? [[ev.llegaron, 'llegaron'], [Math.max(ev.total - ev.llegaron, 0), 'faltan']]
+      : [[ev.liquidadas, 'liquidadas'], [ev.deben, 'deben']];
     return `<div class="sheet-evento">
-      <div class="sheet-city">${ev.ciudad}</div>
-      <div class="sheet-curso">${CURSO_ACTIVO_NOMBRE}</div>
-      <div class="sheet-pill ${clase}">${pillTxt}</div>
+      <div class="sheet-curso">${escHtml(CURSO_ACTIVO_NOMBRE)}</div>
+      <div class="sheet-city">${escHtml(ev.ciudad)}</div>
+      <div class="hoja-sub">${ev.total} alumna${ev.total === 1 ? '' : 's'}${ev.sede ? ' · ' + escHtml(ev.sede) : ''}</div>
+      ${est ? `<span class="cal-est ${est.cls} hoja-est">${escHtml(est.txt)}</span>` : ''}
       <button type="button" class="btn-primary sheet-recepcion" data-recepcion-evt="${idx}">🎟️ Entrar a recepción</button>
-      <div class="sheet-stats">
-        <div class="stat clickable" data-evt-idx="${idx}" data-cat="liq"><div class="v" style="color:var(--success)">${ev.liq}</div><div class="l">Liquidados</div></div>
-        <div class="stat clickable" data-evt-idx="${idx}" data-cat="ant"><div class="v" style="color:#8A6D2F">${ev.ant}</div><div class="l">Anticipo</div></div>
-        <div class="stat clickable" data-evt-idx="${idx}" data-cat="pend"><div class="v" style="color:var(--danger)">${ev.pend}</div><div class="l">Sin pago</div></div>
+      <div class="hoja-tiles">
+        ${tiles.map(([v, l])=>`<div class="hoja-tile"><div class="v">${fmtNum(v)}</div><div class="l">${l}</div></div>`).join('')}
+        <div class="hoja-tile"><div class="v">${fmtMoney(ev.cobrado)}</div><div class="l">cobrado</div></div>
+        <div class="hoja-tile"><div class="v">${fmtMoney(ev.pendiente)}</div><div class="l">pendiente</div></div>
       </div>
-      <div class="sheet-bar">
-        <span style="background:var(--success); width:${ev.liq/total*100}%"></span>
-        <span style="background:var(--champagne); width:${ev.ant/total*100}%"></span>
-        <span style="background:var(--danger); width:${ev.pend/total*100}%"></span>
+      <div class="cal-barra hoja-barra" title="${escapeAttr(av.txt)}"><i style="width:${Math.round(av.pct * 100)}%"></i></div>
+      <div class="hoja-filas">
+        <button type="button" class="hoja-fila" data-evt-idx="${idx}" data-cat="liq"><span>✓ Liquidadas</span><b>${ev.liq}</b></button>
+        <button type="button" class="hoja-fila" data-evt-idx="${idx}" data-cat="ant"><span>$ Con anticipo (deben)</span><b>${ev.ant}</b></button>
+        <button type="button" class="hoja-fila" data-evt-idx="${idx}" data-cat="pend"><span>! Sin pago</span><b>${ev.pend}</b></button>
+        ${ev.fecha < hoyISO() || ev.noLlegaron ? `<button type="button" class="hoja-fila" data-nollegaron-evt="${idx}"><span>○ No llegaron</span><b>${ev.noLlegaron}</b></button>` : ''}
       </div>
-      <div class="tap-hint">↑ Toca un número para ver a esos alumnos</div>
+      <div class="tap-hint">Toca una fila para ver a esas alumnas</div>
       <div class="seccion-titulo" style="margin-top:14px;">Steward y ayudantes</div>
       <div id="apoyoEvento_${ev.id}" class="sub">Cargando…</div>
       <button class="btn-outline small" style="margin-top:6px;" data-agregar-apoyo-evento="${ev.id}" data-agregar-apoyo-ciudad="${ev.ciudadId}">+ Agregar steward/ayudante</button>
     </div>`;
   }).join('');
-  document.getElementById('sheetEventos').querySelectorAll('.stat.clickable').forEach(el=>{
+  document.getElementById('sheetEventos').querySelectorAll('[data-nollegaron-evt]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const ev = eventosDelDia[Number(btn.dataset.nollegaronEvt)]; if(!ev) return;
+      cerrarSheetCalendario();
+      nl.ciudadInicial = ev.ciudadId; nl.estado = 'todas';
+      setActiveSection('nollegaron');
+    });
+  });
+  document.getElementById('sheetEventos').querySelectorAll('[data-cat]').forEach(el=>{
     el.addEventListener('click', ()=>{
       const ev = eventosDelDia[Number(el.dataset.evtIdx)];
       if(ev) abrirListaCategoriaCalendario(ev, el.dataset.cat);
@@ -6658,7 +6755,7 @@ const NL_ESTADOS = [
   { id:'todas',      label:'Todas' },
 ];
 const NL_ETIQUETA = { revisar:'Por revisar', nollego:'No llegó', online:'Acceso online dado', perdio:'Perdió anticipo' };
-let nl = { filas:[], estado:'pendientes', sel:null, cargado:false };
+let nl = { filas:[], estado:'pendientes', sel:null, cargado:false, ciudadInicial:null };
 
 const NL_SELECT = `
   id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion,
@@ -6710,6 +6807,8 @@ async function renderNoLlegaron(){
   const vends = [...new Set(nl.filas.map(i=>i.asesor_id).filter(Boolean))].map(id=>[id, nombreVendedor(id) || '?']).sort((a,b)=>a[1].localeCompare(b[1], 'es'));
   selV.innerHTML = '<option value="">Todos los vendedores</option><option value="-" ' + (vAntes === '-' ? 'selected' : '') + '>Sin vendedor</option>'
     + vends.map(([id, n])=>`<option value="${escapeAttr(id)}" ${id === vAntes ? 'selected' : ''}>${escHtml(n)}</option>`).join('');
+  // Viene de la hoja del día: llega ya filtrado por la ciudad de ese curso.
+  if(nl.ciudadInicial){ if(ciudades.some(([id])=>id === nl.ciudadInicial)) selC.value = nl.ciudadInicial; nl.ciudadInicial = null; }
   pintarNoLlegaron();
 }
 
