@@ -34,9 +34,11 @@ const EQUIPO_EJEMPLO = [
 const ESTATUS_EJEMPLO = [
   { id:1,  clave:'pago_por_confirmar', etiqueta:'Pago por confirmar' },
   { id:2,  clave:'no_vence_pago',      etiqueta:'Aún no vence su pago' },
-  { id:6,  clave:'no_va_al_curso',     etiqueta:'No va a ir al curso' },
+  { id:6,  clave:'no_va_al_curso',     etiqueta:'No va a ir al curso', es_final:true },
   { id:11, clave:'anticipo_vigente',   etiqueta:'Fecha de anticipo vigente' },
-  { id:12, clave:'pagado',             etiqueta:'Pagó el curso' },
+  { id:12, clave:'pagado',             etiqueta:'Pagó el curso', es_final:true },
+  { id:14, clave:'no_llego',           etiqueta:'No llegó al curso', es_final:true },
+  { id:15, clave:'perdio_anticipo',    etiqueta:'Perdió anticipo', es_final:true },
 ];
 
 /* Base en memoria que imita a PostgREST lo suficiente para las pruebas:
@@ -58,6 +60,11 @@ function instalarStub({ tablas, usuario, equipo, estatus, permisosAccion }){
       upsert(d){ op.tipo = 'insert'; op.datos = d; return px; },
       delete(){ op.tipo = 'delete'; return px; },
       eq(c, v){ op.filtros.push([c, v]); return px; },
+      in(c, vals){ op.filtros.push([c, vals, 'in']); return px; },
+      not(c, oper, v){
+        if(oper === 'in') op.filtros.push([c, String(v).replace(/[()]/g, '').split(',').map(x => isNaN(x) ? x : Number(x)), 'notin']);
+        return px;
+      },
       single(){ op.single = true; return px; },
       maybeSingle(){ op.single = true; return px; },
       then(res, rej){
@@ -65,7 +72,10 @@ function instalarStub({ tablas, usuario, equipo, estatus, permisosAccion }){
         if(window.__fallar && window.__fallar(op))
           return Promise.resolve({ data:null, error:{ message:'falla simulada' } }).then(res, rej);
         const filas = (window.__tablas[tabla] = window.__tablas[tabla] || []);
-        const cumple = f => op.filtros.every(([c, v]) => f[c] === v);
+        // "eventos.curso_id" busca dentro de la fila anidada, como el filtro de PostgREST.
+        const valor = (f, c) => c.split('.').reduce((o, k) => (o == null ? undefined : o[k]), f);
+        const cumple = f => op.filtros.every(([c, v, modo]) =>
+          modo === 'in' ? v.includes(valor(f, c)) : modo === 'notin' ? !v.includes(valor(f, c)) : valor(f, c) === v);
         let data = null;
         if(op.tipo === 'select'){
           const r = filas.filter(cumple);

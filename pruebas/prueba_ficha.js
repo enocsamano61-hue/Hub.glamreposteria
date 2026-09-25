@@ -77,7 +77,7 @@ const INSC = {
   await p.click('#guardarInscPago');
   await p.waitForTimeout(200);
   const pg = await h.ops('pagos', 'insert');
-  check(pg.length === 1 && pg[0].monto === 500 && pg[0].banco === 'Tarjeta' && pg[0].confirmado_por === 'u1', 'pago de $500 en tarjeta: ' + JSON.stringify(pg));
+  check(pg.length === 1 && pg[0].monto === 500 && pg[0].banco === 'Tarjeta' && pg[0].forma_pago === 'Tarjeta' && pg[0].confirmado_por === 'u1', 'pago de $500 en tarjeta: ' + JSON.stringify(pg));
   ups = await updates();
   check(ups.some(u => u.anticipo === 1900 && u.restante === 0 && u.liquidado === true && u.estatus_id === 12), 'queda liquidada y en Pagó el curso');
   check(!(await p.evaluate(() => document.getElementById('modalInscripcion').classList.contains('open'))), 'la ficha se cierra');

@@ -560,6 +560,125 @@
   .btn-wa.contorno{ background:transparent; color:#128C4B; border:1px solid #25D366; }
   .btn-wa-mini{ border:none; background:#25D366; color:#fff; border-radius:8px; padding:5px 9px; font-size:13px; cursor:pointer; flex-shrink:0; }
 
+  /* ---------- RECEPCIÓN (día del curso) ---------- */
+  .sheet-recepcion{ margin:10px 0 4px; font-size:15px; padding:12px; }
+  .recepcion{ display:none; position:fixed; inset:0; z-index:75; background:var(--bg); flex-direction:column; }
+  .recepcion.open{ display:flex; }
+  .recepcion [hidden]{ display:none !important; }
+  body.en-recepcion .glamtut-fab, body.en-recepcion .notas-fab{ display:none; }
+  .rec-top{ min-height:56px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; padding:8px 20px; background:var(--card); border-bottom:1px solid var(--border); }
+  .rec-volver{ background:none; border:0; color:var(--ink-soft); font-family:inherit; font-size:13px; cursor:pointer; padding:6px 0; }
+  .rec-volver:hover{ color:var(--ink); }
+  .rec-donde{ display:flex; flex-direction:column; line-height:1.15; }
+  .rec-ciudad{ font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:13px; }
+  .rec-modo{ font-family:'Newsreader', serif; font-size:17px; color:var(--wine); }
+  .rec-kpis{ display:flex; align-items:baseline; gap:18px; margin-left:auto; }
+  .rec-kpi .v{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .rec-kpi .l{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); margin-left:4px; }
+  .rec-kpi.brinca .v{ animation:recBrinca .25s ease; }
+  @keyframes recBrinca{ 50%{ transform:translateY(-3px); color:var(--success); } }
+  .rec-cerrar-btn{ height:40px; padding:0 16px; border-radius:10px; border:1px solid var(--border); background:var(--card); font-family:inherit; font-weight:600; font-size:13px; color:var(--ink); cursor:pointer; }
+  .rec-cerrar-btn:hover{ border-color:var(--wine); color:var(--wine); }
+  .rec-aviso-cerrada{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:8px 20px; background:rgba(181,111,85,.12); color:#7C4431; font-size:13px; }
+  .rec-aviso-cerrada button{ border:1px solid currentColor; background:transparent; color:inherit; border-radius:8px; padding:4px 10px; font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .rec-cuerpo{ display:grid; grid-template-columns:340px minmax(0,1fr); flex:1; min-height:0; }
+  .rec-lado{ border-right:1px solid var(--border); display:flex; flex-direction:column; min-height:0; }
+  .rec-lado-top{ padding:16px 16px 10px; display:flex; flex-direction:column; gap:10px; }
+  .rec-buscar{ position:relative; }
+  .rec-buscar input{ width:100%; height:46px; border-radius:12px; border:1px solid var(--border); background:var(--card); padding:0 64px 0 14px; font-family:inherit; font-size:15px; color:var(--ink); box-sizing:border-box; }
+  .rec-buscar input:focus{ outline:none; border-color:var(--wine); box-shadow:0 0 0 3px rgba(90,31,43,.10); }
+  .rec-buscar kbd{ position:absolute; right:10px; top:13px; }
+  .recepcion kbd{ font-family:inherit; font-size:11px; border:1px solid var(--border); border-bottom-width:2px; border-radius:6px; padding:1px 6px; color:var(--ink-soft); background:var(--card); }
+  .rec-filtros{ display:flex; flex-wrap:wrap; gap:6px; }
+  .rec-pill{ height:32px; padding:0 12px; border-radius:999px; border:1px solid var(--border); background:transparent; font-family:inherit; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .rec-pill b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .rec-pill.on{ background:var(--wine); border-color:var(--wine); color:#fff; }
+  .rec-pill.on b{ color:#fff; }
+  .rec-pill.cobrar{ border-color:var(--champagne); color:#7A6232; }
+  .rec-pill.cobrar.on{ background:var(--champagne); color:var(--ink); }
+  .rec-pill.cobrar.on b{ color:var(--ink); }
+  .rec-lista{ overflow-y:auto; flex:1; padding:0 8px 8px; }
+  .rec-fila{ min-height:60px; display:flex; align-items:center; gap:12px; padding:6px 10px; border-radius:10px; border:1px solid transparent; cursor:pointer; }
+  .rec-fila:hover{ background:rgba(90,31,43,.04); }
+  .rec-fila.sel{ background:var(--card); border-color:var(--border); box-shadow:0 1px 2px rgba(41,36,33,.06); }
+  .rec-fila .avatar{ width:34px; height:34px; font-size:12px; flex-shrink:0; }
+  .rec-fila.sel .avatar{ background:var(--wine); color:#fff; }
+  .rec-fila .quien{ flex:1; min-width:0; }
+  .rec-fila .nom{ font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rec-fila .din{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; font-variant-numeric:tabular-nums; }
+  .rec-fila .din.debe{ color:#8A6D2F; font-weight:600; }
+  .rec-fila .din.ok{ color:var(--success); }
+  .rec-lleg{ font-size:11px; font-weight:600; flex-shrink:0; color:var(--terracota); white-space:nowrap; }
+  .rec-lleg.si{ color:var(--success); }
+  .rec-lleg.tag{ color:var(--ink-soft); }
+  .rec-ayuda{ padding:10px 16px; border-top:1px solid var(--border); font-size:12px; color:var(--ink-soft); display:flex; flex-wrap:wrap; gap:4px 10px; }
+  .rec-panel{ overflow-y:auto; padding:28px 36px 40px; }
+  .rec-ficha{ max-width:760px; display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:26px 36px; }
+  .rec-id{ grid-column:1 / -1; display:flex; flex-wrap:wrap; align-items:flex-start; gap:12px 20px; }
+  .rec-id h2{ font-family:inherit; font-size:24px; font-weight:700; margin:0; letter-spacing:-.01em; }
+  .rec-id .meta{ font-size:13px; color:var(--ink-soft); margin-top:4px; }
+  .rec-chips{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+  .rec-chip{ height:30px; padding:0 12px; border-radius:999px; display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; letter-spacing:.02em; border:0; font-family:inherit; }
+  .rec-chip.llego{ background:rgba(85,116,92,.14); color:var(--success); cursor:pointer; }
+  .rec-chip.falta{ background:rgba(181,111,85,.14); color:var(--terracota); }
+  .rec-chip.liq{ background:rgba(85,116,92,.14); color:var(--success); }
+  .rec-chip.debe{ background:rgba(198,166,107,.22); color:#7A6232; }
+  .rec-chip.gris{ background:var(--border); color:var(--ink-soft); }
+  .rec-chip.brinca{ animation:recPop .25s ease; }
+  @keyframes recPop{ 50%{ transform:scale(1.07); } }
+  .rec-deuda .etq{ font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); }
+  .rec-deuda .grande{ font-size:46px; font-weight:700; line-height:1.05; margin-top:4px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .rec-deuda .grande.ok{ color:var(--success); font-size:32px; }
+  .rec-deuda .det{ font-size:14px; color:var(--ink-soft); margin-top:4px; }
+  .rec-datos{ border:1px solid var(--border); border-radius:12px; background:var(--card); padding:4px 16px; align-self:start; }
+  .rec-dato{ display:flex; justify-content:space-between; gap:12px; padding:9px 0; font-size:14.5px; border-bottom:1px solid var(--border); }
+  .rec-dato:last-child{ border-bottom:0; }
+  .rec-dato .l{ color:var(--ink-soft); font-size:13px; }
+  .rec-dato .v{ font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
+  .rec-accion{ grid-column:1 / -1; display:flex; flex-direction:column; gap:14px; }
+  .rec-cta{ height:56px; width:100%; max-width:460px; border:0; border-radius:12px; background:var(--wine); color:#fff; font-family:inherit; font-size:18px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .rec-cta:hover{ background:var(--wine-dark); }
+  .rec-cta[disabled]{ opacity:.7; cursor:default; }
+  .rec-cta.hecho{ background:var(--success); }
+  .rec-cta kbd{ background:transparent !important; color:#fff !important; border-color:rgba(255,255,255,.45) !important; }
+  .rec-sec{ font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px; }
+  .rec-formas{ display:flex; gap:8px; flex-wrap:wrap; }
+  .rec-forma{ min-width:120px; height:44px; padding:0 14px; border-radius:10px; border:1px solid var(--border); background:var(--card); font-family:inherit; font-weight:600; font-size:14px; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .rec-forma.on{ border-color:var(--wine); background:rgba(90,31,43,.07); color:var(--wine); box-shadow:inset 0 0 0 1px var(--wine); }
+  .rec-nota{ font-size:13px; color:var(--ink-soft); min-height:18px; }
+  .rec-nota.malo{ color:var(--danger); font-weight:600; }
+  .rec-links{ display:flex; flex-wrap:wrap; gap:6px 16px; }
+  .rec-link{ background:none; border:0; padding:0; font-family:inherit; font-size:13px; color:var(--ink-soft); text-decoration:underline; cursor:pointer; }
+  .rec-link:hover{ color:var(--wine); }
+  .rec-falla{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:rgba(181,69,58,.10); color:var(--danger); border-radius:10px; padding:10px 14px; font-weight:600; font-size:13.5px; max-width:460px; }
+  .rec-falla button{ height:34px; padding:0 14px; border-radius:8px; border:1px solid var(--danger); background:var(--card); color:var(--danger); font-family:inherit; font-weight:700; cursor:pointer; }
+  .rec-extras{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .rec-extra{ height:44px; padding:0 14px; border-radius:10px; border:1px dashed #CDBFA9; background:transparent; font-family:inherit; font-weight:600; font-size:14px; color:var(--ink); cursor:pointer; display:flex; align-items:center; gap:8px; }
+  .rec-extra:hover{ border-style:solid; border-color:var(--wine); color:var(--wine); }
+  .rec-extra.on{ border:1px solid var(--success); color:var(--success); background:rgba(85,116,92,.10); }
+  .rec-extra-precio{ display:flex; align-items:center; gap:6px; }
+  .rec-extra-precio input{ width:110px; height:44px; border:1px solid var(--wine); border-radius:10px; padding:0 10px; font-family:inherit; font-size:14px; }
+  .rec-extra-precio button{ height:44px; padding:0 14px; border:0; border-radius:10px; background:var(--wine); color:#fff; font-family:inherit; font-weight:600; cursor:pointer; }
+  .rec-lapiz{ background:none; border:0; color:var(--ink-soft); cursor:pointer; font-size:13px; padding:4px; }
+  .rec-total{ font-size:13.5px; color:var(--ink-soft); }
+  .rec-total b{ color:var(--ink); }
+  .rec-coment{ position:relative; max-width:560px; }
+  .rec-coment textarea{ width:100%; min-height:72px; resize:vertical; border:1px solid var(--border); border-radius:12px; background:var(--card); padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.45; color:var(--ink); box-sizing:border-box; }
+  .rec-coment textarea:focus{ outline:none; border-color:var(--wine); }
+  .rec-coment .guardado-estado{ position:absolute; right:12px; bottom:10px; font-size:12px; }
+  .rec-vacio{ padding:24px 12px; color:var(--ink-soft); font-size:13px; text-align:center; }
+  @media (max-width: 900px){
+    .recepcion.open{ display:block; overflow-y:auto; }
+    .rec-cuerpo{ display:block; }
+    .rec-lado{ display:block; border-right:0; border-bottom:1px solid var(--border); }
+    .rec-lista{ max-height:320px; }
+    .rec-panel{ padding:20px 16px; overflow:visible; }
+    .rec-ficha{ grid-template-columns:1fr; }
+    .rec-kpis{ margin-left:0; }
+    .rec-ayuda{ display:none; }
+    .rec-deuda .grande{ font-size:40px; }
+  }
+
   /* ---------- PRECIOS ---------- */
   .precio-fila{ display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px 12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
   .precio-fila input{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink); min-width:0; }
@@ -1183,6 +1302,34 @@
 </div>
 
 <!-- ===================== MODAL: DETALLE DE LEAD ===================== -->
+<!-- RECEPCIÓN — pantalla del día del curso: buscar, cobrar, marcar llegada, siguiente -->
+<div id="recepcion" class="recepcion" aria-hidden="true">
+  <header class="rec-top">
+    <button type="button" class="rec-volver" id="recVolver">← Calendario</button>
+    <div class="rec-donde"><span class="rec-ciudad" id="recCiudad">—</span><span class="rec-modo">Recepción</span></div>
+    <div class="rec-kpis">
+      <div class="rec-kpi" id="recKpiLlegaron"><span class="v">0/0</span><span class="l">llegaron</span></div>
+      <div class="rec-kpi" id="recKpiCobrado"><span class="v">$0</span><span class="l">cobrado hoy</span></div>
+    </div>
+    <button type="button" class="rec-cerrar-btn" id="recCerrar">Cerrar recepción</button>
+  </header>
+  <div class="rec-aviso-cerrada" id="recAvisoCerrada" hidden></div>
+  <div class="rec-cuerpo">
+    <aside class="rec-lado">
+      <div class="rec-lado-top">
+        <div class="rec-buscar">
+          <input id="recBuscar" type="search" autocomplete="off" placeholder="Buscar por nombre, apellido o teléfono…" aria-label="Buscar alumna">
+          <kbd>Ctrl K</kbd>
+        </div>
+        <div class="rec-filtros" id="recFiltros"></div>
+      </div>
+      <div class="rec-lista" id="recLista" role="listbox" aria-label="Alumnas del curso">Cargando…</div>
+      <div class="rec-ayuda"><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>Enter</kbd> abrir / cobrar</span><span><kbd>L</kbd> llegada</span><span><kbd>P</kbd> cobrar</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> forma</span><span><kbd>V</kbd> VIP</span><span><kbd>U</kbd> uniforme</span><span><kbd>C</kbd> comentario</span><span><kbd>Esc</kbd> buscar otra</span></div>
+    </aside>
+    <main class="rec-panel" id="recPanel"></main>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalLead">
   <div class="modal">
     <button class="close" id="closeModalLead">✕</button>
@@ -2344,6 +2491,11 @@ const ACCION_LABEL = {
   mensaje_editado: '💬 Editó un mensaje predeterminado',
   mensaje_borrado: '💬 Borró un mensaje predeterminado',
   precio_agregado: '💲 Agregó un precio',
+  recepcion_abierta: '🎟️ Abrió la recepción de un curso',
+  recepcion_cerrada: '🎟️ Cerró la recepción de un curso',
+  recepcion_reabierta: '🎟️ Reabrió la recepción de un curso',
+  llegada_marcada: '🎟️ Marcó que una alumna llegó',
+  llegada_quitada: '🎟️ Quitó la llegada de una alumna',
   precio_cambiado: '💲 Cambió un precio',
   venta_asignada: 'Asignó el vendedor de una venta',
   venta_reasignada: 'Cambió de vendedor una venta',
@@ -3599,7 +3751,8 @@ async function abrirModalLead(leadId){
   document.getElementById('modalCorreoEdit').value = lead.personas?.correo || '';
   document.getElementById('modalNacimientoEdit').value = lead.personas?.fecha_nacimiento || '';
   const sel = document.getElementById('modalEstatusSelect');
-  sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
+  sel.innerHTML = ESTATUS.filter(e=>!['no_llego','perdio_anticipo'].includes(e.clave) || e.id===lead.estatus?.id)
+    .map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
   document.getElementById('modalCiudadSelect').innerHTML = opcionesCiudad(lead.ciudad_interes_id);
   document.getElementById('modalEventoSelect').innerHTML = opcionesEvento(lead.evento_id);
   document.getElementById('modalFechaAnticipo').value = lead.fecha_compromiso_pago || '';
@@ -4199,7 +4352,7 @@ async function cargarCobranza(){
   if(rl.error || ri.error){ toast('Error cargando Cobranza: ' + (rl.error || ri.error).message, true); return false; }
   cobDatos = {
     leads: rl.data || [],
-    inscritas: (ri.data || []).filter(i=>i.estatus?.clave !== 'no_va_al_curso'),
+    inscritas: (ri.data || []).filter(i=>!['no_va_al_curso','no_llego','perdio_anticipo'].includes(i.estatus?.clave)),
   };
   return true;
 }
@@ -5150,6 +5303,7 @@ function abrirSheetCalendario(key){
       <div class="sheet-city">${ev.ciudad}</div>
       <div class="sheet-curso">${CURSO_ACTIVO_NOMBRE}</div>
       <div class="sheet-pill ${clase}">${pillTxt}</div>
+      <button type="button" class="btn-primary sheet-recepcion" data-recepcion-evt="${idx}">🎟️ Entrar a recepción</button>
       <div class="sheet-stats">
         <div class="stat clickable" data-evt-idx="${idx}" data-cat="liq"><div class="v" style="color:var(--success)">${ev.liq}</div><div class="l">Liquidados</div></div>
         <div class="stat clickable" data-evt-idx="${idx}" data-cat="ant"><div class="v" style="color:#8A6D2F">${ev.ant}</div><div class="l">Anticipo</div></div>
@@ -5171,6 +5325,9 @@ function abrirSheetCalendario(key){
       const ev = eventosDelDia[Number(el.dataset.evtIdx)];
       if(ev) abrirListaCategoriaCalendario(ev, el.dataset.cat);
     });
+  });
+  document.getElementById('sheetEventos').querySelectorAll('[data-recepcion-evt]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ const ev = eventosDelDia[Number(btn.dataset.recepcionEvt)]; if(ev) abrirRecepcion(ev); });
   });
   document.getElementById('sheetEventos').querySelectorAll('[data-agregar-apoyo-evento]').forEach(btn=>{
     btn.addEventListener('click', ()=> abrirModalPersonalApoyo(btn.dataset.agregarApoyoCiudad, btn.dataset.agregarApoyoEvento, 'calendario'));
@@ -5775,8 +5932,9 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
 
   const btn = document.getElementById('guardarInscPago'); btn.disabled = true; btn.textContent = 'Guardando...';
 
+  const forma = FORMAS_PAGO.find(f=>f.toLowerCase() === banco.toLowerCase()) || null;
   const { error: errPago } = await sb.from('pagos').insert({
-    inscripcion_id: modalInscId, monto, fecha, banco: banco || null, confirmado_por: asesorActualId || null
+    inscripcion_id: modalInscId, monto, fecha, banco: banco || null, forma_pago: forma, confirmado_por: asesorActualId || null
   });
   if(errPago){ btn.disabled = false; pintarCobro(); toast('Error al registrar el pago: ' + errPago.message, true); return; }
 
@@ -5798,6 +5956,601 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   if(fechaMovida) registrarActividad('fecha_cobro_movida', `${nombre || 'inscrita'}: próximo pago ${proximo ? fechaCorta(proximo) : 'sin fecha (día del curso)'}`);
   cerrarModalInscripcion();
   await renderCalendario(true);
+});
+
+/* =========================================================
+   RECEPCIÓN — el día del curso, en la puerta.
+   Buscar → ver cuánto debe → cobrar (o marcar llegada) → siguiente.
+   La asistencia (llegó / no llegó) va separada del pago. Al cobrar se
+   marca que llegó. "Cerrar recepción" pasa a "No llegó" a quien falte y
+   así sale de Cobranza; si alguien llega tarde, recupera su estatus.
+   ========================================================= */
+const FORMAS_PAGO = ['Efectivo', 'Tarjeta', 'Transferencia'];
+// Estatus que ya no se esperan en la puerta: se ven en "Todas" pero no cuentan.
+const CLAVES_FUERA_DE_RECEPCION = ['no_va_al_curso', 'perdio_anticipo'];
+let rec = null;   // estado de la pantalla abierta (null = cerrada)
+
+function estatusPorClave(clave){ return ESTATUS.find(e=>e.clave === clave) || null; }
+function claveEstatus(id){ return ESTATUS.find(e=>e.id === id)?.clave || ''; }
+function fueraDeRecepcion(i){ return CLAVES_FUERA_DE_RECEPCION.includes(claveEstatus(i.estatus_id)); }
+function precioDeInsc(i){ return i.precio_pactado != null ? Number(i.precio_pactado) : Number(i.anticipo || 0) + Number(i.restante || 0); }
+
+async function abrirRecepcion(ev){
+  cerrarSheetCalendario();
+  rec = { ev, inscritas:[], leads:[], cerradaEn:null, cerradaPor:null, filtro:'faltan', q:'', sel:null,
+          forma:null, extras:{}, precioEditando:null, procesando:false, falla:null, cobradoHoy:0, timer:null, notas:null };
+  document.getElementById('recCiudad').textContent = `${ev.ciudad} · ${new Date(ev.fecha + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'short' })}`;
+  document.getElementById('recBuscar').value = '';
+  document.getElementById('recLista').textContent = 'Cargando…';
+  document.getElementById('recPanel').innerHTML = '';
+  document.getElementById('recepcion').classList.add('open');
+  document.getElementById('recepcion').setAttribute('aria-hidden', 'false');
+  document.body.classList.add('en-recepcion');
+  await cargarRecepcion();
+  document.getElementById('recBuscar').focus();
+  // Si otra persona también está cobrando en la puerta, esto trae sus cambios.
+  rec.timer = setInterval(()=>{ if(recepcionQuieta()) cargarRecepcion({ silencioso:true }); }, 20000);
+  registrarActividad('recepcion_abierta', `${ev.ciudad} ${fechaCorta(ev.fecha)}`);
+}
+function recepcionQuieta(){
+  if(!rec || rec.procesando || rec.notas || rec.precioEditando) return false;
+  if(document.querySelector('.modal-overlay.open')) return false;
+  return document.activeElement?.id !== 'recComent';
+}
+async function cerrarRecepcion(){
+  if(!rec) return;
+  if(rec.notas) await guardarNotasRecepcion();
+  clearInterval(rec.timer);
+  rec = null;
+  document.getElementById('recepcion').classList.remove('open');
+  document.getElementById('recepcion').setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('en-recepcion');
+  if(document.getElementById('view-calendario')?.classList.contains('active')) renderCalendario(true);
+}
+document.getElementById('recVolver').addEventListener('click', cerrarRecepcion);
+
+async function cargarRecepcion({ silencioso = false } = {}){
+  if(!rec) return;
+  const evId = rec.ev.id;
+  const finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
+  let qL = sb.from('leads').select(LEAD_SELECT + ', monto_anticipo').eq('evento_id', evId);
+  if(finales.length) qL = qL.not('estatus_id', 'in', `(${finales.join(',')})`);
+  const [ri, rl, re] = await Promise.all([
+    sb.from('inscripciones').select(`
+        id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion,
+        asistencia, asistencia_en, estatus_antes_de_cierre,
+        personas ( id, nombre, telefono_principal, telefono_alternativo ),
+        pagos!pagos_inscripcion_id_fkey ( monto, fecha, banco, forma_pago, concepto, creado_en )`)
+      .eq('evento_id', evId),
+    qL,
+    sb.from('eventos').select('id, recepcion_cerrada_en, recepcion_cerrada_por').eq('id', evId).maybeSingle(),
+    cargarPrecios(),
+  ]);
+  if(!rec || rec.ev.id !== evId) return;   // la cerraron mientras cargaba
+  const error = ri.error || rl.error || re.error;
+  if(error){
+    if(!silencioso) document.getElementById('recLista').innerHTML = `<div class="rec-vacio">No se pudo cargar: ${escHtml(error.message)}</div>`;
+    return;
+  }
+  rec.inscritas = (ri.data || []).map(i=>({ ...i, pagos: i.pagos || [] }));
+  rec.leads = rl.data || [];
+  rec.cerradaEn = re.data?.recepcion_cerrada_en || null;
+  rec.cerradaPor = re.data?.recepcion_cerrada_por || null;
+  const hoy = hoyISO();
+  rec.cobradoHoy = rec.inscritas.reduce((s,i)=> s + i.pagos.filter(p=>p.fecha === hoy).reduce((t,p)=>t + Number(p.monto || 0), 0), 0);
+  pintarRecepcion();
+}
+
+/* ---------- Lista y contadores ---------- */
+function itemsRecepcion(){
+  const insc = rec.inscritas.map(i=>({ tipo:'i', key:'i:' + i.id, i, nombre:i.personas?.nombre || '(sin nombre)',
+    tels:[i.personas?.telefono_principal, i.personas?.telefono_alternativo].filter(Boolean).join(' ') }));
+  const leads = rec.leads.map(l=>({ tipo:'l', key:'l:' + l.id, l, nombre:l.personas?.nombre || '(sin nombre)',
+    tels:[l.personas?.telefono_principal, l.personas?.telefono_alternativo].filter(Boolean).join(' ') }));
+  return insc.concat(leads).sort((a,b)=>a.nombre.localeCompare(b.nombre, 'es'));
+}
+function llego(i){ return i.asistencia === 'llego'; }
+function contarRecepcion(){
+  const activas = rec.inscritas.filter(i=>!fueraDeRecepcion(i));
+  return {
+    total: activas.length,
+    llegaron: activas.filter(llego).length,
+    faltan: activas.filter(i=>!llego(i)).length,
+    deben: activas.filter(i=>debeDe(i) > 0).length,
+    cobrar: activas.filter(i=>llego(i) && debeDe(i) > 0).length,
+    leads: rec.leads.length,
+  };
+}
+function visiblesRecepcion(){
+  const items = itemsRecepcion();
+  const q = normTexto(rec.q);
+  if(q){
+    const palabras = q.split(' ');
+    const digitos = rec.q.replace(/\D/g, '');
+    return items.filter(it=>{
+      const nom = normTexto(it.nombre);
+      if(palabras.every(p=>nom.includes(p))) return true;
+      return digitos.length >= 3 && it.tels.replace(/\D/g, '').includes(digitos);
+    });
+  }
+  return items.filter(it=>{
+    if(it.tipo === 'l') return rec.filtro === 'leads' || rec.filtro === 'todas';
+    const i = it.i;
+    if(rec.filtro === 'todas') return true;
+    if(fueraDeRecepcion(i)) return false;
+    if(rec.filtro === 'faltan')   return !llego(i);
+    if(rec.filtro === 'llegaron') return llego(i);
+    if(rec.filtro === 'deben')    return debeDe(i) > 0;
+    if(rec.filtro === 'cobrar')   return llego(i) && debeDe(i) > 0;
+    return false;
+  });
+}
+function necesitaAtencion(it){
+  if(it.tipo === 'l') return true;
+  return !fueraDeRecepcion(it.i) && (!llego(it.i) || debeDe(it.i) > 0);
+}
+function itemSel(){ return itemsRecepcion().find(it=>it.key === rec.sel) || null; }
+
+function pintarRecepcion(anim){
+  if(!rec) return;
+  const c = contarRecepcion();
+  document.querySelector('#recKpiLlegaron .v').textContent = `${c.llegaron}/${c.total}`;
+  document.querySelector('#recKpiCobrado .v').textContent = fmtMoney(rec.cobradoHoy);
+  const aviso = document.getElementById('recAvisoCerrada');
+  aviso.hidden = !rec.cerradaEn;
+  if(rec.cerradaEn){
+    const quien = nombreVendedor(rec.cerradaPor) || EQUIPO.find(u=>u.id === rec.cerradaPor)?.nombre || '';
+    aviso.innerHTML = `🔒 Recepción cerrada ${new Date(rec.cerradaEn).toLocaleString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}${quien ? ' por ' + escHtml(quien) : ''}. Si alguien llega tarde, márcala y recupera su estatus. <button type="button" id="recReabrir">Reabrir</button>`;
+  }
+  document.getElementById('recCerrar').hidden = !!rec.cerradaEn;
+  const defs = [['faltan','Faltan',c.faltan], ['llegaron','Llegaron',c.llegaron], ['deben','Deben',c.deben], ['todas','Todas',rec.inscritas.length + c.leads]];
+  if(c.leads) defs.push(['leads','Leads',c.leads]);
+  defs.push(['cobrar','⚡ Por cobrar',c.cobrar]);
+  document.getElementById('recFiltros').innerHTML = defs.map(([k,l,n])=>
+    `<button type="button" class="rec-pill ${k==='cobrar'?'cobrar':''} ${rec.filtro===k && !rec.q ? 'on' : ''}" data-rec-filtro="${k}">${l} <b>${n}</b></button>`).join('');
+  pintarListaRecepcion();
+  pintarPanelRecepcion(anim);
+}
+function pintarListaRecepcion(){
+  const vs = visiblesRecepcion();
+  if(!vs.some(it=>it.key === rec.sel)) rec.sel = vs[0]?.key ?? null;
+  const cont = document.getElementById('recLista');
+  cont.innerHTML = vs.length ? vs.map(it=>{
+    let din, lleg;
+    if(it.tipo === 'l'){
+      const rep = Number(it.l.pago_reportado_monto) > 0;
+      din = `<div class="din">${rep ? '💜 Reportó ' + fmtMoney(it.l.pago_reportado_monto) : 'Lead · sin pago confirmado'}</div>`;
+      lleg = '<span class="rec-lleg tag">Lead</span>';
+    } else {
+      const d = debeDe(it.i);
+      din = d > 0 ? `<div class="din debe">$ Debe ${fmtMoney(d)}</div>` : '<div class="din ok">✓ Liquidada</div>';
+      lleg = fueraDeRecepcion(it.i) ? `<span class="rec-lleg tag">${escHtml(ESTATUS.find(e=>e.id === it.i.estatus_id)?.etiqueta || '')}</span>`
+        : llego(it.i) ? '<span class="rec-lleg si">● Llegó</span>'
+        : `<span class="rec-lleg">○ ${it.i.asistencia === 'no_llego' ? 'No llegó' : 'Falta'}</span>`;
+    }
+    return `<div class="rec-fila ${it.key === rec.sel ? 'sel' : ''}" role="option" aria-selected="${it.key === rec.sel}" data-rec-key="${escapeAttr(it.key)}">
+      <div class="avatar">${escHtml(iniciales(it.nombre))}</div>
+      <div class="quien"><div class="nom">${escHtml(it.nombre)}</div>${din}</div>${lleg}</div>`;
+  }).join('') : `<div class="rec-vacio">${rec.q ? `Nadie con “${escHtml(rec.q)}”. Prueba con otro apellido o los últimos 4 del teléfono.` : 'Nadie en esta lista.'}</div>`;
+  cont.querySelector('.rec-fila.sel')?.scrollIntoView({ block:'nearest' });
+}
+
+/* ---------- Panel de la persona seleccionada ---------- */
+function extrasPendientes(i){ return (rec.extras[i.id] || []).map(id=>PRECIOS?.find(p=>p.id === id)).filter(Boolean); }
+/* Lo que se cobra con el botón grande: el saldo del curso (con VIP, si se
+   agregó) más los extras marcados. */
+function calculoCobro(i){
+  const extras = extrasPendientes(i);
+  const vip = extras.find(p=>p.clave === 'subir_vip');
+  const otros = extras.filter(p=>p.clave !== 'subir_vip');
+  const base = vip ? { ...i, precio_pactado: precioDeInsc(i) + Number(vip.precio || 0), liquidado:false } : i;
+  const curso = debeDe(base);
+  const montoOtros = otros.reduce((s,p)=>s + Number(p.precio || 0), 0);
+  return { base, vip, otros, curso, total: curso + montoOtros };
+}
+function comoPago(i){
+  const p = i.pagos.filter(x=>(x.concepto || 'curso') === 'curso').sort((a,b)=>(a.fecha || '').localeCompare(b.fecha || ''))[0];
+  if(!p) return '—';
+  return [p.forma_pago, p.banco && p.banco !== p.forma_pago ? p.banco : ''].filter(Boolean).join(' · ') || '—';
+}
+function pintarPanelRecepcion(anim){
+  const cont = document.getElementById('recPanel');
+  const it = itemSel();
+  if(!it){ cont.innerHTML = '<div class="rec-vacio">Busca a una alumna para empezar.</div>'; return; }
+  if(it.tipo === 'l'){ cont.innerHTML = panelLeadRecepcion(it.l); return; }
+  const i = it.i;
+  const d = debeDe(i);
+  const cc = calculoCobro(i);
+  const fuera = fueraDeRecepcion(i);
+  const etiquetaEst = ESTATUS.find(e=>e.id === i.estatus_id)?.etiqueta || '';
+  const chipLleg = llego(i)
+    ? `<button type="button" class="rec-chip llego ${anim==='llego'?'brinca':''}" id="recQuitarLlegada" title="Tocar para quitar la llegada">✓ LLEGÓ</button>`
+    : `<span class="rec-chip falta">○ ${i.asistencia === 'no_llego' ? 'NO LLEGÓ' : 'NO HA LLEGADO'}</span>`;
+  const chipPago = d > 0 ? `<span class="rec-chip debe ${anim==='pago'?'brinca':''}">$ DEBE ${fmtMoney(d)}</span>`
+                         : `<span class="rec-chip liq ${anim==='pago'?'brinca':''}">✓ LIQUIDADA</span>`;
+  const extras = (PRECIOS || []).filter(p=>p.activo && !(p.clave === 'subir_vip' && (i.paquete === 'VIP')));
+  const pend = new Set(rec.extras[i.id] || []);
+  const botonesExtra = extras.map(p=>{
+    if(rec.precioEditando === p.id) return `<span class="rec-extra-precio"><input type="number" id="recPrecioExtra" min="0" step="10" inputmode="decimal" placeholder="Precio" value="${p.precio ?? ''}" aria-label="Precio de ${escapeAttr(p.nombre)}"><button type="button" data-rec-guardar-precio="${escapeAttr(p.id)}">Guardar</button></span>`;
+    const tecla = p.clave === 'subir_vip' ? 'V' : /^uniforme/i.test(p.nombre) ? 'U' : '';
+    const on = pend.has(p.id);
+    return `<button type="button" class="rec-extra ${on ? 'on' : ''}" data-rec-extra="${escapeAttr(p.id)}">${on ? '✓ ' : '+ '}${escHtml(p.nombre)} · ${p.precio == null ? 'poner precio' : fmtMoney(p.precio)}${tecla && !on ? ` <kbd>${tecla}</kbd>` : ''}</button>`
+      + (p.precio != null && !on ? `<button type="button" class="rec-lapiz" data-rec-editar-precio="${escapeAttr(p.id)}" title="Cambiar el precio (queda para todos)">✎</button>` : '');
+  }).join('');
+  const detalleTotal = cc.total > 0 && (cc.vip || cc.otros.length)
+    ? `<div class="rec-total">Se cobra: ${[cc.curso > 0 ? `curso ${fmtMoney(cc.curso)}` : '', ...cc.otros.map(p=>`${escHtml(p.nombre)} ${fmtMoney(p.precio)}`)].filter(Boolean).join(' + ')} = <b>${fmtMoney(cc.total)}</b>${cc.vip ? ' (con VIP)' : ''}</div>` : '';
+  let accion;
+  if(cc.total > 0){
+    accion = `
+      <button type="button" class="rec-cta" id="recCobrar" ${rec.procesando ? 'disabled' : ''}>${rec.procesando ? 'Procesando…' : `${cc.curso > 0 ? 'Liquida' : 'Cobrar'} ${fmtMoney(cc.total)} <kbd>P</kbd>`}</button>
+      ${detalleTotal}
+      <div><div class="rec-sec">Forma de pago</div>
+        <div class="rec-formas">${FORMAS_PAGO.map((f,k)=>`<button type="button" class="rec-forma ${rec.forma===f?'on':''}" data-rec-forma="${f}">${f} <kbd>${k+1}</kbd></button>`).join('')}</div></div>
+      <div class="rec-nota" id="recNota">${rec.forma ? `Se queda en ${rec.forma.toLowerCase()} para las siguientes.` : ''}</div>
+      ${rec.falla ? `<div class="rec-falla">⚠ ${escHtml(rec.falla.texto)}${rec.falla.reintentar ? ' <button type="button" id="recReintentar">Reintentar</button>' : ''}</div>` : ''}
+      <div class="rec-links">
+        ${!llego(i) ? '<button type="button" class="rec-link" id="recSoloLlegada">Marcar que llegó sin cobrar (L)</button>' : ''}
+        <button type="button" class="rec-link" id="recOtroMonto">Cobrar otro monto (abono)</button>
+      </div>`;
+  } else if(!llego(i)){
+    accion = `<button type="button" class="rec-cta" id="recLlegada">Marcar llegada <kbd>L</kbd></button>`;
+  } else {
+    accion = `<button type="button" class="rec-cta hecho" id="recSiguiente">✓ Lista · Siguiente <kbd>Enter</kbd></button>`;
+  }
+  cont.innerHTML = `<div class="rec-ficha">
+    <div class="rec-id">
+      <div><h2>${escHtml(it.nombre)}</h2>
+        <div class="meta">${escHtml(i.personas?.telefono_principal || '')} · Paquete ${i.paquete === 'VIP' ? 'VIP' : 'Básico'}${fuera ? ' · ' + escHtml(etiquetaEst) : ''}</div></div>
+      <div class="rec-chips">${chipLleg}${chipPago}</div>
+    </div>
+    <div class="rec-deuda">${d > 0
+      ? `<div class="etq">Debe</div><div class="grande">${fmtMoney(d)}</div><div class="det">de ${fmtMoney(precioDeInsc(i))} del curso</div>`
+      : `<div class="etq">Pagado</div><div class="grande ok">✓ ${fmtMoney(Number(i.anticipo || 0))}</div><div class="det">Liquidada. ${llego(i) ? 'Ya puede pasar.' : 'Solo falta marcar que llegó.'}</div>`}</div>
+    <div class="rec-datos">
+      <div class="rec-dato"><span class="l">Pagado hasta hoy</span><span class="v">${fmtMoney(Number(i.anticipo || 0))}</span></div>
+      <div class="rec-dato"><span class="l">Cómo pagó</span><span class="v">${escHtml(comoPago(i))}</span></div>
+      <div class="rec-dato"><span class="l">Total curso</span><span class="v">${fmtMoney(precioDeInsc(i))}</span></div>
+      <div class="rec-dato"><span class="l">Vendió</span><span class="v">${escHtml(nombreVendedor(i.asesor_id) || '—')}</span></div>
+    </div>
+    <div class="rec-accion">
+      ${accion}
+      ${extras.length ? `<div><div class="rec-sec">Extras</div><div class="rec-extras">${botonesExtra}</div></div>` : ''}
+      <div><div class="rec-sec">Comentario <kbd>C</kbd></div>
+        <div class="rec-coment"><textarea id="recComent" placeholder="Algo que el equipo deba saber…">${escHtml((i.notas_migracion || '').split(' | ').join('\n'))}</textarea><span class="guardado-estado" id="recComentEstado"></span></div></div>
+      <div class="rec-links"><button type="button" class="rec-link" id="recFichaCompleta">Ficha completa (vendedor, estatus, corregir)</button>
+        <button type="button" class="rec-link" id="recWhats">💬 WhatsApp</button></div>
+    </div>
+  </div>`;
+  if(rec.precioEditando) setTimeout(()=>document.getElementById('recPrecioExtra')?.focus(), 0);
+}
+function panelLeadRecepcion(l){
+  const rep = Number(l.pago_reportado_monto) > 0;
+  const est = ESTATUS.find(e=>e.id === l.estatus_id)?.etiqueta || 'Lead';
+  const conPermiso = puede('confirmar_pagos');
+  return `<div class="rec-ficha">
+    <div class="rec-id"><div><h2>${escHtml(l.personas?.nombre || '(sin nombre)')}</h2>
+      <div class="meta">${escHtml(l.personas?.telefono_principal || '')} · Paquete ${l.paquete === 'VIP' ? 'VIP' : 'Básico'}</div></div>
+      <div class="rec-chips"><span class="rec-chip gris">LEAD · ${escHtml(est)}</span></div></div>
+    <div class="rec-deuda"><div class="etq">Todavía no está inscrita</div>
+      <div class="det">${rep ? `💜 Reportó ${fmtMoney(l.pago_reportado_monto)}${l.pago_reportado_banco ? ' en ' + escHtml(l.pago_reportado_banco) : ''}${l.pago_reportado_fecha ? ' el ' + fechaCorta(l.pago_reportado_fecha) : ''}. Falta confirmarlo.` : 'No hay pago reportado.'}</div></div>
+    <div class="rec-datos">
+      <div class="rec-dato"><span class="l">Vendió</span><span class="v">${escHtml(nombreVendedor(l.asesor_id) || '—')}</span></div>
+      <div class="rec-dato"><span class="l">Fecha de anticipo</span><span class="v">${l.fecha_compromiso_pago ? fechaCorta(l.fecha_compromiso_pago) : '—'}</span></div>
+    </div>
+    <div class="rec-accion">
+      <button type="button" class="rec-cta" id="recLead">${conPermiso ? '✅ Confirmar pago e inscribir' : '💜 Registrar pago'} <kbd>P</kbd></button>
+      <div class="rec-nota">${conPermiso ? 'Al inscribirla aparece en la lista para cobrarle lo que falte y marcar que llegó.' : 'Queda por confirmar; alguien con el permiso 💳 la inscribe.'}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Acciones ---------- */
+function seleccionarRecepcion(key){ rec.sel = key; rec.falla = null; rec.precioEditando = null; pintarListaRecepcion(); pintarPanelRecepcion(); }
+function brincarKpi(id){ const el = document.getElementById(id); el.classList.remove('brinca'); void el.offsetWidth; el.classList.add('brinca'); }
+/* Tras cobrar o marcar llegada: la siguiente de la lista que necesite algo. */
+function avanzarRecepcion(ordenAntes, keyActual){
+  if(!rec) return;
+  rec.q = ''; document.getElementById('recBuscar').value = '';
+  const visibles = new Set(visiblesRecepcion().map(it=>it.key));
+  const todos = itemsRecepcion();
+  const porKey = Object.fromEntries(todos.map(it=>[it.key, it]));
+  const idx = ordenAntes.indexOf(keyActual);
+  const candidatos = ordenAntes.slice(idx + 1).concat(ordenAntes.slice(0, Math.max(idx, 0)));
+  const sig = candidatos.find(k=>k !== keyActual && visibles.has(k) && porKey[k] && necesitaAtencion(porKey[k]))
+           || visiblesRecepcion().find(it=>it.key !== keyActual && necesitaAtencion(it))?.key;
+  if(sig) rec.sel = sig;
+  rec.falla = null;
+  pintarRecepcion();
+  document.getElementById('recBuscar').focus();
+}
+
+async function marcarLlegadaRecepcion(){
+  const it = itemSel(); if(!it || it.tipo !== 'i' || llego(it.i) || rec.procesando) return;
+  const i = it.i;
+  const ordenAntes = visiblesRecepcion().map(x=>x.key);
+  const cambios = { asistencia:'llego', asistencia_en:new Date().toISOString(), asistencia_por:usuarioActual?.id || null };
+  // Si ya la habían pasado a "No llegó" al cerrar, recupera su estatus.
+  if(i.asistencia === 'no_llego' && i.estatus_antes_de_cierre != null){ cambios.estatus_id = i.estatus_antes_de_cierre; cambios.estatus_antes_de_cierre = null; }
+  rec.procesando = true;
+  const { error } = await sb.from('inscripciones').update(cambios).eq('id', i.id);
+  rec.procesando = false;
+  if(error){ toast('No se pudo marcar la llegada: ' + error.message, true); pintarPanelRecepcion(); return; }
+  Object.assign(i, cambios);
+  registrarActividad('llegada_marcada', `${it.nombre} · ${rec.ev.ciudad}`);
+  toast(`${it.nombre.split(' ')[0]} llegó ✓`);
+  brincarKpi('recKpiLlegaron');
+  pintarRecepcion('llego');
+  if(debeDe(i) === 0 && !extrasPendientes(i).length) setTimeout(()=>avanzarRecepcion(ordenAntes, it.key), 600);
+}
+
+async function quitarLlegadaRecepcion(){
+  const it = itemSel(); if(!it || it.tipo !== 'i' || !llego(it.i)) return;
+  const ok = await preguntarConfirmacion({ titulo:'¿Quitar la llegada?', aviso:`${escHtml(it.nombre)} quedará como que <b>no ha llegado</b>. Los pagos no cambian.`, textoSi:'Sí, quitarla' });
+  if(ok === null) return;
+  const cambios = { asistencia:null, asistencia_en:null, asistencia_por:null };
+  const { error } = await sb.from('inscripciones').update(cambios).eq('id', it.i.id);
+  if(error){ toast('No se pudo quitar la llegada: ' + error.message, true); return; }
+  Object.assign(it.i, cambios);
+  registrarActividad('llegada_quitada', `${it.nombre} · ${rec.ev.ciudad}`);
+  pintarRecepcion();
+}
+
+async function cobrarRecepcion(){
+  const it = itemSel(); if(!it || rec.procesando) return;
+  if(it.tipo === 'l') return cobrarLeadRecepcion(it.l);
+  const i = it.i;
+  const cc = calculoCobro(i);
+  if(!(cc.total > 0)) return;
+  if(cc.otros.some(p=>p.precio == null)){ toast('Ponle precio al extra antes de cobrar.', true); return; }
+  if(!rec.forma){
+    const n = document.getElementById('recNota');
+    if(n){ n.className = 'rec-nota malo'; n.textContent = '⚠ Elige la forma de pago (1 Efectivo · 2 Tarjeta · 3 Transferencia)'; }
+    document.querySelector('.rec-forma')?.focus();
+    return;
+  }
+  const ordenAntes = visiblesRecepcion().map(x=>x.key);
+  rec.procesando = true; rec.falla = null; pintarPanelRecepcion();
+  const hoy = hoyISO();
+  const comun = { inscripcion_id:i.id, fecha:hoy, banco:rec.forma, forma_pago:rec.forma, confirmado_por:asesorActualId || null };
+  const filas = [];
+  if(cc.curso > 0) filas.push({ ...comun, monto:cc.curso, concepto:'curso' });
+  cc.otros.forEach(p=>filas.push({ ...comun, monto:Number(p.precio), concepto:p.nombre }));
+  // 1) Pagos, todos en una sola escritura: o entran todos o ninguno.
+  const { error: errPago } = await sb.from('pagos').insert(filas);
+  if(errPago){
+    rec.procesando = false;
+    rec.falla = { texto:'No se pudo registrar el pago. El cobro NO se hizo.', reintentar:true };
+    pintarPanelRecepcion();
+    return;
+  }
+  // 2) Saldo, VIP y llegada en la inscripción.
+  const r = calcularAbono(cc.base, cc.curso);
+  const cambios = { asistencia:'llego', asistencia_en:i.asistencia === 'llego' ? i.asistencia_en : new Date().toISOString(), asistencia_por:i.asistencia === 'llego' ? i.asistencia_por : (usuarioActual?.id || null) };
+  if(cc.curso > 0 || cc.vip){ Object.assign(cambios, { anticipo:r.nuevoAnticipo, restante:r.nuevoRestante, liquidado:r.liquidado }); }
+  if(cc.vip) Object.assign(cambios, { paquete:'VIP', precio_pactado:cc.base.precio_pactado });
+  if(r.liquidado && (cc.curso > 0 || cc.vip)){ const pagado = estatusPorClave('pagado'); if(pagado) cambios.estatus_id = pagado.id; }
+  if(i.asistencia === 'no_llego'){
+    if(!cambios.estatus_id && i.estatus_antes_de_cierre != null) cambios.estatus_id = i.estatus_antes_de_cierre;
+    cambios.estatus_antes_de_cierre = null;
+  }
+  const { error: errUpd } = await sb.from('inscripciones').update(cambios).eq('id', i.id);
+  rec.procesando = false;
+  filas.forEach(f=>i.pagos.push({ monto:f.monto, fecha:f.fecha, banco:f.banco, forma_pago:f.forma_pago, concepto:f.concepto }));
+  rec.cobradoHoy += cc.total;
+  delete rec.extras[i.id];
+  const detalle = `${fmtMoney(cc.total)} de ${it.nombre} en ${rec.forma.toLowerCase()} (recepción ${rec.ev.ciudad}${cc.vip ? ', subió a VIP' : ''}${cc.otros.length ? ', ' + cc.otros.map(p=>p.nombre).join(', ') : ''})`;
+  registrarActividad('pago_registrado', detalle);
+  if(errUpd){
+    // El dinero ya quedó registrado: reintentar lo cobraría dos veces.
+    rec.falla = { texto:'El pago SÍ se registró, pero no se pudo actualizar su saldo. No lo vuelvas a cobrar: abre la ficha completa y corrige el saldo.', reintentar:false };
+    toast('El pago se guardó, pero no se pudo actualizar el saldo: ' + errUpd.message, true);
+    pintarRecepcion();
+    return;
+  }
+  Object.assign(i, cambios);
+  toast(`${fmtMoney(cc.total)} en ${rec.forma.toLowerCase()} · ${it.nombre.split(' ')[0]} ${r.liquidado || cc.curso === 0 ? 'lista ✓' : 'debe ' + fmtMoney(r.nuevoRestante)}`);
+  brincarKpi('recKpiCobrado'); brincarKpi('recKpiLlegaron');
+  pintarRecepcion('pago');
+  setTimeout(()=>avanzarRecepcion(ordenAntes, it.key), 800);
+}
+
+async function alternarExtraRecepcion(precioId){
+  const it = itemSel(); if(!it || it.tipo !== 'i') return;
+  const p = PRECIOS?.find(x=>x.id === precioId); if(!p) return;
+  const lista = rec.extras[it.i.id] = rec.extras[it.i.id] || [];
+  const k = lista.indexOf(precioId);
+  if(k >= 0){ lista.splice(k, 1); pintarPanelRecepcion(); return; }
+  if(p.precio == null){ rec.precioEditando = precioId; pintarPanelRecepcion(); return; }   // primero el precio
+  lista.push(precioId);
+  toast(`✓ ${p.nombre} agregado · +${fmtMoney(p.precio)}`);
+  pintarPanelRecepcion();
+}
+/* El precio que ponga quien cobra queda en Precios para todos. */
+async function guardarPrecioRecepcion(precioId){
+  const inp = document.getElementById('recPrecioExtra');
+  const txt = inp?.value.trim() || '';
+  const precio = Number(txt);
+  if(txt === '' || !(precio >= 0)){ toast('Escribe el precio.', true); inp?.focus(); return; }
+  const p = PRECIOS?.find(x=>x.id === precioId); if(!p) return;
+  const r = await guardarPrecio(precioId, { precio });
+  if(r.error){ toast('No se pudo guardar el precio: ' + r.error, true); return; }
+  rec.precioEditando = null;
+  const it = itemSel();
+  if(it?.tipo === 'i'){
+    const lista = rec.extras[it.i.id] = rec.extras[it.i.id] || [];
+    if(!lista.includes(precioId)) lista.push(precioId);
+  }
+  toast(`${p.nombre}: ${fmtMoney(precio)} (queda para todos) ✓`);
+  pintarPanelRecepcion();
+}
+
+/* Comentario: se guarda solo, igual que en la ficha. */
+function programarNotasRecepcion(){
+  const it = itemSel(); if(!it || it.tipo !== 'i') return;
+  if(rec.notas) clearTimeout(rec.notas.timer);
+  rec.notas = { insc:it.i, texto:document.getElementById('recComent').value.trim() };
+  rec.notas.timer = setTimeout(guardarNotasRecepcion, 600);
+  marcarGuardado('recComentEstado', 'escribiendo…');
+}
+async function guardarNotasRecepcion(){
+  const n = rec?.notas; if(!n) return;
+  clearTimeout(n.timer); rec.notas = null;
+  marcarGuardado('recComentEstado', 'Guardando…');
+  const { error } = await sb.from('inscripciones').update({ notas_migracion: n.texto || null }).eq('id', n.insc.id);
+  if(error){ marcarGuardado('recComentEstado', '⚠ No se guardó', 'malo'); toast('No se pudo guardar el comentario: ' + error.message, true); return; }
+  n.insc.notas_migracion = n.texto || null;
+  marcarGuardado('recComentEstado', '✓ Guardado', 'ok');
+}
+
+/* Fichas y ventanas de siempre: al cerrarlas, Recepción se vuelve a cargar. */
+function alVolverARecepcion(ids){
+  const obs = new MutationObserver(()=>{
+    if(ids.every(id=>!document.getElementById(id).classList.contains('open'))){ obs.disconnect(); if(rec) cargarRecepcion({ silencioso:true }); }
+  });
+  ids.forEach(id=>obs.observe(document.getElementById(id), { attributes:true, attributeFilter:['class'] }));
+}
+async function cobrarLeadRecepcion(l){
+  await cobrarLead(l);
+  alVolverARecepcion(['modalLead', 'modalInscribir', 'modalRegistrarPago']);
+}
+function abrirFichaDesdeRecepcion(soloCobro){
+  const it = itemSel(); if(!it || it.tipo !== 'i') return;
+  alCerrarFichaInscripcion = ()=>{ if(rec) cargarRecepcion({ silencioso:true }); };
+  abrirModalInscripcion(it.i.id, { soloCobro });
+}
+
+/* ---------- Cerrar y reabrir ---------- */
+async function cerrarRecepcionDelDia(){
+  if(!rec || rec.cerradaEn) return;
+  const activas = rec.inscritas.filter(i=>!fueraDeRecepcion(i));
+  const faltan = activas.filter(i=>!llego(i));
+  const c = contarRecepcion();
+  const liquidadas = activas.filter(i=>debeDe(i) === 0).length;
+  const nombres = faltan.slice(0, 8).map(i=>escHtml(i.personas?.nombre || '')).join(', ') + (faltan.length > 8 ? ` y ${faltan.length - 8} más` : '');
+  const ok = await preguntarConfirmacion({
+    titulo:'Cierre de recepción',
+    aviso:`<b>${c.total}</b> inscritas · <b>${c.llegaron}</b> llegaron · <b>${c.faltan}</b> no llegaron<br>`
+      + `<b>${liquidadas}</b> liquidadas · <b>${c.cobrar}</b> llegaron y siguen debiendo<br>Cobrado hoy: <b>${fmtMoney(rec.cobradoHoy)}</b>`
+      + (faltan.length ? `<br><br><b>${faltan.length}</b> pasarán a <b>“No llegó”</b> y saldrán de Cobranza: ${nombres}.` : '<br><br>Llegaron todas.'),
+    textoSi:'Cerrar recepción',
+  });
+  if(ok === null) return;
+  const ahora = new Date().toISOString();
+  const noLlego = estatusPorClave('no_llego');
+  // Se agrupan por estatus actual para guardar de dónde venía cada una.
+  const grupos = {};
+  faltan.forEach(i=>{ const k = (i.liquidado ? 'L' : 'D') + ':' + i.estatus_id; (grupos[k] = grupos[k] || []).push(i); });
+  for(const lista of Object.values(grupos)){
+    const i0 = lista[0];
+    const cambios = { asistencia:'no_llego', asistencia_en:ahora, asistencia_por:usuarioActual?.id || null, estatus_antes_de_cierre:i0.estatus_id };
+    // Quien ya pagó todo conserva su estatus; a quien debe se le quita de Cobranza.
+    if(!i0.liquidado && noLlego) cambios.estatus_id = noLlego.id;
+    const { error } = await sb.from('inscripciones').update(cambios).in('id', lista.map(i=>i.id));
+    if(error){ toast('No se pudo cerrar la recepción: ' + error.message, true); await cargarRecepcion(); return; }
+    lista.forEach(i=>Object.assign(i, cambios));
+  }
+  const { error: errEv } = await sb.from('eventos').update({ recepcion_cerrada_en:ahora, recepcion_cerrada_por:usuarioActual?.id || null }).eq('id', rec.ev.id);
+  if(errEv) toast('Se marcó a quien no llegó, pero no se guardó la hora del cierre: ' + errEv.message, true);
+  else { rec.cerradaEn = ahora; rec.cerradaPor = usuarioActual?.id || null; }
+  registrarActividad('recepcion_cerrada', `${rec.ev.ciudad} ${fechaCorta(rec.ev.fecha)}: llegaron ${c.llegaron} de ${c.total}, ${faltan.length} no llegaron, cobrado ${fmtMoney(rec.cobradoHoy)}`);
+  toast('✓ Recepción cerrada');
+  rec.filtro = 'todas';
+  pintarRecepcion();
+}
+async function reabrirRecepcion(){
+  if(!rec?.cerradaEn) return;
+  const ok = await preguntarConfirmacion({ titulo:'¿Reabrir la recepción?', aviso:'Quienes quedaron en <b>“No llegó”</b> regresan a su estatus de antes y a Cobranza.', textoSi:'Sí, reabrir' });
+  if(ok === null) return;
+  const marcadas = rec.inscritas.filter(i=>i.asistencia === 'no_llego');
+  const grupos = {};
+  marcadas.forEach(i=>{ const k = String(i.estatus_antes_de_cierre ?? i.estatus_id); (grupos[k] = grupos[k] || []).push(i); });
+  for(const lista of Object.values(grupos)){
+    const cambios = { asistencia:null, asistencia_en:null, asistencia_por:null, estatus_antes_de_cierre:null, estatus_id:lista[0].estatus_antes_de_cierre ?? lista[0].estatus_id };
+    const { error } = await sb.from('inscripciones').update(cambios).in('id', lista.map(i=>i.id));
+    if(error){ toast('No se pudo reabrir: ' + error.message, true); await cargarRecepcion(); return; }
+    lista.forEach(i=>Object.assign(i, cambios));
+  }
+  const { error } = await sb.from('eventos').update({ recepcion_cerrada_en:null, recepcion_cerrada_por:null }).eq('id', rec.ev.id);
+  if(error){ toast('No se pudo reabrir: ' + error.message, true); return; }
+  rec.cerradaEn = null; rec.cerradaPor = null;
+  registrarActividad('recepcion_reabierta', `${rec.ev.ciudad} ${fechaCorta(rec.ev.fecha)}`);
+  toast('Recepción abierta otra vez.');
+  pintarRecepcion();
+}
+document.getElementById('recCerrar').addEventListener('click', cerrarRecepcionDelDia);
+
+/* ---------- Eventos ---------- */
+document.getElementById('recBuscar').addEventListener('input', e=>{ rec.q = e.target.value; rec.sel = null; pintarRecepcion(); });
+document.getElementById('recFiltros').addEventListener('click', e=>{
+  const b = e.target.closest('[data-rec-filtro]'); if(!b) return;
+  rec.filtro = b.dataset.recFiltro; rec.q = ''; document.getElementById('recBuscar').value = ''; rec.sel = null; pintarRecepcion();
+});
+document.getElementById('recLista').addEventListener('click', e=>{ const f = e.target.closest('[data-rec-key]'); if(f) seleccionarRecepcion(f.dataset.recKey); });
+document.getElementById('recAvisoCerrada').addEventListener('click', e=>{ if(e.target.id === 'recReabrir') reabrirRecepcion(); });
+document.getElementById('recPanel').addEventListener('click', e=>{
+  const t = e.target;
+  if(t.closest('#recCobrar') || t.closest('#recReintentar') || t.closest('#recLead')) return cobrarRecepcion();
+  if(t.closest('#recLlegada') || t.closest('#recSoloLlegada')) return marcarLlegadaRecepcion();
+  if(t.closest('#recQuitarLlegada')) return quitarLlegadaRecepcion();
+  if(t.closest('#recSiguiente')) return avanzarRecepcion(visiblesRecepcion().map(x=>x.key), rec.sel);
+  if(t.closest('#recOtroMonto')) return abrirFichaDesdeRecepcion(true);
+  if(t.closest('#recFichaCompleta')) return abrirFichaDesdeRecepcion(false);
+  if(t.closest('#recWhats')){
+    const it = itemSel(); if(!it || it.tipo !== 'i') return;
+    return abrirEnviarWhatsApp({ nombre:it.nombre, telefono:it.i.personas?.telefono_principal, personaId:it.i.personas?.id,
+      ciudad:rec.ev.ciudad, fecha:rec.ev.fecha, sede:rec.ev.sede, debe:debeDe(it.i) });
+  }
+  const f = t.closest('[data-rec-forma]'); if(f){ rec.forma = f.dataset.recForma; pintarPanelRecepcion(); return; }
+  const x = t.closest('[data-rec-extra]'); if(x) return alternarExtraRecepcion(x.dataset.recExtra);
+  const ed = t.closest('[data-rec-editar-precio]'); if(ed){ rec.precioEditando = ed.dataset.recEditarPrecio; pintarPanelRecepcion(); return; }
+  const gp = t.closest('[data-rec-guardar-precio]'); if(gp) return guardarPrecioRecepcion(gp.dataset.recGuardarPrecio);
+});
+document.getElementById('recPanel').addEventListener('input', e=>{ if(e.target.id === 'recComent') programarNotasRecepcion(); });
+document.getElementById('recPanel').addEventListener('focusout', e=>{ if(e.target.id === 'recComent' && rec?.notas) guardarNotasRecepcion(); });
+document.getElementById('recPanel').addEventListener('keydown', e=>{
+  if(e.target.id === 'recPrecioExtra'){
+    // stopPropagation: que el Enter no llegue al teclado general y cobre.
+    if(e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); guardarPrecioRecepcion(rec.precioEditando); }
+    if(e.key === 'Escape'){ e.stopPropagation(); rec.precioEditando = null; pintarPanelRecepcion(); }
+  }
+});
+
+/* Teclado: todo se puede hacer sin mouse. */
+document.addEventListener('keydown', e=>{
+  if(!rec || document.querySelector('.modal-overlay.open')) return;
+  const el = document.activeElement;
+  const enBuscar = el?.id === 'recBuscar';
+  const escribiendo = !enBuscar && ['INPUT','TEXTAREA','SELECT'].includes(el?.tagName);
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); document.getElementById('recBuscar').focus(); document.getElementById('recBuscar').select(); return; }
+  if(e.key === 'Escape'){
+    if(escribiendo){ el.blur(); return; }
+    rec.q = ''; document.getElementById('recBuscar').value = ''; rec.precioEditando = null;
+    document.getElementById('recBuscar').focus(); pintarRecepcion(); return;
+  }
+  if(escribiendo || e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    const vs = visiblesRecepcion(); const k = vs.findIndex(it=>it.key === rec.sel);
+    const n = vs[Math.min(Math.max(k + (e.key === 'ArrowDown' ? 1 : -1), 0), vs.length - 1)];
+    if(n) seleccionarRecepcion(n.key);
+    return;
+  }
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    if(enBuscar){ el.blur(); return; }
+    const it = itemSel(); if(!it) return;
+    if(it.tipo === 'l' || calculoCobro(it.i).total > 0) return cobrarRecepcion();
+    if(!llego(it.i)) return marcarLlegadaRecepcion();
+    return avanzarRecepcion(visiblesRecepcion().map(x=>x.key), rec.sel);
+  }
+  if(enBuscar) return;   // las letras son para buscar
+  const tecla = e.key.toLowerCase();
+  if(tecla === 'l') marcarLlegadaRecepcion();
+  else if(tecla === 'p') cobrarRecepcion();
+  else if(['1','2','3'].includes(tecla)){ rec.forma = FORMAS_PAGO[Number(tecla) - 1]; pintarPanelRecepcion(); }
+  else if(tecla === 'v'){ const p = PRECIOS?.find(x=>x.clave === 'subir_vip' && x.activo); if(p) alternarExtraRecepcion(p.id); }
+  else if(tecla === 'u'){ const p = PRECIOS?.find(x=>x.activo && /^uniforme/i.test(x.nombre)); if(p) alternarExtraRecepcion(p.id); }
+  else if(tecla === 'c'){ e.preventDefault(); document.getElementById('recComent')?.focus(); }
 });
 
 /* =========================================================

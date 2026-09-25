@@ -25,6 +25,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_humo.js` | Todas las secciones del menú abren sin errores de JS (admin y Logística). |
 | `prueba_ficha.js` | Ficha de la inscrita: cobro primero, guardado automático, modo Cobranza. |
 | `prueba_precios.js` | Sección Precios. |
+| `prueba_recepcion.js` | Recepción del día del curso: buscar, cobrar, extras, llegada, cerrar/reabrir, leads, teclado. |
 
 ## Escribir una prueba nueva
 
@@ -39,8 +40,10 @@ const { abrirHub } = require('./arnes');
 })();
 ```
 
-- `tablas`: filas por tabla. `select` filtra con `eq`; `insert`, `update` y `delete` cambian las filas.
-  Los demás filtros (`order`, `in`, `ilike`…) se aceptan pero no filtran.
+- `tablas`: filas por tabla. `select` filtra con `eq`, `in` y `not(…, 'in', …)` (también con
+  columnas anidadas como `eventos.curso_id`); `insert`, `update` y `delete` cambian las filas.
+  Los demás filtros (`order`, `gte`, `ilike`…) se aceptan pero no filtran, y no hay joins:
+  lo anidado se escribe ya dentro de la fila de ejemplo.
 - `h.ops(tabla, tipo)`: lo que el Hub mandó (`insert`, `update`, `select`, `delete`).
 - `h.fallar(op => ...)`: simula un error de la base en las operaciones que cumplan la condición.
 - Usa solo datos inventados: nada de nombres, teléfonos ni direcciones reales.
