@@ -160,6 +160,13 @@
   .cal-cell.muted{ opacity:.28; min-height:34px; }
   .cal-cell.today .num{ background:var(--wine); color:#fff; font-weight:600; }
   .cal-cell.has-evt{ cursor:pointer; }
+  /* Días de la gira que ya pasaron: se quedan como histórico, más tenues, pero se abren y editan igual */
+  .cal-cell.has-evt.pasado{ filter:grayscale(.65); opacity:.72; }
+  .cal-cell.has-evt.pasado:hover{ opacity:1; }
+  .cal-cell.pasado{ position:relative; }
+  .insc-pasado{ font-size:10.5px; font-weight:700; color:var(--ink-soft); background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:0 5px; white-space:nowrap; }
+  .cal-paso{ position:absolute; top:4px; right:5px; font-size:9px; font-weight:700; color:var(--ink-soft); }
+  @media (max-width:600px){ .cal-paso{ top:2px; right:3px; } .cal-paso-txt{ display:none; } }
   .cal-cell.has-evt:active{ transform:scale(.96); }
   .cal-cell.verde{ background:rgba(63,131,84,.09); }
   .cal-cell.ambar{ background:rgba(197,166,107,.16); }
@@ -2246,11 +2253,12 @@ async function iniciarChecador(){
 // ya habías checado.
 async function sincronizarEstadoChecador(){
   if(!usuarioActual?.id) return;
-  const hoyISO = new Date().toISOString().slice(0,10);
+  // Desde la medianoche de México, no de Londres (UTC)
+  const inicioDeHoy = new Date(new Date().setHours(0,0,0,0)).toISOString();
   const { data } = await sb.from('sesiones_usuario')
     .select('id').eq('usuario_id', usuarioActual.id)
     .not('entrada_checada_en', 'is', null).is('salida_checada_en', null)
-    .gte('entrada_checada_en', hoyISO)
+    .gte('entrada_checada_en', inicioDeHoy)
     .order('entrada_checada_en', { ascending:false }).limit(1).maybeSingle();
   checadorEntradaHoyId = data?.id || null;
   checadorManualEstado = checadorEntradaHoyId ? 'en_turno' : 'pendiente_entrada';
@@ -2383,12 +2391,12 @@ async function renderActividad(){
   if(errU || errS || errF){ boxSesiones.textContent = 'Error: ' + (errU||errS||errF).message; return; }
 
   const nombrePorUsuario = {}; (usuarios||[]).forEach(u=>{ nombrePorUsuario[u.id] = u; });
-  const hoyISO = new Date().toISOString().slice(0,10);
+  const hoy = hoyISO();
 
   // --- Tiempo en pantalla hoy ---
   const minutosHoyPorUsuario = {};
   (sesiones||[]).forEach(s=>{
-    if(!s.inicio.startsWith(hoyISO)) return;
+    if(new Date(s.inicio).toLocaleDateString('en-CA') !== hoy) return;
     const { minutos } = estadoSesion(s);
     minutosHoyPorUsuario[s.usuario_id] = (minutosHoyPorUsuario[s.usuario_id]||0) + minutos;
   });
@@ -2633,7 +2641,7 @@ async function renderDashboard(){
   const box = document.getElementById('dashKpis');
   const [{count:totalLeads}, {count:cursosProx}] = await Promise.all([
     sb.from('leads').select('*', {count:'exact', head:true}),
-    sb.from('eventos').select('*', {count:'exact', head:true}).gte('fecha', new Date().toISOString().slice(0,10)),
+    sb.from('eventos').select('*', {count:'exact', head:true}).gte('fecha', hoyISO()),
   ]);
   box.innerHTML = [
     {v: totalLeads ?? 0, l:'Leads totales'},
@@ -2725,7 +2733,7 @@ function guardarPreferenciaBoard(){
 let checadorAbiertos = new Set(); // qué días (persona+fecha) del checador están desplegados
 
 async function cargarEventosProximos(){
-  const hoy = new Date().toISOString().slice(0,10);
+  const hoy = hoyISO();
   const { data, error } = await sb.from('eventos').select('ciudad_id, fecha, cursos(nombre)')
     .gte('fecha', hoy).not('fecha', 'is', null).order('fecha', {ascending:true});
   if(error){ toast('Error cargando eventos próximos: ' + error.message, true); return; }
@@ -2735,17 +2743,28 @@ async function cargarEventosProximos(){
   });
 }
 
-/* Cursos del Calendario (curso activo, de hoy en adelante). Los usa el botón
-   Inscribir y el orden de las listas de ciudades. */
-let EVENTOS_CAL = [];
+/* Cursos del Calendario (curso activo). EVENTOS_CAL = de hoy en adelante: los
+   usa el orden de las ciudades y los valores por defecto ("el curso de su
+   ciudad"). EVENTOS_CAL_PASADOS = los días de la gira que ya pasaron: nunca se
+   pierden, se siguen pudiendo elegir y editar (salen al final, "ya pasó"). */
+let EVENTOS_CAL = [], EVENTOS_CAL_PASADOS = [];
 async function cargarEventosCalendario(){
   const cursoId = await obtenerCursoActivoId();
-  if(!cursoId){ EVENTOS_CAL = []; return; }
-  const hoy = new Date().toISOString().slice(0,10);
+  if(!cursoId){ EVENTOS_CAL = []; EVENTOS_CAL_PASADOS = []; return; }
+  const hoy = hoyISO();
   const { data, error } = await sb.from('eventos').select('id, fecha, ciudad_id, curso_id, sede, ciudades(nombre, estado)')
-    .eq('curso_id', cursoId).gte('fecha', hoy).order('fecha', { ascending:true });
+    .eq('curso_id', cursoId).not('fecha', 'is', null).order('fecha', { ascending:true });
   if(error){ console.warn('No se pudieron cargar los cursos del Calendario:', error.message); return; }
-  EVENTOS_CAL = data || [];
+  const inicio = inicioDeGira((data || []).map(e=>e.fecha));
+  inicioGiraCache = inicio;
+  EVENTOS_CAL = (data || []).filter(e=>e.fecha >= hoy);
+  // Sólo los de ESTA gira; el más reciente primero
+  EVENTOS_CAL_PASADOS = (data || []).filter(e=>e.fecha < hoy && e.fecha >= inicio).reverse();
+}
+/* Un curso del Calendario por id, ya haya pasado o no. */
+function eventoPorId(id){
+  if(!id) return undefined;
+  return EVENTOS_CAL.find(e=>e.id === id) || EVENTOS_CAL_PASADOS.find(e=>e.id === id);
 }
 
 /* Lista de ciudades con las que tienen curso próximo HASTA ARRIBA, por fecha.
@@ -2908,14 +2927,16 @@ function listaBuscadora(inp, caja, { items, alElegir, alSalir }){
     const elegido = todos.find(it=>it.elegido)?.value;
     let html = '';
     if(!q){
-      const conCurso = normales.filter(it=>it.fecha).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-      const demas = normales.filter(it=>!it.fecha);
-      visibles = [...(vacio?[vacio]:[]), ...conCurso, ...demas, ...extras];
+      const conCurso = normales.filter(it=>it.fecha && !it.pasado).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      const demas = normales.filter(it=>!it.fecha && !it.pasado);
+      const pasados = normales.filter(it=>it.pasado).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      visibles = [...(vacio?[vacio]:[]), ...conCurso, ...demas, ...pasados, ...extras];
       activo = -1;
       let i = 0;
       if(vacio) html += pintarItem(vacio, i++);
       if(conCurso.length) html += '<div class="bc-grupo">📅 Con curso próximo</div>' + conCurso.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
       if(demas.length) html += `<div class="bc-grupo">${conCurso.length ? 'Todas las demás' : 'Ciudades'}</div>` + demas.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
+      if(pasados.length) html += '<div class="bc-grupo">✔ Ya pasaron</div>' + pasados.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
       html += extras.map(it=>pintarItem(it, i++)).join('');
     } else {
       const hallados = buscarCiudades(q, normales).slice(0, 40);
@@ -2978,13 +2999,13 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
 
   const nativo = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
   const porId = ()=> new Map(CIUDADES.map(c=>[c.id, c]));
-  const eventoDe = (valor)=> (EVENTOS_CAL||[]).find(e=>e.id === valor);
+  const eventoDe = (valor)=> eventoPorId(valor);
   const textoDe = (valor)=>{
     if(!valor) return '';
     const ev = eventoDe(valor);
     if(ev){
       const c = porId().get(ev.ciudad_id);
-      return `${c?.nombre || ev.ciudades?.nombre || '(ciudad?)'}${c?.estado ? ', ' + c.estado : ''} · ${fechaCorta(ev.fecha)}`;
+      return `${c?.nombre || ev.ciudades?.nombre || '(ciudad?)'}${c?.estado ? ', ' + c.estado : ''} · ${fechaCorta(ev.fecha)}${ev.fecha < hoyISO() ? ' (ya pasó)' : ''}`;
     }
     const c = porId().get(valor);
     if(c) return c.nombre + (c.estado ? ', ' + c.estado : '');
@@ -3006,8 +3027,9 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
     const fechas = new Map();
     (EVENTOS_CAL||[]).forEach(e=>{ if(!fechas.has(e.ciudad_id)) fechas.set(e.ciudad_id, e.fecha); });
     const eventos = new Map((EVENTOS_CAL||[]).map(e=>[e.id, e]));
+    const pasados = new Map((EVENTOS_CAL_PASADOS||[]).map(e=>[e.id, e]));
     return [...sel.options].map(o=>{
-      const ev = eventos.get(o.value);
+      const ev = eventos.get(o.value) || pasados.get(o.value);
       const c = ciudades.get(o.value) || (ev && ciudades.get(ev.ciudad_id));
       const especial = !o.value || o.value.startsWith('__');
       return {
@@ -3015,6 +3037,7 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
         nombre: c ? c.nombre : ev ? (ev.ciudades?.nombre || '(ciudad?)') : o.textContent.trim(),
         estado: c?.estado || '', alias: c?.alias || [],
         fecha: ev ? ev.fecha : c ? (fechas.get(c.id) || null) : null,
+        pasado: !!(ev && pasados.has(o.value)),
       };
     });
   };
@@ -3058,11 +3081,14 @@ buscadorDeCiudad(document.getElementById('nuevoCiudad'));
 
 /* Cursos del Calendario como opciones (value = id del evento). */
 function opcionesEvento(seleccionado, textoVacio = '— Aún no decide / otra ciudad —'){
-  const lista = [...(EVENTOS_CAL||[])];
-  // Si ya tenía un curso que ya pasó (o no es de la gira activa), no se pierde
+  const lista = [...(EVENTOS_CAL||[])], pasados = [...(EVENTOS_CAL_PASADOS||[])];
+  const opt = (e, extra = '')=> `<option value="${e.id}" ${e.id === seleccionado ? 'selected' : ''}>${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(e.fecha)}${extra}</option>`;
+  // Los días que ya pasaron van al final: nunca se pierden y se pueden elegir.
+  // Si tenía un curso que ni siquiera es de la gira activa, tampoco se pierde.
   return `<option value="">${textoVacio}</option>`
-    + lista.map(e=>`<option value="${e.id}" ${e.id === seleccionado ? 'selected' : ''}>${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(e.fecha)}</option>`).join('')
-    + (seleccionado && !lista.some(e=>e.id === seleccionado) ? `<option value="${seleccionado}" selected>(curso anterior)</option>` : '');
+    + lista.map(e=>opt(e)).join('')
+    + pasados.map(e=>opt(e, ' (ya pasó)')).join('')
+    + (seleccionado && !eventoPorId(seleccionado) ? `<option value="${seleccionado}" selected>(curso anterior)</option>` : '');
 }
 buscadorDeCiudad(document.getElementById('modalEventoSelect'), { placeholder:'Busca la ciudad del curso…' });
 buscadorDeCiudad(document.getElementById('nuevoEvento'), { placeholder:'Busca la ciudad del curso…' });
@@ -3090,6 +3116,28 @@ async function obtenerCursoActivoId(){
   const match = (data||[]).find(c => normalizarNombreCurso(c.nombre) === objetivo);
   cursoActivoIdCache = match ? match.id : null;
   return cursoActivoIdCache;
+}
+/* Dónde empieza la gira ACTUAL. El mismo curso se ha usado en varias giras
+   (ene–mar y desde sep 2026), así que "lo que ya pasó" no es todo el curso:
+   desde el próximo día de la gira se camina hacia atrás mientras los días
+   estén a menos de 30 días entre sí. El primer hueco grande separa giras. */
+const DIAS_ENTRE_GIRAS = 30;
+function inicioDeGira(fechas, hoy = hoyISO()){
+  const f = [...new Set(fechas.filter(Boolean))].sort();
+  if(!f.length) return hoy;
+  let i = f.findIndex(x=>x >= hoy);
+  if(i < 0) i = f.length - 1;
+  while(i > 0 && diasEntre(f[i-1], f[i]) <= DIAS_ENTRE_GIRAS) i--;
+  return f[i] < hoy ? f[i] : hoy;
+}
+let inicioGiraCache = null;
+async function obtenerInicioGira(){
+  if(inicioGiraCache) return inicioGiraCache;
+  const cursoId = await obtenerCursoActivoId();
+  if(!cursoId) return hoyISO();
+  const { data } = await sb.from('eventos').select('fecha').eq('curso_id', cursoId).not('fecha', 'is', null);
+  inicioGiraCache = inicioDeGira((data || []).map(e=>e.fecha));
+  return inicioGiraCache;
 }
 let CIUDADES_GIRA_ACTIVA = null; // null = no cargadas todavía; array (posiblemente vacío) ya cargado
 async function cargarCiudadesGiraActiva(){
@@ -3160,7 +3208,9 @@ const VISTAS = [
 async function cargarInscritos(){
   const cursoId = await obtenerCursoActivoId();
   if(!cursoId) return [];
-  const hoy = new Date().toISOString().slice(0,10);
+  // Todas las inscritas de la gira actual, también las de días que ya pasaron:
+  // no se quitan del tablero, quedan como histórico ("curso pasado") y se editan igual.
+  const inicioGira = await obtenerInicioGira();
   const { data, error } = await sb.from('inscripciones').select(`
       id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id,
       personas ( id, nombre, telefono_principal, en_lista_negra ),
@@ -3168,7 +3218,7 @@ async function cargarInscritos(){
       eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )
     `)
     .eq('eventos.curso_id', cursoId)
-    .gte('eventos.fecha', hoy);
+    .gte('eventos.fecha', inicioGira);
   if(error){ toast('Error cargando inscritos: ' + error.message, true); return []; }
   return data || [];
 }
@@ -3310,7 +3360,7 @@ function tarjetaInscrito(i){
     <div class="lead-card" style="--card-accent:${acento}" data-insc-id="${i.id}">
       <div class="lead-name">${i.personas?.nombre||'(sin nombre)'}</div>
       <div class="lead-meta">${i.personas?.telefono_principal||''}${i.paquete?'<br>'+i.paquete:''}</div>
-      ${i.eventos?.ciudades?.nombre?`<div class="lead-ciudad">📍 ${i.eventos.ciudades.nombre} · ${fechaCorta(i.eventos.fecha)}</div>`:''}
+      ${i.eventos?.ciudades?.nombre?`<div class="lead-ciudad">📍 ${i.eventos.ciudades.nombre} · ${fechaCorta(i.eventos.fecha)}${i.eventos.fecha && i.eventos.fecha < hoyISO() ? ' <span class="insc-pasado">✔ curso pasado</span>' : ''}</div>`:''}
       ${saldo}
       ${vistaActiva!=='vendedor' && i.asesor_id ? `<div class="lead-meta">👤 ${nombreVendedor(i.asesor_id)}</div>` : ''}
       ${i.personas?.en_lista_negra?'<span class="badge-blacklist">⚠ Lista negra</span>':''}
@@ -3570,15 +3620,15 @@ document.getElementById('closeModalLead').addEventListener('click', ()=>document
 document.getElementById('modalLeadTelefono').addEventListener('click', e=>{
   if(!e.target.closest('#btnLeadWhats')) return;
   const l = leadAbierto(); if(!l) return;
-  const ev = l.eventos || (l.evento_id && EVENTOS_CAL.find(x=>x.id === l.evento_id)) || (l.ciudad_interes_id && EVENTOS_CAL.find(x=>x.ciudad_id === l.ciudad_interes_id));
-  const evCal = ev && EVENTOS_CAL.find(x=>x.id === (ev.id || l.evento_id));
+  const ev = l.eventos || (l.evento_id && eventoPorId(l.evento_id)) || (l.ciudad_interes_id && EVENTOS_CAL.find(x=>x.ciudad_id === l.ciudad_interes_id));
+  const evCal = ev && eventoPorId(ev.id || l.evento_id);
   abrirEnviarWhatsApp({ nombre:l.personas?.nombre, telefono:l.personas?.telefono_principal, personaId:l.personas?.id, leadId:l.id,
     ciudad: ev?.ciudades?.nombre || l.ciudades?.nombre || '', fecha: ev?.fecha || '', sede: evCal?.sede || '',
     debe: pagoReportado(l) ? null : undefined });
 });
 // Elegir el curso pone su ciudad (se puede cambiar a mano después)
 document.getElementById('modalEventoSelect').addEventListener('change', e=>{
-  const ev = EVENTOS_CAL.find(x=>x.id === e.target.value);
+  const ev = eventoPorId(e.target.value);
   if(ev?.ciudad_id){
     const selC = document.getElementById('modalCiudadSelect');
     if(![...selC.options].some(o=>o.value === ev.ciudad_id)) selC.innerHTML = opcionesCiudad(ev.ciudad_id);
@@ -3784,7 +3834,7 @@ function hace(iso){
   return d === 1 ? 'ayer' : `hace ${d} días`;
 }
 function eventoTexto(eventoId){
-  const ev = EVENTOS_CAL.find(e=>e.id === eventoId);
+  const ev = eventoPorId(eventoId);
   return ev ? `${ev.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(ev.fecha)}` : '';
 }
 function pintarPagoLead(lead){
@@ -3848,7 +3898,7 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
   if(!eventoId){ toast('Elige a qué curso va.', true); return; }
   if(!(monto > 0)){ toast('Pon cuánto pagó.', true); return; }
   if(!fecha){ toast('Pon la fecha del pago.', true); return; }
-  const ev = EVENTOS_CAL.find(e=>e.id === eventoId);
+  const ev = eventoPorId(eventoId);
   const donde = eventoTexto(eventoId) || '(curso)';
   const alumno = lead.personas?.nombre || 'este lead';
   const yaEstaba = pagoReportado(lead);
@@ -3949,8 +3999,9 @@ function abrirModalInscribir(){
   const sel = document.getElementById('inscribirEvento');
   sel.innerHTML = (suyos.length ? '' : '<option value="">— Elige el curso —</option>')
     + (suyos.length ? `<optgroup label="Su ciudad">${suyos.map(opt).join('')}</optgroup>` : '')
-    + `<optgroup label="${suyos.length ? 'Otras ciudades del Calendario' : 'Cursos del Calendario'}">${otros.map(opt).join('')}</optgroup>`;
-  const elegido = (lead.evento_id && EVENTOS_CAL.some(e=>e.id === lead.evento_id)) ? lead.evento_id : (suyos[0]?.id || '');
+    + `<optgroup label="${suyos.length ? 'Otras ciudades del Calendario' : 'Cursos del Calendario'}">${otros.map(opt).join('')}</optgroup>`
+    + (EVENTOS_CAL_PASADOS.length ? `<optgroup label="Ya pasaron">${EVENTOS_CAL_PASADOS.map(opt).join('')}</optgroup>` : '');
+  const elegido = (lead.evento_id && eventoPorId(lead.evento_id)) ? lead.evento_id : (suyos[0]?.id || '');
   sel.value = elegido;
   const aviso = document.getElementById('inscribirAvisoCiudad');
   if(elegido){ aviso.style.display = 'none'; }
@@ -4039,7 +4090,7 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
     return;
   }
 
-  const ev = EVENTOS_CAL.find(e=>e.id === eventoId);
+  const ev = eventoPorId(eventoId);
   const donde = `${ev?.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(ev?.fecha)}`;
   const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
   const quien = usuarioActual?.nombre || 'alguien';
@@ -4105,6 +4156,9 @@ let cobDatos = { leads:[], inscritas:[] };
 const cobAbiertos = new Set(['confirmar','vencidos','hoy','semana']);
 const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','despues','sinfecha'];
 const COB_ICONO = { confirmar:'🟣', vencidos:'🔴', hoy:'🟠', semana:'🟡', despues:'⚪', sinfecha:'⚫' };
+/* "Hoy" con la hora de quien usa el Hub (México). new Date().toISOString() da
+   la fecha de Londres (UTC): desde las 5–6 pm ya es "mañana", los días del
+   Calendario desaparecían en pleno curso y los abonos salían con fecha de mañana. */
 function hoyISO(){ return new Date().toLocaleDateString('en-CA'); }
 function sumarDias(iso, n){ const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); }
 function diasEntre(a, b){ return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5); }
@@ -4332,8 +4386,8 @@ cobGrupos.addEventListener('click', async e=>{
   if(e.target.closest('[data-cob-wa]')){
     const it = itemsCobranza().find(x=>x.tipo === tipo && x.id === id); if(!it) return;
     const r = it.raw;
-    const ev = tipo === 'lead' ? (r.eventos || (r.evento_id && EVENTOS_CAL.find(x=>x.id === r.evento_id))) : r.eventos;
-    const evCal = ev && EVENTOS_CAL.find(x=>x.id === ev.id);
+    const ev = tipo === 'lead' ? (r.eventos || (r.evento_id && eventoPorId(r.evento_id))) : r.eventos;
+    const evCal = ev && eventoPorId(ev.id);
     abrirEnviarWhatsApp({ nombre: it.nombre, telefono: it.tel, personaId: r.personas?.id, leadId: tipo === 'lead' ? id : null,
       ciudad: ev?.ciudades?.nombre || (tipo === 'lead' ? r.ciudades?.nombre : '') || '', fecha: ev?.fecha || '', sede: evCal?.sede || '',
       debe: tipo === 'insc' ? it.monto : null });
@@ -4793,7 +4847,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   const nombre = document.getElementById('nuevoNombre').value.trim();
   const telefono = document.getElementById('nuevoTelefono').value.replace(/\D/g,'');
   const eventoId = document.getElementById('nuevoEvento').value || null;
-  const evento = EVENTOS_CAL.find(e=>e.id === eventoId);
+  const evento = eventoPorId(eventoId);
   const cursoId = evento ? (evento.curso_id || await obtenerCursoActivoId()) : (document.getElementById('nuevoCurso').value || null);
   const ciudadId = evento ? evento.ciudad_id : (document.getElementById('nuevoCiudad').value || null);
   const fechaAnticipo = document.getElementById('nuevoFechaAnticipo').value || null;
@@ -4902,10 +4956,13 @@ async function renderCalendario(preservarMes){
   }
   // Solo eventos del curso en curso — antes traía eventos de CUALQUIER
   // curso con fecha futura (incluía tarjetas ajenas a la gira actual).
+  // TODOS los días de la gira actual, también los que ya pasaron: nunca se
+  // quita nada del Calendario, queda como histórico y se sigue pudiendo editar.
+  const inicioGira = await obtenerInicioGira();
   const { data: eventos, error } = await sb.from('eventos')
     .select('id, fecha, ciudad_id, sede, ciudades(nombre), cursos(nombre)')
     .eq('curso_id', cursoId)
-    .not('fecha', 'is', null).gte('fecha', new Date().toISOString().slice(0,10))
+    .not('fecha', 'is', null).gte('fecha', inicioGira)
     .order('fecha', {ascending:true});
   if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + error.message + '</div>'; return; }
   if(!eventos || eventos.length===0){ cont.innerHTML = '<div class="empty-note">Sin eventos programados del curso activo todavía.</div>'; return; }
@@ -4972,21 +5029,28 @@ async function renderCalendario(preservarMes){
     });
   });
 
+  // Meses: desde el primer día de la gira (o este mes, si la gira empieza
+  // después) hasta el último. Se abre en el mes de hoy.
   const hoy = new Date();
   const claves = Object.keys(calendarioDias).sort();
-  const ultimo = new Date(claves[claves.length-1] + 'T00:00:00');
+  const primero = new Date(claves[0] + 'T12:00:00');
+  const ultimo = new Date(claves[claves.length-1] + 'T12:00:00');
+  const mesHoy = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  const ini = new Date(primero.getFullYear(), primero.getMonth(), 1);
+  const finGira = new Date(ultimo.getFullYear(), ultimo.getMonth(), 1);
   calendarioMeses = [];
-  let cursor = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-  const fin = new Date(ultimo.getFullYear(), ultimo.getMonth(), 1);
+  let cursor = ini < mesHoy ? ini : mesHoy;
+  const fin = finGira > mesHoy ? finGira : mesHoy;
   while(cursor <= fin){
     calendarioMeses.push({ y: cursor.getFullYear(), m: cursor.getMonth() });
     cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
   }
+  const idxHoy = Math.max(0, calendarioMeses.findIndex(mm => mm.y===hoy.getFullYear() && mm.m===hoy.getMonth()));
   if(mesPrevio){
     const idx = calendarioMeses.findIndex(mm => mm.y===mesPrevio.y && mm.m===mesPrevio.m);
-    calendarioMesIdx = idx >= 0 ? idx : 0;
+    calendarioMesIdx = idx >= 0 ? idx : idxHoy;
   } else {
-    calendarioMesIdx = 0;
+    calendarioMesIdx = idxHoy;
   }
   pintarCalendarioMes();
   if(preservarMes){
@@ -5033,8 +5097,9 @@ function pintarCalendarioMes(){
     eventosDelDia.forEach(ev=>{ liq+=ev.liq; ant+=ev.ant; pend+=ev.pend; });
     const clase = clasificarCalendario(liq, ant, pend);
     const ciudadesTxt = [...new Set(eventosDelDia.map(ev=>ev.ciudad))].join(' · ');
-    return `<div class="cal-cell has-evt ${clase} ${esHoy?'today':''}" data-key="${c.key}" title="${ciudadesTxt}">
-      <span class="num">${c.dia}</span>
+    const pasado = c.key < hoyISO();
+    return `<div class="cal-cell has-evt ${clase} ${esHoy?'today':''} ${pasado?'pasado':''}" data-key="${c.key}" title="${ciudadesTxt}${pasado ? ' · ya pasó (se puede abrir y editar)' : ''}">
+      <span class="num">${c.dia}</span>${pasado ? '<span class="cal-paso">✔<span class="cal-paso-txt"> pasó</span></span>' : ''}
       <span class="cal-city">${ciudadesTxt}</span>
       <span class="cal-mini-stats">${liq?`<span class="ms liq">✓ ${liq}</span>`:''}${ant?`<span class="ms ant">◐ ${ant}</span>`:''}${pend?`<span class="ms pend">! ${pend}</span>`:''}</span>
     </div>`;
@@ -5075,7 +5140,8 @@ function abrirSheetCalendario(key){
   mostrarResumenSheet();
   const eventosDelDia = calendarioDias[key] || [];
   const fecha = new Date(key + 'T00:00:00');
-  document.getElementById('sheetFecha').textContent = fecha.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('sheetFecha').textContent = fecha.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' })
+    + (key < hoyISO() ? ' · ✔ ya pasó (histórico, se puede editar)' : '');
   document.getElementById('sheetEventos').innerHTML = eventosDelDia.map((ev, idx)=>{
     const clase = clasificarCalendario(ev.liq, ev.ant, ev.pend);
     const total = (ev.liq + ev.ant + ev.pend) || 1;
@@ -5316,7 +5382,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   const sel = document.getElementById('modalInscEstatusSelect');
   sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===data.estatus_id?'selected':''}>${e.etiqueta}</option>`).join('');
   document.getElementById('modalPagoMonto').value = '';
-  document.getElementById('modalPagoFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('modalPagoFecha').value = hoyISO();
   document.getElementById('modalPagoBanco').value = '';
   document.getElementById('cobroProximo').value = data.fecha_proximo_pago || '';
   pintarCobro();
@@ -5856,7 +5922,7 @@ function semanaDeISO(fechaStr){
   const d = new Date(fechaStr + 'T00:00:00');
   const inicio = new Date(d);
   inicio.setDate(d.getDate() - d.getDay());
-  return inicio.toISOString().slice(0,10);
+  return inicio.toLocaleDateString('en-CA');
 }
 const DONA_COLORES = ['#5A1F2B','#C6A66B','#55745C','#B5453A','#B56F55','#8A6D2F','#3FB6C4','#756D65'];
 
@@ -7774,7 +7840,7 @@ async function obtenerProximaGiraResumenHTML(){
     .eq('estatus','confirmada');
   if(error) return 'Error: '+error.message;
   if(!giras || !giras.length) return '<h3>Próxima gira confirmada</h3><div class="empty-note">Todavía no hay ninguna gira confirmada.</div>';
-  const hoy = new Date().toISOString().slice(0,10);
+  const hoy = hoyISO();
   let elegida = null, mejorFecha = null;
   giras.forEach(g=>{
     (g.gira_paradas||[]).forEach(p=>{
@@ -7907,7 +7973,7 @@ document.getElementById('btnAgregarContacto').addEventListener('click', ()=>{
   if(mostrar){
     document.getElementById('nuevoContactoCurso').innerHTML = '<option value="">— Sin especificar —</option>' +
       logisticaCursosCache.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
-    document.getElementById('nuevoContactoFecha').value = new Date().toISOString().slice(0,10);
+    document.getElementById('nuevoContactoFecha').value = hoyISO();
     document.getElementById('nuevoContactoEstatus').value = 'prospecto';
     document.getElementById('nuevoContactoMotivo').value = '';
     document.getElementById('nuevoContactoAnticipo').value = '';
