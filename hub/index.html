@@ -558,14 +558,28 @@
   .cob-dia .cob-registrar{ width:auto; margin-left:auto; padding:8px 14px; }
   .cob-acciones button[data-cob-cobrar]{ background:var(--wine); border-color:var(--wine); color:#fff; font-weight:600; }
   /* Cobro directo: la ficha de la inscrita sólo con el abono */
-  #modalInscripcion.solo-cobro .modal-vendedor,
   #modalInscripcion.solo-cobro .modal-notas,
-  #modalInscripcion.solo-cobro .modal-tabs{ display:none; }
+  #modalInscripcion.solo-cobro .ficha-mas{ display:none; }
   .cobro-ficha-completa{ display:none; margin:10px auto 0; background:none; border:none; color:var(--ink-soft); text-decoration:underline; font-family:inherit; font-size:12.5px; cursor:pointer; }
   #modalInscripcion.solo-cobro .cobro-ficha-completa{ display:block; }
-  .cobro-resumen{ display:flex; flex-wrap:wrap; gap:6px 14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px 13px; font-size:13px; margin-bottom:12px; }
-  .cobro-resumen b{ font-size:14px; }
-  .cobro-resumen .debe{ color:var(--danger); }
+  /* Ficha de la inscrita: lo que debe manda; lo administrativo va en "Más información" */
+  #modalInscripcion .modal{ max-width:480px; }
+  .cobro-resumen{ background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:12px; }
+  .cobro-resumen .cobro-etq{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); }
+  .cobro-resumen .cobro-grande{ font-size:36px; font-weight:700; line-height:1.1; letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:#8A6D2F; }
+  .cobro-resumen .cobro-grande.ok{ color:var(--success); font-size:26px; }
+  .cobro-resumen .cobro-det{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .cobro-formas{ display:flex; gap:6px; flex-wrap:wrap; }
+  .cobro-formas button{ flex:1 1 0; min-width:0; padding:9px 4px; border:1px solid var(--border); border-radius:10px; background:var(--card); font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .cobro-formas button.activo{ border-color:var(--wine); background:rgba(90,31,43,.07); color:var(--wine); box-shadow:inset 0 0 0 1px var(--wine); }
+  .cobro-cta{ font-size:15px; padding:13px; }
+  .ficha-cobro{ margin-bottom:14px; }
+  .ficha-mas{ border-top:1px solid var(--border); padding-top:12px; }
+  .ficha-mas > summary{ cursor:pointer; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:10px; }
+  .ficha-mas[open] > summary{ margin-bottom:12px; }
+  .guardado-estado{ font-weight:600; text-transform:none; letter-spacing:0; margin-left:6px; color:var(--ink-soft); }
+  .guardado-estado.ok{ color:var(--success); }
+  .guardado-estado.malo{ color:var(--danger); }
   #cobroLiquida{ width:auto; white-space:nowrap; }
   #modalPagoMonto{ flex:1; }
   .corr-preview .bueno{ color:var(--success); font-weight:700; }
@@ -1279,61 +1293,68 @@
         <button type="button" class="btn-wa-mini" id="btnInscWhats" style="margin-top:4px;">💬 WhatsApp</button>
       </div>
     </div>
-    <div class="modal-vendedor">
-      <div class="modal-notas-titulo">¿Quién vendió?</div>
-      <div class="vend-row">
-        <select id="inscVendedorSelect"></select>
-        <button class="btn-primary small" id="guardarInscVendedor">Guardar</button>
-      </div>
-      <div class="vend-hint" id="inscVendedorHint"></div>
-    </div>
-    <div class="modal-vendedor" id="inscProximoPagoCaja">
-      <div class="modal-notas-titulo">Próximo pago</div>
-      <div class="vend-row">
-        <input type="date" id="inscProximoPago">
-        <button class="btn-primary small" id="guardarInscProximoPago">Guardar</button>
-      </div>
-      <div class="vend-hint" id="inscProximoPagoHint"></div>
-    </div>
-    <div class="modal-notas">
-      <div class="modal-notas-titulo">Comentarios</div>
-      <textarea class="textarea" id="modalInscNotasEdit" placeholder="Sin comentarios todavía..." style="min-height:80px;"></textarea>
-      <button class="btn-primary small" id="guardarInscNotas" style="margin-top:8px;">Guardar comentario</button>
-    </div>
-    <div class="modal-tabs">
-      <button class="modal-tab active" id="tabInscEstatus">Marcar estatus</button>
-      <button class="modal-tab" id="tabInscPago">Agregar pago</button>
-      <button class="modal-tab" id="tabInscCorregir">Corregir</button>
-    </div>
-
-    <div class="tab-panel active" id="panelInscEstatus">
-      <div class="dato-row"><span class="l">Precio pactado</span><span class="v" id="modalInscPrecio">—</span></div>
-      <div class="dato-row"><span class="l">Anticipo registrado</span><span class="v" id="modalInscAnticipo">—</span></div>
-      <div class="dato-row"><span class="l">Restante</span><span class="v" id="modalInscRestante">—</span></div>
-      <div class="modal-field"><label>Nuevo estatus</label><select id="modalInscEstatusSelect"></select></div>
-      <button class="btn-primary" id="guardarInscEstatus">Guardar estatus</button>
-    </div>
-
-    <div class="tab-panel" id="panelInscPago">
+    <!-- Cobro: lo primero que se ve. Lo que debe en grande y un solo botón. -->
+    <div class="ficha-cobro" id="panelInscPago">
       <div class="cobro-resumen" id="cobroResumen">—</div>
-      <div class="modal-field"><label>Monto del abono</label>
-        <div class="vend-row"><input type="number" id="modalPagoMonto" placeholder="700" inputmode="decimal" min="0" step="50">
+      <div class="modal-field"><label>Monto (vacío = liquida todo)</label>
+        <div class="vend-row"><input type="number" id="modalPagoMonto" placeholder="Lo que debe" inputmode="decimal" min="0" step="50">
         <button type="button" class="btn-outline small" id="cobroLiquida">Liquida todo</button></div></div>
+      <div class="modal-field"><label>Forma de pago</label>
+        <div class="cobro-formas" id="cobroFormas">
+          <button type="button" data-forma="Efectivo">Efectivo</button>
+          <button type="button" data-forma="Tarjeta">Tarjeta</button>
+          <button type="button" data-forma="Transferencia">Transferencia</button>
+        </div>
+        <input id="modalPagoBanco" placeholder="Banco u otra forma (opcional)" style="margin-top:6px;"></div>
       <div class="modal-field"><label>Fecha</label><input type="date" id="modalPagoFecha"></div>
-      <div class="modal-field"><label>Banco (opcional)</label><input id="modalPagoBanco" placeholder="BanCoppel, transferencia..."></div>
       <div class="corr-preview" id="cobroPreview">—</div>
       <div class="modal-field" id="cobroProximoCaja"><label>Próximo pago (lo que le quede)</label>
         <input type="date" id="cobroProximo">
         <div class="vend-hint" id="cobroProximoHint"></div></div>
-      <button class="btn-primary" id="guardarInscPago">Registrar abono</button>
+      <button class="btn-primary cobro-cta" id="guardarInscPago">Registrar abono</button>
       <button type="button" class="cobro-ficha-completa" id="cobroFichaCompleta">Ver ficha completa</button>
     </div>
 
-    <div class="tab-panel" id="panelInscCorregir">
+    <div class="modal-notas">
+      <div class="modal-notas-titulo">Comentarios <span class="guardado-estado" id="inscNotasEstado"></span></div>
+      <textarea class="textarea" id="modalInscNotasEdit" placeholder="Escribe y se guarda solo..." style="min-height:70px;"></textarea>
+    </div>
+
+    <!-- Lo administrativo va aparte para no estorbar al cobrar. -->
+    <details class="ficha-mas" id="inscFichaMas">
+      <summary>Más información: vendedor, próximo pago, estatus y corregir montos</summary>
+      <div class="modal-vendedor">
+        <div class="modal-notas-titulo">¿Quién vendió? <span class="guardado-estado" id="inscVendedorEstado"></span></div>
+        <div class="vend-row">
+          <select id="inscVendedorSelect"></select>
+        </div>
+        <div class="vend-hint" id="inscVendedorHint"></div>
+      </div>
+      <div class="modal-vendedor" id="inscProximoPagoCaja">
+        <div class="modal-notas-titulo">Próximo pago <span class="guardado-estado" id="inscProximoPagoEstado"></span></div>
+        <div class="vend-row">
+          <input type="date" id="inscProximoPago">
+        </div>
+        <div class="vend-hint" id="inscProximoPagoHint"></div>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tabInscEstatus">Marcar estatus</button>
+        <button class="modal-tab" id="tabInscCorregir">Corregir montos</button>
+      </div>
+
+      <div class="tab-panel active" id="panelInscEstatus">
+        <div class="dato-row"><span class="l">Precio pactado</span><span class="v" id="modalInscPrecio">—</span></div>
+        <div class="dato-row"><span class="l">Anticipo registrado</span><span class="v" id="modalInscAnticipo">—</span></div>
+        <div class="dato-row"><span class="l">Restante</span><span class="v" id="modalInscRestante">—</span></div>
+        <div class="modal-field"><label>Nuevo estatus</label><select id="modalInscEstatusSelect"></select></div>
+        <button class="btn-primary" id="guardarInscEstatus">Guardar estatus</button>
+      </div>
+
+      <div class="tab-panel" id="panelInscCorregir">
       <div class="aviso-corregir">
         Esto <b>reemplaza</b> lo capturado, no suma. Úsalo cuando el monto quedó
         mal escrito o el precio cambió. Si la alumna acaba de abonar, usa
-        <b>Agregar pago</b> para que quede el registro del abono.
+        <b>el cobro de arriba</b> para que quede el registro del abono.
       </div>
       <div class="modal-field"><label>Precio del curso</label><input type="number" id="corrPrecio" inputmode="decimal" min="0" step="50"></div>
       <div class="modal-field"><label>Total pagado hasta hoy</label><input type="number" id="corrPagado" inputmode="decimal" min="0" step="50"></div>
@@ -1341,6 +1362,7 @@
       <div class="modal-field"><label>¿Por qué se corrige?</label><input id="corrMotivo" placeholder="Pagó $200 de más en la puerta, se recapturó..."></div>
       <button class="btn-primary" id="guardarInscCorreccion">Guardar corrección</button>
     </div>
+    </details>
   </div>
 </div>
 
@@ -5236,10 +5258,12 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   document.getElementById('modalInscTelefono').textContent = '';
   document.getElementById('modalInscAvatar').textContent = '—';
   document.getElementById('modalInscNotasEdit').value = '';
+  ['inscNotasEstado','inscVendedorEstado','inscProximoPagoEstado'].forEach(id=>marcarGuardado(id, ''));
   document.getElementById('cobroResumen').textContent = 'Cargando…';
+  document.getElementById('inscFichaMas').open = false;
   document.getElementById('modalInscripcion').classList.toggle('solo-cobro', soloCobro);
   document.getElementById('modalInscripcion').classList.add('open');
-  cambiarTabInsc(soloCobro ? 'pago' : 'estatus');
+  cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
     .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha, sede, ciudades(nombre))')
@@ -5305,12 +5329,14 @@ function pintarProximoPagoFicha(){
     ? `Cobranza le da seguimiento el ${fechaCorta(d.fecha_proximo_pago)}.`
     : `Sin fecha: Cobranza toma el día del curso${d.eventos?.fecha ? ' (' + fechaCorta(d.eventos.fecha) + ')' : ''} como límite.`;
 }
-document.getElementById('guardarInscProximoPago').addEventListener('click', async ()=>{
+document.getElementById('inscProximoPago').addEventListener('change', async ()=>{
   const d = modalInscDatos; if(!d) return;
   const fecha = document.getElementById('inscProximoPago').value || null;
-  if(fecha === (d.fecha_proximo_pago || null)){ toast('Esa fecha ya estaba.', true); return; }
+  if(fecha === (d.fecha_proximo_pago || null)) return;
+  marcarGuardado('inscProximoPagoEstado', 'Guardando…');
   const { error } = await sb.from('inscripciones').update({ fecha_proximo_pago: fecha }).eq('id', d.id);
-  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  if(error){ marcarGuardado('inscProximoPagoEstado', '⚠ No se guardó', 'malo'); toast('No se pudo guardar: ' + error.message, true); return; }
+  marcarGuardado('inscProximoPagoEstado', '✓ Guardado', 'ok');
   registrarActividad('fecha_cobro_movida', `${d.personas?.nombre || 'inscrita'}: próximo pago ${fecha ? fechaCorta(fecha) : 'sin fecha (día del curso)'}`);
   d.fecha_proximo_pago = fecha;
   pintarProximoPagoFicha();
@@ -5337,6 +5363,7 @@ function pintarVendedorFicha(){
    mostrando el pago o el vendedor de antes de la corrección. */
 let alCerrarFichaInscripcion = null;
 function cerrarModalInscripcion(){
+  if(notasPendientes) guardarNotasPendientes();
   document.getElementById('modalInscripcion').classList.remove('open', 'solo-cobro');
   modalInscId = null; modalInscDatos = null;
   const cb = alCerrarFichaInscripcion; alCerrarFichaInscripcion = null;
@@ -5345,15 +5372,14 @@ function cerrarModalInscripcion(){
 document.getElementById('closeModalInscripcion').addEventListener('click', cerrarModalInscripcion);
 
 function cambiarTabInsc(tab){
-  for(const t of ['estatus','pago','corregir']){
-    const btn = { estatus:'tabInscEstatus', pago:'tabInscPago', corregir:'tabInscCorregir' }[t];
-    const pan = { estatus:'panelInscEstatus', pago:'panelInscPago', corregir:'panelInscCorregir' }[t];
+  for(const t of ['estatus','corregir']){
+    const btn = { estatus:'tabInscEstatus', corregir:'tabInscCorregir' }[t];
+    const pan = { estatus:'panelInscEstatus', corregir:'panelInscCorregir' }[t];
     document.getElementById(btn).classList.toggle('active', tab===t);
     document.getElementById(pan).classList.toggle('active', tab===t);
   }
 }
 document.getElementById('tabInscEstatus').addEventListener('click', ()=>cambiarTabInsc('estatus'));
-document.getElementById('tabInscPago').addEventListener('click', ()=>cambiarTabInsc('pago'));
 document.getElementById('tabInscCorregir').addEventListener('click', ()=>cambiarTabInsc('corregir'));
 
 /* Qué estatus le toca segun lo que lleva pagado. Misma regla que usa
@@ -5415,19 +5441,21 @@ function rastroReasignacion(previoId, nuevoId, motivo){
        + (motivo ? ` Motivo: ${motivo}` : '');
 }
 
-document.getElementById('guardarInscVendedor').addEventListener('click', async ()=>{
+document.getElementById('inscVendedorSelect').addEventListener('change', async ()=>{
   if(!modalInscId || !modalInscDatos) return;
-  const nuevoId  = document.getElementById('inscVendedorSelect').value || null;
+  const sel      = document.getElementById('inscVendedorSelect');
+  const nuevoId  = sel.value || null;
   const previoId = modalInscDatos.asesor_id || null;
-  if(nuevoId === previoId){ toast('Ya estaba a ese nombre.', true); return; }
+  if(nuevoId === previoId) return;
 
   const alumno   = modalInscDatos.personas?.nombre || 'esta alumna';
   const nombreDe = id => nombreVendedor(id) || 'nadie';
   const motivo = await preguntarCambioVendedor(previoId, nuevoId, alumno);
-  if(motivo === null) return;   // cancelaron
+  if(motivo === null){ sel.value = previoId || ''; return; }   // cancelaron: regresa al que estaba
 
-  const btn = document.getElementById('guardarInscVendedor');
-  btn.disabled = true; btn.textContent = 'Guardando...';
+  // El rastro se escribe en los comentarios: primero se guarda lo que estuvieran escribiendo.
+  await guardarNotasPendientes();
+  sel.disabled = true; marcarGuardado('inscVendedorEstado', 'Guardando…');
 
   // El rastro sólo se escribe cuando hubo un dueño anterior.
   const cambios = { asesor_id: nuevoId };
@@ -5437,8 +5465,9 @@ document.getElementById('guardarInscVendedor').addEventListener('click', async (
   }
 
   const { error } = await sb.from('inscripciones').update(cambios).eq('id', modalInscId);
-  btn.disabled = false; btn.textContent = 'Guardar';
-  if(error){ toast('No se pudo guardar el vendedor: ' + error.message, true); return; }
+  sel.disabled = false;
+  if(error){ sel.value = previoId || ''; marcarGuardado('inscVendedorEstado', '⚠ No se guardó', 'malo'); toast('No se pudo guardar el vendedor: ' + error.message, true); return; }
+  marcarGuardado('inscVendedorEstado', '✓ Guardado', 'ok');
 
   modalInscDatos.asesor_id = nuevoId;
   if(cambios.notas_migracion){
@@ -5459,16 +5488,41 @@ document.getElementById('guardarInscVendedor').addEventListener('click', async (
   }
 });
 
-document.getElementById('guardarInscNotas').addEventListener('click', async ()=>{
+/* Estado chiquito junto al título: "Guardando…", "✓ Guardado" o el aviso de error. */
+function marcarGuardado(id, texto, clase = ''){
+  const el = document.getElementById(id); if(!el) return;
+  el.textContent = texto;
+  el.className = 'guardado-estado' + (clase ? ' ' + clase : '');
+}
+
+/* Comentarios: se guardan solos al dejar de escribir, sin botón. Se recuerda
+   de qué ficha era el texto, por si la cierran antes de que termine de guardar. */
+let notasPendientes = null;   // { inscId, texto, timer }
+function programarGuardarNotas(){
   if(!modalInscId) return;
-  const texto = document.getElementById('modalInscNotasEdit').value.trim();
-  const btn = document.getElementById('guardarInscNotas'); btn.disabled = true; btn.textContent = 'Guardando...';
-  const { error } = await sb.from('inscripciones').update({ notas_migracion: texto || null }).eq('id', modalInscId);
-  btn.disabled = false; btn.textContent = 'Guardar comentario';
-  if(error){ toast('Error al guardar: ' + error.message, true); return; }
-  if(modalInscDatos) modalInscDatos.notas_migracion = texto || null;
-  toast('Comentario guardado.');
-});
+  if(notasPendientes) clearTimeout(notasPendientes.timer);
+  notasPendientes = { inscId: modalInscId, texto: document.getElementById('modalInscNotasEdit').value.trim() };
+  notasPendientes.timer = setTimeout(guardarNotasPendientes, 600);
+  marcarGuardado('inscNotasEstado', 'escribiendo…');
+}
+async function guardarNotasPendientes(){
+  const p = notasPendientes; if(!p) return;
+  clearTimeout(p.timer); notasPendientes = null;
+  const esLaAbierta = () => modalInscId === p.inscId;
+  if(esLaAbierta()) marcarGuardado('inscNotasEstado', 'Guardando…');
+  const { error } = await sb.from('inscripciones').update({ notas_migracion: p.texto || null }).eq('id', p.inscId);
+  if(error){
+    if(esLaAbierta()) marcarGuardado('inscNotasEstado', '⚠ No se guardó', 'malo');
+    toast('No se pudo guardar el comentario: ' + error.message, true);
+    return;
+  }
+  if(esLaAbierta()){
+    if(modalInscDatos) modalInscDatos.notas_migracion = p.texto || null;
+    marcarGuardado('inscNotasEstado', '✓ Guardado', 'ok');
+  }
+}
+document.getElementById('modalInscNotasEdit').addEventListener('input', programarGuardarNotas);
+document.getElementById('modalInscNotasEdit').addEventListener('blur', ()=>{ if(notasPendientes) guardarNotasPendientes(); });
 
 document.getElementById('guardarInscEstatus').addEventListener('click', async ()=>{
   if(!modalInscId) return;
@@ -5546,16 +5600,22 @@ function pintarCobro(){
   const d = modalInscDatos; if(!d) return;
   const debe = debeDe(d);
   const precio = d.precio_pactado != null ? Number(d.precio_pactado) : null;
-  document.getElementById('cobroResumen').innerHTML =
-    `<span>Precio <b>${precio != null ? fmtMoney(precio) : '—'}</b></span>`
-    + `<span>Pagado <b>${fmtMoney(Number(d.anticipo || 0))}</b></span>`
-    + (debe > 0 ? `<span class="debe">Debe <b>${fmtMoney(debe)}</b></span>` : '<span>✅ <b>Liquidada</b></span>');
+  const pagado = Number(d.anticipo || 0);
+  document.getElementById('cobroResumen').innerHTML = debe > 0
+    ? `<div class="cobro-etq">Debe</div><div class="cobro-grande">${fmtMoney(debe)}</div>`
+      + `<div class="cobro-det">Pagado ${fmtMoney(pagado)}${precio != null ? ' de ' + fmtMoney(precio) : ''}</div>`
+    : `<div class="cobro-etq">Pagado</div><div class="cobro-grande ok">✅ ${fmtMoney(pagado)} · Liquidada</div>`
+      + `<div class="cobro-det">Ya no debe nada.</div>`;
   document.getElementById('cobroLiquida').style.display = debe > 0 ? '' : 'none';
-  const monto = Number(document.getElementById('modalPagoMonto').value);
+  const escrito = document.getElementById('modalPagoMonto').value.trim();
+  // Monto vacío y con saldo = liquida todo: un solo clic para el caso de la fila.
+  const monto = escrito === '' && debe > 0 ? debe : Number(escrito);
   const caja = document.getElementById('cobroPreview');
   let quedaDebiendo = debe > 0;
+  const btn = document.getElementById('guardarInscPago');
   if(!(monto > 0)){
     caja.innerHTML = debe > 0 ? `Escribe el monto. Debe <b>${fmtMoney(debe)}</b>.` : 'Ya no debe nada. Si pagó algo más, escribe el monto.';
+    if(!btn.disabled) btn.textContent = 'Registrar pago';
   } else {
     const r = calcularAbono(d, monto);
     quedaDebiendo = !r.liquidado;
@@ -5563,7 +5623,12 @@ function pintarCobro(){
     caja.innerHTML = r.liquidado
       ? `<span class="bueno">✅ Queda liquidada</span>${sobra}`
       : `Con este abono queda debiendo <b>${fmtMoney(r.nuevoRestante)}</b>`;
+    if(!btn.disabled) btn.textContent = r.liquidado && r.sobra === 0 ? `Liquida ${fmtMoney(monto)}` : `Registrar abono de ${fmtMoney(monto)}`;
   }
+  // La forma de pago marcada es la que diga el campo de banco.
+  const banco = document.getElementById('modalPagoBanco').value.trim().toLowerCase();
+  document.querySelectorAll('#cobroFormas [data-forma]').forEach(b=>
+    b.classList.toggle('activo', b.dataset.forma.toLowerCase() === banco));
   // La fecha del próximo pago sólo tiene sentido si le va a quedar saldo
   document.getElementById('cobroProximoCaja').style.display = quedaDebiendo ? '' : 'none';
   const fp = document.getElementById('cobroProximo').value;
@@ -5572,6 +5637,13 @@ function pintarCobro(){
     : `Sin fecha: Cobranza toma el día del curso${d.eventos?.fecha ? ' (' + fechaCorta(d.eventos.fecha) + ')' : ''} como límite.`;
 }
 document.getElementById('modalPagoMonto').addEventListener('input', pintarCobro);
+document.getElementById('modalPagoBanco').addEventListener('input', pintarCobro);
+document.getElementById('cobroFormas').addEventListener('click', e=>{
+  const b = e.target.closest('[data-forma]'); if(!b) return;
+  const inp = document.getElementById('modalPagoBanco');
+  inp.value = b.classList.contains('activo') ? '' : b.dataset.forma;
+  pintarCobro();
+});
 document.getElementById('cobroProximo').addEventListener('input', pintarCobro);
 document.getElementById('cobroLiquida').addEventListener('click', ()=>{
   const d = modalInscDatos; if(!d) return;
@@ -5585,7 +5657,8 @@ document.getElementById('cobroFichaCompleta').addEventListener('click', ()=>{
 document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   if(!modalInscId || !modalInscDatos) return;
   const d = modalInscDatos;
-  const monto = Number(document.getElementById('modalPagoMonto').value);
+  const escrito = document.getElementById('modalPagoMonto').value.trim();
+  const monto = escrito === '' && debeDe(d) > 0 ? debeDe(d) : Number(escrito);
   const fecha = document.getElementById('modalPagoFecha').value;
   const banco = document.getElementById('modalPagoBanco').value.trim();
   if(!monto || monto <= 0){ toast('Ingresa un monto válido.', true); return; }
@@ -5603,7 +5676,7 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   const { error: errPago } = await sb.from('pagos').insert({
     inscripcion_id: modalInscId, monto, fecha, banco: banco || null, confirmado_por: asesorActualId || null
   });
-  if(errPago){ btn.disabled = false; btn.textContent = 'Registrar abono'; toast('Error al registrar el pago: ' + errPago.message, true); return; }
+  if(errPago){ btn.disabled = false; pintarCobro(); toast('Error al registrar el pago: ' + errPago.message, true); return; }
 
   const update = { anticipo: r.nuevoAnticipo, restante: r.nuevoRestante, liquidado: r.liquidado };
   if(r.liquidado){
@@ -5614,7 +5687,7 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   const fechaMovida = !r.liquidado && proximo !== (d.fecha_proximo_pago || null);
   if(fechaMovida) update.fecha_proximo_pago = proximo;
   const { error: errUpd } = await sb.from('inscripciones').update(update).eq('id', modalInscId);
-  btn.disabled = false; btn.textContent = 'Registrar abono';
+  btn.disabled = false; pintarCobro();
   if(errUpd){ toast('El pago se guardó, pero no se pudo actualizar el saldo: ' + errUpd.message, true); return; }
 
   const nombre = d.personas?.nombre || '';
