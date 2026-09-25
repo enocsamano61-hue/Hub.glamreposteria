@@ -553,6 +553,24 @@
   .btn-wa.contorno{ background:transparent; color:#128C4B; border:1px solid #25D366; }
   .btn-wa-mini{ border:none; background:#25D366; color:#fff; border-radius:8px; padding:5px 9px; font-size:13px; cursor:pointer; flex-shrink:0; }
 
+  /* ---------- PRECIOS ---------- */
+  .precio-fila{ display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px 12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .precio-fila input{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink); min-width:0; }
+  .precio-fila .precio-nombre{ font-weight:600; }
+  .precio-monto{ display:flex; align-items:center; gap:6px; font-weight:600; }
+  .precio-monto input{ width:100%; font-variant-numeric:tabular-nums; }
+  .precio-activo{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-soft); white-space:nowrap; cursor:pointer; }
+  .precio-meta{ grid-column:1 / -1; font-size:11.5px; color:var(--ink-soft); }
+  .precio-fila.oculto .precio-nombre, .precio-fila.oculto .precio-monto{ opacity:.5; }
+  .precio-sin{ color:var(--danger); font-weight:600; }
+  .precio-nuevo{ display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px 12px; margin-top:14px; }
+  .precio-nuevo input{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink); min-width:0; }
+  .precio-nuevo .btn-primary{ width:auto; }
+  @media (max-width: 600px){
+    .precio-fila, .precio-nuevo{ grid-template-columns:minmax(0,1fr) 110px; }
+    .precio-activo, .precio-nuevo .btn-primary{ grid-column:1 / -1; }
+  }
+
   /* ---------- COBRANZA ---------- */
   .cob-cabeza{ margin-bottom:14px; }
   .cob-dia .cob-registrar{ width:auto; margin-left:auto; padding:8px 14px; }
@@ -1068,6 +1086,20 @@
         <div id="msjMios">Cargando…</div>
         <div class="msj-grupo">Del equipo</div>
         <div id="msjEquipo">—</div>
+      </div>
+    </div>
+
+    <!-- PRECIOS — lo que se cobra aparte del curso -->
+    <div class="view" id="view-precios">
+      <div class="card">
+        <h3 style="margin-bottom:2px;">💲 Precios</h3>
+        <div class="sub" style="margin:0 0 14px;">Lo que se cobra aparte del curso. Cualquiera del equipo los puede ajustar: el cambio se guarda solo, lo ven todos y queda en Actividad del equipo.</div>
+        <div id="preciosLista">Cargando…</div>
+        <div class="precio-nuevo">
+          <input id="precioNuevoNombre" placeholder="Nuevo: nombre (ej. Mandil)" maxlength="60">
+          <input id="precioNuevoMonto" type="number" placeholder="Precio" min="0" step="10" inputmode="decimal">
+          <button class="btn-primary small" id="btnAgregarPrecio">+ Agregar</button>
+        </div>
       </div>
     </div>
 
@@ -1827,6 +1859,7 @@ const SECCIONES = [
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'cobranza', label:'Cobranza', sub:'A quién cobrarle y cuándo: anticipos de leads y saldos de inscritas', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 13v5M10.5 14.2h2.3a1 1 0 0 1 0 2h-1.6a1 1 0 0 0 0 2h2.3"/>' },
   { id:'mensajes', label:'Mensajes', sub:'Mensajes predeterminados para WhatsApp', soon:false, icon:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/>' },
+  { id:'precios', label:'Precios', sub:'Lo que se cobra aparte del curso: VIP, uniforme…', soon:false, icon:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
@@ -1858,6 +1891,7 @@ function setActiveSection(id){
   if(id==='usuarios') renderUsuariosPermisos();
   if(id==='cobranza') renderCobranza();
   if(id==='mensajes') renderMensajes();
+  if(id==='precios') renderPrecios();
   if(usuarioActual?.id){
     // TUTORIAL — quitar estas 3 líneas
     marcarProgresoPorVista(id);
@@ -1896,12 +1930,12 @@ const PERMISOS_POR_ROL_DEFAULT = {
   'Sistemas': TODAS_SECCIONES,
   'Gerente': TODAS_SECCIONES,
   'Dueña': TODAS_SECCIONES,
-  'Coordinadora': ['inicio','mensajes','board','historial','cursos','plaza','giras','logistica','calendario'],
-  'Logística': ['inicio','mensajes','giras','logistica','plaza','calendario'],
-  'Ventas': ['inicio','mensajes','board','historial','ventas','calendario'],
-  'Ventas coordinadora': ['inicio','mensajes','board','historial','ventas','reportes','calendario'],
-  'Academia e Inbox': ['inicio','mensajes','board','historial','cursos','calendario'],
-  'Cobranza': ['inicio','mensajes','ventas','cobranza','historial','calendario'],
+  'Coordinadora': ['inicio','mensajes','precios','board','historial','cursos','plaza','giras','logistica','calendario'],
+  'Logística': ['inicio','mensajes','precios','giras','logistica','plaza','calendario'],
+  'Ventas': ['inicio','mensajes','precios','board','historial','ventas','calendario'],
+  'Ventas coordinadora': ['inicio','mensajes','precios','board','historial','ventas','reportes','calendario'],
+  'Academia e Inbox': ['inicio','mensajes','precios','board','historial','cursos','calendario'],
+  'Cobranza': ['inicio','mensajes','precios','ventas','cobranza','historial','calendario'],
 };
 // Cache cargado en cada login desde public.permisos_rol: { [rol]: Set(seccion_id) }.
 let PERMISOS_ROL_CACHE = null;
@@ -2301,6 +2335,8 @@ const ACCION_LABEL = {
   mensaje_creado: '💬 Creó un mensaje predeterminado',
   mensaje_editado: '💬 Editó un mensaje predeterminado',
   mensaje_borrado: '💬 Borró un mensaje predeterminado',
+  precio_agregado: '💲 Agregó un precio',
+  precio_cambiado: '💲 Cambió un precio',
   venta_asignada: 'Asignó el vendedor de una venta',
   venta_reasignada: 'Cambió de vendedor una venta',
   tarea_asignada: 'Le asignó una tarea a alguien',
@@ -5697,6 +5733,110 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   cerrarModalInscripcion();
   await renderCalendario(true);
 });
+
+/* =========================================================
+   PRECIOS — catálogo de lo que se cobra aparte del curso (VIP, uniforme…).
+   Cualquiera lo ajusta y se guarda solo. PRECIOS queda en memoria para que
+   Recepción y Cobranza lo usen sin volver a consultarlo.
+   ========================================================= */
+let PRECIOS = null;
+async function cargarPrecios(){
+  const { data, error } = await sb.from('precios').select('id, nombre, precio, activo, orden, actualizado_por, actualizado_en').order('orden').order('nombre');
+  if(error){ toast('No se pudieron cargar los precios: ' + error.message, true); PRECIOS = PRECIOS || []; return PRECIOS; }
+  PRECIOS = data || [];
+  return PRECIOS;
+}
+function textoPrecio(v){ return v == null ? 'sin precio' : fmtMoney(v); }
+
+async function renderPrecios(){
+  await cargarPrecios();
+  const lista = PRECIOS.slice().sort((a,b)=> (b.activo - a.activo) || (a.orden - b.orden) || a.nombre.localeCompare(b.nombre));
+  document.getElementById('preciosLista').innerHTML = lista.length ? lista.map(pr=>{
+    const quien = EQUIPO.find(u=>u.id === pr.actualizado_por)?.nombre;
+    const cuando = pr.actualizado_en ? new Date(pr.actualizado_en).toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
+    return `<div class="precio-fila ${pr.activo ? '' : 'oculto'}" data-precio-id="${escapeAttr(pr.id)}">
+      <input class="precio-nombre" value="${escapeAttr(pr.nombre)}" maxlength="60" aria-label="Nombre">
+      <div class="precio-monto">$<input class="precio-valor" type="number" min="0" step="10" inputmode="decimal" value="${pr.precio ?? ''}" placeholder="Sin precio" aria-label="Precio de ${escapeAttr(pr.nombre)}"></div>
+      <label class="precio-activo"><input type="checkbox" class="precio-visible" ${pr.activo ? 'checked' : ''}> Visible al cobrar</label>
+      <div class="precio-meta">${pr.precio == null ? '<span class="precio-sin">Sin precio: quien lo cobre primero lo pone.</span> ' : ''}${quien ? `Último cambio: ${escHtml(quien)}${cuando ? ' · ' + cuando : ''}` : ''} <span class="guardado-estado"></span></div>
+    </div>`;
+  }).join('') : '<div class="empty-note">Todavía no hay precios. Agrega el primero abajo.</div>';
+}
+
+/* Guarda un cambio de un precio. La usa esta sección y la usará Recepción
+   cuando alguien ponga un precio al cobrar (queda de referencia para todos). */
+async function guardarPrecio(id, cambios){
+  const antes = PRECIOS?.find(p=>p.id === id);
+  const datos = { ...cambios, actualizado_por: usuarioActual?.id || null, actualizado_en: new Date().toISOString() };
+  const { error } = await sb.from('precios').update(datos).eq('id', id);
+  if(error) return { error: error.code === '23505' ? 'Ya hay un precio con ese nombre.' : error.message };
+  if(antes){
+    const nombre = cambios.nombre ?? antes.nombre;
+    const partes = [];
+    if('nombre' in cambios && cambios.nombre !== antes.nombre) partes.push(`nombre "${antes.nombre}" → "${cambios.nombre}"`);
+    if('precio' in cambios && cambios.precio !== antes.precio) partes.push(`${textoPrecio(antes.precio)} → ${textoPrecio(cambios.precio)}`);
+    if('activo' in cambios && cambios.activo !== antes.activo) partes.push(cambios.activo ? 'visible otra vez' : 'oculto');
+    if(partes.length) registrarActividad('precio_cambiado', `${nombre}: ${partes.join(', ')}`);
+    Object.assign(antes, datos);
+  }
+  return {};
+}
+
+document.getElementById('preciosLista').addEventListener('change', async e=>{
+  const fila = e.target.closest('[data-precio-id]'); if(!fila) return;
+  const id = fila.dataset.precioId;
+  const pr = PRECIOS?.find(p=>p.id === id); if(!pr) return;
+  const estado = fila.querySelector('.guardado-estado');
+  const marcar = (t, c='') => { estado.textContent = t; estado.className = 'guardado-estado' + (c ? ' ' + c : ''); };
+  let cambios;
+  if(e.target.classList.contains('precio-nombre')){
+    const nombre = e.target.value.trim();
+    if(!nombre){ e.target.value = pr.nombre; marcar('⚠ El nombre no puede quedar vacío', 'malo'); return; }
+    if(nombre === pr.nombre) return;
+    cambios = { nombre };
+  } else if(e.target.classList.contains('precio-valor')){
+    const txt = e.target.value.trim();
+    const precio = txt === '' ? null : Number(txt);
+    if(precio != null && !(precio >= 0)){ e.target.value = pr.precio ?? ''; marcar('⚠ Escribe un precio válido', 'malo'); return; }
+    if(precio === pr.precio) return;
+    cambios = { precio };
+  } else if(e.target.classList.contains('precio-visible')){
+    cambios = { activo: e.target.checked };
+  } else return;
+  marcar('Guardando…');
+  const r = await guardarPrecio(id, cambios);
+  if(r.error){
+    marcar('⚠ No se guardó', 'malo');
+    toast('No se pudo guardar el precio: ' + r.error, true);
+    if('nombre' in cambios) e.target.value = pr.nombre;
+    if('precio' in cambios) e.target.value = pr.precio ?? '';
+    if('activo' in cambios) e.target.checked = pr.activo;
+    return;
+  }
+  if('activo' in cambios){ await renderPrecios(); return; }
+  marcar('✓ Guardado', 'ok');
+});
+
+document.getElementById('btnAgregarPrecio').addEventListener('click', async ()=>{
+  const inpNombre = document.getElementById('precioNuevoNombre');
+  const inpMonto  = document.getElementById('precioNuevoMonto');
+  const nombre = inpNombre.value.trim();
+  const txt = inpMonto.value.trim();
+  const precio = txt === '' ? null : Number(txt);
+  if(!nombre){ toast('Escribe el nombre de lo que se cobra.', true); inpNombre.focus(); return; }
+  if(precio != null && !(precio >= 0)){ toast('Escribe un precio válido.', true); inpMonto.focus(); return; }
+  if(PRECIOS?.some(p=>p.nombre.trim().toLowerCase() === nombre.toLowerCase())){ toast('Ya hay un precio con ese nombre.', true); inpNombre.focus(); return; }
+  const btn = document.getElementById('btnAgregarPrecio'); btn.disabled = true;
+  const orden = Math.max(0, ...(PRECIOS || []).map(p=>p.orden || 0)) + 1;
+  const { error } = await sb.from('precios').insert({ nombre, precio, orden, activo: true, actualizado_por: usuarioActual?.id || null });
+  btn.disabled = false;
+  if(error){ toast('No se pudo agregar: ' + (error.code === '23505' ? 'ya hay un precio con ese nombre.' : error.message), true); return; }
+  registrarActividad('precio_agregado', `${nombre}: ${textoPrecio(precio)}`);
+  inpNombre.value = ''; inpMonto.value = '';
+  toast(`Agregado: ${nombre} · ${textoPrecio(precio)}.`);
+  await renderPrecios();
+});
+document.getElementById('precioNuevoMonto').addEventListener('keydown', e=>{ if(e.key === 'Enter') document.getElementById('btnAgregarPrecio').click(); });
 
 /* =========================================================
    VENTAS / REPORTES — utilidades compartidas
