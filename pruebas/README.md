@@ -26,6 +26,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_ficha.js` | Ficha de la inscrita: cobro primero, guardado automático, modo Cobranza. |
 | `prueba_precios.js` | Sección Precios. |
 | `prueba_recepcion.js` | Recepción del día del curso: buscar, cobrar, extras, llegada, cerrar/reabrir, leads, teclado. |
+| `prueba_no_llegaron.js` | Sección No llegaron: estados, filtros, acceso online, sí fue, perdió anticipo, mover de curso. |
 
 ## Escribir una prueba nueva
 

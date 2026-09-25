@@ -679,6 +679,52 @@
     .rec-deuda .grande{ font-size:40px; }
   }
 
+  /* ---------- NO LLEGARON ---------- */
+  .nl-cabeza{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+  .nl-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .nl-chip{ height:32px; padding:0 12px; border-radius:999px; border:1px solid var(--border); background:transparent; font-family:inherit; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .nl-chip b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .nl-chip.on{ background:var(--wine); border-color:var(--wine); color:#fff; }
+  .nl-chip.on b{ color:#fff; }
+  .nl-filtros{ display:flex; flex-wrap:wrap; gap:8px; }
+  .nl-filtros input, .nl-filtros select{ height:40px; border:1px solid var(--border); border-radius:10px; background:var(--card); padding:0 10px; font-family:inherit; font-size:13.5px; color:var(--ink); }
+  .nl-filtros input{ flex:1; min-width:180px; }
+  .nl-resumen{ font-size:13px; color:var(--ink-soft); }
+  .nl-resumen b{ color:var(--ink); }
+  .nl-cuerpo{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; align-items:start; }
+  .nl-tabla-caja{ padding:0; overflow:hidden; }
+  .nl-tabla-scroll{ overflow-x:auto; }
+  .nl-tabla{ width:100%; border-collapse:collapse; min-width:560px; }
+  .nl-tabla th{ text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); padding:12px 14px; border-bottom:1px solid var(--border); font-weight:700; }
+  .nl-tabla td{ padding:11px 14px; border-bottom:1px solid var(--border); font-size:13.5px; vertical-align:top; }
+  .nl-tabla tr:last-child td{ border-bottom:0; }
+  .nl-tabla tbody tr{ cursor:pointer; }
+  .nl-tabla tbody tr:hover{ background:rgba(90,31,43,.03); }
+  .nl-tabla tbody tr.sel{ background:rgba(90,31,43,.07); }
+  .nl-tabla .num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .nl-tabla .sub{ font-size:11.5px; color:var(--ink-soft); margin:2px 0 0; }
+  .nl-tag{ font-size:11.5px; font-weight:700; border-radius:999px; padding:3px 9px; white-space:nowrap; display:inline-block; }
+  .nl-tag.revisar{ background:rgba(198,166,107,.22); color:#7A6232; }
+  .nl-tag.nollego{ background:rgba(181,111,85,.14); color:var(--terracota); }
+  .nl-tag.online{ background:rgba(85,116,92,.14); color:var(--success); }
+  .nl-tag.perdio{ background:var(--border); color:var(--ink-soft); }
+  .nl-detalle{ position:sticky; top:16px; display:flex; flex-direction:column; gap:12px; }
+  .nl-detalle h3{ margin:0; font-size:19px; }
+  .nl-acciones{ display:flex; flex-direction:column; gap:8px; }
+  .nl-acc{ min-height:42px; border-radius:10px; border:1px solid var(--border); background:var(--card); font-family:inherit; font-weight:600; font-size:13.5px; text-align:left; padding:8px 14px; cursor:pointer; color:var(--ink); }
+  .nl-acc:hover{ border-color:var(--wine); color:var(--wine); }
+  .nl-acc.primario{ background:var(--wine); color:#fff; border-color:var(--wine); }
+  .nl-acc.peligro:hover{ border-color:var(--danger); color:var(--danger); }
+  .nl-notas{ font-size:12px; color:var(--ink-soft); white-space:pre-line; max-height:120px; overflow-y:auto; background:var(--bg); border-radius:8px; padding:8px 10px; }
+  .nl-mover{ display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border); padding-top:12px; }
+  .nl-mover-btns{ display:flex; gap:8px; justify-content:flex-end; }
+  .nl-mover-btns button{ width:auto; }
+  #view-nollegaron [hidden]{ display:none !important; }
+  @media (max-width: 900px){
+    .nl-cuerpo{ grid-template-columns:1fr; }
+    .nl-detalle{ position:static; }
+  }
+
   /* ---------- PRECIOS ---------- */
   .precio-fila{ display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px 12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
   .precio-fila input{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink); min-width:0; }
@@ -1226,6 +1272,40 @@
           <input id="precioNuevoMonto" type="number" placeholder="Precio" min="0" step="10" inputmode="decimal">
           <button class="btn-primary small" id="btnAgregarPrecio">+ Agregar</button>
         </div>
+      </div>
+    </div>
+
+    <!-- NO LLEGARON — alumnas con anticipo que no llegaron a su curso -->
+    <div class="view" id="view-nollegaron">
+      <div class="card nl-cabeza">
+        <div class="nl-chips" id="nlChips"></div>
+        <div class="nl-filtros">
+          <input id="nlBuscar" type="search" placeholder="Buscar alumna o teléfono…" autocomplete="off" aria-label="Buscar alumna">
+          <select id="nlCiudad" aria-label="Ciudad"></select>
+          <select id="nlVendedor" aria-label="Vendedor"></select>
+        </div>
+        <div class="nl-resumen" id="nlResumen"></div>
+      </div>
+      <div class="nl-cuerpo">
+        <div class="card nl-tabla-caja">
+          <div class="nl-tabla-scroll">
+            <table class="nl-tabla">
+              <thead><tr><th>Alumna</th><th>Curso</th><th>Vendió</th><th class="num">Anticipo</th><th>Estado</th></tr></thead>
+              <tbody id="nlBody"><tr><td colspan="5" class="empty-note">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <aside class="card nl-detalle">
+          <div id="nlDetalle"><div class="empty-note">Elige una alumna de la lista.</div></div>
+          <div class="nl-mover" id="nlMoverCaja" hidden>
+            <div class="modal-notas-titulo">Mover a otro curso</div>
+            <select id="nlMoverSelect"></select>
+            <div class="nl-mover-btns">
+              <button type="button" class="btn-outline small" id="nlMoverCancelar">Cancelar</button>
+              <button type="button" class="btn-primary small" id="nlMoverOk">Mover</button>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
 
@@ -2012,6 +2092,7 @@ const SECCIONES = [
   { id:'logistica', label:'Logística', sub:'Sedes, hospedaje y negociación para cada gira', soon:false, icon:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/><path d="M8 7h.01M8 11h.01M12 7h.01M12 11h.01M16 7h.01M16 11h.01"/>' },
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'cobranza', label:'Cobranza', sub:'A quién cobrarle y cuándo: anticipos de leads y saldos de inscritas', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 13v5M10.5 14.2h2.3a1 1 0 0 1 0 2h-1.6a1 1 0 0 0 0 2h2.3"/>' },
+  { id:'nollegaron', label:'No llegaron', sub:'Alumnas con anticipo que no llegaron a su curso: recuperarlas o cerrar su caso', soon:false, icon:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/>' },
   { id:'mensajes', label:'Mensajes', sub:'Mensajes predeterminados para WhatsApp', soon:false, icon:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/>' },
   { id:'precios', label:'Precios', sub:'Lo que se cobra aparte del curso: VIP, uniforme…', soon:false, icon:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
@@ -2046,6 +2127,7 @@ function setActiveSection(id){
   if(id==='cobranza') renderCobranza();
   if(id==='mensajes') renderMensajes();
   if(id==='precios') renderPrecios();
+  if(id==='nollegaron') renderNoLlegaron();
   if(usuarioActual?.id){
     // TUTORIAL — quitar estas 3 líneas
     marcarProgresoPorVista(id);
@@ -2084,12 +2166,12 @@ const PERMISOS_POR_ROL_DEFAULT = {
   'Sistemas': TODAS_SECCIONES,
   'Gerente': TODAS_SECCIONES,
   'Dueña': TODAS_SECCIONES,
-  'Coordinadora': ['inicio','mensajes','precios','board','historial','cursos','plaza','giras','logistica','calendario'],
-  'Logística': ['inicio','mensajes','precios','giras','logistica','plaza','calendario'],
-  'Ventas': ['inicio','mensajes','precios','board','historial','ventas','calendario'],
-  'Ventas coordinadora': ['inicio','mensajes','precios','board','historial','ventas','reportes','calendario'],
-  'Academia e Inbox': ['inicio','mensajes','precios','board','historial','cursos','calendario'],
-  'Cobranza': ['inicio','mensajes','precios','ventas','cobranza','historial','calendario'],
+  'Coordinadora': ['inicio','mensajes','nollegaron','precios','board','historial','cursos','plaza','giras','logistica','calendario'],
+  'Logística': ['inicio','mensajes','nollegaron','precios','giras','logistica','plaza','calendario'],
+  'Ventas': ['inicio','mensajes','nollegaron','precios','board','historial','ventas','calendario'],
+  'Ventas coordinadora': ['inicio','mensajes','nollegaron','precios','board','historial','ventas','reportes','calendario'],
+  'Academia e Inbox': ['inicio','mensajes','nollegaron','precios','board','historial','cursos','calendario'],
+  'Cobranza': ['inicio','mensajes','nollegaron','precios','ventas','cobranza','historial','calendario'],
 };
 // Cache cargado en cada login desde public.permisos_rol: { [rol]: Set(seccion_id) }.
 let PERMISOS_ROL_CACHE = null;
@@ -2496,6 +2578,11 @@ const ACCION_LABEL = {
   recepcion_reabierta: '🎟️ Reabrió la recepción de un curso',
   llegada_marcada: '🎟️ Marcó que una alumna llegó',
   llegada_quitada: '🎟️ Quitó la llegada de una alumna',
+  acceso_online_dado: '🎓 Marcó acceso online dado',
+  acceso_online_quitado: '🎓 Quitó “acceso online dado”',
+  anticipo_perdido: '🔒 Marcó que perdió el anticipo',
+  anticipo_perdido_deshecho: '↩ Deshizo “perdió anticipo”',
+  inscripcion_movida: '📅 Movió a una alumna de curso',
   precio_cambiado: '💲 Cambió un precio',
   venta_asignada: 'Asignó el vendedor de una venta',
   venta_reasignada: 'Cambió de vendedor una venta',
@@ -6552,6 +6639,269 @@ document.addEventListener('keydown', e=>{
   else if(tecla === 'u'){ const p = PRECIOS?.find(x=>x.activo && /^uniforme/i.test(x.nombre)); if(p) alternarExtraRecepcion(p.id); }
   else if(tecla === 'c'){ e.preventDefault(); document.getElementById('recComent')?.focus(); }
 });
+
+/* =========================================================
+   NO LLEGARON — alumnas con anticipo que no llegaron a su curso.
+   Estados (se calculan, nadie queda marcado sin que alguien lo decida):
+   · Por revisar: su curso ya pasó, dejó anticipo, no liquidó y nadie
+     marcó si llegó (cursos sin recepción cerrada, o anteriores).
+   · No llegó: la recepción se cerró sin ella (estatus no_llego).
+   · Acceso online dado / Perdió anticipo: ya se resolvió su caso.
+   Si se mueve a otro curso, deja de salir aquí.
+   ========================================================= */
+const NL_ESTADOS = [
+  { id:'pendientes', label:'Pendientes' },
+  { id:'revisar',    label:'Por revisar' },
+  { id:'nollego',    label:'No llegó' },
+  { id:'online',     label:'Acceso online dado' },
+  { id:'perdio',     label:'Perdió anticipo' },
+  { id:'todas',      label:'Todas' },
+];
+const NL_ETIQUETA = { revisar:'Por revisar', nollego:'No llegó', online:'Acceso online dado', perdio:'Perdió anticipo' };
+let nl = { filas:[], estado:'pendientes', sel:null, cargado:false };
+
+const NL_SELECT = `
+  id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion,
+  asistencia, estatus_antes_de_cierre, acceso_online_en, acceso_online_por, evento_id,
+  personas ( id, nombre, telefono_principal, telefono_alternativo ),
+  eventos!inscripciones_evento_id_fkey!inner ( id, fecha, sede, curso_id, ciudades ( id, nombre ) )`;
+
+function estadoNoLlegaron(i){
+  const c = claveEstatus(i.estatus_id);
+  if(c === 'perdio_anticipo') return 'perdio';
+  if(i.acceso_online_en) return 'online';
+  if(c === 'no_llego') return 'nollego';
+  const paso = (i.eventos?.fecha || '') < hoyISO();
+  if(paso && !i.liquidado && Number(i.anticipo) > 0 && !i.asistencia) return 'revisar';
+  return null;   // ya no es de aquí (p.ej. la movieron a un curso futuro)
+}
+
+async function cargarNoLlegaron(){
+  const cursoId = await obtenerCursoActivoId();
+  const cerradas = ESTATUS.filter(e=>['no_llego','perdio_anticipo'].includes(e.clave)).map(e=>e.id);
+  const [rc, rr] = await Promise.all([
+    // Casos ya marcados, de cualquier curso
+    sb.from('inscripciones').select(NL_SELECT)
+      .or(`estatus_id.in.(${cerradas.join(',') || 0}),acceso_online_en.not.is.null`),
+    // Por revisar: cursos del curso activo que ya pasaron
+    cursoId ? sb.from('inscripciones').select(NL_SELECT)
+      .eq('eventos.curso_id', cursoId).lt('eventos.fecha', hoyISO())
+      .eq('liquidado', false).gt('anticipo', 0).is('asistencia', null)
+      : Promise.resolve({ data:[], error:null }),
+  ]);
+  const error = rc.error || rr.error;
+  if(error){ toast('No se pudo cargar No llegaron: ' + error.message, true); return false; }
+  const porId = new Map();
+  [...(rc.data || []), ...(rr.data || [])].forEach(i=>porId.set(i.id, i));
+  nl.filas = [...porId.values()].filter(i=>estadoNoLlegaron(i))
+    .sort((a,b)=>(b.eventos?.fecha || '').localeCompare(a.eventos?.fecha || '') || (a.personas?.nombre || '').localeCompare(b.personas?.nombre || '', 'es'));
+  nl.cargado = true;
+  return true;
+}
+
+async function renderNoLlegaron(){
+  document.getElementById('nlBody').innerHTML = '<tr><td colspan="5" class="empty-note">Cargando…</td></tr>';
+  if(!await cargarNoLlegaron()) return;
+  // Ciudades y vendedores de lo que hay, para filtrar
+  const selC = document.getElementById('nlCiudad'), selV = document.getElementById('nlVendedor');
+  const cAntes = selC.value, vAntes = selV.value;
+  const ciudades = [...new Map(nl.filas.map(i=>[i.eventos?.ciudades?.id, i.eventos?.ciudades?.nombre])).entries()].filter(([id])=>id).sort((a,b)=>a[1].localeCompare(b[1], 'es'));
+  selC.innerHTML = '<option value="">Todas las ciudades</option>' + ciudades.map(([id, n])=>`<option value="${escapeAttr(id)}" ${id === cAntes ? 'selected' : ''}>${escHtml(n)}</option>`).join('');
+  const vends = [...new Set(nl.filas.map(i=>i.asesor_id).filter(Boolean))].map(id=>[id, nombreVendedor(id) || '?']).sort((a,b)=>a[1].localeCompare(b[1], 'es'));
+  selV.innerHTML = '<option value="">Todos los vendedores</option><option value="-" ' + (vAntes === '-' ? 'selected' : '') + '>Sin vendedor</option>'
+    + vends.map(([id, n])=>`<option value="${escapeAttr(id)}" ${id === vAntes ? 'selected' : ''}>${escHtml(n)}</option>`).join('');
+  pintarNoLlegaron();
+}
+
+function visiblesNoLlegaron(){
+  const q = normTexto(document.getElementById('nlBuscar').value);
+  const digitos = document.getElementById('nlBuscar').value.replace(/\D/g, '');
+  const ciudad = document.getElementById('nlCiudad').value, vend = document.getElementById('nlVendedor').value;
+  return nl.filas.filter(i=>{
+    if(ciudad && i.eventos?.ciudades?.id !== ciudad) return false;
+    if(vend === '-' ? i.asesor_id : (vend && i.asesor_id !== vend)) return false;
+    if(q){
+      const okNombre = q.split(' ').every(p=>normTexto(i.personas?.nombre).includes(p));
+      const okTel = digitos.length >= 3 && [i.personas?.telefono_principal, i.personas?.telefono_alternativo].join(' ').replace(/\D/g, '').includes(digitos);
+      if(!okNombre && !okTel) return false;
+    }
+    return true;
+  });
+}
+function cumpleEstado(i, estado){
+  const e = estadoNoLlegaron(i);
+  return estado === 'todas' || e === estado || (estado === 'pendientes' && (e === 'revisar' || e === 'nollego'));
+}
+
+function pintarNoLlegaron(){
+  const base = visiblesNoLlegaron();
+  document.getElementById('nlChips').innerHTML = NL_ESTADOS.map(e=>
+    `<button type="button" class="nl-chip ${nl.estado === e.id ? 'on' : ''}" data-nl-estado="${e.id}">${e.label} <b>${base.filter(i=>cumpleEstado(i, e.id)).length}</b></button>`).join('');
+  const filas = base.filter(i=>cumpleEstado(i, nl.estado));
+  if(!filas.some(i=>i.id === nl.sel)) nl.sel = filas[0]?.id ?? null;
+  const anticipos = filas.reduce((s,i)=>s + Number(i.anticipo || 0), 0);
+  const debe = filas.reduce((s,i)=>s + debeDe(i), 0);
+  document.getElementById('nlResumen').innerHTML = filas.length
+    ? `<b>${filas.length}</b> alumna${filas.length === 1 ? '' : 's'} · <b>${fmtMoney(anticipos)}</b> en anticipos · les falta <b>${fmtMoney(debe)}</b> para liquidar`
+    : '';
+  const hoy = new Date(hoyISO() + 'T12:00:00');
+  document.getElementById('nlBody').innerHTML = filas.length ? filas.map(i=>{
+    const est = estadoNoLlegaron(i);
+    const dias = i.eventos?.fecha ? Math.round((hoy - new Date(i.eventos.fecha + 'T12:00:00')) / 86400000) : null;
+    return `<tr data-nl-id="${escapeAttr(i.id)}" class="${i.id === nl.sel ? 'sel' : ''}">
+      <td><b>${escHtml(i.personas?.nombre || '(sin nombre)')}</b><div class="sub">${escHtml(i.personas?.telefono_principal || '')}</div></td>
+      <td>${escHtml(i.eventos?.ciudades?.nombre || '(ciudad?)')} · ${i.eventos?.fecha ? fechaCorta(i.eventos.fecha) : '—'}${dias != null && dias >= 0 ? `<div class="sub">hace ${dias} día${dias === 1 ? '' : 's'}</div>` : ''}</td>
+      <td>${escHtml(nombreVendedor(i.asesor_id) || '—')}</td>
+      <td class="num">${fmtMoney(Number(i.anticipo || 0))}</td>
+      <td><span class="nl-tag ${est}">${NL_ETIQUETA[est]}</span></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" class="empty-note">${nl.filas.length ? 'Nadie con esos filtros.' : 'No hay alumnas pendientes. 🎉'}</td></tr>`;
+  pintarDetalleNoLlegaron();
+}
+
+function pintarDetalleNoLlegaron(){
+  document.getElementById('nlMoverCaja').hidden = true;
+  const i = nl.filas.find(x=>x.id === nl.sel);
+  const cont = document.getElementById('nlDetalle');
+  if(!i){ cont.innerHTML = '<div class="empty-note">Elige una alumna de la lista.</div>'; return; }
+  const est = estadoNoLlegaron(i);
+  const quienOnline = i.acceso_online_por ? (EQUIPO.find(u=>u.id === i.acceso_online_por)?.nombre || '') : '';
+  const notas = (i.notas_migracion || '').split(/ \| \| | \| /).filter(Boolean).slice(-4).join('\n');
+  cont.innerHTML = `
+    <div><h3>${escHtml(i.personas?.nombre || '(sin nombre)')}</h3>
+      <div class="sub" style="margin:2px 0 0;">${escHtml(i.personas?.telefono_principal || '')} · Paquete ${i.paquete === 'VIP' ? 'VIP' : 'Básico'}</div></div>
+    <span class="nl-tag ${est}" style="align-self:flex-start;">${NL_ETIQUETA[est]}${est === 'online' && i.acceso_online_en ? ' · ' + fechaCorta(i.acceso_online_en.slice(0,10)) + (quienOnline ? ' · ' + escHtml(quienOnline) : '') : ''}</span>
+    <div>
+      <div class="dato-row"><span class="l">Anticipo pagado</span><span class="v">${fmtMoney(Number(i.anticipo || 0))}</span></div>
+      <div class="dato-row"><span class="l">Le falta para liquidar</span><span class="v">${fmtMoney(debeDe(i))}</span></div>
+      <div class="dato-row"><span class="l">Curso</span><span class="v">${escHtml(i.eventos?.ciudades?.nombre || '')} · ${i.eventos?.fecha ? fechaCorta(i.eventos.fecha) : '—'}</span></div>
+      <div class="dato-row"><span class="l">Vendió</span><span class="v">${escHtml(nombreVendedor(i.asesor_id) || '—')}</span></div>
+    </div>
+    ${notas ? `<div class="nl-notas">${escHtml(notas)}</div>` : ''}
+    <div class="nl-acciones">
+      <button type="button" class="nl-acc primario" data-nl-acc="whats">💬 Ofrecer el curso online (WhatsApp)</button>
+      <button type="button" class="nl-acc" data-nl-acc="cobrar">💵 Cobrar</button>
+      <button type="button" class="nl-acc" data-nl-acc="online">${est === 'online' ? '↩ Quitar “acceso online dado”' : '🎓 Marcar acceso online dado'}</button>
+      <button type="button" class="nl-acc" data-nl-acc="mover">📅 Mover a otro curso</button>
+      ${est === 'revisar' ? '<button type="button" class="nl-acc" data-nl-acc="sifue">✓ Sí fue al curso (sigue en Cobranza)</button>' : ''}
+      ${est === 'perdio'
+        ? '<button type="button" class="nl-acc" data-nl-acc="deshacerPerdio">↩ Deshacer “perdió anticipo”</button>'
+        : '<button type="button" class="nl-acc peligro" data-nl-acc="perdio">🔒 Marcar que perdió el anticipo</button>'}
+      <button type="button" class="nl-acc" data-nl-acc="ficha">Ficha completa</button>
+    </div>`;
+}
+
+/* Deja rastro en los comentarios de la alumna, como las correcciones. */
+function notaConRastro(i, texto){
+  const hoy = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+  return (i.notas_migracion ? i.notas_migracion + ' || ' : '') + `${texto} ${hoy} por ${usuarioActual?.nombre || 'alguien'}`;
+}
+async function actualizarNoLlegaron(i, cambios, accion, detalle, aviso){
+  const { error } = await sb.from('inscripciones').update(cambios).eq('id', i.id);
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return false; }
+  Object.assign(i, cambios);
+  registrarActividad(accion, detalle);
+  toast(aviso);
+  if(!estadoNoLlegaron(i)) nl.filas = nl.filas.filter(x=>x.id !== i.id);
+  pintarNoLlegaron();
+  return true;
+}
+
+async function accionNoLlegaron(acc){
+  const i = nl.filas.find(x=>x.id === nl.sel); if(!i) return;
+  const nombre = i.personas?.nombre || 'la alumna';
+  const donde = `${i.eventos?.ciudades?.nombre || ''} ${i.eventos?.fecha ? fechaCorta(i.eventos.fecha) : ''}`.trim();
+  if(acc === 'whats'){
+    return abrirEnviarWhatsApp({ nombre, telefono:i.personas?.telefono_principal, personaId:i.personas?.id,
+      ciudad:i.eventos?.ciudades?.nombre || '', fecha:i.eventos?.fecha || '', sede:i.eventos?.sede || '', debe:debeDe(i) });
+  }
+  if(acc === 'cobrar' || acc === 'ficha'){
+    alCerrarFichaInscripcion = ()=>renderNoLlegaron();
+    return abrirModalInscripcion(i.id, { soloCobro: acc === 'cobrar' });
+  }
+  if(acc === 'online'){
+    const dar = !i.acceso_online_en;
+    if(!dar){
+      const ok = await preguntarConfirmacion({ titulo:'¿Quitar “acceso online dado”?', aviso:`${escHtml(nombre)} regresa a pendientes.`, textoSi:'Sí, quitarlo' });
+      if(ok === null) return;
+    }
+    return actualizarNoLlegaron(i, {
+      acceso_online_en: dar ? new Date().toISOString() : null,
+      acceso_online_por: dar ? (usuarioActual?.id || null) : null,
+      notas_migracion: notaConRastro(i, dar ? 'ACCESO ONLINE DADO' : 'ACCESO ONLINE QUITADO'),
+    }, dar ? 'acceso_online_dado' : 'acceso_online_quitado', `${nombre} (${donde})`, dar ? `🎓 ${nombre}: acceso online dado.` : 'Acceso online quitado.');
+  }
+  if(acc === 'sifue'){
+    return actualizarNoLlegaron(i, { asistencia:'llego', asistencia_en:new Date().toISOString(), asistencia_por:usuarioActual?.id || null },
+      'llegada_marcada', `${nombre} · ${donde} (desde No llegaron)`, `✓ ${nombre} sí fue. Sigue en Cobranza con lo que debe.`);
+  }
+  if(acc === 'perdio'){
+    const motivo = await preguntarConfirmacion({ titulo:'¿Perdió el anticipo?', fuerte:true, pedirMotivo:true, textoSi:'Sí, lo perdió',
+      aviso:`${escHtml(nombre)} pagó <b>${fmtMoney(Number(i.anticipo || 0))}</b> y ya no se le va a cobrar lo que falta. Sale de pendientes y de Cobranza. Se puede deshacer.` });
+    if(motivo === null) return;
+    const cambios = { estatus_id: estatusPorClave('perdio_anticipo')?.id,
+      notas_migracion: notaConRastro(i, 'PERDIÓ ANTICIPO' + (motivo ? ` (${motivo})` : '')) };
+    // Si venía de "No llegó", su estatus original ya está guardado: no se pisa.
+    if(claveEstatus(i.estatus_id) !== 'no_llego') cambios.estatus_antes_de_cierre = i.estatus_id;
+    return actualizarNoLlegaron(i, cambios, 'anticipo_perdido', `${nombre} (${donde}) · ${fmtMoney(Number(i.anticipo || 0))}${motivo ? ' · ' + motivo : ''}`, `🔒 ${nombre}: perdió el anticipo.`);
+  }
+  if(acc === 'deshacerPerdio'){
+    const ok = await preguntarConfirmacion({ titulo:'¿Deshacer “perdió anticipo”?', aviso:`${escHtml(nombre)} regresa a pendientes y a Cobranza.`, textoSi:'Sí, deshacer' });
+    if(ok === null) return;
+    const volverA = i.asistencia === 'no_llego' ? estatusPorClave('no_llego')?.id : (i.estatus_antes_de_cierre ?? estatusPorClave('anticipo_vigente')?.id);
+    const cambios = { estatus_id: volverA, notas_migracion: notaConRastro(i, 'SE DESHIZO "PERDIÓ ANTICIPO"') };
+    if(i.asistencia !== 'no_llego') cambios.estatus_antes_de_cierre = null;
+    return actualizarNoLlegaron(i, cambios, 'anticipo_perdido_deshecho', `${nombre} (${donde})`, 'Listo, regresó a pendientes.');
+  }
+  if(acc === 'mover'){
+    const sel = document.getElementById('nlMoverSelect');
+    const futuros = (EVENTOS_CAL || []).filter(e=>e.id !== i.evento_id);
+    sel.innerHTML = '<option value="">— Elige el curso —</option>' + futuros.map(e=>`<option value="${e.id}">${escHtml(e.ciudades?.nombre || '(ciudad?)')} · ${fechaCorta(e.fecha)}</option>`).join('');
+    buscadorDeCiudad(sel, { placeholder:'Busca la ciudad del curso…' });
+    sel.value = '';
+    document.getElementById('nlMoverCaja').hidden = false;
+    document.getElementById('nlMoverSelectBuscar')?.focus();
+  }
+}
+
+async function moverNoLlegaron(){
+  const i = nl.filas.find(x=>x.id === nl.sel); if(!i) return;
+  const nuevo = document.getElementById('nlMoverSelect').value;
+  const ev = eventoPorId(nuevo);
+  if(!nuevo || !ev){ toast('Elige el curso al que se mueve.', true); return; }
+  const nombre = i.personas?.nombre || 'la alumna';
+  const antes = `${i.eventos?.ciudades?.nombre || ''} ${i.eventos?.fecha ? fechaCorta(i.eventos.fecha) : ''}`.trim();
+  const despues = `${ev.ciudades?.nombre || ''} ${fechaCorta(ev.fecha)}`;
+  const ok = await preguntarConfirmacion({ titulo:'¿Mover de curso?', aviso:`${escHtml(nombre)}: <b>${escHtml(antes)}</b> → <b>${escHtml(despues)}</b>.<br>Conserva lo que pagó y regresa a Cobranza con lo que le falta.`, textoSi:'Sí, moverla' });
+  if(ok === null) return;
+  const c = claveEstatus(i.estatus_id);
+  const cambios = {
+    evento_id: nuevo, asistencia:null, asistencia_en:null, asistencia_por:null, estatus_antes_de_cierre:null,
+    // Si estaba en "No llegó" o "Perdió anticipo", vuelve a su estatus de antes.
+    estatus_id: (c === 'no_llego' || c === 'perdio_anticipo') ? (i.estatus_antes_de_cierre ?? estatusPorClave('anticipo_vigente')?.id) : i.estatus_id,
+    notas_migracion: notaConRastro(i, `MOVIDA de ${antes} a ${despues}`),
+  };
+  const { error } = await sb.from('inscripciones').update(cambios).eq('id', i.id);
+  if(error){ toast('No se pudo mover: ' + error.message, true); return; }
+  registrarActividad('inscripcion_movida', `${nombre}: ${antes} → ${despues}`);
+  toast(`📅 ${nombre} ahora va a ${despues}.`);
+  nl.filas = nl.filas.filter(x=>x.id !== i.id);
+  pintarNoLlegaron();
+}
+
+document.getElementById('nlChips').addEventListener('click', e=>{
+  const b = e.target.closest('[data-nl-estado]'); if(!b) return;
+  nl.estado = b.dataset.nlEstado; nl.sel = null; pintarNoLlegaron();
+});
+['nlBuscar','nlCiudad','nlVendedor'].forEach(id=>document.getElementById(id).addEventListener('input', ()=>{ nl.sel = null; pintarNoLlegaron(); }));
+document.getElementById('nlBody').addEventListener('click', e=>{
+  const tr = e.target.closest('[data-nl-id]'); if(!tr) return;
+  nl.sel = tr.dataset.nlId; pintarNoLlegaron();
+  if(window.innerWidth < 900) document.getElementById('nlDetalle').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+document.getElementById('nlDetalle').addEventListener('click', e=>{ const b = e.target.closest('[data-nl-acc]'); if(b) accionNoLlegaron(b.dataset.nlAcc); });
+document.getElementById('nlMoverOk').addEventListener('click', moverNoLlegaron);
+document.getElementById('nlMoverCancelar').addEventListener('click', ()=>{ document.getElementById('nlMoverCaja').hidden = true; });
 
 /* =========================================================
    PRECIOS — catálogo de lo que se cobra aparte del curso (VIP, uniforme…).
