@@ -206,6 +206,8 @@
     .cal-tarjeta .cal-est{ margin-top:3px; font-size:12px; }
   }
   /* Hoja del día como centro de operaciones */
+  .cal-tarjeta .cal-pc{ font-size:11px; font-weight:700; color:#7A6232; line-height:1.3; }
+  .hoja-pc{ font-size:12.5px; color:#5E4A22; background:rgba(198,166,107,.14); border-radius:8px; padding:6px 10px; margin:0 0 10px; }
   .hoja-sub{ font-size:12.5px; color:var(--ink-soft); margin:4px 0 8px; }
   .hoja-est{ font-size:12px; margin:0 0 10px; }
   .hoja-tiles{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0 8px; }
@@ -597,6 +599,24 @@
 
   /* ---------- RECEPCIÓN (día del curso) ---------- */
   .sheet-recepcion{ margin:10px 0 4px; font-size:15px; padding:12px; }
+  /* 🏦 Pagos por confirmar */
+  .rec-fila.pc{ box-shadow:inset 3px 0 0 var(--champagne); }
+  .rec-fila .din.pc{ color:#7A6232; font-weight:600; }
+  .rec-kpi-pc{ border:1px solid var(--champagne); background:rgba(198,166,107,.14); border-radius:10px; padding:4px 10px; font-family:inherit; cursor:pointer; color:var(--ink); }
+  .rec-kpi-pc .v{ font-size:16px; }
+  .rec-forma.pc-toggle{ border-style:dashed; }
+  .rec-forma.pc-toggle.on{ border-style:solid; border-color:var(--champagne); background:rgba(198,166,107,.18); color:#7A6232; box-shadow:inset 0 0 0 1px var(--champagne); }
+  .pc-caja{ display:flex; flex-direction:column; gap:8px; max-width:560px; }
+  .pc-pago{ border:1px solid var(--champagne); background:rgba(198,166,107,.12); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+  .pc-txt{ font-size:13.5px; color:#5E4A22; }
+  .pc-btns{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pc-btns button{ height:38px; padding:0 14px; border-radius:9px; font-family:inherit; font-weight:600; font-size:13px; cursor:pointer; }
+  .pc-ok{ border:0; background:var(--success); color:#fff; }
+  .pc-no{ border:1px solid var(--border); background:var(--card); color:var(--danger); }
+  .cobro-pc{ margin-top:6px; width:100%; padding:9px 10px; border:1px dashed var(--champagne); border-radius:10px; background:var(--card); font-family:inherit; font-size:13px; font-weight:600; color:#7A6232; cursor:pointer; }
+  .cobro-pc.activo{ border-style:solid; background:rgba(198,166,107,.18); box-shadow:inset 0 0 0 1px var(--champagne); }
+  #fichaPorConfirmar:not(:empty){ margin-bottom:12px; }
+  .pc-marcar{ background:none; border:0; padding:0; font-family:inherit; font-size:12.5px; color:var(--ink-soft); text-decoration:underline; cursor:pointer; }
   .recepcion{ display:none; position:fixed; inset:0; z-index:75; background:var(--bg); flex-direction:column; }
   .recepcion.open{ display:flex; }
   .recepcion [hidden]{ display:none !important; }
@@ -781,6 +801,11 @@
   /* ---------- COBRANZA ---------- */
   .cob-cabeza{ margin-bottom:14px; }
   .cob-dia .cob-registrar{ width:auto; margin-left:auto; padding:8px 14px; }
+  .cob-pc{ margin-bottom:14px; border-color:var(--champagne); background:rgba(198,166,107,.08); }
+  .cob-pc > summary{ cursor:pointer; font-size:14px; }
+  .cob-pc-fila{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--border); }
+  .cob-pc-fila:first-of-type{ margin-top:10px; }
+  .cob-pc-fila .btn-outline{ width:auto; }
   .cob-acciones button[data-cob-cobrar]{ background:var(--wine); border-color:var(--wine); color:#fff; font-weight:600; }
   /* Cobro directo: la ficha de la inscrita sólo con el abono */
   #modalInscripcion.solo-cobro .modal-notas,
@@ -794,7 +819,7 @@
   .cobro-resumen .cobro-grande{ font-size:36px; font-weight:700; line-height:1.1; letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:#8A6D2F; }
   .cobro-resumen .cobro-grande.ok{ color:var(--success); font-size:26px; }
   .cobro-resumen .cobro-det{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
-  .cobro-formas{ display:flex; gap:6px; flex-wrap:wrap; }
+  .cobro-formas{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; }
   .cobro-formas button{ flex:1 1 0; min-width:0; padding:9px 4px; border:1px solid var(--border); border-radius:10px; background:var(--card); font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; }
   .cobro-formas button.activo{ border-color:var(--wine); background:rgba(90,31,43,.07); color:var(--wine); box-shadow:inset 0 0 0 1px var(--wine); }
   .cobro-cta{ font-size:15px; padding:13px; }
@@ -1366,6 +1391,7 @@
         </div>
         <div class="cob-atajos" id="cobAtajos"></div>
       </div>
+      <div id="cobPorConfirmar"></div>
       <div id="cobGrupos">Cargando…</div>
     </div>
 
@@ -1425,6 +1451,7 @@
     <div class="rec-kpis">
       <div class="rec-kpi" id="recKpiLlegaron"><span class="v">0/0</span><span class="l">llegaron</span></div>
       <div class="rec-kpi" id="recKpiCobrado"><span class="v">$0</span><span class="l">cobrado hoy</span></div>
+      <button type="button" class="rec-kpi rec-kpi-pc" id="recKpiPC" hidden><span class="v">🏦 0</span><span class="l">por confirmar</span></button>
     </div>
     <button type="button" class="rec-cerrar-btn" id="recCerrar">Cerrar recepción</button>
   </header>
@@ -1439,7 +1466,7 @@
         <div class="rec-filtros" id="recFiltros"></div>
       </div>
       <div class="rec-lista" id="recLista" role="listbox" aria-label="Alumnas del curso">Cargando…</div>
-      <div class="rec-ayuda"><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>Enter</kbd> abrir / cobrar</span><span><kbd>L</kbd> llegada</span><span><kbd>P</kbd> cobrar</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> forma</span><span><kbd>V</kbd> VIP</span><span><kbd>U</kbd> uniforme</span><span><kbd>C</kbd> comentario</span><span><kbd>Esc</kbd> buscar otra</span></div>
+      <div class="rec-ayuda"><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>Enter</kbd> abrir / cobrar</span><span><kbd>L</kbd> llegada</span><span><kbd>P</kbd> cobrar</span><span><kbd>1</kbd>–<kbd>4</kbd> forma</span><span><kbd>B</kbd> 🏦 por confirmar</span><span><kbd>V</kbd> VIP</span><span><kbd>U</kbd> uniforme</span><span><kbd>C</kbd> comentario</span><span><kbd>Esc</kbd> buscar otra</span></div>
     </aside>
     <main class="rec-panel" id="recPanel"></main>
   </div>
@@ -1596,6 +1623,7 @@
     </div>
     <!-- Cobro: lo primero que se ve. Lo que debe en grande y un solo botón. -->
     <div class="ficha-cobro" id="panelInscPago">
+      <div id="fichaPorConfirmar"></div>
       <div class="cobro-resumen" id="cobroResumen">—</div>
       <div class="modal-field"><label>Monto (vacío = liquida todo)</label>
         <div class="vend-row"><input type="number" id="modalPagoMonto" placeholder="Lo que debe" inputmode="decimal" min="0" step="50">
@@ -1605,8 +1633,10 @@
           <button type="button" data-forma="Efectivo">Efectivo</button>
           <button type="button" data-forma="Tarjeta">Tarjeta</button>
           <button type="button" data-forma="Transferencia">Transferencia</button>
+          <button type="button" data-forma="Depósito / OXXO">Depósito / OXXO</button>
         </div>
-        <input id="modalPagoBanco" placeholder="Banco u otra forma (opcional)" style="margin-top:6px;"></div>
+        <input id="modalPagoBanco" placeholder="Banco u otra forma (opcional)" style="margin-top:6px;">
+        <button type="button" class="cobro-pc" id="cobroPorConfirmar" aria-pressed="false">🏦 Por confirmar · revisarlo en el banco después</button></div>
       <div class="modal-field"><label>Fecha</label><input type="date" id="modalPagoFecha"></div>
       <div class="corr-preview" id="cobroPreview">—</div>
       <div class="modal-field" id="cobroProximoCaja"><label>Próximo pago (lo que le quede)</label>
@@ -2614,6 +2644,9 @@ const ACCION_LABEL = {
   llegada_marcada: '🎟️ Marcó que una alumna llegó',
   llegada_quitada: '🎟️ Quitó la llegada de una alumna',
   acceso_online_dado: '🎓 Marcó acceso online dado',
+  pago_por_confirmar: '🏦 Marcó un pago por confirmar',
+  pago_verificado: '🏦 Confirmó un pago en el banco',
+  pago_no_llego: '🏦 Marcó que un pago no llegó al banco',
   acceso_online_quitado: '🎓 Quitó “acceso online dado”',
   anticipo_perdido: '🔒 Marcó que perdió el anticipo',
   anticipo_perdido_deshecho: '↩ Deshizo “perdió anticipo”',
@@ -4579,8 +4612,37 @@ function pintarCobranza(){
   }).join('');
 }
 
+/* 🏦 Pagos por confirmar de todos los cursos, arriba de Cobranza. */
+async function cargarPorConfirmarCobranza(){
+  const cont = document.getElementById('cobPorConfirmar');
+  const { data, error } = await sb.from('pagos')
+    .select('id, monto, fecha, hora, banco, forma_pago, concepto, verificacion, inscripciones!pagos_inscripcion_id_fkey ( id, personas ( nombre, telefono_principal ), eventos ( fecha, ciudades ( nombre ) ) )')
+    .eq('verificacion', 'por_confirmar').order('fecha', { ascending:true });
+  if(error){ cont.innerHTML = ''; console.warn('Por confirmar:', error.message); return; }
+  const filas = data || [];
+  if(!filas.length){ cont.innerHTML = ''; return; }
+  const total = filas.reduce((s,p)=>s + Number(p.monto || 0), 0);
+  cont.innerHTML = `<details class="card cob-pc" open>
+    <summary>🏦 <b>Pagos por confirmar</b> · ${filas.length} · ${fmtMoney(total)} <span class="sub" style="margin:0;">— revísalos en el banco y confírmalos en la ficha</span></summary>
+    ${filas.map(p=>{
+      const i = p.inscripciones || {};
+      return `<div class="cob-pc-fila">
+        <div><b>${escHtml(i.personas?.nombre || '(sin nombre)')}</b>
+          <div class="sub" style="margin:0;">${escHtml(descripcionPago(p))} · ${escHtml(i.eventos?.ciudades?.nombre || '')}${i.eventos?.fecha ? ' ' + fechaCorta(i.eventos.fecha) : ''}</div></div>
+        <button type="button" class="btn-outline small" data-cob-pc="${escapeAttr(i.id || '')}">Revisar</button>
+      </div>`;
+    }).join('')}
+  </details>`;
+}
+document.getElementById('cobPorConfirmar').addEventListener('click', e=>{
+  const b = e.target.closest('[data-cob-pc]'); if(!b || !b.dataset.cobPc) return;
+  alCerrarFichaInscripcion = ()=>renderCobranza();
+  abrirModalInscripcion(b.dataset.cobPc);
+});
+
 async function renderCobranza(){
   if(!cobDia) cobDia = hoyISO();
+  cargarPorConfirmarCobranza();
   document.getElementById('cobDia').value = cobDia;
   const selV = document.getElementById('cobVendedor');
   const vActual = selV.value;
@@ -5252,7 +5314,7 @@ async function renderCalendario(preservarMes){
   (inscripcionesData||[]).forEach(i=>{
     if(!i.evento_id) return;
     eventosConInscripcion.add(i.evento_id);
-    const r = resumenPorEvento[i.evento_id] = resumenPorEvento[i.evento_id] || { total:0, llegaron:0, liquidadas:0, deben:0, noLlegaron:0, cobrado:0, pendiente:0, debenLlegaron:0 };
+    const r = resumenPorEvento[i.evento_id] = resumenPorEvento[i.evento_id] || { total:0, llegaron:0, liquidadas:0, deben:0, noLlegaron:0, cobrado:0, pendiente:0, debenLlegaron:0, porConfirmar:0 };
     r.cobrado += Number(i.anticipo || 0);
     if(!fueraDeRecepcion(i)){
       const debe = debeDe(i);
@@ -5266,6 +5328,11 @@ async function renderCalendario(preservarMes){
     else if(i.anticipo && i.anticipo > 0) anticipoPorEvento[i.evento_id] = (anticipoPorEvento[i.evento_id]||0)+1;
     else sinPagoPorEvento[i.evento_id] = (sinPagoPorEvento[i.evento_id]||0)+1;
   });
+
+  // 🏦 Pagos por confirmar por curso (se ven en la tarjeta hasta que se revisen).
+  const { data: pcData } = await sb.from('pagos')
+    .select('id, inscripciones!pagos_inscripcion_id_fkey!inner ( evento_id )').eq('verificacion', 'por_confirmar');
+  (pcData || []).forEach(p=>{ const r = resumenPorEvento[p.inscripciones?.evento_id]; if(r) r.porConfirmar++; });
 
   // Fallback: un evento de la gira ACTIVA todavía no tiene ninguna fila en
   // "inscripciones" — hoy nada en el Hub convierte un lead pagado en una
@@ -5304,7 +5371,7 @@ async function renderCalendario(preservarMes){
       liquidados = r.liquidado; conAnticipo = r.anticipo; sinPago = r.sinPago;
     }
     if(!calendarioDias[e.fecha]) calendarioDias[e.fecha] = [];
-    const res = resumenPorEvento[e.id] || { total: liquidados + conAnticipo + sinPago, llegaron:0, liquidadas: liquidados, deben: conAnticipo + sinPago, noLlegaron:0, cobrado:0, pendiente:0, debenLlegaron:0 };
+    const res = resumenPorEvento[e.id] || { total: liquidados + conAnticipo + sinPago, llegaron:0, liquidadas: liquidados, deben: conAnticipo + sinPago, noLlegaron:0, cobrado:0, pendiente:0, debenLlegaron:0, porConfirmar:0 };
     calendarioDias[e.fecha].push({
       id: e.id, ciudadId: e.ciudad_id, tieneInscripciones: eventosConInscripcion.has(e.id), fecha: e.fecha, sede: e.sede || '',
       ciudad: e.ciudades?.nombre || '(ciudad?)', liq: liquidados, ant: conAnticipo, pend: sinPago,
@@ -5367,7 +5434,7 @@ function juntarCursosDelDia(evs){
   const suma = k => evs.reduce((s, ev)=>s + (Number(ev[k]) || 0), 0);
   return { fecha: evs[0].fecha, ciudad: [...new Set(evs.map(ev=>ev.ciudad))].join(' · '),
     total: suma('total'), llegaron: suma('llegaron'), liquidadas: suma('liquidadas'), deben: suma('deben'),
-    noLlegaron: suma('noLlegaron'), cobrado: suma('cobrado'), pendiente: suma('pendiente'), debenLlegaron: suma('debenLlegaron'),
+    noLlegaron: suma('noLlegaron'), cobrado: suma('cobrado'), pendiente: suma('pendiente'), debenLlegaron: suma('debenLlegaron'), porConfirmar: suma('porConfirmar'),
     cerrada: evs.every(ev=>ev.cerrada), tieneInscripciones: evs.some(ev=>ev.tieneInscripciones) };
 }
 /* La línea de avance: llegaron (si ya hubo recepción) o liquidadas. */
@@ -5418,6 +5485,7 @@ function pintarCalendarioMes(){
       <span class="cal-n">${ev.total} alumna${ev.total === 1 ? '' : 's'}</span>
       <span class="cal-av">${escHtml(av.txt)}</span>
       ${ev.cobrado ? `<span class="cal-cob">${fmtMoney(ev.cobrado)} cobrado</span>` : ''}
+      ${ev.porConfirmar ? `<span class="cal-pc">🏦 ${ev.porConfirmar}<span class="cal-est-txt"> por confirmar</span></span>` : ''}
       <span class="cal-barra"><i style="width:${Math.round(av.pct * 100)}%"></i></span>
       ${est ? `<span class="cal-est ${est.cls}"><span class="cal-est-ico">${escHtml(est.txt.slice(0, 1))}</span><span class="cal-est-txt">${escHtml(est.txt.slice(2))}</span></span>` : ''}
     </div>`;
@@ -5477,6 +5545,7 @@ function abrirSheetCalendario(key){
       <div class="sheet-city">${escHtml(ev.ciudad)}</div>
       <div class="hoja-sub">${ev.total} alumna${ev.total === 1 ? '' : 's'}${ev.sede ? ' · ' + escHtml(ev.sede) : ''}</div>
       ${est ? `<span class="cal-est ${est.cls} hoja-est">${escHtml(est.txt)}</span>` : ''}
+      ${ev.porConfirmar ? `<div class="hoja-pc">🏦 <b>${ev.porConfirmar}</b> pago${ev.porConfirmar === 1 ? '' : 's'} por confirmar · revísalos en Recepción</div>` : ''}
       <button type="button" class="btn-primary sheet-recepcion" data-recepcion-evt="${idx}">🎟️ Entrar a recepción</button>
       <div class="hoja-tiles">
         ${tiles.map(([v, l])=>`<div class="hoja-tile"><div class="v">${fmtNum(v)}</div><div class="l">${l}</div></div>`).join('')}
@@ -5709,7 +5778,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha, sede, ciudades(nombre))')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha, sede, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -5726,6 +5795,9 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   document.getElementById('modalPagoFecha').value = hoyISO();
   document.getElementById('modalPagoBanco').value = '';
   document.getElementById('cobroProximo').value = data.fecha_proximo_pago || '';
+  data.pagos = (data.pagos || []).sort((a,b)=>`${a.fecha}${a.hora || ''}`.localeCompare(`${b.fecha}${b.hora || ''}`));
+  marcarPCFicha(false);
+  pintarPorConfirmarFicha();
   pintarCobro();
   if(soloCobro) setTimeout(()=>document.getElementById('modalPagoMonto').focus(), 50);
   // "Corregir" arranca con lo que hay hoy, para ajustar en vez de recapturar.
@@ -6088,6 +6160,34 @@ document.getElementById('cobroFormas').addEventListener('click', e=>{
   pintarCobro();
 });
 document.getElementById('cobroProximo').addEventListener('input', pintarCobro);
+/* 🏦 en la ficha: la etiqueta al cobrar y los pagos pendientes de revisar. */
+function marcarPCFicha(on){
+  const b = document.getElementById('cobroPorConfirmar');
+  b.classList.toggle('activo', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+function pintarPorConfirmarFicha(){
+  const d = modalInscDatos; const cont = document.getElementById('fichaPorConfirmar');
+  if(!d){ cont.innerHTML = ''; return; }
+  const marcable = !pagosPorConfirmar(d).length && pagoDeHoyMarcable(d);
+  cont.innerHTML = htmlPagosPorConfirmar(d)
+    + (marcable ? `<button type="button" class="pc-marcar" data-pc-marcar="${escapeAttr(marcable.id)}">🏦 Marcar el pago de hoy (${escHtml(descripcionPago(marcable))}) por confirmar</button>` : '');
+}
+document.getElementById('cobroPorConfirmar').addEventListener('click', ()=>
+  marcarPCFicha(!document.getElementById('cobroPorConfirmar').classList.contains('activo')));
+document.getElementById('fichaPorConfirmar').addEventListener('click', async e=>{
+  const d = modalInscDatos; if(!d) return;
+  const ok = e.target.closest('[data-pc-ok]'), no = e.target.closest('[data-pc-no]'), m = e.target.closest('[data-pc-marcar]');
+  if(!ok && !no && !m) return;
+  const hecho = ok ? await confirmarPagoBanco(d, ok.dataset.pcOk) : no ? await pagoNoLlegoBanco(d, no.dataset.pcNo) : await marcarPagoPorConfirmar(d, m.dataset.pcMarcar);
+  if(!hecho || modalInscDatos !== d) return;
+  pintarPorConfirmarFicha();
+  pintarCobro();
+  document.getElementById('modalInscRestante').textContent = d.liquidado ? 'Liquidado' : fmtMoney(Number(d.restante || 0));
+  document.getElementById('modalInscAnticipo').textContent = fmtMoney(Number(d.anticipo || 0));
+  if(document.getElementById('view-calendario')?.classList.contains('active')) renderCalendario(true);
+  if(document.getElementById('view-cobranza')?.classList.contains('active')) renderCobranza();
+});
+
 document.getElementById('cobroLiquida').addEventListener('click', ()=>{
   const d = modalInscDatos; if(!d) return;
   document.getElementById('modalPagoMonto').value = debeDe(d);
@@ -6118,7 +6218,8 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
 
   const forma = FORMAS_PAGO.find(f=>f.toLowerCase() === banco.toLowerCase()) || null;
   const { error: errPago } = await sb.from('pagos').insert({
-    inscripcion_id: modalInscId, monto, fecha, banco: banco || null, forma_pago: forma, confirmado_por: asesorActualId || null
+    inscripcion_id: modalInscId, monto, fecha, hora: horaActual(), banco: banco || null, forma_pago: forma, confirmado_por: asesorActualId || null,
+    verificacion: document.getElementById('cobroPorConfirmar').classList.contains('activo') ? 'por_confirmar' : 'confirmado',
   });
   if(errPago){ btn.disabled = false; pintarCobro(); toast('Error al registrar el pago: ' + errPago.message, true); return; }
 
@@ -6149,7 +6250,94 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
    marca que llegó. "Cerrar recepción" pasa a "No llegó" a quien falte y
    así sale de Cobranza; si alguien llega tarde, recupera su estatus.
    ========================================================= */
-const FORMAS_PAGO = ['Efectivo', 'Tarjeta', 'Transferencia'];
+/* =========================================================
+   🏦 PAGOS POR CONFIRMAR
+   Quien cobra marca un pago (con la etiqueta 🏦) para revisarlo en el
+   banco después. La alumna pasa igual: quien la recibe la autoriza.
+   Se confirma desde Recepción o desde la ficha de la alumna:
+   · ✓ Ya llegó al banco → verificacion = confirmado.
+   · ✗ No llegó → el pago queda anulado (no se borra) y vuelve a deber.
+   ========================================================= */
+function horaActual(){ return new Date().toLocaleTimeString('en-GB', { hour12:false }); }
+function pagosPorConfirmar(i){ return (i?.pagos || []).filter(p=>p.verificacion === 'por_confirmar'); }
+function pagosValidos(i){ return (i?.pagos || []).filter(p=>p.verificacion !== 'no_llego'); }
+function descripcionPago(p){
+  return [fmtMoney(Number(p.monto || 0)), p.concepto && p.concepto !== 'curso' ? p.concepto : '', p.forma_pago || p.banco || '',
+    p.hora ? p.hora.slice(0, 5) : '', p.fecha && p.fecha !== hoyISO() ? fechaCorta(p.fecha) : ''].filter(Boolean).join(' · ');
+}
+/* El recuadro con los pagos pendientes de una alumna y sus dos botones. */
+function htmlPagosPorConfirmar(i){
+  const pend = pagosPorConfirmar(i);
+  if(!pend.length) return '';
+  return `<div class="pc-caja">${pend.map(p=>`
+    <div class="pc-pago">
+      <div class="pc-txt">🏦 <b>Pago por confirmar</b> · ${escHtml(descripcionPago(p))}</div>
+      <div class="pc-btns">
+        <button type="button" class="pc-ok" data-pc-ok="${escapeAttr(p.id)}">✓ Ya llegó al banco</button>
+        <button type="button" class="pc-no" data-pc-no="${escapeAttr(p.id)}">✗ No llegó</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+async function confirmarPagoBanco(i, pagoId){
+  const p = i.pagos.find(x=>x.id === pagoId); if(!p) return false;
+  const cambios = { verificacion:'confirmado', verificado_en:new Date().toISOString(), verificado_por:usuarioActual?.id || null };
+  const { error } = await sb.from('pagos').update(cambios).eq('id', pagoId);
+  if(error){ toast('No se pudo confirmar: ' + error.message, true); return false; }
+  Object.assign(p, cambios);
+  registrarActividad('pago_verificado', `${descripcionPago(p)} de ${i.personas?.nombre || ''}`);
+  toast(`✓ Confirmado en el banco: ${fmtMoney(Number(p.monto || 0))}.`);
+  return true;
+}
+/* La transferencia nunca llegó: el pago se anula y la alumna vuelve a deber. */
+async function pagoNoLlegoBanco(i, pagoId){
+  const p = i.pagos.find(x=>x.id === pagoId); if(!p) return false;
+  const nombre = i.personas?.nombre || 'la alumna';
+  const monto = Number(p.monto || 0);
+  const esCurso = (p.concepto || 'curso') === 'curso';
+  const ok = await preguntarConfirmacion({ titulo:'¿El pago no llegó al banco?', fuerte:true, textoSi:'Sí, no llegó',
+    aviso: esCurso
+      ? `El pago de <b>${fmtMoney(monto)}</b> de ${escHtml(nombre)} se anula (queda en el historial) y vuelve a deber ese monto. Aparecerá en Cobranza.`
+      : `El pago de <b>${escHtml(p.concepto)}</b> (${fmtMoney(monto)}) de ${escHtml(nombre)} se anula y queda anotado en sus comentarios para cobrarlo.` });
+  if(ok === null) return false;
+  const ahora = new Date().toISOString();
+  const { error } = await sb.from('pagos').update({ verificacion:'no_llego', verificado_en:ahora, verificado_por:usuarioActual?.id || null }).eq('id', pagoId);
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return false; }
+  Object.assign(p, { verificacion:'no_llego', verificado_en:ahora });
+  const hoy = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+  const rastro = `PAGO NO LLEGÓ AL BANCO ${hoy} por ${usuarioActual?.nombre || 'alguien'}: ${descripcionPago(p)}${esCurso ? '' : ' (cobrarlo de nuevo)'}`;
+  const cambios = { notas_migracion: (i.notas_migracion ? i.notas_migracion + ' || ' : '') + rastro };
+  if(esCurso){
+    const precio = precioDeInsc(i);
+    const anticipo = Math.max(Number(i.anticipo || 0) - monto, 0);
+    Object.assign(cambios, { anticipo, restante: Math.max(precio - anticipo, 0), liquidado: precio > 0 && anticipo >= precio });
+    if(!cambios.liquidado && claveEstatus(i.estatus_id) === 'pagado'){
+      const nuevo = estatusPorClave(anticipo > 0 ? 'anticipo_vigente' : 'no_vence_pago');
+      if(nuevo) cambios.estatus_id = nuevo.id;
+    }
+  }
+  const { error: errI } = await sb.from('inscripciones').update(cambios).eq('id', i.id);
+  if(errI){ toast('El pago quedó anulado, pero no se pudo actualizar su saldo. Corrígelo en la ficha: ' + errI.message, true); return true; }
+  Object.assign(i, cambios);
+  registrarActividad('pago_no_llego', `${descripcionPago(p)} de ${nombre}`);
+  toast(esCurso ? `${nombre} vuelve a deber ${fmtMoney(debeDe(i))}.` : 'Anulado; quedó anotado para cobrarlo.');
+  return true;
+}
+/* Si al cobrar no se marcó, se puede marcar después. */
+async function marcarPagoPorConfirmar(i, pagoId){
+  const p = i.pagos.find(x=>x.id === pagoId); if(!p) return false;
+  const { error } = await sb.from('pagos').update({ verificacion:'por_confirmar' }).eq('id', pagoId);
+  if(error){ toast('No se pudo marcar: ' + error.message, true); return false; }
+  p.verificacion = 'por_confirmar';
+  registrarActividad('pago_por_confirmar', `${descripcionPago(p)} de ${i.personas?.nombre || ''}`);
+  toast('🏦 Marcado por confirmar.');
+  return true;
+}
+/* El último pago de hoy, ya confirmado, que se puede marcar 🏦 después. */
+function pagoDeHoyMarcable(i){
+  return (i?.pagos || []).filter(p=>p.id && p.fecha === hoyISO() && p.verificacion === 'confirmado').slice(-1)[0] || null;
+}
+
+const FORMAS_PAGO = ['Efectivo', 'Tarjeta', 'Transferencia', 'Depósito / OXXO'];
 // Estatus que ya no se esperan en la puerta: se ven en "Todas" pero no cuentan.
 const CLAVES_FUERA_DE_RECEPCION = ['no_va_al_curso', 'perdio_anticipo'];
 let rec = null;   // estado de la pantalla abierta (null = cerrada)
@@ -6162,7 +6350,7 @@ function precioDeInsc(i){ return i.precio_pactado != null ? Number(i.precio_pact
 async function abrirRecepcion(ev){
   cerrarSheetCalendario();
   rec = { ev, inscritas:[], leads:[], cerradaEn:null, cerradaPor:null, filtro:'faltan', q:'', sel:null,
-          forma:null, extras:{}, precioEditando:null, procesando:false, falla:null, cobradoHoy:0, timer:null, notas:null };
+          forma:null, marcarPC:false, extras:{}, precioEditando:null, procesando:false, falla:null, cobradoHoy:0, timer:null, notas:null };
   document.getElementById('recCiudad').textContent = `${ev.ciudad} · ${new Date(ev.fecha + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'short' })}`;
   document.getElementById('recBuscar').value = '';
   document.getElementById('recLista').textContent = 'Cargando…';
@@ -6204,7 +6392,7 @@ async function cargarRecepcion({ silencioso = false } = {}){
         id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion,
         asistencia, asistencia_en, estatus_antes_de_cierre,
         personas ( id, nombre, telefono_principal, telefono_alternativo ),
-        pagos!pagos_inscripcion_id_fkey ( monto, fecha, banco, forma_pago, concepto, creado_en )`)
+        pagos!pagos_inscripcion_id_fkey ( id, monto, fecha, hora, banco, forma_pago, concepto, verificacion, creado_en )`)
       .eq('evento_id', evId),
     qL,
     sb.from('eventos').select('id, recepcion_cerrada_en, recepcion_cerrada_por').eq('id', evId).maybeSingle(),
@@ -6221,7 +6409,7 @@ async function cargarRecepcion({ silencioso = false } = {}){
   rec.cerradaEn = re.data?.recepcion_cerrada_en || null;
   rec.cerradaPor = re.data?.recepcion_cerrada_por || null;
   const hoy = hoyISO();
-  rec.cobradoHoy = rec.inscritas.reduce((s,i)=> s + i.pagos.filter(p=>p.fecha === hoy).reduce((t,p)=>t + Number(p.monto || 0), 0), 0);
+  rec.cobradoHoy = rec.inscritas.reduce((s,i)=> s + pagosValidos(i).filter(p=>p.fecha === hoy).reduce((t,p)=>t + Number(p.monto || 0), 0), 0);
   pintarRecepcion();
 }
 
@@ -6259,6 +6447,7 @@ function visiblesRecepcion(){
   }
   return items.filter(it=>{
     if(it.tipo === 'l') return rec.filtro === 'leads' || rec.filtro === 'todas';
+    if(rec.filtro === 'porconfirmar') return pagosPorConfirmar(it.i).length > 0;
     const i = it.i;
     if(rec.filtro === 'todas') return true;
     if(fueraDeRecepcion(i)) return false;
@@ -6266,6 +6455,7 @@ function visiblesRecepcion(){
     if(rec.filtro === 'llegaron') return llego(i);
     if(rec.filtro === 'deben')    return debeDe(i) > 0;
     if(rec.filtro === 'cobrar')   return llego(i) && debeDe(i) > 0;
+    if(rec.filtro === 'porconfirmar') return pagosPorConfirmar(i).length > 0;
     return false;
   });
 }
@@ -6290,6 +6480,12 @@ function pintarRecepcion(anim){
   const defs = [['faltan','Faltan',c.faltan], ['llegaron','Llegaron',c.llegaron], ['deben','Deben',c.deben], ['todas','Todas',rec.inscritas.length + c.leads]];
   if(c.leads) defs.push(['leads','Leads',c.leads]);
   defs.push(['cobrar','⚡ Por cobrar',c.cobrar]);
+  const pend = rec.inscritas.flatMap(pagosPorConfirmar);
+  if(pend.length || rec.filtro === 'porconfirmar') defs.push(['porconfirmar','🏦 Por confirmar',pend.length]);
+  const kpiPC = document.getElementById('recKpiPC');
+  kpiPC.hidden = !pend.length;
+  kpiPC.querySelector('.v').textContent = `🏦 ${pend.length}`;
+  kpiPC.querySelector('.l').textContent = `por confirmar (${fmtMoney(pend.reduce((s,p)=>s + Number(p.monto || 0), 0))})`;
   document.getElementById('recFiltros').innerHTML = defs.map(([k,l,n])=>
     `<button type="button" class="rec-pill ${k==='cobrar'?'cobrar':''} ${rec.filtro===k && !rec.q ? 'on' : ''}" data-rec-filtro="${k}">${l} <b>${n}</b></button>`).join('');
   pintarListaRecepcion();
@@ -6308,11 +6504,13 @@ function pintarListaRecepcion(){
     } else {
       const d = debeDe(it.i);
       din = d > 0 ? `<div class="din debe">$ Debe ${fmtMoney(d)}</div>` : '<div class="din ok">✓ Liquidada</div>';
+      if(pagosPorConfirmar(it.i).length) din += '<div class="din pc">🏦 Por confirmar</div>';
       lleg = fueraDeRecepcion(it.i) ? `<span class="rec-lleg tag">${escHtml(ESTATUS.find(e=>e.id === it.i.estatus_id)?.etiqueta || '')}</span>`
         : llego(it.i) ? '<span class="rec-lleg si">● Llegó</span>'
         : `<span class="rec-lleg">○ ${it.i.asistencia === 'no_llego' ? 'No llegó' : 'Falta'}</span>`;
     }
-    return `<div class="rec-fila ${it.key === rec.sel ? 'sel' : ''}" role="option" aria-selected="${it.key === rec.sel}" data-rec-key="${escapeAttr(it.key)}">
+    const pc = it.tipo === 'i' && pagosPorConfirmar(it.i).length ? 'pc' : '';
+    return `<div class="rec-fila ${it.key === rec.sel ? 'sel' : ''} ${pc}" role="option" aria-selected="${it.key === rec.sel}" data-rec-key="${escapeAttr(it.key)}">
       <div class="avatar">${escHtml(iniciales(it.nombre))}</div>
       <div class="quien"><div class="nom">${escHtml(it.nombre)}</div>${din}</div>${lleg}</div>`;
   }).join('') : `<div class="rec-vacio">${rec.q ? `Nadie con “${escHtml(rec.q)}”. Prueba con otro apellido o los últimos 4 del teléfono.` : 'Nadie en esta lista.'}</div>`;
@@ -6333,7 +6531,7 @@ function calculoCobro(i){
   return { base, vip, otros, curso, total: curso + montoOtros };
 }
 function comoPago(i){
-  const p = i.pagos.filter(x=>(x.concepto || 'curso') === 'curso').sort((a,b)=>(a.fecha || '').localeCompare(b.fecha || ''))[0];
+  const p = pagosValidos(i).filter(x=>(x.concepto || 'curso') === 'curso').sort((a,b)=>(a.fecha || '').localeCompare(b.fecha || ''))[0];
   if(!p) return '—';
   return [p.forma_pago, p.banco && p.banco !== p.forma_pago ? p.banco : ''].filter(Boolean).join(' · ') || '—';
 }
@@ -6369,7 +6567,8 @@ function pintarPanelRecepcion(anim){
       <button type="button" class="rec-cta" id="recCobrar" ${rec.procesando ? 'disabled' : ''}>${rec.procesando ? 'Procesando…' : `${cc.curso > 0 ? 'Liquida' : 'Cobrar'} ${fmtMoney(cc.total)} <kbd>P</kbd>`}</button>
       ${detalleTotal}
       <div><div class="rec-sec">Forma de pago</div>
-        <div class="rec-formas">${FORMAS_PAGO.map((f,k)=>`<button type="button" class="rec-forma ${rec.forma===f?'on':''}" data-rec-forma="${f}">${f} <kbd>${k+1}</kbd></button>`).join('')}</div></div>
+        <div class="rec-formas">${FORMAS_PAGO.map((f,k)=>`<button type="button" class="rec-forma ${rec.forma===f?'on':''}" data-rec-forma="${f}">${f} <kbd>${k+1}</kbd></button>`).join('')}
+          <button type="button" class="rec-forma pc-toggle ${rec.marcarPC ? 'on' : ''}" id="recMarcarPC" title="Para revisarlo en el banco después">🏦 Por confirmar <kbd>B</kbd></button></div></div>
       <div class="rec-nota" id="recNota">${rec.forma ? `Se queda en ${rec.forma.toLowerCase()} para las siguientes.` : ''}</div>
       ${rec.falla ? `<div class="rec-falla">⚠ ${escHtml(rec.falla.texto)}${rec.falla.reintentar ? ' <button type="button" id="recReintentar">Reintentar</button>' : ''}</div>` : ''}
       <div class="rec-links">
@@ -6397,12 +6596,14 @@ function pintarPanelRecepcion(anim){
       <div class="rec-dato"><span class="l">Vendió</span><span class="v">${escHtml(nombreVendedor(i.asesor_id) || '—')}</span></div>
     </div>
     <div class="rec-accion">
+      ${htmlPagosPorConfirmar(i)}
       ${accion}
       ${extras.length ? `<div><div class="rec-sec">Extras</div><div class="rec-extras">${botonesExtra}</div></div>` : ''}
       <div><div class="rec-sec">Comentario <kbd>C</kbd></div>
         <div class="rec-coment"><textarea id="recComent" placeholder="Algo que el equipo deba saber…">${escHtml((i.notas_migracion || '').split(' | ').join('\n'))}</textarea><span class="guardado-estado" id="recComentEstado"></span></div></div>
       <div class="rec-links"><button type="button" class="rec-link" id="recFichaCompleta">Ficha completa (vendedor, estatus, corregir)</button>
-        <button type="button" class="rec-link" id="recWhats">💬 WhatsApp</button></div>
+        <button type="button" class="rec-link" id="recWhats">💬 WhatsApp</button>
+        ${!pagosPorConfirmar(i).length && pagoDeHoyMarcable(i) ? `<button type="button" class="rec-link" data-pc-marcar="${escapeAttr(pagoDeHoyMarcable(i).id)}">🏦 Marcar el pago de hoy por confirmar</button>` : ''}</div>
     </div>
   </div>`;
   if(rec.precioEditando) setTimeout(()=>document.getElementById('recPrecioExtra')?.focus(), 0);
@@ -6429,7 +6630,7 @@ function panelLeadRecepcion(l){
 }
 
 /* ---------- Acciones ---------- */
-function seleccionarRecepcion(key){ rec.sel = key; rec.falla = null; rec.precioEditando = null; pintarListaRecepcion(); pintarPanelRecepcion(); }
+function seleccionarRecepcion(key){ rec.sel = key; rec.falla = null; rec.precioEditando = null; rec.marcarPC = false; pintarListaRecepcion(); pintarPanelRecepcion(); }
 function brincarKpi(id){ const el = document.getElementById(id); el.classList.remove('brinca'); void el.offsetWidth; el.classList.add('brinca'); }
 /* Tras cobrar o marcar llegada: la siguiente de la lista que necesite algo. */
 function avanzarRecepcion(ordenAntes, keyActual){
@@ -6495,12 +6696,13 @@ async function cobrarRecepcion(){
   const ordenAntes = visiblesRecepcion().map(x=>x.key);
   rec.procesando = true; rec.falla = null; pintarPanelRecepcion();
   const hoy = hoyISO();
-  const comun = { inscripcion_id:i.id, fecha:hoy, banco:rec.forma, forma_pago:rec.forma, confirmado_por:asesorActualId || null };
+  const comun = { inscripcion_id:i.id, fecha:hoy, hora:horaActual(), banco:rec.forma, forma_pago:rec.forma, confirmado_por:asesorActualId || null,
+                  verificacion: rec.marcarPC ? 'por_confirmar' : 'confirmado' };
   const filas = [];
   if(cc.curso > 0) filas.push({ ...comun, monto:cc.curso, concepto:'curso' });
   cc.otros.forEach(p=>filas.push({ ...comun, monto:Number(p.precio), concepto:p.nombre }));
   // 1) Pagos, todos en una sola escritura: o entran todos o ninguno.
-  const { error: errPago } = await sb.from('pagos').insert(filas);
+  const { data: pagosNuevos, error: errPago } = await sb.from('pagos').insert(filas).select('id, monto, fecha, hora, banco, forma_pago, concepto, verificacion');
   if(errPago){
     rec.procesando = false;
     rec.falla = { texto:'No se pudo registrar el pago. El cobro NO se hizo.', reintentar:true };
@@ -6519,10 +6721,12 @@ async function cobrarRecepcion(){
   }
   const { error: errUpd } = await sb.from('inscripciones').update(cambios).eq('id', i.id);
   rec.procesando = false;
-  filas.forEach(f=>i.pagos.push({ monto:f.monto, fecha:f.fecha, banco:f.banco, forma_pago:f.forma_pago, concepto:f.concepto }));
+  (pagosNuevos?.length ? pagosNuevos : filas).forEach(f=>i.pagos.push({ id:f.id, monto:f.monto, fecha:f.fecha, hora:f.hora, banco:f.banco, forma_pago:f.forma_pago, concepto:f.concepto, verificacion:f.verificacion }));
+  const quedoPorConfirmar = rec.marcarPC;
+  rec.marcarPC = false;
   rec.cobradoHoy += cc.total;
   delete rec.extras[i.id];
-  const detalle = `${fmtMoney(cc.total)} de ${it.nombre} en ${rec.forma.toLowerCase()} (recepción ${rec.ev.ciudad}${cc.vip ? ', subió a VIP' : ''}${cc.otros.length ? ', ' + cc.otros.map(p=>p.nombre).join(', ') : ''})`;
+  const detalle = `${fmtMoney(cc.total)} de ${it.nombre} en ${rec.forma.toLowerCase()}${quedoPorConfirmar ? ' 🏦 por confirmar' : ''} (recepción ${rec.ev.ciudad}${cc.vip ? ', subió a VIP' : ''}${cc.otros.length ? ', ' + cc.otros.map(p=>p.nombre).join(', ') : ''})`;
   registrarActividad('pago_registrado', detalle);
   if(errUpd){
     // El dinero ya quedó registrado: reintentar lo cobraría dos veces.
@@ -6532,7 +6736,7 @@ async function cobrarRecepcion(){
     return;
   }
   Object.assign(i, cambios);
-  toast(`${fmtMoney(cc.total)} en ${rec.forma.toLowerCase()} · ${it.nombre.split(' ')[0]} ${r.liquidado || cc.curso === 0 ? 'lista ✓' : 'debe ' + fmtMoney(r.nuevoRestante)}`);
+  toast(`${fmtMoney(cc.total)} en ${rec.forma.toLowerCase()} · ${it.nombre.split(' ')[0]} ${r.liquidado || cc.curso === 0 ? 'lista ✓' : 'debe ' + fmtMoney(r.nuevoRestante)}${quedoPorConfirmar ? ' · 🏦 por confirmar' : ''}`);
   brincarKpi('recKpiCobrado'); brincarKpi('recKpiLlegaron');
   pintarRecepcion('pago');
   setTimeout(()=>avanzarRecepcion(ordenAntes, it.key), 800);
@@ -6615,7 +6819,8 @@ async function cerrarRecepcionDelDia(){
     titulo:'Cierre de recepción',
     aviso:`<b>${c.total}</b> inscritas · <b>${c.llegaron}</b> llegaron · <b>${c.faltan}</b> no llegaron<br>`
       + `<b>${liquidadas}</b> liquidadas · <b>${c.cobrar}</b> llegaron y siguen debiendo<br>Cobrado hoy: <b>${fmtMoney(rec.cobradoHoy)}</b>`
-      + (faltan.length ? `<br><br><b>${faltan.length}</b> pasarán a <b>“No llegó”</b> y saldrán de Cobranza: ${nombres}.` : '<br><br>Llegaron todas.'),
+      + (faltan.length ? `<br><br><b>${faltan.length}</b> pasarán a <b>“No llegó”</b> y saldrán de Cobranza: ${nombres}.` : '<br><br>Llegaron todas.')
+      + (()=>{ const pc = activas.flatMap(pagosPorConfirmar); return pc.length ? `<br><br>🏦 Quedan <b>${pc.length}</b> pago${pc.length === 1 ? '' : 's'} por confirmar (${fmtMoney(pc.reduce((s,p)=>s + Number(p.monto || 0), 0))}). Se pueden revisar después, aquí o en la ficha.` : ''; })(),
     textoSi:'Cerrar recepción',
   });
   if(ok === null) return;
@@ -6662,6 +6867,7 @@ async function reabrirRecepcion(){
   pintarRecepcion();
 }
 document.getElementById('recCerrar').addEventListener('click', cerrarRecepcionDelDia);
+document.getElementById('recKpiPC').addEventListener('click', ()=>{ rec.filtro = 'porconfirmar'; rec.q = ''; document.getElementById('recBuscar').value = ''; rec.sel = null; pintarRecepcion(); });
 
 /* ---------- Eventos ---------- */
 document.getElementById('recBuscar').addEventListener('input', e=>{ rec.q = e.target.value; rec.sel = null; pintarRecepcion(); });
@@ -6683,6 +6889,20 @@ document.getElementById('recPanel').addEventListener('click', e=>{
     const it = itemSel(); if(!it || it.tipo !== 'i') return;
     return abrirEnviarWhatsApp({ nombre:it.nombre, telefono:it.i.personas?.telefono_principal, personaId:it.i.personas?.id,
       ciudad:rec.ev.ciudad, fecha:rec.ev.fecha, sede:rec.ev.sede, debe:debeDe(it.i) });
+  }
+  if(t.closest('#recMarcarPC')){ rec.marcarPC = !rec.marcarPC; pintarPanelRecepcion(); return; }
+  const pcOk = t.closest('[data-pc-ok]'), pcNo = t.closest('[data-pc-no]'), pcM = t.closest('[data-pc-marcar]');
+  if(pcOk || pcNo || pcM){
+    const it = itemSel(); if(!it || it.tipo !== 'i') return;
+    (async ()=>{
+      const hecho = pcOk ? await confirmarPagoBanco(it.i, pcOk.dataset.pcOk)
+                  : pcNo ? await pagoNoLlegoBanco(it.i, pcNo.dataset.pcNo)
+                  : await marcarPagoPorConfirmar(it.i, pcM.dataset.pcMarcar);
+      if(!hecho || !rec) return;
+      if(pcNo) rec.cobradoHoy = rec.inscritas.reduce((s,x)=> s + pagosValidos(x).filter(p=>p.fecha === hoyISO()).reduce((t2,p)=>t2 + Number(p.monto || 0), 0), 0);
+      pintarRecepcion();
+    })();
+    return;
   }
   const f = t.closest('[data-rec-forma]'); if(f){ rec.forma = f.dataset.recForma; pintarPanelRecepcion(); return; }
   const x = t.closest('[data-rec-extra]'); if(x) return alternarExtraRecepcion(x.dataset.recExtra);
@@ -6731,7 +6951,8 @@ document.addEventListener('keydown', e=>{
   const tecla = e.key.toLowerCase();
   if(tecla === 'l') marcarLlegadaRecepcion();
   else if(tecla === 'p') cobrarRecepcion();
-  else if(['1','2','3'].includes(tecla)){ rec.forma = FORMAS_PAGO[Number(tecla) - 1]; pintarPanelRecepcion(); }
+  else if(['1','2','3','4'].includes(tecla)){ rec.forma = FORMAS_PAGO[Number(tecla) - 1]; pintarPanelRecepcion(); }
+  else if(tecla === 'b'){ rec.marcarPC = !rec.marcarPC; pintarPanelRecepcion(); }
   else if(tecla === 'v'){ const p = PRECIOS?.find(x=>x.clave === 'subir_vip' && x.activo); if(p) alternarExtraRecepcion(p.id); }
   else if(tecla === 'u'){ const p = PRECIOS?.find(x=>x.activo && /^uniforme/i.test(x.nombre)); if(p) alternarExtraRecepcion(p.id); }
   else if(tecla === 'c'){ e.preventDefault(); document.getElementById('recComent')?.focus(); }
@@ -7310,7 +7531,7 @@ async function renderVentasPagos(){
   const cont = document.getElementById('listaPagosRecientes');
   cont.innerHTML = 'Cargando…';
   const { data, error } = await sb.from('pagos')
-    .select('id, monto, fecha, banco, creado_en, inscripciones(personas(nombre, telefono_principal), eventos(ciudades(nombre)))')
+    .select('id, monto, fecha, banco, creado_en, verificacion, inscripciones(personas(nombre, telefono_principal), eventos(ciudades(nombre)))')
     .order('creado_en', { ascending:false }).limit(30);
   if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + error.message + '</div>'; return; }
   if(!data || data.length===0){
@@ -7326,7 +7547,7 @@ async function renderVentasPagos(){
       <div class="pago-feed-monto">${fmtMoney(p.monto)}</div>
       <div class="pago-feed-info">
         <div class="pago-feed-nombre">${nombre}</div>
-        <div class="pago-feed-meta">${tel}${ciudad?' · '+ciudad:''}${fechaTxt?' · '+fechaTxt:''}${p.banco?' · '+p.banco:''}</div>
+        <div class="pago-feed-meta">${tel}${ciudad?' · '+ciudad:''}${fechaTxt?' · '+fechaTxt:''}${p.banco?' · '+p.banco:''}${p.verificacion === 'por_confirmar' ? ' · 🏦 por confirmar' : p.verificacion === 'no_llego' ? ' · ✗ no llegó al banco' : ''}</div>
       </div>
     </div>`;
   }).join('');
