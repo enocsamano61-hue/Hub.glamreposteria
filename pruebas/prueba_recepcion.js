@@ -49,7 +49,7 @@ const base = () => ({
   check((await txt('#recKpiCobrado .v')) === '$1,400', 'cobrado hoy $1,400 (el pago de hoy de Dora)');
   check(await p.evaluate(() => document.activeElement.id) === 'recBuscar', 'el cursor ya está en el buscador');
   const filas = await p.$$eval('#recLista .rec-fila .nom', els => els.map(e => e.textContent));
-  check(filas.join('|') === 'Ana Arce Prueba|Bea Bustos Prueba|Carla Cruz Prueba', 'Faltan: Ana, Bea, Carla: ' + filas.join('|'));
+  check(filas.join('|') === '⭐ Ana Arce Prueba|Bea Bustos Prueba|Carla Cruz Prueba', 'Faltan: Ana (VIP, arriba), Bea, Carla: ' + filas.join('|'));
   check((await txt('#recFiltros')).includes('Leads 1'), 'hay filtro de Leads');
   await h.captura('recepcion-computadora.png');
 

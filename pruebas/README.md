@@ -25,6 +25,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_calendario.js` | Calendario: tarjetas por curso (avance y estado) y hoja del día. |
 | `prueba_humo.js` | Todas las secciones del menú abren sin errores de JS (admin y Logística). |
 | `prueba_ficha.js` | Ficha de la inscrita: cobro primero, guardado automático, modo Cobranza. |
+| `prueba_vip.js` | ⭐ VIP: paquete en el lead (nuevo y ficha), tablero, VIP primero en Recepción, Cambiar a VIP. |
 | `prueba_por_confirmar.js` | 🏦 Pagos por confirmar: marcar al cobrar o después, confirmar / no llegó en Recepción y ficha, Cobranza y Calendario. |
 | `prueba_precios.js` | Sección Precios. |
 | `prueba_recepcion.js` | Recepción del día del curso: buscar, cobrar, extras, llegada, cerrar/reabrir, leads, teclado. |

@@ -601,6 +601,15 @@
   .sheet-recepcion{ margin:10px 0 4px; font-size:15px; padding:12px; }
   /* 🏦 Pagos por confirmar */
   .rec-fila.pc{ box-shadow:inset 3px 0 0 var(--champagne); }
+  /* ⭐ VIP: pasan primero al salón */
+  .rec-fila.vip{ background:rgba(198,166,107,.12); }
+  .rec-fila.vip.sel{ background:var(--card); box-shadow:inset 3px 0 0 var(--champagne), 0 1px 2px rgba(41,36,33,.06); }
+  .rec-fila.vip .avatar{ background:var(--champagne); color:var(--ink); }
+  .rec-grupo{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); padding:10px 10px 4px; }
+  .rec-grupo.vip{ color:#7A6232; }
+  .rec-chip.vip{ background:var(--champagne); color:var(--ink); }
+  .rec-kpi-vip{ border:1px solid var(--champagne); background:rgba(198,166,107,.14); border-radius:10px; padding:4px 10px; font-family:inherit; cursor:pointer; color:var(--ink); }
+  .rec-kpi-vip .v{ font-size:16px; }
   .rec-fila .din.pc{ color:#7A6232; font-weight:600; }
   .rec-kpi-pc{ border:1px solid var(--champagne); background:rgba(198,166,107,.14); border-radius:10px; padding:4px 10px; font-family:inherit; cursor:pointer; color:var(--ink); }
   .rec-kpi-pc .v{ font-size:16px; }
@@ -613,6 +622,8 @@
   .pc-btns button{ height:38px; padding:0 14px; border-radius:9px; font-family:inherit; font-weight:600; font-size:13px; cursor:pointer; }
   .pc-ok{ border:0; background:var(--success); color:#fff; }
   .pc-no{ border:1px solid var(--border); background:var(--card); color:var(--danger); }
+  .cobro-vip:not(:empty){ margin:-4px 0 12px; }
+  .cobro-vip .btn-outline{ width:auto; }
   .cobro-pc{ margin-top:6px; width:100%; padding:9px 10px; border:1px dashed var(--champagne); border-radius:10px; background:var(--card); font-family:inherit; font-size:13px; font-weight:600; color:#7A6232; cursor:pointer; }
   .cobro-pc.activo{ border-style:solid; background:rgba(198,166,107,.18); box-shadow:inset 0 0 0 1px var(--champagne); }
   #fichaPorConfirmar:not(:empty){ margin-bottom:12px; }
@@ -879,6 +890,8 @@
   .cob-mover-input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
   @media (max-width:600px){ .cob-grupo > summary .cob-ayuda{ display:none; } .cob-filtros select{ flex:1; } }
   .seg.full{ display:flex; width:100%; }
+  .badge-vip{ display:inline-block; font-size:10.5px; font-weight:700; color:#7A6232; background:rgba(198,166,107,.25); border-radius:999px; padding:1px 7px; margin-left:4px; vertical-align:middle; }
+  .seg-paquete button[data-paq="VIP"].active{ background:var(--champagne); color:var(--ink); }
   .seg.full button{ flex:1; }
   /* Filas y chips que abren la ficha de la alumna (Plazas, Historial). */
   .clicable{ cursor:pointer; }
@@ -1451,6 +1464,7 @@
     <div class="rec-kpis">
       <div class="rec-kpi" id="recKpiLlegaron"><span class="v">0/0</span><span class="l">llegaron</span></div>
       <div class="rec-kpi" id="recKpiCobrado"><span class="v">$0</span><span class="l">cobrado hoy</span></div>
+      <button type="button" class="rec-kpi rec-kpi-vip" id="recKpiVip" hidden><span class="v">⭐ 0/0</span><span class="l">VIP llegaron</span></button>
       <button type="button" class="rec-kpi rec-kpi-pc" id="recKpiPC" hidden><span class="v">🏦 0</span><span class="l">por confirmar</span></button>
     </div>
     <button type="button" class="rec-cerrar-btn" id="recCerrar">Cerrar recepción</button>
@@ -1492,6 +1506,14 @@
         <button class="btn-primary small" id="guardarLeadVendedor">Guardar</button>
       </div>
       <div class="vend-hint" id="leadVendedorHint"></div>
+    </div>
+    <div class="modal-vendedor">
+      <div class="modal-notas-titulo">Paquete <span class="guardado-estado" id="leadPaqueteEstado"></span></div>
+      <div class="seg full seg-paquete" id="leadPaquete">
+        <button type="button" data-paq="BASICO" class="active">Básico $1,400</button>
+        <button type="button" data-paq="VIP">⭐ VIP $1,900</button>
+      </div>
+      <div class="vend-hint">Si es VIP, en Recepción sale hasta arriba para pasar primero al salón.</div>
     </div>
     <div class="modal-field"><label>Nombre</label><input id="modalNombreEdit"></div>
     <div class="modal-field"><label>Teléfono principal</label><input id="modalTelefonoEdit" placeholder="10 dígitos"></div>
@@ -1572,6 +1594,11 @@
     <div class="modal-field" id="nuevoCiudadCampo"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
     <div class="modal-field" id="nuevoCursoCampo"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
     <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="nuevoFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
+    <div class="modal-field"><label>Paquete</label>
+      <div class="seg full seg-paquete" id="nuevoPaquete">
+        <button type="button" data-paq="BASICO" class="active">Básico $1,400</button>
+        <button type="button" data-paq="VIP">⭐ VIP $1,900</button>
+      </div></div>
     <div class="modal-field"><label>¿Quién vendió?</label><select id="nuevoVendedor"></select></div>
     <button class="btn-primary" id="guardarNuevoLead">Crear lead</button>
   </div>
@@ -1625,6 +1652,7 @@
     <div class="ficha-cobro" id="panelInscPago">
       <div id="fichaPorConfirmar"></div>
       <div class="cobro-resumen" id="cobroResumen">—</div>
+      <div class="cobro-vip" id="cobroVipCaja"></div>
       <div class="modal-field"><label>Monto (vacío = liquida todo)</label>
         <div class="vend-row"><input type="number" id="modalPagoMonto" placeholder="Lo que debe" inputmode="decimal" min="0" step="50">
         <button type="button" class="btn-outline small" id="cobroLiquida">Liquida todo</button></div></div>
@@ -2646,6 +2674,7 @@ const ACCION_LABEL = {
   acceso_online_dado: '🎓 Marcó acceso online dado',
   pago_por_confirmar: '🏦 Marcó un pago por confirmar',
   pago_verificado: '🏦 Confirmó un pago en el banco',
+  paquete_cambiado: '⭐ Cambió el paquete (Básico / VIP)',
   pago_no_llego: '🏦 Marcó que un pago no llegó al banco',
   acceso_online_quitado: '🎓 Quitó “acceso online dado”',
   anticipo_perdido: '🔒 Marcó que perdió el anticipo',
@@ -3645,7 +3674,7 @@ function tarjetaLead(l){
   const esNuevo = l.creado_en && (Date.now() - new Date(l.creado_en).getTime()) < 48*60*60*1000;
   return `
     <div class="lead-card" style="--card-accent:${e?.color_hex||'#ccc'}" data-lead-id="${l.id}">
-      <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}${esNuevo?' <span class="badge-nuevo">🆕 Nuevo</span>':''}</div>
+      <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}${l.paquete==='VIP'?' <span class="badge-vip">⭐ VIP</span>':''}${esNuevo?' <span class="badge-nuevo">🆕 Nuevo</span>':''}</div>
       <div class="lead-meta">${l.personas?.telefono_principal||''}${l.cursos?.nombre?'<br>'+l.cursos.nombre:''}</div>
       ${l.ciudades?.nombre?`<div class="lead-ciudad">📍 ${l.ciudades.nombre}</div>`:''}
       ${pagoReportado(l)?`<div class="lead-pago-rep">💜 ${fmtMoney(l.pago_reportado_monto)} por confirmar</div>`:''}
@@ -3665,8 +3694,8 @@ function tarjetaInscrito(i){
     : '<div class="insc-liq">Liquidado</div>';
   return `
     <div class="lead-card" style="--card-accent:${acento}" data-insc-id="${i.id}">
-      <div class="lead-name">${i.personas?.nombre||'(sin nombre)'}</div>
-      <div class="lead-meta">${i.personas?.telefono_principal||''}${i.paquete?'<br>'+i.paquete:''}</div>
+      <div class="lead-name">${i.personas?.nombre||'(sin nombre)'}${i.paquete==='VIP'?' <span class="badge-vip">⭐ VIP</span>':''}</div>
+      <div class="lead-meta">${i.personas?.telefono_principal||''}</div>
       ${i.eventos?.ciudades?.nombre?`<div class="lead-ciudad">📍 ${i.eventos.ciudades.nombre} · ${fechaCorta(i.eventos.fecha)}${i.eventos.fecha && i.eventos.fecha < hoyISO() ? ' <span class="insc-pasado">✔ curso pasado</span>' : ''}</div>`:''}
       ${saldo}
       ${vistaActiva!=='vendedor' && i.asesor_id ? `<div class="lead-meta">👤 ${nombreVendedor(i.asesor_id)}</div>` : ''}
@@ -3893,6 +3922,30 @@ document.querySelectorAll('#segPoblacion button').forEach(b=>{
 
 /* --- Modal: detalle / actualizar estatus / comentar --- */
 let leadAbiertoId = null, leadAbiertoPersonaId = null;
+/* ⭐ Paquete (Básico / VIP): el mismo selector en Nuevo lead y en la ficha del lead. */
+function marcarSegPaquete(id, paq){
+  document.querySelectorAll(`#${id} [data-paq]`).forEach(b=>b.classList.toggle('active', b.dataset.paq === paq));
+}
+function valorSegPaquete(id){ return document.querySelector(`#${id} [data-paq].active`)?.dataset.paq || 'BASICO'; }
+document.getElementById('nuevoPaquete').addEventListener('click', e=>{
+  const b = e.target.closest('[data-paq]'); if(b) marcarSegPaquete('nuevoPaquete', b.dataset.paq);
+});
+/* En la ficha del lead se guarda al tocarlo, sin botón. */
+document.getElementById('leadPaquete').addEventListener('click', async e=>{
+  const b = e.target.closest('[data-paq]'); const lead = leadAbierto(); if(!b || !lead) return;
+  const antes = lead.paquete === 'VIP' ? 'VIP' : 'BASICO', nuevo = b.dataset.paq;
+  if(nuevo === antes) return;
+  marcarSegPaquete('leadPaquete', nuevo);
+  marcarGuardado('leadPaqueteEstado', 'Guardando…');
+  const { error } = await sb.from('leads').update({ paquete: nuevo }).eq('id', lead.id);
+  if(error){ marcarSegPaquete('leadPaquete', antes); marcarGuardado('leadPaqueteEstado', '⚠ No se guardó', 'malo'); toast('No se pudo guardar el paquete: ' + error.message, true); return; }
+  lead.paquete = nuevo;
+  marcarGuardado('leadPaqueteEstado', '✓ Guardado', 'ok');
+  const txt = p => p === 'VIP' ? '⭐ VIP' : 'Básico';
+  registrarActividad('paquete_cambiado', `${lead.personas?.nombre || 'lead'}: ${txt(antes)} → ${txt(nuevo)}`);
+  if(document.getElementById('view-board')?.classList.contains('active') && typeof pintarBoard === 'function') pintarBoard();
+});
+
 async function abrirModalLead(leadId){
   const lead = leadsCache.find(l=>l.id===leadId);
   if(!lead) return;
@@ -3913,6 +3966,8 @@ async function abrirModalLead(leadId){
   document.getElementById('modalFechaAnticipo').value = lead.fecha_compromiso_pago || '';
   pintarVendedorLead(lead);
   pintarPagoLead(lead);
+  marcarSegPaquete('leadPaquete', lead.paquete === 'VIP' ? 'VIP' : 'BASICO');
+  marcarGuardado('leadPaqueteEstado', '');
   document.getElementById('modalComentarioNuevo').value = '';
   document.getElementById('modalHistorial').innerHTML = 'Cargando...';
   document.getElementById('modalLead').classList.add('open');
@@ -5166,6 +5221,7 @@ document.getElementById('btnNuevoLead').addEventListener('click', ()=>{
   document.getElementById('nuevoCorreo').value=''; document.getElementById('nuevoNacimiento').value='';
   document.getElementById('nuevoEdad').textContent = '';
   document.getElementById('nuevoLadaSug').innerHTML = '';
+  marcarSegPaquete('nuevoPaquete', 'BASICO');
   document.getElementById('modalNuevo').classList.add('open');
 });
 document.getElementById('closeModalNuevo').addEventListener('click', ()=>document.getElementById('modalNuevo').classList.remove('open'));
@@ -5248,7 +5304,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
     persona_id: personaId, estatus_id: estatusInicial.id,
     curso_interes_id: cursoId, ciudad_interes_id: ciudadId,
     evento_id: eventoId, fecha_compromiso_pago: fechaAnticipo,
-    asesor_id: vendedorId
+    asesor_id: vendedorId, paquete: valorSegPaquete('nuevoPaquete'),
   });
   btn.disabled = false; btn.textContent = 'Crear lead';
   if(errL){ toast('Error creando lead: ' + errL.message, true); return; }
@@ -5778,7 +5834,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha, sede, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento), eventos(fecha, sede, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -5798,6 +5854,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   data.pagos = (data.pagos || []).sort((a,b)=>`${a.fecha}${a.hora || ''}`.localeCompare(`${b.fecha}${b.hora || ''}`));
   marcarPCFicha(false);
   pintarPorConfirmarFicha();
+  pintarVipFicha();
   pintarCobro();
   if(soloCobro) setTimeout(()=>document.getElementById('modalPagoMonto').focus(), 50);
   // "Corregir" arranca con lo que hay hoy, para ajustar en vez de recapturar.
@@ -6160,6 +6217,45 @@ document.getElementById('cobroFormas').addEventListener('click', e=>{
   pintarCobro();
 });
 document.getElementById('cobroProximo').addEventListener('input', pintarCobro);
+/* ⭐ Paquete en la ficha: si es Básico, se puede pasar a VIP antes del curso
+   (sube el precio y le queda la diferencia por pagar). */
+function precioSubirVip(){ return Number(PRECIOS?.find(p=>p.clave === 'subir_vip')?.precio ?? 500); }
+function pintarVipFicha(){
+  const d = modalInscDatos; const cont = document.getElementById('cobroVipCaja');
+  if(!d){ cont.innerHTML = ''; return; }
+  cont.innerHTML = d.paquete === 'VIP'
+    ? '<span class="rec-chip vip">⭐ Paquete VIP</span>'
+    : `<button type="button" class="btn-outline small" id="btnCambiarVip">⭐ Cambiar a VIP (+${fmtMoney(precioSubirVip())})</button>`;
+}
+document.getElementById('cobroVipCaja').addEventListener('click', async e=>{
+  if(!e.target.closest('#btnCambiarVip')) return;
+  const d = modalInscDatos; if(!d || d.paquete === 'VIP') return;
+  if(!PRECIOS) await cargarPrecios();
+  const extra = precioSubirVip();
+  const nombre = d.personas?.nombre || 'la alumna';
+  const precio = precioDeInsc(d) + extra;
+  const anticipo = Number(d.anticipo || 0);
+  const ok = await preguntarConfirmacion({ titulo:'¿Cambiar a VIP?', textoSi:'Sí, cambiar a VIP',
+    aviso:`${escHtml(nombre)} pasa de Básico a <b>⭐ VIP</b>. El curso queda en <b>${fmtMoney(precio)}</b> y le faltaría <b>${fmtMoney(Math.max(precio - anticipo, 0))}</b>.` });
+  if(ok === null || modalInscDatos !== d) return;
+  const hoy = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+  const cambios = { paquete:'VIP', precio_pactado:precio, restante:Math.max(precio - anticipo, 0), liquidado: anticipo >= precio,
+    notas_migracion: (d.notas_migracion ? d.notas_migracion + ' || ' : '') + `CAMBIO A VIP ${hoy} por ${usuarioActual?.nombre || 'alguien'}: precio ${fmtMoney(precioDeInsc(d))} → ${fmtMoney(precio)}`
+      // En cursos viejos el paquete trae notas del Excel ("PROMO $980"…): se guardan aquí para no perderlas.
+      + (d.paquete && !['BASICO', 'VIP'].includes(d.paquete) ? ` (paquete antes: "${d.paquete}")` : '') };
+  if(!cambios.liquidado && claveEstatus(d.estatus_id) === 'pagado'){ const e2 = estatusPorClave('anticipo_vigente'); if(e2) cambios.estatus_id = e2.id; }
+  const { error } = await sb.from('inscripciones').update(cambios).eq('id', d.id);
+  if(error){ toast('No se pudo cambiar a VIP: ' + error.message, true); return; }
+  Object.assign(d, cambios);
+  document.getElementById('modalInscNotasEdit').value = cambios.notas_migracion.split(' | ').join('\n');
+  document.getElementById('modalInscPrecio').textContent = fmtMoney(precio);
+  document.getElementById('modalInscRestante').textContent = d.liquidado ? 'Liquidado' : fmtMoney(cambios.restante);
+  pintarVipFicha(); pintarCobro();
+  registrarActividad('paquete_cambiado', `${nombre}: Básico → ⭐ VIP (+${fmtMoney(extra)})`);
+  toast(`⭐ ${nombre} ahora es VIP. Debe ${fmtMoney(cambios.restante)}.`);
+  if(document.getElementById('view-calendario')?.classList.contains('active')) renderCalendario(true);
+});
+
 /* 🏦 en la ficha: la etiqueta al cobrar y los pagos pendientes de revisar. */
 function marcarPCFicha(on){
   const b = document.getElementById('cobroPorConfirmar');
@@ -6419,7 +6515,11 @@ function itemsRecepcion(){
     tels:[i.personas?.telefono_principal, i.personas?.telefono_alternativo].filter(Boolean).join(' ') }));
   const leads = rec.leads.map(l=>({ tipo:'l', key:'l:' + l.id, l, nombre:l.personas?.nombre || '(sin nombre)',
     tels:[l.personas?.telefono_principal, l.personas?.telefono_alternativo].filter(Boolean).join(' ') }));
-  return insc.concat(leads).sort((a,b)=>a.nombre.localeCompare(b.nombre, 'es'));
+  // ⭐ Las VIP que todavía no llegan van primero: pasan antes al salón.
+  return insc.concat(leads).sort((a,b)=>(vipArriba(b) - vipArriba(a)) || a.nombre.localeCompare(b.nombre, 'es'));
+}
+function esVipItem(it){ return (it.tipo === 'i' ? it.i.paquete : it.l.paquete) === 'VIP'; }
+function vipArriba(it){ return esVipItem(it) && (it.tipo === 'l' || (!llego(it.i) && !fueraDeRecepcion(it.i))) ? 1 : 0;
 }
 function llego(i){ return i.asistencia === 'llego'; }
 function contarRecepcion(){
@@ -6446,8 +6546,9 @@ function visiblesRecepcion(){
     });
   }
   return items.filter(it=>{
-    if(it.tipo === 'l') return rec.filtro === 'leads' || rec.filtro === 'todas';
+    if(it.tipo === 'l') return rec.filtro === 'leads' || rec.filtro === 'todas' || (rec.filtro === 'vip' && esVipItem(it));
     if(rec.filtro === 'porconfirmar') return pagosPorConfirmar(it.i).length > 0;
+    if(rec.filtro === 'vip') return esVipItem(it) && !fueraDeRecepcion(it.i);
     const i = it.i;
     if(rec.filtro === 'todas') return true;
     if(fueraDeRecepcion(i)) return false;
@@ -6482,6 +6583,11 @@ function pintarRecepcion(anim){
   defs.push(['cobrar','⚡ Por cobrar',c.cobrar]);
   const pend = rec.inscritas.flatMap(pagosPorConfirmar);
   if(pend.length || rec.filtro === 'porconfirmar') defs.push(['porconfirmar','🏦 Por confirmar',pend.length]);
+  const vips = rec.inscritas.filter(i=>i.paquete === 'VIP' && !fueraDeRecepcion(i));
+  if(vips.length || rec.leads.some(l=>l.paquete === 'VIP')) defs.splice(3, 0, ['vip','⭐ VIP', vips.length + rec.leads.filter(l=>l.paquete === 'VIP').length]);
+  const kpiVip = document.getElementById('recKpiVip');
+  kpiVip.hidden = !vips.length;
+  kpiVip.querySelector('.v').textContent = `⭐ ${vips.filter(llego).length}/${vips.length}`;
   const kpiPC = document.getElementById('recKpiPC');
   kpiPC.hidden = !pend.length;
   kpiPC.querySelector('.v').textContent = `🏦 ${pend.length}`;
@@ -6495,7 +6601,12 @@ function pintarListaRecepcion(){
   const vs = visiblesRecepcion();
   if(!vs.some(it=>it.key === rec.sel)) rec.sel = vs[0]?.key ?? null;
   const cont = document.getElementById('recLista');
-  cont.innerHTML = vs.length ? vs.map(it=>{
+  // Encabezado del grupo de VIP que aún no llegan (van primero en la lista).
+  const nVipArriba = vs.filter(vipArriba).length;
+  const hayOtras = vs.length > nVipArriba;
+  cont.innerHTML = vs.length ? vs.map((it, k)=>{
+    const cabeza = nVipArriba && k === 0 ? `<div class="rec-grupo vip">⭐ VIP · pasan primero (${nVipArriba})</div>`
+                 : nVipArriba && hayOtras && k === nVipArriba ? '<div class="rec-grupo">Las demás</div>' : '';
     let din, lleg;
     if(it.tipo === 'l'){
       const rep = Number(it.l.pago_reportado_monto) > 0;
@@ -6510,9 +6621,10 @@ function pintarListaRecepcion(){
         : `<span class="rec-lleg">○ ${it.i.asistencia === 'no_llego' ? 'No llegó' : 'Falta'}</span>`;
     }
     const pc = it.tipo === 'i' && pagosPorConfirmar(it.i).length ? 'pc' : '';
-    return `<div class="rec-fila ${it.key === rec.sel ? 'sel' : ''} ${pc}" role="option" aria-selected="${it.key === rec.sel}" data-rec-key="${escapeAttr(it.key)}">
+    const vip = esVipItem(it) ? 'vip' : '';
+    return cabeza + `<div class="rec-fila ${it.key === rec.sel ? 'sel' : ''} ${pc} ${vip}" role="option" aria-selected="${it.key === rec.sel}" data-rec-key="${escapeAttr(it.key)}">
       <div class="avatar">${escHtml(iniciales(it.nombre))}</div>
-      <div class="quien"><div class="nom">${escHtml(it.nombre)}</div>${din}</div>${lleg}</div>`;
+      <div class="quien"><div class="nom">${vip ? '⭐ ' : ''}${escHtml(it.nombre)}</div>${din}</div>${lleg}</div>`;
   }).join('') : `<div class="rec-vacio">${rec.q ? `Nadie con “${escHtml(rec.q)}”. Prueba con otro apellido o los últimos 4 del teléfono.` : 'Nadie en esta lista.'}</div>`;
   cont.querySelector('.rec-fila.sel')?.scrollIntoView({ block:'nearest' });
 }
@@ -6584,7 +6696,7 @@ function pintarPanelRecepcion(anim){
     <div class="rec-id">
       <div><h2>${escHtml(it.nombre)}</h2>
         <div class="meta">${escHtml(i.personas?.telefono_principal || '')} · Paquete ${i.paquete === 'VIP' ? 'VIP' : 'Básico'}${fuera ? ' · ' + escHtml(etiquetaEst) : ''}</div></div>
-      <div class="rec-chips">${chipLleg}${chipPago}</div>
+      <div class="rec-chips">${i.paquete === 'VIP' ? '<span class="rec-chip vip">⭐ VIP</span>' : ''}${chipLleg}${chipPago}</div>
     </div>
     <div class="rec-deuda">${d > 0
       ? `<div class="etq">Debe</div><div class="grande">${fmtMoney(d)}</div><div class="det">de ${fmtMoney(precioDeInsc(i))} del curso</div>`
@@ -6615,7 +6727,7 @@ function panelLeadRecepcion(l){
   return `<div class="rec-ficha">
     <div class="rec-id"><div><h2>${escHtml(l.personas?.nombre || '(sin nombre)')}</h2>
       <div class="meta">${escHtml(l.personas?.telefono_principal || '')} · Paquete ${l.paquete === 'VIP' ? 'VIP' : 'Básico'}</div></div>
-      <div class="rec-chips"><span class="rec-chip gris">LEAD · ${escHtml(est)}</span></div></div>
+      <div class="rec-chips">${l.paquete === 'VIP' ? '<span class="rec-chip vip">⭐ VIP</span>' : ''}<span class="rec-chip gris">LEAD · ${escHtml(est)}</span></div></div>
     <div class="rec-deuda"><div class="etq">Todavía no está inscrita</div>
       <div class="det">${rep ? `💜 Reportó ${fmtMoney(l.pago_reportado_monto)}${l.pago_reportado_banco ? ' en ' + escHtml(l.pago_reportado_banco) : ''}${l.pago_reportado_fecha ? ' el ' + fechaCorta(l.pago_reportado_fecha) : ''}. Falta confirmarlo.` : 'No hay pago reportado.'}</div></div>
     <div class="rec-datos">
@@ -6867,6 +6979,7 @@ async function reabrirRecepcion(){
   pintarRecepcion();
 }
 document.getElementById('recCerrar').addEventListener('click', cerrarRecepcionDelDia);
+document.getElementById('recKpiVip').addEventListener('click', ()=>{ rec.filtro = 'vip'; rec.q = ''; document.getElementById('recBuscar').value = ''; rec.sel = null; pintarRecepcion(); });
 document.getElementById('recKpiPC').addEventListener('click', ()=>{ rec.filtro = 'porconfirmar'; rec.q = ''; document.getElementById('recBuscar').value = ''; rec.sel = null; pintarRecepcion(); });
 
 /* ---------- Eventos ---------- */
