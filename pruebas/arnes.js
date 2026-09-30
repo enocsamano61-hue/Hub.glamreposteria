@@ -65,6 +65,10 @@ function instalarStub({ tablas, usuario, equipo, estatus, permisosAccion }){
         if(oper === 'in') op.filtros.push([c, String(v).replace(/[()]/g, '').split(',').map(x => isNaN(x) ? x : Number(x)), 'notin']);
         return px;
       },
+      ilike(c, pat){ op.filtros.push([c, pat, 'ilike']); return px; },
+      // or('a.ilike.*x*,b.in.(1,2),c.eq.3'): si trae una condición que no entiende, no filtra.
+      or(expr){ op.filtros.push([null, String(expr), 'or']); return px; },
+      range(desde, hasta){ op.rango = [desde, hasta]; return px; },
       single(){ op.single = true; return px; },
       maybeSingle(){ op.single = true; return px; },
       then(res, rej){
@@ -74,11 +78,22 @@ function instalarStub({ tablas, usuario, equipo, estatus, permisosAccion }){
         const filas = (window.__tablas[tabla] = window.__tablas[tabla] || []);
         // "eventos.curso_id" busca dentro de la fila anidada, como el filtro de PostgREST.
         const valor = (f, c) => c.split('.').reduce((o, k) => (o == null ? undefined : o[k]), f);
+        const comoRegex = pat => new RegExp('^' + String(pat).replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/[%*]/g, '.*') + '$', 'i');
+        const cumpleOr = (f, expr) => {
+          const conds = [...expr.matchAll(/([\w.]+)\.(ilike|in|eq|is|not|lt|gt|gte|lte)\.(\([^)]*\)|[^,]+)/g)];
+          if(!conds.length || conds.some(m => !['ilike','in','eq'].includes(m[2]))) return true;
+          return conds.some(([, c, o, v]) => o === 'ilike' ? comoRegex(v).test(String(valor(f, c) ?? ''))
+            : o === 'in' ? v.replace(/[()]/g, '').split(',').includes(String(valor(f, c))) : String(valor(f, c)) === v);
+        };
         const cumple = f => op.filtros.every(([c, v, modo]) =>
-          modo === 'in' ? v.includes(valor(f, c)) : modo === 'notin' ? !v.includes(valor(f, c)) : valor(f, c) === v);
+          modo === 'in' ? v.includes(valor(f, c)) : modo === 'notin' ? !v.includes(valor(f, c))
+          : modo === 'ilike' ? comoRegex(v).test(String(valor(f, c) ?? '')) : modo === 'or' ? cumpleOr(f, v) : valor(f, c) === v);
         let data = null;
+        let total = null;
         if(op.tipo === 'select'){
-          const r = filas.filter(cumple);
+          let r = filas.filter(cumple);
+          total = r.length;
+          if(op.rango) r = r.slice(op.rango[0], op.rango[1] + 1);
           data = op.single ? (r[0] ? copia(r[0]) : null) : copia(r);
         } else if(op.tipo === 'insert'){
           const nuevas = (Array.isArray(op.datos) ? op.datos : [op.datos]).map(d => ({ id:'n' + (siguienteId++), ...d }));
@@ -91,12 +106,19 @@ function instalarStub({ tablas, usuario, equipo, estatus, permisosAccion }){
           window.__tablas[tabla] = filas.filter(f => !cumple(f));
           data = [];
         }
-        return Promise.resolve({ data, error:null, count: Array.isArray(data) ? data.length : 0 }).then(res, rej);
+        return Promise.resolve({ data, error:null, count: total ?? (Array.isArray(data) ? data.length : 0) }).then(res, rej);
       },
     };
     // Cualquier otro filtro (in, order, limit, ilike…) se acepta y no filtra.
     px = new Proxy(q, { get:(t, k) => (k in t ? t[k] : () => px) });
     return px;
+  };
+  // sb.rpc: la prueba pone window.__rpc = { nombre: args => data }.
+  window.__rpc = {};
+  sb.rpc = (fn, args) => {
+    window.__ops.push({ tabla:'rpc:' + fn, tipo:'rpc', datos:args });
+    const f = window.__rpc[fn];
+    return Promise.resolve(f ? { data:f(args), error:null } : { data:null, error:{ message:'rpc sin simular: ' + fn } });
   };
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').classList.add('active');

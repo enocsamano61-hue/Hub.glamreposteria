@@ -791,6 +791,105 @@
     .nl-detalle{ position:static; }
   }
 
+  /* ---------- CURSOS (curso → ciudad → alumnas en una pantalla) ---------- */
+  .cx{ display:grid; grid-template-columns:300px 270px minmax(0,1fr); gap:14px; align-items:start; }
+  .cx-col{ background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; max-height:calc(100vh - 150px); min-height:420px; }
+  .cx-h{ padding:12px 14px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+  .cx-t{ font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); display:flex; justify-content:space-between; gap:8px; }
+  .cx-h input{ height:36px; border:1px solid var(--border); border-radius:9px; padding:0 10px; background:var(--bg); font-family:inherit; font-size:13.5px; color:var(--ink); }
+  .cx-h input:focus{ outline:none; border-color:var(--wine); }
+  .cx-pills{ display:flex; flex-wrap:wrap; gap:6px; }
+  .cx-pill{ height:28px; padding:0 11px; border-radius:999px; border:1px solid var(--border); background:transparent; font-family:inherit; font-size:12px; font-weight:600; color:var(--ink-soft); cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+  .cx-pill b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .cx-pill.on{ background:var(--wine); border-color:var(--wine); color:#fff; }
+  .cx-pill.on b{ color:#fff; }
+  .cx-b{ overflow-y:auto; flex:1; }
+  .cx-pie{ padding:10px 14px; border-top:1px solid var(--border); }
+  .cx-pie .btn-outline{ width:auto; }
+  .cx-item{ display:block; width:100%; text-align:left; border:0; border-bottom:1px solid var(--border); background:transparent; padding:10px 14px; font-family:inherit; color:var(--ink); cursor:pointer; }
+  .cx-item:hover{ background:rgba(90,31,43,.04); }
+  .cx-item.sel{ background:rgba(90,31,43,.08); box-shadow:inset 3px 0 0 var(--wine); }
+  .cx-item .n{ font-weight:600; font-size:13.5px; display:flex; flex-wrap:wrap; gap:4px 6px; align-items:center; }
+  .cx-item .m{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; font-variant-numeric:tabular-nums; }
+  .cx-tag{ font-size:10px; font-weight:700; border-radius:999px; padding:1px 7px; white-space:nowrap; }
+  .cx-tag.prox{ background:rgba(90,31,43,.10); color:var(--wine); }
+  .cx-tag.activa{ background:rgba(198,166,107,.25); color:#7A6232; }
+  .cx-barra{ height:4px; background:var(--border); border-radius:999px; overflow:hidden; margin-top:6px; }
+  .cx-barra i{ display:block; height:100%; background:var(--success); }
+  .cx-res{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); }
+  .cx-res > div{ background:var(--bg); border-radius:10px; padding:8px 10px; }
+  .cx-res .v{ font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .cx-res .l{ font-size:11px; color:var(--ink-soft); }
+  .cx-tabla{ overflow-x:auto; }
+  .cx-tabla table{ width:100%; border-collapse:collapse; min-width:480px; }
+  .cx-tabla th{ text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); padding:9px 12px; border-bottom:1px solid var(--border); font-weight:700; position:sticky; top:0; background:var(--card); cursor:pointer; white-space:nowrap; }
+  .cx-tabla th.num, .cx-tabla td.num{ text-align:right; }
+  .cx-tabla th.ord::after{ content:' ↓'; }
+  .cx-tabla th:last-child, .cx-tabla td:last-child{ padding-left:0; padding-right:8px; width:1%; }
+  .cx-tabla td{ padding:9px 12px; border-bottom:1px solid var(--border); font-size:13px; font-variant-numeric:tabular-nums; }
+  .cx-tabla td .s{ font-size:11px; color:var(--ink-soft); }
+  .cx-tabla tbody tr[data-cx-persona]{ cursor:pointer; }
+  .cx-tabla tbody tr[data-cx-persona]:hover{ background:rgba(90,31,43,.03); }
+  .cx-mas{ display:block; margin:10px auto; width:auto; }
+  .pago-tag{ font-size:11px; font-weight:700; border-radius:999px; padding:2px 8px; white-space:nowrap; }
+  .pago-tag.liq{ background:rgba(85,116,92,.14); color:var(--success); }
+  .pago-tag.ant{ background:rgba(198,166,107,.22); color:#7A6232; }
+  .pago-tag.sin{ background:var(--border); color:var(--ink-soft); }
+  .pago-tag.nol{ background:rgba(181,111,85,.14); color:var(--terracota); }
+  .pago-tag.perdio{ background:var(--border); color:var(--ink-soft); }
+
+  /* ---------- HISTORIAL CLIENTE ---------- */
+  .hx{ display:grid; grid-template-columns:350px minmax(0,1fr); gap:14px; align-items:start; }
+  .hx-buscar input{ width:100%; height:50px; border:1px solid var(--border); border-radius:14px; background:var(--card); padding:0 16px; font-family:inherit; font-size:16px; color:var(--ink); box-sizing:border-box; }
+  .hx-buscar input:focus{ outline:none; border-color:var(--wine); box-shadow:0 0 0 3px rgba(90,31,43,.10); }
+  .hx-ayuda{ font-size:12px; color:var(--ink-soft); margin:6px 2px 12px; }
+  .hx-res{ background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .hx-res > .cx-t{ padding:12px 14px; border-bottom:1px solid var(--border); }
+  #hxLista{ max-height:calc(100vh - 290px); overflow-y:auto; }
+  #hxLista .empty-note{ padding:16px; }
+  .hx-persona{ display:flex; gap:10px; align-items:center; }
+  .hx-persona .avatar{ width:34px; height:34px; font-size:12px; flex-shrink:0; }
+  .cx-item.sel .hx-persona .avatar{ background:var(--wine); color:#fff; }
+  .hx-badge{ font-size:10.5px; font-weight:700; border-radius:999px; padding:1px 7px; white-space:nowrap; }
+  .hx-badge.vip{ background:var(--champagne); color:var(--ink); }
+  .hx-badge.fiel{ background:rgba(85,116,92,.14); color:var(--success); }
+  .hx-badge.negra{ background:rgba(181,69,58,.12); color:var(--danger); }
+  .hx-badge.junto{ background:var(--border); color:var(--ink-soft); }
+  .hx-perfil{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px; display:flex; flex-direction:column; gap:18px; }
+  .hx-cab{ display:flex; flex-wrap:wrap; gap:12px 20px; align-items:flex-start; }
+  .hx-cab h2{ font-family:'Newsreader', serif; font-size:27px; font-weight:600; margin:0; }
+  .hx-cab .d{ color:var(--ink-soft); font-size:13px; margin-top:4px; line-height:1.7; }
+  .hx-acc{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+  .hx-acc button{ width:auto; }
+  .hx-aviso{ background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:13px; display:flex; flex-direction:column; gap:6px; }
+  .hx-aviso .fila{ display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; }
+  .hx-aviso button{ background:none; border:0; padding:0; font-family:inherit; font-size:12.5px; color:var(--wine); text-decoration:underline; cursor:pointer; }
+  .hx-kpis{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+  .hx-kpis > div{ border:1px solid var(--border); border-radius:12px; padding:11px 13px; }
+  .hx-kpis .v{ font-size:21px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .hx-kpis .l{ font-size:12px; color:var(--ink-soft); }
+  .hx-sec{ font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px; }
+  .hx-linea{ position:relative; padding-left:22px; display:flex; flex-direction:column; gap:8px; }
+  .hx-linea::before{ content:''; position:absolute; left:6px; top:8px; bottom:8px; width:2px; background:var(--border); }
+  .hx-hito{ position:relative; width:100%; text-align:left; border:1px solid var(--border); border-radius:12px; padding:10px 14px; display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; cursor:pointer; background:var(--card); font-family:inherit; color:var(--ink); }
+  .hx-hito:hover{ border-color:var(--wine); }
+  .hx-hito::before{ content:''; position:absolute; left:-21px; top:15px; width:10px; height:10px; border-radius:50%; background:var(--card); border:2px solid var(--wine); }
+  .hx-hito .c{ font-weight:600; font-size:13.5px; }
+  .hx-hito .s{ color:var(--ink-soft); font-size:12px; }
+  .hx-hito .der{ margin-left:auto; display:flex; gap:8px; align-items:center; font-variant-numeric:tabular-nums; font-size:13px; }
+  @media (max-width: 1100px){
+    .cx{ grid-template-columns:1fr 1fr; }
+    .cx-al{ grid-column:1 / -1; }
+  }
+  @media (max-width: 760px){
+    .cx, .hx{ grid-template-columns:1fr; }
+    .cx-col{ max-height:none; min-height:0; }
+    .cx-col .cx-b{ max-height:300px; }
+    .cx-al .cx-b{ max-height:none; }
+    .cx-res, .hx-kpis{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+    #hxLista{ max-height:300px; }
+  }
+
   /* ---------- PRECIOS ---------- */
   .precio-fila{ display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px 12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
   .precio-fila input{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink); min-width:0; }
@@ -1045,19 +1144,54 @@
 
     <!-- HISTORIAL CLIENTE -->
     <div class="view" id="view-historial">
-      <div class="card"><h3>Buscar cliente</h3><input class="search" id="historialSearch" placeholder="Nombre o teléfono..." style="max-width:320px; width:100%;"></div>
-      <div id="historialResultado"></div>
+      <div class="hx">
+        <div class="hx-lado">
+          <div class="hx-buscar">
+            <input id="historialSearch" type="search" autocomplete="off" placeholder="Nombre, apellido, teléfono o correo…" aria-label="Buscar persona">
+          </div>
+          <div class="hx-ayuda">Las palabras en cualquier orden. Con 4 números del teléfono basta.</div>
+          <div class="hx-res">
+            <div class="cx-t"><span>Resultados</span><span id="hxN"></span></div>
+            <div id="hxLista"><div class="empty-note">Busca a cualquier persona que haya estado con nosotros.</div></div>
+          </div>
+        </div>
+        <div id="historialResultado"></div>
+      </div>
     </div>
 
     <!-- CURSOS -->
     <div class="view" id="view-cursos">
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <h3 style="margin-bottom:0;">Cursos</h3>
-          <button class="btn-primary small" id="btnNuevoCurso">+ Nuevo curso</button>
+      <div class="cx">
+        <div class="cx-col">
+          <div class="cx-h">
+            <div class="cx-t"><span>Cursos</span><span id="cxNCursos"></span></div>
+            <input id="cxQCurso" type="search" autocomplete="off" placeholder="Buscar curso…" aria-label="Buscar curso">
+            <div class="cx-pills" id="cxFCursos"></div>
+          </div>
+          <div class="cx-b" id="listaCursos">Cargando…</div>
+          <div class="cx-pie"><button class="btn-outline small" id="btnNuevoCurso">+ Nuevo curso</button></div>
         </div>
-        <div class="sub">Clientes y ciudades reales por curso, ordenado por eventos próximos</div>
-        <div id="listaCursos">Cargando…</div>
+        <div class="cx-col">
+          <div class="cx-h">
+            <div class="cx-t"><span>Ciudades</span><span id="cxNCiudades"></span></div>
+            <input id="cxQCiudad" type="search" autocomplete="off" placeholder="Buscar ciudad…" aria-label="Buscar ciudad">
+          </div>
+          <div class="cx-b" id="cxCiudades"></div>
+        </div>
+        <div class="cx-col cx-al">
+          <div class="cx-h">
+            <div class="cx-t"><span id="cxTitulo">Alumnas</span><span id="cxNAlumnas"></span></div>
+            <input id="cxQAlumna" type="search" autocomplete="off" placeholder="Buscar alumna o teléfono dentro de esta lista…" aria-label="Buscar alumna">
+            <div class="cx-pills" id="cxFPago"></div>
+          </div>
+          <div class="cx-res" id="cxResumen"></div>
+          <div class="cx-b cx-tabla">
+            <table>
+              <thead><tr><th data-cx-orden="nombre">Alumna</th><th data-cx-orden="fecha">Fecha</th><th data-cx-orden="ciudad">Ciudad</th><th data-cx-orden="pagado" class="num">Pagado</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="cxAlumnas"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2178,8 +2312,8 @@ window.addEventListener('pagehide', ()=>{ cerrarChecador(); });
 const SECCIONES = [
   { id:'inicio', label:'Inicio', sub:'Datos en vivo desde Supabase', soon:false, icon:'<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>' },
   { id:'board', label:'Alumnos y Leads', sub:'Tablero por estatus, conectado a la base real', soon:false, icon:'<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="9" rx="1.5"/>' },
-  { id:'historial', label:'Historial cliente', sub:'Búsqueda contra personas reales', soon:false, icon:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>' },
-  { id:'cursos', label:'Cursos', sub:'Catálogo real', soon:false, icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/>' },
+  { id:'historial', label:'Historial cliente', sub:'Busca y rastrea a cualquier persona que haya estado con nosotros', soon:false, icon:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>' },
+  { id:'cursos', label:'Cursos', sub:'Alumnas por curso y por ciudad: busca, filtra y abre su historial', soon:false, icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/>' },
   { id:'plaza', label:'Ciudades / Plazas', sub:'Vista en vivo por ciudad', soon:false, icon:'<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>' },
   { id:'giras', label:'Giras', sub:'Constructor de ruta y reactivación de alumnos', soon:false, icon:'<circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.2 17.8L15.8 6.2"/>' },
   { id:'logistica', label:'Logística', sub:'Sedes, hospedaje y negociación para cada gira', soon:false, icon:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/><path d="M8 7h.01M8 11h.01M12 7h.01M12 11h.01M16 7h.01M16 11h.01"/>' },
@@ -2675,6 +2809,7 @@ const ACCION_LABEL = {
   pago_por_confirmar: '🏦 Marcó un pago por confirmar',
   pago_verificado: '🏦 Confirmó un pago en el banco',
   paquete_cambiado: '⭐ Cambió el paquete (Básico / VIP)',
+  personas_separadas: '🔗 Separó dos registros con el mismo teléfono',
   pago_no_llego: '🏦 Marcó que un pago no llegó al banco',
   acceso_online_quitado: '🎓 Quitó “acceso online dado”',
   anticipo_perdido: '🔒 Marcó que perdió el anticipo',
@@ -8278,25 +8413,176 @@ async function cargarGirasTab(tab){
   }
 }
 
+/* =========================================================
+   CURSOS — curso → ciudad → alumnas en una sola pantalla.
+   Todo sale de las vistas vista_cursos_explorador, vista_curso_ciudades
+   y vista_alumnos (que también sirven de base para reportes futuros).
+   La lista de alumnas se busca, filtra y pagina en el servidor.
+   ========================================================= */
+const CX_PAGINA = 50;
+let cx = { cursos:[], curso:null, ciudades:[], ciudad:null, filtroCursos:'todos', pago:'todas', orden:'fecha', pagina:0, filas:[], total:0, resumen:null, turno:0 };
+const CX_ORDEN = {
+  fecha:  q => q.order('fecha', { ascending:false, nullsFirst:false }).order('nombre_norm'),
+  nombre: q => q.order('nombre_norm'),
+  ciudad: q => q.order('ciudad').order('fecha', { ascending:false, nullsFirst:false }),
+  pagado: q => q.order('anticipo', { ascending:false, nullsFirst:false }),
+};
+const CX_PAGOS = [['todas','Todas','total'], ['liq','Liquidadas','liq'], ['ant','Con anticipo','ant'], ['sin','Sin pago','sin'], ['nol','No llegó','nol'], ['perdio','Perdió anticipo','perdio'], ['vip','⭐ VIP','vip']];
+const PAGO_TXT = { liq:'Liquidada', ant:'Con anticipo', sin:'Sin pago', nol:'No llegó', perdio:'Perdió anticipo' };
+function anioDe(f){ return f ? f.slice(0, 4) : ''; }
+function rangoAnios(desde, hasta){
+  if(!desde && !hasta) return 'sin fecha';
+  return anioDe(desde) === anioDe(hasta) ? anioDe(desde) : `${anioDe(desde)}–${anioDe(hasta)}`;
+}
+function fechaLarga(f){ return f ? new Date(f + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' }) : 'sin fecha'; }
+function pct(a, b){ return b ? Math.round(a / b * 100) : 0; }
+function conRetraso(fn, ms = 300){ let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
+
 async function renderCursos(){
   const cont = document.getElementById('listaCursos');
-  const { data, error } = await sb.from('vista_resumen_curso').select('*')
-    .order('eventos_proximos', {ascending:false}).order('clientes_totales', {ascending:false});
-  if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + error.message + '</div>'; return; }
-  if(!data || data.length===0){ cont.innerHTML = '<div class="empty-note">Sin cursos con eventos todavía.</div>'; return; }
-  cont.innerHTML = data.map(c=>`
-    <div class="lead-row clickable" data-curso-id="${c.curso_id}">
-      <div class="avatar" style="background:${c.eventos_proximos>0?'var(--wine)':'var(--ink-soft)'};">${c.eventos_proximos>0?'📅':''}</div>
-      <div style="flex:1;">
-        <div class="lead-name">${c.curso}${c.eventos_proximos>0?` <span class="pill-veces">${c.eventos_proximos} próximo${c.eventos_proximos>1?'s':''}</span>`:''}</div>
-        <div class="lead-meta">${c.clientes_totales} clientes históricos · ${c.ciudades_distintas} ciudades distintas</div>
-      </div>
-    </div>`).join('');
-  cont.querySelectorAll('.lead-row.clickable').forEach(el=>{
-    const curso = data.find(c=>c.curso_id === el.dataset.cursoId);
-    el.addEventListener('click', ()=> abrirModalCursoCiudades(el.dataset.cursoId, curso?.curso));
-  });
+  const { data, error } = await sb.from('vista_cursos_explorador').select('*');
+  if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + escHtml(error.message) + '</div>'; return; }
+  const activo = normalizarNombreCurso(CURSO_ACTIVO_NOMBRE);
+  cx.cursos = (data || []).map(c=>({ ...c, activa: normalizarNombreCurso(c.curso) === activo }))
+    .sort((a,b)=> (b.activa - a.activa) || (b.proximos - a.proximos) || (b.hasta || '').localeCompare(a.hasta || '') || b.alumnas - a.alumnas);
+  if(!cx.curso || !cx.cursos.some(c=>c.curso_id === cx.curso)) cx.curso = cx.cursos[0]?.curso_id || null;
+  pintarCursosCx();
+  await cargarCiudadesCx();
 }
+function pintarCursosCx(){
+  const q = normTexto(document.getElementById('cxQCurso').value);
+  document.getElementById('cxFCursos').innerHTML = [['todos','Todos'], ['prox','Con fechas próximas'], ['hist','Solo históricos']]
+    .map(([k, l])=>`<button type="button" class="cx-pill ${cx.filtroCursos === k ? 'on' : ''}" data-cx-fc="${k}">${l}</button>`).join('');
+  const lista = cx.cursos.filter(c=>(!q || q.split(' ').every(w=>normTexto(c.curso).includes(w)))
+    && (cx.filtroCursos === 'todos' || (cx.filtroCursos === 'prox' ? c.proximos > 0 : !c.proximos)));
+  document.getElementById('cxNCursos').textContent = lista.length;
+  document.getElementById('listaCursos').innerHTML = lista.map(c=>`
+    <button type="button" class="cx-item ${cx.curso === c.curso_id ? 'sel' : ''}" data-cx-curso="${escapeAttr(c.curso_id)}">
+      <div class="n">${escHtml(c.curso || '(sin nombre)')}${c.activa ? ' <span class="cx-tag activa">Gira activa</span>' : ''}${c.proximos ? ` <span class="cx-tag prox">${c.proximos} próximo${c.proximos === 1 ? '' : 's'}</span>` : ''}</div>
+      <div class="m">${fmtNum(c.alumnas)} alumnas · ${c.ciudades} ciudades · ${rangoAnios(c.desde, c.hasta)}</div>
+      <div class="cx-barra" title="${pct(c.liquidadas, c.alumnas)}% liquidadas"><i style="width:${pct(c.liquidadas, c.alumnas)}%"></i></div>
+    </button>`).join('') || '<div class="empty-note">Ningún curso con ese nombre.</div>';
+}
+async function cargarCiudadesCx(){
+  cx.ciudades = [];
+  if(!cx.curso){ pintarCiudadesCx(); return; }
+  const cursoPedido = cx.curso;
+  const { data, error } = await sb.from('vista_curso_ciudades').select('*').eq('curso_id', cursoPedido);
+  if(cursoPedido !== cx.curso) return;
+  if(error){ document.getElementById('cxCiudades').innerHTML = '<div class="empty-note">Error: ' + escHtml(error.message) + '</div>'; return; }
+  cx.ciudades = (data || []).sort((a,b)=> b.alumnas - a.alumnas || (a.ciudad || '').localeCompare(b.ciudad || ''));
+  if(cx.ciudad && !cx.ciudades.some(c=>c.ciudad_id === cx.ciudad)) cx.ciudad = null;
+  pintarCiudadesCx();
+  cargarAlumnasCx(true);
+}
+function pintarCiudadesCx(){
+  const q = normTexto(document.getElementById('cxQCiudad').value);
+  const lista = cx.ciudades.filter(c=>!q || normTexto(`${c.ciudad} ${c.estado || ''}`).includes(q));
+  const total = cx.ciudades.reduce((s,c)=>s + c.alumnas, 0);
+  document.getElementById('cxNCiudades').textContent = lista.length;
+  document.getElementById('cxCiudades').innerHTML = `
+    <button type="button" class="cx-item ${!cx.ciudad ? 'sel' : ''}" data-cx-ciudad=""><div class="n">Todas las ciudades</div><div class="m">${fmtNum(total)} alumnas</div></button>`
+    + lista.map(c=>`
+    <button type="button" class="cx-item ${cx.ciudad === c.ciudad_id ? 'sel' : ''}" data-cx-ciudad="${escapeAttr(c.ciudad_id)}">
+      <div class="n">📍 ${escHtml(c.ciudad || '(sin ciudad)')}${c.proximos ? ' <span class="cx-tag prox">próximo</span>' : ''}</div>
+      <div class="m">${c.estado ? escHtml(c.estado) + ' · ' : ''}${fmtNum(c.alumnas)} alumnas · ${c.fechas} fecha${c.fechas === 1 ? '' : 's'} · ${pct(c.liquidadas, c.alumnas)}% liquidadas</div>
+      <div class="cx-barra"><i style="width:${pct(c.liquidadas, c.alumnas)}%"></i></div>
+    </button>`).join('');
+}
+
+/* Filtros de la lista de alumnas: los mismos que usa resumen_alumnos() en la base. */
+function filtrosAlumnasCx(q){
+  const texto = document.getElementById('cxQAlumna').value;
+  const palabras = normTexto(texto).split(' ').filter(Boolean);
+  const conLetras = /[a-z]/.test(normTexto(texto));
+  const digitos = texto.replace(/\D/g, '');
+  q = q.eq('curso_id', cx.curso);
+  if(cx.ciudad) q = q.eq('ciudad_id', cx.ciudad);
+  if(conLetras) palabras.forEach(w=>{ q = q.ilike('nombre_norm', `%${w}%`); });
+  else if(digitos.length >= 3) q = q.or(`tel10.ilike.*${digitos}*,alt10.ilike.*${digitos}*`);
+  return { q, texto: conLetras || digitos.length >= 3 ? texto : '' };
+}
+async function cargarAlumnasCx(desdeCero){
+  if(!cx.curso){ document.getElementById('cxAlumnas').innerHTML = ''; return; }
+  const turno = ++cx.turno;
+  if(desdeCero){ cx.pagina = 0; cx.filas = []; }
+  const curso = cx.cursos.find(c=>c.curso_id === cx.curso);
+  const ciudad = cx.ciudades.find(c=>c.ciudad_id === cx.ciudad);
+  document.getElementById('cxTitulo').textContent = `${curso?.curso || ''}${ciudad ? ' · ' + ciudad.ciudad : ''}`;
+  if(desdeCero) document.getElementById('cxAlumnas').innerHTML = '<tr><td colspan="6" class="empty-note">Cargando…</td></tr>';
+  let { q, texto } = filtrosAlumnasCx(sb.from('vista_alumnos').select(
+    'inscripcion_id, persona_id, nombre, telefono_principal, fecha, ciudad, precio_pactado, anticipo, restante, liquidado, pago, paquete, en_lista_negra', { count:'exact' }));
+  if(cx.pago === 'vip') q = q.eq('paquete', 'VIP');
+  else if(cx.pago !== 'todas') q = q.eq('pago', cx.pago);
+  q = CX_ORDEN[cx.orden](q).range(cx.pagina * CX_PAGINA, cx.pagina * CX_PAGINA + CX_PAGINA - 1);
+  const [lista, resumen] = await Promise.all([
+    q,
+    desdeCero ? sb.rpc('resumen_alumnos', { p_curso: cx.curso, p_ciudad: cx.ciudad, p_q: texto }) : Promise.resolve(null),
+  ]);
+  if(turno !== cx.turno) return;   // ya pidieron otra cosa
+  if(lista.error){ document.getElementById('cxAlumnas').innerHTML = `<tr><td colspan="6" class="empty-note">Error: ${escHtml(lista.error.message)}</td></tr>`; return; }
+  if(resumen && !resumen.error) cx.resumen = resumen.data;
+  cx.filas = cx.filas.concat(lista.data || []);
+  cx.total = lista.count ?? cx.filas.length;
+  pintarAlumnasCx();
+}
+function pintarAlumnasCx(){
+  const r = cx.resumen || {};
+  document.getElementById('cxFPago').innerHTML = CX_PAGOS.filter(([k,, campo])=>k === 'todas' || k === cx.pago || Number(r[campo]) > 0)
+    .map(([k, l, campo])=>`<button type="button" class="cx-pill ${cx.pago === k ? 'on' : ''}" data-cx-pago="${k}">${l} <b>${fmtNum(r[campo] || 0)}</b></button>`).join('');
+  document.getElementById('cxResumen').innerHTML = `
+    <div><div class="v">${fmtNum(r.total || 0)}</div><div class="l">inscripciones</div></div>
+    <div><div class="v">${fmtNum(r.personas || 0)}</div><div class="l">personas distintas</div></div>
+    <div><div class="v">${fmtMoney(r.cobrado || 0)}</div><div class="l">cobrado</div></div>
+    <div><div class="v">${pct(r.liq || 0, r.total || 0)}%</div><div class="l">liquidadas</div></div>`;
+  document.getElementById('cxNAlumnas').textContent = fmtNum(cx.total);
+  document.querySelectorAll('[data-cx-orden]').forEach(th=>th.classList.toggle('ord', th.dataset.cxOrden === cx.orden));
+  const filas = cx.filas.map(i=>`<tr data-cx-persona="${escapeAttr(i.persona_id)}" title="Ver su historial completo">
+      <td><b>${i.paquete === 'VIP' ? '⭐ ' : ''}${escHtml(i.nombre || '(sin nombre)')}</b>${i.en_lista_negra ? ' <span class="hx-badge negra">⚠</span>' : ''}<div class="s">${escHtml(i.telefono_principal || '')}</div></td>
+      <td>${fechaLarga(i.fecha)}</td>
+      <td>${escHtml(i.ciudad || '')}</td>
+      <td class="num">${fmtMoney(Number(i.anticipo || 0))}${i.precio_pactado != null ? `<div class="s">de ${fmtMoney(Number(i.precio_pactado))}</div>` : ''}</td>
+      <td><span class="pago-tag ${i.pago}">${PAGO_TXT[i.pago] || ''}</span></td>
+      <td>${i.telefono_principal ? `<button type="button" class="btn-wa-mini" data-cx-wa="${escapeAttr(i.inscripcion_id)}" title="WhatsApp">💬</button>` : ''}</td>
+    </tr>`).join('');
+  const faltan = cx.total - cx.filas.length;
+  document.getElementById('cxAlumnas').innerHTML = filas
+    ? filas + (faltan > 0 ? `<tr><td colspan="6"><button type="button" class="btn-outline small cx-mas" id="cxMas">Ver ${Math.min(faltan, CX_PAGINA)} más (faltan ${fmtNum(faltan)})</button></td></tr>` : '')
+    : '<tr><td colspan="6" class="empty-note">Nadie con esos filtros.</td></tr>';
+}
+
+document.getElementById('cxQCurso').addEventListener('input', pintarCursosCx);
+document.getElementById('cxQCiudad').addEventListener('input', pintarCiudadesCx);
+document.getElementById('cxQAlumna').addEventListener('input', conRetraso(()=>cargarAlumnasCx(true)));
+document.getElementById('cxFCursos').addEventListener('click', e=>{ const b = e.target.closest('[data-cx-fc]'); if(!b) return; cx.filtroCursos = b.dataset.cxFc; pintarCursosCx(); });
+document.getElementById('listaCursos').addEventListener('click', e=>{
+  const b = e.target.closest('[data-cx-curso]'); if(!b || b.dataset.cxCurso === cx.curso) return;
+  cx.curso = b.dataset.cxCurso; cx.ciudad = null; cx.pago = 'todas';
+  document.getElementById('cxQCiudad').value = ''; document.getElementById('cxQAlumna').value = '';
+  pintarCursosCx(); cargarCiudadesCx();
+});
+document.getElementById('cxCiudades').addEventListener('click', e=>{
+  const b = e.target.closest('[data-cx-ciudad]'); if(!b) return;
+  cx.ciudad = b.dataset.cxCiudad || null; cx.pago = 'todas';
+  pintarCiudadesCx(); cargarAlumnasCx(true);
+});
+document.getElementById('cxFPago').addEventListener('click', e=>{
+  const b = e.target.closest('[data-cx-pago]'); if(!b) return;
+  cx.pago = b.dataset.cxPago; cargarAlumnasCx(true);
+});
+document.querySelectorAll('[data-cx-orden]').forEach(th=>th.addEventListener('click', ()=>{ cx.orden = th.dataset.cxOrden; cargarAlumnasCx(true); }));
+document.getElementById('cxAlumnas').addEventListener('click', e=>{
+  if(e.target.closest('#cxMas')){ cx.pagina++; cargarAlumnasCx(false); return; }
+  const wa = e.target.closest('[data-cx-wa]');
+  if(wa){
+    const i = cx.filas.find(x=>x.inscripcion_id === wa.dataset.cxWa); if(!i) return;
+    abrirEnviarWhatsApp({ nombre:i.nombre, telefono:i.telefono_principal, personaId:i.persona_id, ciudad:i.ciudad || '', fecha:i.fecha || '', debe: i.liquidado ? 0 : Number(i.restante) || 0 });
+    return;
+  }
+  const tr = e.target.closest('[data-cx-persona]');
+  if(tr) verEnHistorial(tr.dataset.cxPersona);
+});
+
 document.getElementById('btnNuevoCurso').addEventListener('click', async ()=>{
   const nombre = prompt('Nombre del curso nuevo:'); if(!nombre) return;
   const linea = prompt('Línea (gira / online / 360 / postres_virales / galleteria / pasteleria_saludable / academia):', 'gira') || 'gira';
@@ -8894,89 +9180,234 @@ async function abrirModalAlumnos(ciudadId, cursoId, ciudadNombre, cursoNombre){
 }
 document.getElementById('closeModalAlumnos').addEventListener('click', ()=>document.getElementById('modalAlumnos').classList.remove('open'));
 
-/**
- * Drill desde Cursos: qué ciudades han dado este curso -> clic en una
- * abre el mismo modal de alumnos de arriba.
- */
-async function abrirModalCursoCiudades(cursoId, cursoNombre){
-  document.getElementById('modalCursoCiudadesNombre').textContent = cursoNombre || '(curso?)';
-  const lista = document.getElementById('modalCursoCiudadesLista');
-  lista.innerHTML = 'Cargando…';
-  document.getElementById('modalCursoCiudades').classList.add('open');
-
-  const { data, error } = await sb.from('eventos').select('ciudad_id, ciudades(nombre)').eq('curso_id', cursoId);
-  if(error){ lista.innerHTML = 'Error: ' + error.message; return; }
-  const ciudadesPorId = {};
-  (data||[]).forEach(e=>{
-    if(!e.ciudad_id) return;
-    if(!ciudadesPorId[e.ciudad_id]) ciudadesPorId[e.ciudad_id] = { nombre: e.ciudades?.nombre || '(ciudad?)', n_eventos: 0 };
-    ciudadesPorId[e.ciudad_id].n_eventos++;
-  });
-  const entradas = Object.entries(ciudadesPorId).sort((a,b)=>b[1].n_eventos - a[1].n_eventos);
-  lista.innerHTML = entradas.length
-    ? entradas.map(([ciudadId, c])=>`<div class="lead-row clickable" data-ciudad-id="${ciudadId}">
-        <div class="avatar">📍</div>
-        <div style="flex:1;"><div class="lead-name">${c.nombre}</div>
-        <div class="lead-meta">${c.n_eventos} evento${c.n_eventos===1?'':'s'}</div></div></div>`).join('')
-    : '<div class="empty-note">Sin ciudades registradas para este curso todavía.</div>';
-  lista.querySelectorAll('.lead-row.clickable').forEach(el=>{
-    const ciudadId = el.dataset.ciudadId;
-    el.addEventListener('click', ()=> abrirModalAlumnos(ciudadId, cursoId, ciudadesPorId[ciudadId].nombre, cursoNombre));
-  });
-}
 document.getElementById('closeModalCursoCiudades').addEventListener('click', ()=>document.getElementById('modalCursoCiudades').classList.remove('open'));
 
 /* =========================================================
    HISTORIAL CLIENTE
    ========================================================= */
+let hx = { q:'', grupos:[], sel:null, personas:{}, insc:{}, turno:0, familiares:{} };
+const HX_CAMPOS = 'id, nombre, nombre_norm, telefono_principal, telefono_alternativo, tel10, alt10, correo, fecha_nacimiento, en_lista_negra';
+
+/* ¿Dos registros con el MISMO teléfono son la misma persona? Solo se compara
+   el nombre cuando el teléfono coincide; con teléfono distinto nunca se juntan.
+   Misma persona: un nombre está dentro del otro ("María López" ↔ "María
+   Guadalupe López Pérez") o coinciden el primer nombre y un apellido. Se
+   perdona una letra de diferencia en palabras largas ("Yesenia" ↔ "Yessenia"). */
+function tokensNombre(n){ return normTexto(n).split(' ').filter(w=>w.length > 2 && !['del','las','los'].includes(w)); }
+function distanciaLetras(a, b){
+  const d = Array.from({ length:a.length + 1 }, (_, i)=>[i]);
+  for(let j = 1; j <= b.length; j++) d[0][j] = j;
+  for(let i = 1; i <= a.length; i++) for(let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function casiIgual(a, b){ return a === b || (Math.min(a.length, b.length) >= 5 && distanciaLetras(a, b) <= 1); }
+function mismaPersona(n1, n2){
+  const a = tokensNombre(n1), b = tokensNombre(n2);
+  if(!a.length || !b.length) return false;
+  const dentro = (x, y)=> x.every(t=>y.some(u=>casiIgual(t, u)));
+  if(dentro(a, b) || dentro(b, a)) return true;
+  return casiIgual(a[0], b[0]) && a.slice(1).some(t=>b.slice(1).some(u=>casiIgual(t, u)));
+}
+function mismoTelefono(x, y){
+  const t = v => v && v.length === 10 ? v : null;
+  return [t(x.tel10), t(x.alt10)].some(v=>v && (v === t(y.tel10) || v === t(y.alt10)));
+}
+const clavePar = (a, b)=> a < b ? a + '|' + b : b + '|' + a;
+
+/* Junta los registros encontrados con los de su mismo teléfono y nombre parecido. */
+async function armarGruposHx(encontrados){
+  const tels = [...new Set(encontrados.flatMap(p=>[p.tel10, p.alt10]).filter(v=>v && v.length === 10))];
+  let relacionados = [];
+  if(tels.length){
+    const l = tels.join(',');
+    const r = await sb.from('vista_personas_busqueda').select(HX_CAMPOS).or(`tel10.in.(${l}),alt10.in.(${l})`).limit(300);
+    relacionados = r.data || [];
+  }
+  const personas = {};
+  [...encontrados, ...relacionados].forEach(p=>{ personas[p.id] = p; });
+  const lista = Object.values(personas);
+  const pares = [];
+  for(let i = 0; i < lista.length; i++) for(let j = i + 1; j < lista.length; j++)
+    if(mismoTelefono(lista[i], lista[j])) pares.push([lista[i], lista[j]]);
+  const conPar = [...new Set(pares.flat().map(p=>p.id))];
+  const separadas = new Set();
+  if(conPar.length){
+    const l = conPar.join(',');
+    const r = await sb.from('personas_separadas').select('persona_a, persona_b').or(`persona_a.in.(${l}),persona_b.in.(${l})`);
+    (r.data || []).forEach(s=>separadas.add(clavePar(s.persona_a, s.persona_b)));
+  }
+  const padre = {}; const raiz = x => padre[x] === undefined || padre[x] === x ? x : (padre[x] = raiz(padre[x]));
+  const familiares = {};
+  pares.forEach(([x, y])=>{
+    if(mismaPersona(x.nombre, y.nombre) && !separadas.has(clavePar(x.id, y.id))) padre[raiz(x.id)] = raiz(y.id);
+    else { (familiares[x.id] = familiares[x.id] || new Set()).add(y.id); (familiares[y.id] = familiares[y.id] || new Set()).add(x.id); }
+  });
+  const grupos = {};
+  lista.forEach(p=>{ (grupos[raiz(p.id)] = grupos[raiz(p.id)] || []).push(p.id); });
+  const idsEncontrados = new Set(encontrados.map(p=>p.id));
+  const orden = encontrados.map(p=>raiz(p.id));
+  hx.personas = personas; hx.familiares = familiares; hx.separadas = separadas;
+  hx.grupos = [...new Set(orden)].map(k=>{
+    const ids = grupos[k];
+    const rep = ids.map(id=>personas[id]).sort((a,b)=> (idsEncontrados.has(b.id) - idsEncontrados.has(a.id)) || (b.nombre || '').length - (a.nombre || '').length)[0];
+    const fam = [...new Set(ids.flatMap(id=>[...(familiares[id] || [])]))].filter(id=>!ids.includes(id));
+    return { clave:k, ids, rep, familiares:fam };
+  });
+  // Para la lista: cuántos cursos, dónde y cuándo fue la última vez
+  const todos = [...new Set(hx.grupos.flatMap(g=>g.ids))];
+  hx.insc = {};
+  if(todos.length){
+    const r = await sb.from('vista_alumnos').select('persona_id, fecha, ciudad, paquete').in('persona_id', todos).limit(2000);
+    (r.data || []).forEach(i=>(hx.insc[i.persona_id] = hx.insc[i.persona_id] || []).push(i));
+  }
+}
+function inscDeGrupo(g){ return g.ids.flatMap(id=>hx.insc[id] || []); }
+
 let historialTimeout = null;
 document.getElementById('historialSearch').addEventListener('input', (e)=>{
   clearTimeout(historialTimeout);
   historialTimeout = setTimeout(()=>buscarHistorial(e.target.value.trim()), 350);
 });
-async function buscarHistorial(q){
-  const cont = document.getElementById('historialResultado');
-  if(!q){ cont.innerHTML = '<div class="card"><div class="sub">Escribe un nombre o teléfono.</div></div>'; return; }
-  const { data, error } = await sb.from('personas').select('id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra')
-    .or(`nombre.ilike.%${q}%,telefono_principal.ilike.%${q}%,telefono_alternativo.ilike.%${q}%`).limit(5);
-  if(error){ cont.innerHTML = '<div class="card">Error: ' + error.message + '</div>'; return; }
-  if(!data || data.length===0){ cont.innerHTML = '<div class="card"><div class="sub">Sin coincidencias.</div></div>'; return; }
-  const p = data[0];
-  const [{data:hist}, {data:inter}, {data:todasInscripciones}] = await Promise.all([
-    sb.from('vista_historial_cliente').select('*').eq('persona_id', p.id).maybeSingle(),
-    sb.from('interacciones').select('*').eq('persona_id', p.id).order('fecha', {ascending:false}).limit(10),
-    // TODAS las inscripciones, liquidadas o no — antes solo se veían
-    // las pagadas y un intento fallido (ej. "2V no contesta") quedaba
-    // invisible, como si el contacto nunca hubiera existido.
-    sb.from('inscripciones').select('id, liquidado, restante, creado_en, eventos(fecha, ciudades(nombre), cursos(nombre)), estatus(etiqueta, color_hex)')
-      .eq('persona_id', p.id).order('creado_en', {ascending:false}),
-  ]);
-  const cursosHtml = (todasInscripciones && todasInscripciones.length)
-    ? todasInscripciones.map(ins=>{
-        const ev = ins.eventos;
-        const est = ins.estatus;
-        const colorPunto = est?.color_hex || '#ccc';
-        return `<span class="curso-chip clicable" data-insc-id="${ins.id}" title="Abrir su ficha: pagos y vendedor"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorPunto};border:1px solid rgba(0,0,0,.1);"></span>
-          <b>${ev?.ciudades?.nombre || '(ciudad?)'}</b> · ${ev?.cursos?.nombre || '(curso?)'} · ${ev?.fecha ? new Date(ev.fecha).toLocaleDateString('es-MX') : 'sin fecha'} · ${est?.etiqueta || 'sin estatus'}</span>`;
-      }).join('')
-    : '<div class="empty-note">Sin ningún registro de curso o intento todavía.</div>';
-  cont.innerHTML = `<div class="card">
-    ${p.en_lista_negra?'<div class="badge-blacklist" style="display:inline-flex; margin-bottom:10px;">⚠ Lista negra</div>':''}
-    <h3>${p.nombre} <span class="pill-veces">${hist?.veces_tomo_curso ?? 0}x liquidado</span></h3>
-    <div class="sub">${[p.telefono_principal, p.telefono_alternativo, p.correo, p.fecha_nacimiento ? '🎂 ' + fechaCorta(p.fecha_nacimiento) + (edadDe(p.fecha_nacimiento) != null ? ' (' + edadDe(p.fecha_nacimiento) + ')' : '') : ''].filter(Boolean).map(escHtml).join(' · ')}
-      <button type="button" class="btn-outline small" id="btnHistContacto" style="width:auto; padding:4px 10px; font-size:11.5px; margin-left:6px;">✏️ Datos de contacto</button></div>
-    <div class="sub" style="margin-bottom:2px;">Historial completo (liquidado y no liquidado):</div>
-    ${(todasInscripciones && todasInscripciones.length) ? '<div class="hint-tocar">Toca un curso para abrir su ficha (pagos y vendedor).</div>' : ''}
-    <div>${cursosHtml}</div>
-    <h3 style="margin-top:14px; font-size:13px;">Historial de contacto</h3>
-    ${(inter&&inter.length) ? inter.map(i=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(i.fecha).toLocaleString('es-MX')}</div>${i.nota||'(sin nota)'}</div>`).join('') : '<div class="empty-note">Sin interacciones todavía.</div>'}
-  </div>`;
-  document.getElementById('btnHistContacto').addEventListener('click', ()=>abrirDatosContacto(p.id, ()=>buscarHistorial(q)));
-  cont.querySelectorAll('[data-insc-id]').forEach(chip=>chip.addEventListener('click', ()=>{
-    alCerrarFichaInscripcion = ()=>buscarHistorial(q);
-    abrirModalInscripcion(chip.dataset.inscId);
-  }));
+async function buscarHistorial(q, { seleccionar = null } = {}){
+  hx.q = q;
+  const turno = ++hx.turno;
+  const lista = document.getElementById('hxLista');
+  const texto = (q || '').trim(), norm = normTexto(texto), digitos = texto.replace(/\D/g, '');
+  const conLetras = /[a-z]/.test(norm);
+  if(!(conLetras && norm.replace(/ /g, '').length >= 2) && digitos.length < 4){
+    document.getElementById('hxN').textContent = '';
+    lista.innerHTML = '<div class="empty-note">Escribe al menos 2 letras o 4 números del teléfono.</div>';
+    document.getElementById('historialResultado').innerHTML = '';
+    return;
+  }
+  lista.innerHTML = '<div class="empty-note">Buscando…</div>';
+  let consulta = sb.from('vista_personas_busqueda').select(HX_CAMPOS);
+  if(texto.includes('@')) consulta = consulta.ilike('correo', `%${texto.toLowerCase().replace(/[%*,()\s]/g, '')}%`);
+  else if(conLetras) norm.split(' ').filter(Boolean).forEach(w=>{ consulta = consulta.ilike('nombre_norm', `%${w}%`); });
+  else consulta = consulta.or(`tel10.ilike.*${digitos}*,alt10.ilike.*${digitos}*`);
+  const { data, error } = await consulta.order('nombre_norm').limit(40);
+  if(turno !== hx.turno) return;
+  if(error){ lista.innerHTML = '<div class="empty-note">No se pudo buscar: ' + escHtml(error.message) + '</div>'; return; }
+  await armarGruposHx(data || []);
+  if(turno !== hx.turno) return;
+  const elegido = seleccionar && hx.grupos.find(g=>g.ids.includes(seleccionar));
+  if(elegido) hx.sel = elegido.clave;
+  else if(!hx.grupos.some(g=>g.clave === hx.sel)) hx.sel = hx.grupos[0]?.clave || null;
+  pintarListaHx();
+  pintarPerfilHx();
 }
+function pintarListaHx(){
+  document.getElementById('hxN').textContent = hx.grupos.length;
+  document.getElementById('hxLista').innerHTML = hx.grupos.map(g=>{
+    const p = g.rep, ins = inscDeGrupo(g).sort((a,b)=>(b.fecha || '').localeCompare(a.fecha || ''));
+    const u = ins[0];
+    return `<button type="button" class="cx-item ${hx.sel === g.clave ? 'sel' : ''}" data-hx-grupo="${escapeAttr(g.clave)}"><div class="hx-persona">
+      <div class="avatar">${escHtml(iniciales(p.nombre))}</div><div>
+      <div class="n">${escHtml(p.nombre || '(sin nombre)')}${ins.some(i=>i.paquete === 'VIP') ? ' <span class="hx-badge vip">⭐</span>' : ''}${ins.length > 1 ? ` <span class="hx-badge fiel">${ins.length} cursos</span>` : ''}${g.ids.length > 1 ? ` <span class="hx-badge junto">${g.ids.length} registros</span>` : ''}${g.ids.some(id=>hx.personas[id]?.en_lista_negra) ? ' <span class="hx-badge negra">⚠</span>' : ''}</div>
+      <div class="m">${escHtml(p.telefono_principal || '')}${u ? ' · ' + escHtml(u.ciudad || '') + ' · ' + fechaLarga(u.fecha) : ' · sin cursos'}</div></div></div></button>`;
+  }).join('') || '<div class="empty-note">Nadie con ese nombre, teléfono o correo.</div>';
+}
+async function pintarPerfilHx(){
+  const cont = document.getElementById('historialResultado');
+  const g = hx.grupos.find(x=>x.clave === hx.sel);
+  if(!g){ cont.innerHTML = ''; return; }
+  cont.innerHTML = '<div class="hx-perfil"><div class="empty-note">Cargando su historial…</div></div>';
+  const turno = hx.turno;
+  const [ri, rc] = await Promise.all([
+    sb.from('vista_alumnos').select('inscripcion_id, persona_id, curso, ciudad, fecha, precio_pactado, anticipo, restante, liquidado, pago, paquete, asesor_id').in('persona_id', g.ids),
+    sb.from('interacciones').select('fecha, canal, nota, asesor_id').in('persona_id', g.ids).order('fecha', { ascending:false }).limit(10),
+  ]);
+  if(turno !== hx.turno || hx.sel !== g.clave) return;
+  if(ri.error){ cont.innerHTML = `<div class="hx-perfil"><div class="empty-note">Error: ${escHtml(ri.error.message)}</div></div>`; return; }
+  const personas = g.ids.map(id=>hx.personas[id]);
+  const p = g.rep;
+  const ins = (ri.data || []).sort((a,b)=>(b.fecha || '0').localeCompare(a.fecha || '0'));
+  const tels = [...new Set(personas.flatMap(x=>[x.telefono_principal, x.telefono_alternativo]).filter(Boolean))];
+  const correo = personas.map(x=>x.correo).find(Boolean);
+  const nac = personas.map(x=>x.fecha_nacimiento).find(Boolean);
+  const pagado = ins.reduce((s,i)=>s + Number(i.anticipo || 0), 0);
+  const debe = ins.filter(i=>i.pago === 'ant' && (i.fecha || '') >= hoyISO()).reduce((s,i)=>s + Number(i.restante || 0), 0);
+  const fechas = ins.map(i=>i.fecha).filter(Boolean).sort();
+  const edad = nac ? edadDe(nac) : null;
+  const otros = personas.filter(x=>x.id !== p.id);
+  cont.innerHTML = `<div class="hx-perfil">
+    <div class="hx-cab"><div>
+      <h2>${escHtml(p.nombre || '(sin nombre)')}</h2>
+      <div class="d">📞 ${tels.map(escHtml).join(' · ') || 'sin teléfono'}${correo ? ' · ✉️ ' + escHtml(correo) : ''}${nac ? ` · 🎂 ${fechaLarga(nac)}${edad != null ? ' (' + edad + ')' : ''}` : ''}<br>
+        ${ins.some(i=>i.paquete === 'VIP') ? '<span class="hx-badge vip">⭐ VIP</span> ' : ''}${ins.length > 1 ? `<span class="hx-badge fiel">Clienta fiel · ${ins.length} cursos</span> ` : ''}${personas.some(x=>x.en_lista_negra) ? '<span class="hx-badge negra">⚠ Lista negra</span>' : ''}</div></div>
+      <div class="hx-acc">
+        ${p.telefono_principal ? '<button type="button" class="btn-primary small" data-hx-acc="whats">💬 WhatsApp</button>' : ''}
+        <button type="button" class="btn-outline small" data-hx-acc="contacto">✏️ Datos de contacto</button>
+        <button type="button" class="btn-outline small" data-hx-acc="lead">➕ Nuevo lead</button>
+      </div></div>
+    ${otros.length ? `<div class="hx-aviso"><div>🔗 <b>${g.ids.length} registros juntos</b> (mismo teléfono y nombre parecido). Sus cursos se ven aquí juntos.</div>
+      ${otros.map(x=>`<div class="fila">· ${escHtml(x.nombre || '(sin nombre)')} <button type="button" data-hx-separar="${escapeAttr(x.id)}">No son la misma persona</button></div>`).join('')}</div>` : ''}
+    ${g.familiares.length ? `<div class="hx-aviso">${g.familiares.map(id=>`<div class="fila">📞 Mismo teléfono que <button type="button" data-hx-ver="${escapeAttr(id)}">${escHtml(hx.personas[id]?.nombre || 'otra persona')}</button> (posible familiar)</div>`).join('')}</div>` : ''}
+    <div class="hx-kpis">
+      <div><div class="v">${ins.length}</div><div class="l">cursos tomados</div></div>
+      <div><div class="v">${fmtMoney(pagado)}</div><div class="l">pagado en total</div></div>
+      <div><div class="v">${fmtMoney(debe)}</div><div class="l">debe (cursos próximos)</div></div>
+      <div><div class="v" style="font-size:16px;">${fechas.length ? anioDe(fechas[0]) + (anioDe(fechas[0]) !== anioDe(fechas.at(-1)) ? ' → ' + anioDe(fechas.at(-1)) : '') : '—'}</div><div class="l">${fechas.length > 1 ? 'primera → última vez' : 'cuándo vino'}</div></div>
+    </div>
+    <div><div class="hx-sec">Sus cursos · toca uno para abrir la ficha</div>
+      ${ins.length ? `<div class="hx-linea">${ins.map(i=>`<button type="button" class="hx-hito" data-hx-insc="${escapeAttr(i.inscripcion_id)}">
+        <span class="c">${i.paquete === 'VIP' ? '⭐ ' : ''}${escHtml(i.curso || '(sin curso)')}</span>
+        <span class="s">📍 ${escHtml(i.ciudad || '(sin ciudad)')} · ${fechaLarga(i.fecha)}${i.asesor_id ? ' · vendió ' + escHtml(nombreVendedor(i.asesor_id) || '') : ''}</span>
+        <span class="der">${fmtMoney(Number(i.anticipo || 0))}${i.precio_pactado != null ? ' / ' + fmtMoney(Number(i.precio_pactado)) : ''} <span class="pago-tag ${i.pago}">${PAGO_TXT[i.pago] || ''}</span></span>
+      </button>`).join('')}</div>` : '<div class="empty-note">Sin cursos registrados.</div>'}</div>
+    <div><div class="hx-sec">Últimos contactos</div>
+      ${(rc.data || []).length ? rc.data.map(c=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(c.fecha).toLocaleString('es-MX')}${c.canal ? ' · ' + escHtml(c.canal) : ''}${c.asesor_id && nombreVendedor(c.asesor_id) ? ' · ' + escHtml(nombreVendedor(c.asesor_id)) : ''}</div>${escHtml(c.nota || '(sin nota)')}</div>`).join('') : '<div class="empty-note">Sin contactos registrados.</div>'}</div>
+  </div>`;
+}
+/* Desde Cursos (u otra sección): abrir el historial de una persona. */
+async function verEnHistorial(personaId){
+  setActiveSection('historial');
+  const { data } = await sb.from('vista_personas_busqueda').select(HX_CAMPOS).eq('id', personaId).maybeSingle();
+  if(!data) return;
+  const q = data.tel10 && data.tel10.length === 10 ? data.tel10 : data.nombre || '';
+  document.getElementById('historialSearch').value = q;
+  await buscarHistorial(q, { seleccionar: personaId });
+}
+document.getElementById('hxLista').addEventListener('click', e=>{
+  const b = e.target.closest('[data-hx-grupo]'); if(!b) return;
+  hx.sel = b.dataset.hxGrupo; pintarListaHx(); pintarPerfilHx();
+  if(window.innerWidth < 760) document.getElementById('historialResultado').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+document.getElementById('historialResultado').addEventListener('click', async e=>{
+  const g = hx.grupos.find(x=>x.clave === hx.sel); if(!g) return;
+  const p = g.rep;
+  const recargar = ()=>buscarHistorial(hx.q, { seleccionar: p.id });
+  const insc = e.target.closest('[data-hx-insc]');
+  if(insc){ alCerrarFichaInscripcion = recargar; abrirModalInscripcion(insc.dataset.hxInsc); return; }
+  const ver = e.target.closest('[data-hx-ver]');
+  if(ver){ verEnHistorial(ver.dataset.hxVer); return; }
+  const sep = e.target.closest('[data-hx-separar]');
+  if(sep){
+    const otro = hx.personas[sep.dataset.hxSeparar];
+    const ok = await preguntarConfirmacion({ titulo:'¿No son la misma persona?', textoSi:'Sí, separarlas',
+      aviso:`<b>${escHtml(otro?.nombre || '')}</b> y <b>${escHtml(p.nombre || '')}</b> tienen el mismo teléfono, pero son personas distintas. Se verán por separado para todo el equipo.` });
+    if(ok === null) return;
+    const filas = g.ids.filter(id=>id !== otro.id).map(id=>{ const [a, b] = [id, otro.id].sort(); return { persona_a:a, persona_b:b, creado_por: usuarioActual?.id || null }; });
+    const { error } = await sb.from('personas_separadas').insert(filas);
+    if(error){ toast('No se pudo separar: ' + error.message, true); return; }
+    registrarActividad('personas_separadas', `${otro?.nombre || ''} ≠ ${p.nombre || ''}`);
+    toast('Listo: se ven por separado.');
+    recargar();
+    return;
+  }
+  const acc = e.target.closest('[data-hx-acc]')?.dataset.hxAcc; if(!acc) return;
+  if(acc === 'whats') abrirEnviarWhatsApp({ nombre:p.nombre, telefono:p.telefono_principal, personaId:p.id });
+  if(acc === 'contacto') abrirDatosContacto(p.id, recargar);
+  if(acc === 'lead'){
+    // Nuevo lead con sus datos ya escritos: solo falta elegir el curso.
+    document.getElementById('btnNuevoLead').click();
+    document.getElementById('nuevoNombre').value = p.nombre || '';
+    const tel = document.getElementById('nuevoTelefono');
+    tel.value = p.tel10 && p.tel10.length === 10 ? p.tel10 : (p.telefono_principal || '');
+    tel.dispatchEvent(new Event('input', { bubbles:true }));
+  }
+});
 
 /* =========================================================
    LOGÍSTICA — catálogo de sedes, pipeline de negociación,

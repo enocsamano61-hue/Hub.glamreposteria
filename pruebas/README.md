@@ -24,6 +24,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `correr_todas.js` | Corre cada `prueba_*.js` y dice cuáles fallaron. |
 | `prueba_calendario.js` | Calendario: tarjetas por curso (avance y estado) y hoja del día. |
 | `prueba_humo.js` | Todas las secciones del menú abren sin errores de JS (admin y Logística). |
+| `prueba_cursos_historial.js` | Cursos (curso → ciudad → alumnas) e Historial cliente (buscar, juntar por mismo teléfono y nombre parecido, separar). |
 | `prueba_ficha.js` | Ficha de la inscrita: cobro primero, guardado automático, modo Cobranza. |
 | `prueba_vip.js` | ⭐ VIP: paquete en el lead (nuevo y ficha), tablero, VIP primero en Recepción, Cambiar a VIP. |
 | `prueba_por_confirmar.js` | 🏦 Pagos por confirmar: marcar al cobrar o después, confirmar / no llegó en Recepción y ficha, Cobranza y Calendario. |
@@ -44,11 +45,12 @@ const { abrirHub } = require('./arnes');
 })();
 ```
 
-- `tablas`: filas por tabla. `select` filtra con `eq`, `in` y `not(…, 'in', …)` (también con
+- `tablas`: filas por tabla. `select` filtra con `eq`, `in`, `ilike`, `or(…)` (ilike/in/eq), `range` y `not(…, 'in', …)` (también con
   columnas anidadas como `eventos.curso_id`); `insert`, `update` y `delete` cambian las filas.
   Los demás filtros (`order`, `gte`, `ilike`…) se aceptan pero no filtran, y no hay joins:
   lo anidado se escribe ya dentro de la fila de ejemplo.
 - `h.ops(tabla, tipo)`: lo que el Hub mandó (`insert`, `update`, `select`, `delete`).
+- `window.__rpc = { funcion: args => data }` simula `sb.rpc`.
 - `h.fallar(op => ...)`: simula un error de la base en las operaciones que cumplan la condición.
 - Usa solo datos inventados: nada de nombres, teléfonos ni direcciones reales.
 
