@@ -877,6 +877,14 @@
   .hx-hito .c{ font-weight:600; font-size:13.5px; }
   .hx-hito .s{ color:var(--ink-soft); font-size:12px; }
   .hx-hito .der{ margin-left:auto; display:flex; gap:8px; align-items:center; font-variant-numeric:tabular-nums; font-size:13px; }
+  /* Copiar nombre / teléfono: botón 📋 y menú del clic derecho */
+  .btn-copiar{ display:inline-block; border:0; background:transparent; padding:0 3px; margin-left:2px; font-size:12px; line-height:1; cursor:pointer; opacity:.45; border-radius:5px; vertical-align:middle; font-weight:400; user-select:none; }
+  .btn-copiar:hover, .btn-copiar:focus-visible{ opacity:1; background:rgba(90,31,43,.08); outline:none; }
+  .hx-cab h2 .btn-copiar{ font-size:15px; }
+  .menu-copiar{ position:fixed; z-index:90; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.16); padding:5px; min-width:210px; display:flex; flex-direction:column; }
+  .menu-copiar button{ border:0; background:transparent; text-align:left; padding:8px 10px; border-radius:7px; font-family:inherit; font-size:13px; color:var(--ink); cursor:pointer; }
+  .menu-copiar button:hover, .menu-copiar button:focus-visible{ background:rgba(90,31,43,.08); outline:none; }
+  .menu-copiar .t{ font-size:11px; color:var(--ink-soft); padding:4px 10px 6px; border-bottom:1px solid var(--border); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px; }
   @media (max-width: 1100px){
     .cx{ grid-template-columns:1fr 1fr; }
     .cx-al{ grid-column:1 / -1; }
@@ -8537,8 +8545,8 @@ function pintarAlumnasCx(){
     <div><div class="v">${pct(r.liq || 0, r.total || 0)}%</div><div class="l">liquidadas</div></div>`;
   document.getElementById('cxNAlumnas').textContent = fmtNum(cx.total);
   document.querySelectorAll('[data-cx-orden]').forEach(th=>th.classList.toggle('ord', th.dataset.cxOrden === cx.orden));
-  const filas = cx.filas.map(i=>`<tr data-cx-persona="${escapeAttr(i.persona_id)}" title="Ver su historial completo">
-      <td><b>${i.paquete === 'VIP' ? '⭐ ' : ''}${escHtml(i.nombre || '(sin nombre)')}</b>${i.en_lista_negra ? ' <span class="hx-badge negra">⚠</span>' : ''}<div class="s">${escHtml(i.telefono_principal || '')}</div></td>
+  const filas = cx.filas.map(i=>`<tr data-cx-persona="${escapeAttr(i.persona_id)}" ${attrsCopiar(i.nombre, i.telefono_principal, i.persona_id)} title="Ver su historial completo (clic derecho: copiar)">
+      <td><b>${i.paquete === 'VIP' ? '⭐ ' : ''}${escHtml(i.nombre || '(sin nombre)')}</b>${btnCopiar(i.nombre, 'nombre')}${i.en_lista_negra ? ' <span class="hx-badge negra">⚠</span>' : ''}<div class="s">${escHtml(i.telefono_principal || '')}${btnCopiar(i.telefono_principal, 'telefono')}</div></td>
       <td>${fechaLarga(i.fecha)}</td>
       <td>${escHtml(i.ciudad || '')}</td>
       <td class="num">${fmtMoney(Number(i.anticipo || 0))}${i.precio_pactado != null ? `<div class="s">de ${fmtMoney(Number(i.precio_pactado))}</div>` : ''}</td>
@@ -8580,7 +8588,8 @@ document.getElementById('cxAlumnas').addEventListener('click', e=>{
     return;
   }
   const tr = e.target.closest('[data-cx-persona]');
-  if(tr) verEnHistorial(tr.dataset.cxPersona);
+  // Si estaban seleccionando texto para copiarlo, no se cambia de pantalla.
+  if(tr && !hayTextoSeleccionado()) verEnHistorial(tr.dataset.cxPersona);
 });
 
 document.getElementById('btnNuevoCurso').addEventListener('click', async ()=>{
@@ -9302,10 +9311,10 @@ function pintarListaHx(){
   document.getElementById('hxLista').innerHTML = hx.grupos.map(g=>{
     const p = g.rep, ins = inscDeGrupo(g).sort((a,b)=>(b.fecha || '').localeCompare(a.fecha || ''));
     const u = ins[0];
-    return `<button type="button" class="cx-item ${hx.sel === g.clave ? 'sel' : ''}" data-hx-grupo="${escapeAttr(g.clave)}"><div class="hx-persona">
+    return `<button type="button" class="cx-item ${hx.sel === g.clave ? 'sel' : ''}" data-hx-grupo="${escapeAttr(g.clave)}" ${attrsCopiar(p.nombre, p.telefono_principal, p.id)}><div class="hx-persona">
       <div class="avatar">${escHtml(iniciales(p.nombre))}</div><div>
-      <div class="n">${escHtml(p.nombre || '(sin nombre)')}${ins.some(i=>i.paquete === 'VIP') ? ' <span class="hx-badge vip">⭐</span>' : ''}${ins.length > 1 ? ` <span class="hx-badge fiel">${ins.length} cursos</span>` : ''}${g.ids.length > 1 ? ` <span class="hx-badge junto">${g.ids.length} registros</span>` : ''}${g.ids.some(id=>hx.personas[id]?.en_lista_negra) ? ' <span class="hx-badge negra">⚠</span>' : ''}</div>
-      <div class="m">${escHtml(p.telefono_principal || '')}${u ? ' · ' + escHtml(u.ciudad || '') + ' · ' + fechaLarga(u.fecha) : ' · sin cursos'}</div></div></div></button>`;
+      <div class="n">${escHtml(p.nombre || '(sin nombre)')}${btnCopiar(p.nombre, 'nombre')}${ins.some(i=>i.paquete === 'VIP') ? ' <span class="hx-badge vip">⭐</span>' : ''}${ins.length > 1 ? ` <span class="hx-badge fiel">${ins.length} cursos</span>` : ''}${g.ids.length > 1 ? ` <span class="hx-badge junto">${g.ids.length} registros</span>` : ''}${g.ids.some(id=>hx.personas[id]?.en_lista_negra) ? ' <span class="hx-badge negra">⚠</span>' : ''}</div>
+      <div class="m">${escHtml(p.telefono_principal || '')}${btnCopiar(p.telefono_principal, 'telefono')}${u ? ' · ' + escHtml(u.ciudad || '') + ' · ' + fechaLarga(u.fecha) : ' · sin cursos'}</div></div></div></button>`;
   }).join('') || '<div class="empty-note">Nadie con ese nombre, teléfono o correo.</div>';
 }
 async function pintarPerfilHx(){
@@ -9332,9 +9341,9 @@ async function pintarPerfilHx(){
   const edad = nac ? edadDe(nac) : null;
   const otros = personas.filter(x=>x.id !== p.id);
   cont.innerHTML = `<div class="hx-perfil">
-    <div class="hx-cab"><div>
-      <h2>${escHtml(p.nombre || '(sin nombre)')}</h2>
-      <div class="d">📞 ${tels.map(escHtml).join(' · ') || 'sin teléfono'}${correo ? ' · ✉️ ' + escHtml(correo) : ''}${nac ? ` · 🎂 ${fechaLarga(nac)}${edad != null ? ' (' + edad + ')' : ''}` : ''}<br>
+    <div class="hx-cab" ${attrsCopiar(p.nombre, p.telefono_principal || tels[0], p.id)}><div>
+      <h2>${escHtml(p.nombre || '(sin nombre)')}${btnCopiar(p.nombre, 'nombre')}</h2>
+      <div class="d">📞 ${tels.map(t=>escHtml(t) + btnCopiar(t, 'telefono')).join(' · ') || 'sin teléfono'}${correo ? ' · ✉️ ' + escHtml(correo) : ''}${nac ? ` · 🎂 ${fechaLarga(nac)}${edad != null ? ' (' + edad + ')' : ''}` : ''}<br>
         ${ins.some(i=>i.paquete === 'VIP') ? '<span class="hx-badge vip">⭐ VIP</span> ' : ''}${ins.length > 1 ? `<span class="hx-badge fiel">Clienta fiel · ${ins.length} cursos</span> ` : ''}${personas.some(x=>x.en_lista_negra) ? '<span class="hx-badge negra">⚠ Lista negra</span>' : ''}</div></div>
       <div class="hx-acc">
         ${p.telefono_principal ? '<button type="button" class="btn-primary small" data-hx-acc="whats">💬 WhatsApp</button>' : ''}
@@ -9360,6 +9369,98 @@ async function pintarPerfilHx(){
       ${(rc.data || []).length ? rc.data.map(c=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(c.fecha).toLocaleString('es-MX')}${c.canal ? ' · ' + escHtml(c.canal) : ''}${c.asesor_id && nombreVendedor(c.asesor_id) ? ' · ' + escHtml(nombreVendedor(c.asesor_id)) : ''}</div>${escHtml(c.nota || '(sin nota)')}</div>`).join('') : '<div class="empty-note">Sin contactos registrados.</div>'}</div>
   </div>`;
 }
+/* =========================================================
+   COPIAR NOMBRE / TELÉFONO (Cursos e Historial)
+   - btnCopiar pinta un 📋 junto al dato; es <span> porque la lista del
+     Historial ya es un <button> y no se puede meter un botón dentro.
+   - attrsCopiar marca la fila para el menú del clic derecho.
+   - El teléfono se copia solo con números (10 dígitos si trae el 52).
+   ========================================================= */
+function telParaCopiar(tel){
+  const d = String(tel || '').replace(/\D/g, '');
+  return d.length === 12 && d.startsWith('52') ? d.slice(2) : d.length === 13 && d.startsWith('521') ? d.slice(3) : d;
+}
+function btnCopiar(valor, tipo){
+  const v = tipo === 'telefono' ? telParaCopiar(valor) : String(valor || '').trim();
+  if(!v) return '';
+  return ` <span class="btn-copiar" role="button" tabindex="0" data-copiar="${escapeAttr(v)}" data-copiar-tipo="${tipo}" title="Copiar ${tipo === 'telefono' ? 'teléfono' : 'nombre'}">📋</span>`;
+}
+function attrsCopiar(nombre, tel, personaId){
+  return `data-ctx-nombre="${escapeAttr(String(nombre || '').trim())}" data-ctx-tel="${escapeAttr(telParaCopiar(tel))}" data-ctx-persona="${escapeAttr(personaId || '')}"`;
+}
+function hayTextoSeleccionado(){ return String(window.getSelection?.() || '').trim().length > 0; }
+async function copiarTexto(texto, aviso){
+  let ok = false;
+  try{ await navigator.clipboard.writeText(texto); ok = true; } catch(_){}
+  if(!ok){
+    // Respaldo para navegadores sin permiso de portapapeles.
+    const ta = document.createElement('textarea');
+    ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try{ ok = document.execCommand('copy'); } catch(_){}
+    ta.remove();
+  }
+  toast(ok ? '✓ ' + aviso : 'No se pudo copiar', !ok);
+  return ok;
+}
+// En fase de captura: el 📋 copia y la fila no se abre.
+document.addEventListener('click', e=>{
+  const b = e.target.closest?.('[data-copiar]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  copiarTexto(b.dataset.copiar, b.dataset.copiarTipo === 'telefono' ? 'Teléfono copiado' : 'Nombre copiado');
+}, true);
+document.addEventListener('keydown', e=>{
+  const b = e.target.closest?.('[data-copiar]');
+  if(!b || (e.key !== 'Enter' && e.key !== ' ')) return;
+  e.preventDefault(); e.stopPropagation(); b.click();
+}, true);
+
+/* Menú del clic derecho sobre una alumna. Con texto seleccionado o Shift
+   se deja el menú normal del navegador. */
+function cerrarMenuCopiar(){ document.getElementById('menuCopiar')?.remove(); }
+document.addEventListener('contextmenu', e=>{
+  cerrarMenuCopiar();
+  const el = e.target.closest?.('[data-ctx-persona]');
+  if(!el || e.shiftKey || hayTextoSeleccionado()) return;
+  e.preventDefault();
+  const { ctxNombre:nombre, ctxTel:tel, ctxPersona:personaId } = el.dataset;
+  const enPerfil = el.classList.contains('hx-cab');
+  const ops = [
+    nombre && ['nombre', '📋 Copiar nombre'],
+    tel && ['tel', '📋 Copiar teléfono'],
+    nombre && tel && ['ambos', '📋 Copiar nombre y teléfono'],
+    !enPerfil && personaId && ['ver', '👁 Ver historial'],
+    tel && ['wa', '💬 WhatsApp'],
+  ].filter(Boolean);
+  if(!ops.length) return;
+  const m = document.createElement('div');
+  m.id = 'menuCopiar'; m.className = 'menu-copiar'; m.setAttribute('role', 'menu');
+  m.innerHTML = `<div class="t">${escHtml(nombre || tel)}</div>` + ops.map(([k, l])=>`<button type="button" role="menuitem" data-menu-copiar="${k}">${l}</button>`).join('');
+  document.body.appendChild(m);
+  // Que no se salga de la pantalla.
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(e.clientX, window.innerWidth - r.width - 8)) + 'px';
+  m.style.top = Math.max(8, Math.min(e.clientY, window.innerHeight - r.height - 8)) + 'px';
+  m.addEventListener('click', ev=>{
+    const k = ev.target.closest('[data-menu-copiar]')?.dataset.menuCopiar; if(!k) return;
+    ev.stopPropagation(); cerrarMenuCopiar();
+    if(k === 'nombre') copiarTexto(nombre, 'Nombre copiado');
+    if(k === 'tel') copiarTexto(tel, 'Teléfono copiado');
+    if(k === 'ambos') copiarTexto(nombre + ' ' + tel, 'Nombre y teléfono copiados');
+    if(k === 'ver'){ if(el.dataset.hxGrupo) el.click(); else verEnHistorial(personaId); }
+    if(k === 'wa'){
+      // En Cursos se usa el mismo 💬 de la fila (lleva curso, ciudad y saldo).
+      const wa = el.querySelector('[data-cx-wa]');
+      if(wa) wa.click(); else abrirEnviarWhatsApp({ nombre, telefono: hx.personas[personaId]?.telefono_principal || tel, personaId });
+    }
+  });
+  m.querySelector('button')?.focus();
+});
+document.addEventListener('click', e=>{ if(!e.target.closest?.('#menuCopiar')) cerrarMenuCopiar(); });
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') cerrarMenuCopiar(); });
+window.addEventListener('scroll', cerrarMenuCopiar, true);
+window.addEventListener('resize', cerrarMenuCopiar);
+
 /* Desde Cursos (u otra sección): abrir el historial de una persona. */
 async function verEnHistorial(personaId){
   setActiveSection('historial');
