@@ -192,6 +192,9 @@ puerta que el vendedor no pasó al Excel.
 - **Normaliza:** solo dígitos y los **últimos 10**. Vienen como float (`6421412153.0`: quita el `.0`
   **antes** de quitar lo que no es dígito), con espacios, guiones, `/`, texto pegado
   (`2711912610/ MARIELA 271193`) o dos números en la celda (`6623381384 / 633 119 5…`).
+- **Las fechas no son teléfonos.** Una celda `2026-02-19 00:00:00` da `0219000000` si solo se quitan
+  los no dígitos. Descarta celdas de fecha y ladas que empiecen en 0 o 1.
+- **El teléfono cambia entre copias del Excel.** Para comparar dos copias usa teléfono **y** nombre.
 - **11 dígitos son ambiguos** (`68716826241`). Guarda ambas lecturas (principal y
   `telefono_alternativo`) con nota, y pide confirmarlo. Los de EE.UU. traen lada `1`.
 - **Busca siempre por principal y por alternativo.** Si una persona aparece por los dos números,
@@ -375,7 +378,18 @@ compara contra esos números, no contra una consulta tuya.
 
 ---
 
-## 9. Lo aprendido en el Excel de la Academia (para cuando se migre)
+## 9. Lo aprendido en el Excel de la Academia
+
+> **Ya se migró** (Fase 0, 13 oct). La recarga está en
+> `docs/migraciones/2026-10-13-academia-fase0-excel.md` y `scripts/academia/cargar_excel_academia.py`.
+
+- **Separador o alumna sin teléfono:**
+  - Es **separador** si solo hay un texto en la columna del nombre y nada más.
+  - Si hay apellidos o cualquier otro dato, es **alumna**.
+- **Tiempo límite de la API:** `anon` tiene 3 s y `authenticated` 8 s. Los cruces con `personas` (36 mil filas) se hacen una vez por lote, nunca una vez por renglón.
+- **Datos grandes:** no se mandan por `execute_sql`, porque pasarían por el chat. Se mandan con el script contra una función protegida por una llave temporal: solo se guarda su hash, vence, y el permiso se quita al terminar.
+- **Antes de crear un respaldo, revisa que el nombre no exista.** Otra sesión puede estar trabajando el mismo día.
+
 
 - Son 20 hojas y **35,047 celdas con dato**. Las alumnas están en 7 hojas de generación (~1,250 filas,
   1,228 teléfonos distintos, 24 en más de una hoja). El **81 %** ya existe en `personas`.
