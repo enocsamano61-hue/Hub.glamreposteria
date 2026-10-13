@@ -30,6 +30,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_por_confirmar.js` | 🏦 Pagos por confirmar: marcar al cobrar o después, confirmar / no llegó en Recepción y ficha, Cobranza y Calendario. |
 | `prueba_precios.js` | Sección Precios. |
 | `prueba_recepcion.js` | Recepción del día del curso: buscar, cobrar, extras, llegada, cerrar/reabrir, leads, teclado. |
+| `prueba_tareas_enlace.js` | Tareas del bloc 📝 con botón "Ir →" (ficha, No llegaron, Recepción) y comentario de sistema aparte. |
 | `prueba_no_llegaron.js` | Sección No llegaron: estados, filtros, acceso online, sí fue, perdió anticipo, mover de curso. |
 
 ## Escribir una prueba nueva

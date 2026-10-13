@@ -541,6 +541,14 @@
   .nota-card.champagne{ background:#FBF1DC; color:#5C4A1E; }
   .nota-card.success{ background:#E7F0E9; color:#2F4A38; }
   .nota-card.terracota{ background:#F5E6DF; color:#6B3B26; }
+  /* Tareas que deja el sistema (cargas, auditorías): su explicación va aparte del texto
+     para que no se confunda con lo que escribe el equipo. */
+  .nota-card .nota-sistema{ margin-top:8px; padding:7px 9px; border-radius:8px; background:#EEF0F4; color:#3B4252;
+    border-left:3px solid #7B8496; font-size:11.5px; line-height:1.45; white-space:pre-wrap; }
+  .nota-card .nota-sistema b{ display:block; font-size:10.5px; letter-spacing:.3px; margin-bottom:2px; }
+  .nota-card .nota-ir{ background:var(--wine); color:#fff; border:none; border-radius:8px; padding:5px 10px; font-size:11.5px;
+    cursor:pointer; font-family:inherit; margin-top:8px; }
+  .nota-card .nota-ir:hover{ opacity:.9; }
   .nota-card.wine{ background:#F2E2E6; color:#5A1F2B; }
   .notas-color-pick{ display:flex; gap:6px; margin-bottom:12px; }
   .notas-color-pick span{ width:18px; height:18px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
@@ -8981,15 +8989,22 @@ function tarjetaNota(n){
   // desaparece solo. (La base lo impide igual, esto es para no ofrecer el botón.)
   const puedeBorrar = !tarea || !mia;
   let encabezado = '';
-  if(meAsignaron(n))  encabezado = `<div class="quien">🔔 Te asignó ${n.asignador?.nombre || 'un admin'} · ${fechaNota(n.creado_en)}</div>`;
-  else if(yoAsigne(n)) encabezado = `<div class="quien">📤 Para ${n.destinatario?.nombre || 'alguien'} · ${fechaNota(n.creado_en)}</div>`;
+  const deSistema = n.de_sistema ? '⚙️ Sistema · ' : '';
+  if(meAsignaron(n))  encabezado = `<div class="quien">🔔 ${deSistema}Te asignó ${n.asignador?.nombre || 'un admin'} · ${fechaNota(n.creado_en)}</div>`;
+  else if(yoAsigne(n)) encabezado = `<div class="quien">📤 ${deSistema}Para ${n.destinatario?.nombre || 'alguien'} · ${fechaNota(n.creado_en)}</div>`;
   const estado = yoAsigne(n)
     ? `<div class="estado-tarea">${n.completado ? '✅ Hecha ' + fechaNota(n.completado_en) : (n.visto_en ? '👀 Ya la vio' : '⏳ Todavía no la ve')}</div>`
     : '';
+  const sistema = n.nota_sistema
+    ? `<div class="nota-sistema"><b>⚙️ COMENTARIO DE SISTEMA</b>${escHtml(n.nota_sistema)}</div>` : '';
+  const ir = n.enlace?.vista
+    ? `<button class="nota-ir" title="Te lleva a donde se resuelve">${escHtml(n.enlace.etiqueta || 'Ir')} →</button>` : '';
   return `
     <div class="nota-card ${tarea ? 'tarea' : (n.color||'champagne')} ${n.completado?'hecha':''} ${meAsignaron(n) && !n.visto_en ? 'nueva':''}" data-nota-id="${n.id}">
       ${encabezado}
       <div class="texto">${n.texto}</div>
+      ${sistema}
+      ${ir}
       ${estado}
       <div class="acciones">
         ${mia ? `<label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
@@ -9031,6 +9046,29 @@ function renderNotas(){
   lista.querySelectorAll('.borrar').forEach(btn=> btn.addEventListener('click', (ev)=>{
     borrarNota(ev.target.closest('.nota-card').dataset.notaId);
   }));
+  lista.querySelectorAll('.nota-ir').forEach(btn=> btn.addEventListener('click', (ev)=>{
+    irAEnlaceNota(ev.target.closest('.nota-card').dataset.notaId);
+  }));
+}
+
+/* "Ir →" de una tarea: cierra el bloc, cambia a la sección y abre lo que hay que
+   resolver (la ficha de la alumna, el lead o la Recepción de ese curso).
+   enlace = { vista, inscripcion?, lead?, evento?, ciudad?, etiqueta? } */
+async function irAEnlaceNota(id){
+  const n = NOTAS.find(x=>x.id===id);
+  const e = n?.enlace; if(!e?.vista) return;
+  document.getElementById('notasPanel').classList.remove('open');
+  if(e.vista === 'nollegaron' && e.ciudad){ nl.ciudadInicial = e.ciudad; nl.estado = 'todas'; }
+  if(SECCIONES.some(s=>s.id===e.vista)) setActiveSection(e.vista);
+  if(e.inscripcion) return abrirModalInscripcion(e.inscripcion);
+  if(e.lead) return abrirModalLead(e.lead);
+  if(e.evento){
+    const { data, error } = await sb.from('eventos')
+      .select('id, fecha, sede, ciudad_id, recepcion_cerrada_en, ciudades(nombre)').eq('id', e.evento).single();
+    if(error || !data){ toast('No se encontró ese curso: ' + (error?.message || ''), true); return; }
+    abrirRecepcion({ id:data.id, fecha:data.fecha, sede:data.sede || '', ciudadId:data.ciudad_id,
+                     ciudad:data.ciudades?.nombre || '(ciudad?)', cerrada:!!data.recepcion_cerrada_en });
+  }
 }
 
 async function marcarNota(id, completado){
