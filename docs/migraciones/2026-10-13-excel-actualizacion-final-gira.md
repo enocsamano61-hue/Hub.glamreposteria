@@ -131,6 +131,29 @@ commit;
 - Siguen los pendientes anteriores de la guía (`docs/GUIA_ACTUALIZAR_DESDE_DRIVE.md` §13): Córdoba/Mérida con "anticipos" de $10–$50, teléfono ambiguo de 11 dígitos, Tepatitlán sin fecha, ciudades por decidir.
 - El conector de Supabase colgándose en escrituras: si vuelve a pasar, el camino probado es el SQL Editor con un solo script transaccional.
 
+## Anexo: Guadalupe Victoria (13 oct, mismo día, hoja aparte)
+
+Última fecha de la gira norte. El equipo mandó la hoja de la ciudad al terminar el curso
+(`GUADALUPE_VICTORIA.xlsx`, md5 `c29f8ff2fc44ffe65e1b81d29b2529bf`). Las 14 alumnas de la hoja dicen `LIQUIDO`.
+
+| | Antes | Después |
+|---|---:|---:|
+| Inscritas | 12 | 14 |
+| Llegaron / liquidadas | 0 / 1 | 14 / 14 |
+| Cobrado | $9,100 | $20,100 |
+
+- 12 inscripciones existentes → llegó + pagado + liquidada, con una fila en `pagos` por lo cobrado en el curso.
+- 1 alta de un lead con 💜 pago reportado sin confirmar (anticipo registrado con banco BanCoppel, decisión de Enoc); el lead se cerró.
+- 1 alta de persona + inscripción que no existía en el Hub.
+- 2 inscripciones sin vendedor → el del Excel.
+- 1 nombre con apellidos repetidos corregido (decisión de Enoc).
+- Sin pago y sin inscripción en la hoja (1) y steward (1): sin cambios.
+- Recepción **abierta**; tarea a Jared "Cerrar la Recepción de Guadalupe Victoria 13 oct" con botón "Abrir Recepción".
+
+Respaldos: `respaldo.gv_20261013_inscripciones`, `_pagos`, `_leads`, `_personas`; lo creado en
+`respaldo.gv_20261013_creados`. Se aplicó desde el SQL Editor (el conector se colgó otra vez al escribir).
+Verificado: 0 descuadres entre pagos y anticipo, 0 inscripciones saltadas.
+
 ## Nota sobre datos personales
 
 Aquí no hay nombres, teléfonos ni montos individuales. Las listas nominales (plan por alumna, casos para revisar, LPMSDLC) y el script con nombres se entregaron aparte, fuera del repo.
