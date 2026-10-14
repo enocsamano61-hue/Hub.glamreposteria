@@ -32,6 +32,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_recepcion.js` | Recepción del día del curso: buscar, cobrar, extras, llegada, cerrar/reabrir, leads, teclado. |
 | `prueba_tareas_enlace.js` | Tareas del bloc 📝 con botón "Ir →" (ficha, No llegaron, Recepción) y comentario de sistema aparte. |
 | `prueba_no_llegaron.js` | Sección No llegaron: estados, filtros, acceso online, sí fue, perdió anticipo, mover de curso. |
+| `prueba_academia.js` | 🎓 Academia, pestaña Alumnas: menú por rol, generaciones, filtros y chips, decisión, notas, "ya lo revisé", datos privados, registrar y corregir pagos (con y sin permiso), celular. |
 
 ## Escribir una prueba nueva
 
