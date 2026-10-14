@@ -798,6 +798,54 @@
   .nl-mover-btns{ display:flex; gap:8px; justify-content:flex-end; }
   .nl-mover-btns button{ width:auto; }
   #view-nollegaron [hidden]{ display:none !important; }
+
+  /* ---------- ACADEMIA (reutiliza la lista y la ficha de No llegaron) ---------- */
+  .ac-tabs{ display:flex; gap:4px; margin:-4px 0 14px; border-bottom:1px solid var(--border); overflow-x:auto; }
+  .ac-tab{ background:none; border:0; border-bottom:2.5px solid transparent; padding:10px 14px; font-family:inherit; font-size:13.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+  .ac-tab.on{ color:var(--wine); border-bottom-color:var(--wine); }
+  .ac-tab:disabled{ cursor:default; opacity:.6; }
+  .ac-tab .pill-soon{ background:var(--border); color:var(--ink-soft); margin:0; }
+  .ac-dec{ font-size:11.5px; font-weight:700; border-radius:999px; padding:3px 9px; white-space:nowrap; display:inline-block; }
+  .ac-dec.por_contactar{ background:var(--border); color:#5E564F; }
+  .ac-dec.contactada{ background:rgba(52,85,196,.12); color:#2F4E86; }
+  .ac-dec.se_gradua{ background:rgba(198,166,107,.25); color:#7A5D22; }
+  .ac-dec.kit{ background:rgba(85,116,92,.15); color:#3F5F47; }
+  .ac-dec.espera{ background:rgba(106,71,117,.13); color:#6A4775; }
+  .ac-dec.no_quiere{ background:rgba(181,69,58,.13); color:#8E3328; }
+  .ac-dec.graduada{ background:rgba(90,31,43,.12); color:var(--wine); }
+  .ac-pagos{ font-size:12.5px; }
+  .ac-pagos .debe{ color:var(--danger); font-weight:700; }
+  .ac-pagos .rev{ color:#7A6232; font-weight:600; }
+  .ac-revisar{ background:rgba(198,166,107,.18); border:1px solid rgba(198,166,107,.5); border-radius:10px; padding:10px 12px; font-size:12.5px; display:flex; flex-direction:column; gap:8px; }
+  .ac-revisar button{ align-self:flex-start; }
+  .ac-decisiones{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; }
+  .ac-decisiones button{ min-height:40px; border-radius:9px; border:1px solid var(--border); background:var(--card); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink); padding:6px 8px; }
+  .ac-decisiones button.on{ border:2px solid var(--wine); background:rgba(90,31,43,.06); color:var(--wine); }
+  .ac-meses{ display:grid; grid-template-columns:repeat(auto-fill, minmax(74px, 1fr)); gap:5px; }
+  .ac-mes{ border-radius:7px; padding:6px 4px; font-size:11px; font-weight:600; text-align:center; border:1px solid transparent; background:var(--bg); cursor:pointer; font-family:inherit; color:var(--ink); line-height:1.3; }
+  .ac-mes small{ display:block; font-weight:500; color:inherit; opacity:.85; }
+  .ac-mes.pagado{ background:rgba(85,116,92,.14); color:#3F5F47; }
+  .ac-mes.debe{ background:rgba(181,69,58,.13); color:#8E3328; }
+  .ac-mes.por_revisar{ background:rgba(198,166,107,.22); color:#7A6232; border-style:dashed; border-color:rgba(198,166,107,.8); }
+  .ac-mes.hub{ outline:2px solid rgba(90,31,43,.35); }
+  .ac-mes.sel{ outline:2px solid var(--wine); }
+  .ac-caja{ border-top:1px solid var(--border); padding-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .ac-caja h4{ margin:0; font-family:'Newsreader', serif; font-size:15px; }
+  .ac-form{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+  .ac-form label{ display:flex; flex-direction:column; gap:4px; font-size:11.5px; font-weight:600; color:var(--ink-soft); }
+  .ac-form input, .ac-form select{ height:38px; border:1px solid var(--border); border-radius:9px; padding:0 10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
+  .ac-form .ancho{ grid-column:1 / -1; }
+  .ac-privado{ background:var(--bg); border:1px dashed var(--champagne); border-radius:10px; padding:10px 12px; font-size:12.5px; }
+  .ac-privado .dato-row .v{ white-space:normal; text-align:right; }
+  .ac-origen{ font-size:11px; color:var(--ink-soft); border-top:1px solid var(--border); padding-top:10px; }
+  .ac-mas{ padding:10px 14px; font-size:12px; color:var(--ink-soft); }
+  .ac-mas button{ width:auto; }
+  .ac-caja .guardado-estado{ font-size:12px; color:var(--ink-soft); }
+  @media (max-width: 600px){
+    .ac-tabla{ min-width:0; }
+    .ac-tabla th:nth-child(2), .ac-tabla td:nth-child(2){ display:none; }   /* la ciudad está en la ficha */
+    .ac-tabla th, .ac-tabla td{ padding:10px; }
+  }
   @media (max-width: 900px){
     .nl-cuerpo{ grid-template-columns:1fr; }
     .nl-detalle{ position:static; }
@@ -1533,6 +1581,42 @@
             </div>
           </div>
         </aside>
+      </div>
+    </div>
+
+    <!-- ACADEMIA — egresadas por generación (Fase 1: Alumnas) -->
+    <div class="view" id="view-academia">
+      <div class="ac-tabs" role="tablist" aria-label="Academia">
+        <button type="button" class="ac-tab on" role="tab" aria-selected="true">Alumnas</button>
+        <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Graduación <span class="pill-soon">pronto</span></button>
+        <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Kits <span class="pill-soon">pronto</span></button>
+        <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Certificados <span class="pill-soon">pronto</span></button>
+      </div>
+      <div class="card nl-cabeza">
+        <div class="nl-filtros">
+          <select id="acGen" aria-label="Generación"></select>
+          <input id="acBuscar" type="search" placeholder="Buscar nombre, teléfono o ciudad…" autocomplete="off" aria-label="Buscar alumna">
+          <select id="acPagos" aria-label="Pagos">
+            <option value="">Todos los pagos</option>
+            <option value="debe">Con pagos que dicen “debe”</option>
+            <option value="revisar">Con pagos por revisar</option>
+            <option value="sin">Sin pagos registrados</option>
+          </select>
+        </div>
+        <div class="nl-chips" id="acChips"></div>
+        <div class="nl-resumen" id="acResumen"></div>
+      </div>
+      <div class="nl-cuerpo">
+        <div class="card nl-tabla-caja">
+          <div class="nl-tabla-scroll">
+            <table class="nl-tabla ac-tabla">
+              <thead><tr><th>Alumna</th><th>Ciudad</th><th>Pagos de la academia</th><th>Decisión</th></tr></thead>
+              <tbody id="acBody"><tr><td colspan="4" class="empty-note">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="ac-mas" id="acMas"></div>
+        </div>
+        <aside class="card nl-detalle" id="acDetalle"><div class="empty-note">Elige una alumna de la lista.</div></aside>
       </div>
     </div>
 
@@ -2340,6 +2424,7 @@ const SECCIONES = [
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'cobranza', label:'Cobranza', sub:'A quién cobrarle y cuándo: anticipos de leads y saldos de inscritas', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 13v5M10.5 14.2h2.3a1 1 0 0 1 0 2h-1.6a1 1 0 0 0 0 2h2.3"/>' },
   { id:'nollegaron', label:'No llegaron', sub:'Alumnas con anticipo que no llegaron a su curso: recuperarlas o cerrar su caso', soon:false, icon:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/>' },
+  { id:'academia', label:'Academia', sub:'Egresadas por generación: qué decidió cada una, sus pagos y su ficha', soon:false, icon:'<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/>' },
   { id:'mensajes', label:'Mensajes', sub:'Mensajes predeterminados para WhatsApp', soon:false, icon:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/>' },
   { id:'precios', label:'Precios', sub:'Lo que se cobra aparte del curso: VIP, uniforme…', soon:false, icon:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
@@ -2375,6 +2460,7 @@ function setActiveSection(id){
   if(id==='mensajes') renderMensajes();
   if(id==='precios') renderPrecios();
   if(id==='nollegaron') renderNoLlegaron();
+  if(id==='academia') renderAcademia();
   if(usuarioActual?.id){
     // TUTORIAL — quitar estas 3 líneas
     marcarProgresoPorVista(id);
@@ -2417,7 +2503,7 @@ const PERMISOS_POR_ROL_DEFAULT = {
   'Logística': ['inicio','mensajes','nollegaron','precios','giras','logistica','plaza','calendario'],
   'Ventas': ['inicio','mensajes','nollegaron','precios','board','historial','ventas','calendario'],
   'Ventas coordinadora': ['inicio','mensajes','nollegaron','precios','board','historial','ventas','reportes','calendario'],
-  'Academia e Inbox': ['inicio','mensajes','nollegaron','precios','board','historial','cursos','calendario'],
+  'Academia e Inbox': ['inicio','academia','mensajes','nollegaron','precios','board','historial','cursos','calendario'],
   'Cobranza': ['inicio','mensajes','nollegaron','precios','ventas','cobranza','historial','calendario'],
 };
 // Cache cargado en cada login desde public.permisos_rol: { [rol]: Set(seccion_id) }.
@@ -2434,6 +2520,7 @@ async function cargarPermisosRol(){
 // Acciones que se dan o quitan por rol (tabla permisos_accion: fila = puede).
 const ACCIONES_POR_ROL = [
   { id:'confirmar_pagos', label:'💳 Confirmar pagos', ayuda:'Convierte un pago reportado (💜) en inscripción, o inscribe directo.' },
+  { id:'cobrar_academia', label:'🎓 Cobrar en Academia', ayuda:'Registra pagos de mensualidades de la academia y corrige los que vienen del Excel.' },
 ];
 let PERMISOS_ACCION_CACHE = null;   // { [rol]: Set(accion) }
 async function cargarPermisosAccion(){
@@ -2851,6 +2938,11 @@ const ACCION_LABEL = {
   contacto_agregado: 'Agregó un contacto a una sede',
   checo_entrada: 'Checó su entrada',
   checo_salida: 'Checó su salida',
+  academia_decision: '🎓 Cambió la decisión de graduación de una alumna',
+  academia_notas: '🎓 Escribió una nota de una alumna de la academia',
+  academia_revisado: '🎓 Revisó una alumna marcada “a revisar”',
+  academia_pago: '🎓 Registró un pago de la academia',
+  academia_pago_corregido: '🎓 Corrigió un pago de la academia',
 };
 // Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
 // ya no está activa aunque nunca se haya marcado "fin" explícito
@@ -7490,6 +7582,357 @@ document.getElementById('nlBody').addEventListener('click', e=>{
 document.getElementById('nlDetalle').addEventListener('click', e=>{ const b = e.target.closest('[data-nl-acc]'); if(b) accionNoLlegaron(b.dataset.nlAcc); });
 document.getElementById('nlMoverOk').addEventListener('click', moverNoLlegaron);
 document.getElementById('nlMoverCancelar').addEventListener('click', ()=>{ document.getElementById('nlMoverCaja').hidden = true; });
+
+/* =========================================================
+   ACADEMIA — egresadas por generación (Fase 1: pestaña Alumnas).
+   Los datos vienen del Excel de la Academia (Fase 0, scripts/academia).
+   Lo que se edita aquí — decisión, notas, "ya lo revisé", pagos registrados
+   o corregidos — la recarga del Excel no lo pisa.
+   ========================================================= */
+const AC_DECISIONES = [
+  { id:'por_contactar', label:'Por contactar' },
+  { id:'contactada',    label:'Contactada' },
+  { id:'se_gradua',     label:'🎓 Se gradúa en MTY' },
+  { id:'kit',           label:'📦 Kit a domicilio' },
+  { id:'espera',        label:'⏭️ Espera la siguiente' },
+  { id:'no_quiere',     label:'❌ No quiere nada' },
+  { id:'graduada',      label:'✅ Ya se graduó' },
+];
+const AC_DEC_CORTA = { por_contactar:'Por contactar', contactada:'Contactada', se_gradua:'🎓 Se gradúa', kit:'📦 Kit', espera:'⏭️ Espera', no_quiere:'❌ No quiere', graduada:'✅ Graduada' };
+const AC_ESTADO_PAGO = { pagado:'Pagado', debe:'Debe', por_revisar:'Por revisar' };
+const AC_FORMAS_PAGO = ['Transferencia', 'Depósito / OXXO', 'Efectivo', 'Tarjeta'];
+const AC_POR_PAGINA = 200;
+const AC_SELECT = `id, generacion_id, persona_id, hoja, fila, seccion_excel, matricula, nombre, telefono, sin_telefono, telefono_2,
+  ciudad_texto, vendedor_texto, graduacion_excel, comentario_excel, decision, notas, revisar,
+  personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento )`;
+let ac = { generaciones:null, gen:null, filas:[], resumen:new Map(), filtro:'todas', sel:null,
+           pagosDe:null, pagos:null, pagoSel:null, privados:null, limite:AC_POR_PAGINA };
+
+/* La API devuelve máximo 1,000 filas: se pide por páginas hasta traer todo. */
+async function acTraerTodo(armar){
+  const todo = [];
+  for(let desde = 0; ; desde += 1000){
+    const { data, error } = await armar().range(desde, desde + 999);
+    if(error) return { data:null, error };
+    todo.push(...(data || []));
+    if(!data || data.length < 1000) return { data:todo, error:null };
+  }
+}
+function nombreGenAcademia(id){ return ac.generaciones?.find(g=>g.id === id)?.nombre || ''; }
+function telAcademia(a){ return a.personas?.telefono_principal || a.telefono || ''; }
+function resumenPagosDe(pagos){
+  return { pagos:pagos.length, pagados:pagos.filter(x=>x.estado === 'pagado').length,
+           debe:pagos.filter(x=>x.estado === 'debe').length, por_revisar:pagos.filter(x=>x.estado === 'por_revisar').length,
+           total_pagado:pagos.filter(x=>x.estado === 'pagado').reduce((s,x)=>s + Number(x.monto || 0), 0) };
+}
+
+async function cargarGeneracionesAcademia(){
+  const { data, error } = await sb.from('academia_generaciones').select('id, clave, nombre, hoja, orden').order('orden');
+  if(error){ toast('No se pudieron cargar las generaciones: ' + error.message, true); return false; }
+  ac.generaciones = data || [];
+  if(ac.gen === null) ac.gen = ac.generaciones[0]?.id || '';
+  return true;
+}
+async function cargarAlumnasAcademia(){
+  const porGen = q => ac.gen ? q.eq('generacion_id', ac.gen) : q;
+  const [ra, rr] = await Promise.all([
+    acTraerTodo(()=>porGen(sb.from('academia_alumnas').select(AC_SELECT)).order('hoja').order('fila')),
+    acTraerTodo(()=>porGen(sb.from('academia_pagos_resumen').select('alumna_id, pagos, pagados, debe, por_revisar, total_pagado'))),
+  ]);
+  const error = ra.error || rr.error;
+  if(error){ toast('No se pudieron cargar las alumnas: ' + error.message, true); return false; }
+  ac.filas = ra.data;
+  ac.resumen = new Map(rr.data.map(r=>[r.alumna_id, r]));
+  return true;
+}
+
+async function renderAcademia(){
+  document.getElementById('acBody').innerHTML = '<tr><td colspan="4" class="empty-note">Cargando…</td></tr>';
+  if(!ac.generaciones && !await cargarGeneracionesAcademia()) return;
+  document.getElementById('acGen').innerHTML = ac.generaciones.map(g=>
+      `<option value="${escapeAttr(g.id)}" ${g.id === ac.gen ? 'selected' : ''}>${escHtml(g.nombre)}</option>`).join('')
+    + `<option value="" ${ac.gen === '' ? 'selected' : ''}>Todas las generaciones</option>`;
+  if(!await cargarAlumnasAcademia()) return;
+  pintarAcademia();
+}
+
+function visiblesAcademia(){
+  const texto = document.getElementById('acBuscar').value;
+  const q = normTexto(texto), digitos = texto.replace(/\D/g, '');
+  const pagos = document.getElementById('acPagos').value;
+  return ac.filas.filter(a=>{
+    const r = ac.resumen.get(a.id) || {};
+    if(pagos === 'debe' && !r.debe) return false;
+    if(pagos === 'revisar' && !r.por_revisar) return false;
+    if(pagos === 'sin' && r.pagos) return false;
+    if(q){
+      const donde = normTexto([a.nombre, a.personas?.nombre, a.ciudad_texto].join(' '));
+      const okNombre = q.split(' ').every(p=>donde.includes(p));
+      const okTel = digitos.length >= 3 && [a.telefono, a.telefono_2, a.personas?.telefono_principal, a.personas?.telefono_alternativo].join(' ').includes(digitos);
+      if(!okNombre && !okTel) return false;
+    }
+    return true;
+  });
+}
+function cumpleFiltroAcademia(a, f){ return f === 'todas' || (f === 'revisar' ? !!a.revisar : a.decision === f); }
+function textoPagosLista(r){
+  if(!r?.pagos) return '<span class="sub">Sin pagos</span>';
+  return [r.pagados ? `${r.pagados} pagado${r.pagados === 1 ? '' : 's'} · ${fmtMoney(r.total_pagado)}` : '',
+          r.debe ? `<span class="debe">debe ${r.debe}</span>` : '',
+          r.por_revisar ? `<span class="rev">${r.por_revisar} por revisar</span>` : ''].filter(Boolean).join(' · ');
+}
+
+function pintarAcademia(){
+  const base = visiblesAcademia();
+  const chips = [{ id:'todas', label:'Todas' }, ...AC_DECISIONES.map(d=>({ id:d.id, label:AC_DEC_CORTA[d.id] })), { id:'revisar', label:'⚠️ A revisar' }];
+  document.getElementById('acChips').innerHTML = chips.map(c=>{
+    const n = base.filter(a=>cumpleFiltroAcademia(a, c.id)).length;
+    if(!n && c.id !== 'todas' && ac.filtro !== c.id) return '';   // sin alumnas en esa decisión: no estorba
+    return `<button type="button" class="nl-chip ${ac.filtro === c.id ? 'on' : ''}" data-ac-filtro="${c.id}">${escHtml(c.label)} <b>${n}</b></button>`;
+  }).join('');
+  const filas = base.filter(a=>cumpleFiltroAcademia(a, ac.filtro));
+  if(!filas.some(a=>a.id === ac.sel)) ac.sel = filas[0]?.id ?? null;
+  const pagado = filas.reduce((s,a)=>s + Number(ac.resumen.get(a.id)?.total_pagado || 0), 0);
+  document.getElementById('acResumen').innerHTML = filas.length
+    ? `<b>${filas.length}</b> alumna${filas.length === 1 ? '' : 's'} · <b>${fmtMoney(pagado)}</b> pagado a la academia` : '';
+  const mostrar = filas.slice(0, ac.limite);
+  document.getElementById('acBody').innerHTML = mostrar.length ? mostrar.map(a=>`
+    <tr data-ac-id="${escapeAttr(a.id)}" class="${a.id === ac.sel ? 'sel' : ''}">
+      <td><b>${escHtml(tituloCaso(a.nombre))}</b>${a.revisar ? ` <span title="${escapeAttr(a.revisar)}">⚠️</span>` : ''}
+        <div class="sub">${escHtml(telAcademia(a) || 'Sin teléfono')}${ac.gen === '' ? ' · ' + escHtml(nombreGenAcademia(a.generacion_id)) : ''}</div></td>
+      <td>${escHtml(a.ciudad_texto || '—')}</td>
+      <td class="ac-pagos">${textoPagosLista(ac.resumen.get(a.id))}</td>
+      <td><span class="ac-dec ${escapeAttr(a.decision)}">${escHtml(AC_DEC_CORTA[a.decision] || a.decision)}</span></td>
+    </tr>`).join('')
+    : `<tr><td colspan="4" class="empty-note">${ac.filas.length ? 'Nadie con esos filtros.' : 'Esta generación no tiene alumnas.'}</td></tr>`;
+  document.getElementById('acMas').innerHTML = filas.length > ac.limite
+    ? `Mostrando ${ac.limite} de ${filas.length}. <button type="button" class="btn-outline small" data-ac-mas="1">Ver ${Math.min(AC_POR_PAGINA, filas.length - ac.limite)} más</button>` : '';
+  pintarDetalleAcademia();
+}
+
+function etiquetaPago(x){
+  if(x.origen === 'hub') return x.fecha_texto ? fechaCorta(x.fecha_texto) : 'Hub';
+  const c = String(x.columna_excel || '');
+  if(/^\d{4}-\d{2}-\d{2}$/.test(c)) return tituloCaso(new Date(c + 'T12:00:00').toLocaleDateString('es-MX', { month:'short', year:'2-digit' }));
+  return tituloCaso(c.replace(/^MENS\s*\/?\s*/i, '').slice(0, 12)) || '—';
+}
+function ordenarPagosAcademia(lista){
+  return (lista || []).slice().sort((p, q)=>(p.origen === 'hub') - (q.origen === 'hub') || (p.columna ?? 0) - (q.columna ?? 0)
+    || String(p.creado_en || '').localeCompare(String(q.creado_en || '')));
+}
+async function cargarPagosAlumnaAcademia(id){
+  const { data, error } = await sb.from('academia_pagos')
+    .select('id, alumna_id, columna, columna_excel, texto_original, fecha_texto, monto, banco, estado, origen, creado_en').eq('alumna_id', id);
+  if(ac.sel !== id) return;   // mientras cargaba, eligieron a otra
+  if(error){ toast('No se pudieron cargar sus pagos: ' + error.message, true); ac.pagos = []; }
+  else ac.pagos = ordenarPagosAcademia(data);
+  pintarDetalleAcademia();
+}
+async function cargarPrivadosAcademia(a){
+  const { data, error } = await sb.from('academia_datos_privados')
+    .select('curp, direccion, estado_civil, nacimiento_texto, redes, encuesta').eq('alumna_id', a.id).maybeSingle();
+  if(error){ toast('No se pudieron cargar sus datos privados: ' + error.message, true); return; }
+  if(ac.sel !== a.id) return;
+  ac.privados = data || false;   // por RLS, quien no es de Academia no recibe nada
+  pintarDetalleAcademia();
+}
+
+function pagosAcademiaHtml(pagos, puedeCobrar){
+  const r = resumenPagosDe(pagos);
+  const cuenta = pagos.length
+    ? `<div class="sub" style="margin:0;">${r.pagados} pagado${r.pagados === 1 ? '' : 's'} · <b>${fmtMoney(r.total_pagado)}</b>${r.debe ? ` · <span style="color:var(--danger);font-weight:700;">debe ${r.debe}</span>` : ''}${r.por_revisar ? ` · ${r.por_revisar} por revisar` : ''}</div>
+       <div class="ac-meses">${pagos.map(x=>`<button type="button" class="ac-mes ${escapeAttr(x.estado)} ${x.origen === 'hub' ? 'hub' : ''} ${x.id === ac.pagoSel ? 'sel' : ''}" data-ac-pago="${escapeAttr(x.id)}" title="${escapeAttr(x.texto_original || '')}">${escHtml(etiquetaPago(x))}<small>${x.monto != null ? fmtMoney(x.monto) : (x.estado === 'debe' ? 'debe' : '¿monto?')}</small></button>`).join('')}</div>`
+    : '<div class="sub" style="margin:0;">Sin pagos registrados.</div>';
+  const x = pagos.find(p=>p.id === ac.pagoSel);
+  const detalle = x ? `<div class="ac-privado">
+      <div class="dato-row"><span class="l">${x.origen === 'hub' ? 'Registrado en el Hub' : 'Celda del Excel'}</span><span class="v">${escHtml(x.columna_excel || '')}</span></div>
+      <div class="dato-row"><span class="l">Texto original</span><span class="v">${escHtml(x.texto_original || '—')}</span></div>
+      ${x.fecha_texto ? `<div class="dato-row"><span class="l">Fecha</span><span class="v">${escHtml(x.fecha_texto)}</span></div>` : ''}
+      ${x.banco ? `<div class="dato-row"><span class="l">Banco / forma</span><span class="v">${escHtml(x.banco)}</span></div>` : ''}
+      ${puedeCobrar ? `<div class="ac-form">
+          <label>Monto<input id="acCorrMonto" type="number" min="0" step="10" inputmode="decimal" value="${x.monto ?? ''}"></label>
+          <label>Estado<select id="acCorrEstado">${Object.entries(AC_ESTADO_PAGO).map(([k, v])=>`<option value="${k}" ${x.estado === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+          <button type="button" class="btn-outline small ancho" data-ac-acc="corregir">Guardar corrección</button>
+        </div>` : `<div class="sub" style="margin:0;">Estado: ${AC_ESTADO_PAGO[x.estado] || x.estado}</div>`}
+    </div>` : '';
+  const nuevo = puedeCobrar ? `<div class="ac-form">
+      <label>Monto<input id="acPagoMonto" type="number" min="0" step="10" inputmode="decimal" placeholder="$"></label>
+      <label>Forma<select id="acPagoForma">${AC_FORMAS_PAGO.map(f=>`<option>${escHtml(f)}</option>`).join('')}</select></label>
+      <label>Fecha<input id="acPagoFecha" type="date" value="${hoyISO()}"></label>
+      <label>Concepto<input id="acPagoNota" maxlength="80" placeholder="Ej. mensualidad de octubre"></label>
+      <button type="button" class="btn-primary small ancho" data-ac-acc="pago">+ Registrar pago</button>
+    </div>` : '';
+  return cuenta + detalle + nuevo;
+}
+
+function privadosAcademiaHtml(){
+  if(ac.privados === null) return `<button type="button" class="btn-outline small" data-ac-acc="privados" style="width:auto;">Mostrar CURP, dirección y encuesta</button>
+    <div class="sub" style="margin:0;">Solo los ven Academia y administradores.</div>`;
+  if(ac.privados === false) return '<div class="sub" style="margin:0;">Solo los ven Academia y administradores.</div>';
+  const d = ac.privados;
+  const fila = (l, v)=> v ? `<div class="dato-row"><span class="l">${escHtml(l)}</span><span class="v">${escHtml(v)}</span></div>` : '';
+  const extras = [...Object.entries(d.redes || {}), ...Object.entries(d.encuesta || {})].map(([k, v])=>fila(tituloCaso(k), v)).join('');
+  const html = fila('CURP', d.curp) + fila('Dirección', d.direccion) + fila('Estado civil', d.estado_civil) + fila('Nacimiento (Excel)', d.nacimiento_texto) + extras;
+  return `<div class="ac-privado">${html || '<div class="sub" style="margin:0;">El Excel no traía datos privados de ella.</div>'}</div>`;
+}
+
+function pintarDetalleAcademia(){
+  const cont = document.getElementById('acDetalle');
+  const a = ac.filas.find(x=>x.id === ac.sel);
+  if(!a){ cont.innerHTML = '<div class="empty-note">Elige una alumna de la lista.</div>'; return; }
+  if(ac.pagosDe !== a.id){
+    ac.pagosDe = a.id; ac.pagos = null; ac.pagoSel = null; ac.privados = null;
+    cargarPagosAlumnaAcademia(a.id);
+  }
+  const p = a.personas || {};
+  const tel = telAcademia(a);
+  const otroNombre = p.nombre && normTexto(p.nombre) !== normTexto(a.nombre);
+  cont.innerHTML = `
+    <div>
+      <div class="sub" style="margin:0;color:#7A5D22;font-weight:700;letter-spacing:.04em;">${escHtml(nombreGenAcademia(a.generacion_id))}${a.matricula ? ' · Matrícula ' + escHtml(a.matricula) : ''}</div>
+      <h3>${escHtml(tituloCaso(a.nombre))}</h3>
+      <div class="sub" style="margin:2px 0 0;">${[a.ciudad_texto, a.vendedor_texto ? 'vendió ' + a.vendedor_texto : '', a.seccion_excel].filter(Boolean).map(escHtml).join(' · ')}</div>
+    </div>
+    ${a.revisar ? `<div class="ac-revisar"><div>⚠️ ${escHtml(a.revisar)}${otroNombre ? `<br>En el Hub se llama <b>${escHtml(tituloCaso(p.nombre))}</b>.` : ''}</div>
+      <button type="button" class="btn-outline small" data-ac-acc="revisado" style="width:auto;">✓ Ya lo revisé</button></div>` : ''}
+    <div>
+      <div class="dato-row"><span class="l">Teléfono</span><span class="v">${escHtml(tel || 'Sin teléfono')}</span></div>
+      ${(p.telefono_alternativo || a.telefono_2) ? `<div class="dato-row"><span class="l">Tel 2</span><span class="v">${escHtml(p.telefono_alternativo || a.telefono_2)}</span></div>` : ''}
+      ${p.correo ? `<div class="dato-row"><span class="l">Correo</span><span class="v">${escHtml(p.correo)}</span></div>` : ''}
+      ${p.fecha_nacimiento ? `<div class="dato-row"><span class="l">🎂 Cumpleaños</span><span class="v">${escHtml(fechaCorta(p.fecha_nacimiento))}</span></div>` : ''}
+    </div>
+    <div class="nl-acciones">
+      ${tel ? '<button type="button" class="nl-acc primario" data-ac-acc="whats">💬 Enviar WhatsApp</button>' : ''}
+      ${a.persona_id ? '<button type="button" class="nl-acc" data-ac-acc="contacto">✏️ Datos de contacto</button>' : ''}
+    </div>
+    <div class="ac-caja">
+      <h4>¿Qué decidió?</h4>
+      ${a.graduacion_excel ? `<div class="sub" style="margin:0;">En el Excel decía: “${escHtml(a.graduacion_excel)}”</div>` : ''}
+      <div class="ac-decisiones">${AC_DECISIONES.map(d=>`<button type="button" class="${a.decision === d.id ? 'on' : ''}" data-ac-decision="${d.id}" aria-pressed="${a.decision === d.id}">${escHtml(d.label)}</button>`).join('')}</div>
+    </div>
+    <div class="ac-caja">
+      <h4>Pagos de la academia</h4>
+      ${ac.pagos === null ? '<div class="sub" style="margin:0;">Cargando pagos…</div>' : pagosAcademiaHtml(ac.pagos, puede('cobrar_academia'))}
+    </div>
+    <div class="ac-caja">
+      <h4>🔒 Datos privados</h4>
+      ${privadosAcademiaHtml()}
+    </div>
+    <div class="ac-caja">
+      <label class="modal-notas-titulo" for="acNotas">Notas</label>
+      <textarea id="acNotas" class="textarea" rows="3" maxlength="2000" placeholder="Lo que platicaron, cuándo volver a escribirle…">${escHtml(a.notas || '')}</textarea>
+      <span class="guardado-estado" id="acNotasEstado"></span>
+      ${a.comentario_excel ? `<div class="nl-notas">${escHtml(a.comentario_excel)}</div>` : ''}
+    </div>
+    <div class="ac-origen">Vino del Excel: hoja ${escHtml(a.hoja)}${a.fila ? ', fila ' + a.fila : ''}</div>`;
+}
+
+async function guardarAlumnaAcademia(a, cambios){
+  const { error } = await sb.from('academia_alumnas').update({ ...cambios, actualizado_por:usuarioActual?.id || null }).eq('id', a.id);
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return false; }
+  Object.assign(a, cambios);
+  return true;
+}
+async function cambiarDecisionAcademia(a, dec){
+  if(a.decision === dec) return;
+  const antes = a.decision;
+  if(!await guardarAlumnaAcademia(a, { decision:dec })) return;
+  registrarActividad('academia_decision', `${a.nombre}: ${AC_DEC_CORTA[antes] || antes} → ${AC_DEC_CORTA[dec]}`);
+  toast(`${tituloCaso(a.nombre)}: ${AC_DEC_CORTA[dec]}`);
+  pintarAcademia();
+}
+async function registrarPagoAcademia(a){
+  const monto = Number(document.getElementById('acPagoMonto').value);
+  const forma = document.getElementById('acPagoForma').value;
+  const fecha = document.getElementById('acPagoFecha').value || hoyISO();
+  const nota = document.getElementById('acPagoNota').value.trim();
+  if(!(monto > 0)){ toast('Escribe el monto del pago.', true); return; }
+  const ok = await preguntarConfirmacion({ titulo:'¿Registrar el pago?', textoSi:'Sí, registrar',
+    aviso:`${escHtml(tituloCaso(a.nombre))}: <b>${fmtMoney(monto)}</b> · ${escHtml(forma)} · ${escHtml(fechaCorta(fecha))}${nota ? '<br>' + escHtml(nota) : ''}` });
+  if(ok === null) return;
+  const fila = { alumna_id:a.id, origen:'hub', estado:'pagado', monto, banco:forma, fecha_texto:fecha, columna_excel:'Hub',
+                 texto_original:[nota, forma].filter(Boolean).join(' · '), registrado_por:usuarioActual?.id || null };
+  const { data, error } = await sb.from('academia_pagos').insert(fila).select().single();
+  if(error){ toast('No se pudo registrar el pago: ' + error.message, true); return; }
+  ac.pagos = ordenarPagosAcademia([...(ac.pagos || []), data]);
+  ac.resumen.set(a.id, { alumna_id:a.id, ...resumenPagosDe(ac.pagos) });
+  registrarActividad('academia_pago', `${a.nombre} · ${fmtMoney(monto)} · ${forma}${nota ? ' · ' + nota : ''}`);
+  toast(`💵 Pago de ${fmtMoney(monto)} registrado.`);
+  pintarAcademia();
+}
+async function corregirPagoAcademia(a){
+  const x = (ac.pagos || []).find(p=>p.id === ac.pagoSel); if(!x) return;
+  const valor = document.getElementById('acCorrMonto').value;
+  const monto = valor === '' ? null : Number(valor);
+  const estado = document.getElementById('acCorrEstado').value;
+  if(estado === 'pagado' && !(monto > 0)){ toast('Para marcarlo como pagado escribe el monto.', true); return; }
+  if(monto === x.monto && estado === x.estado){ toast('No cambió nada.'); return; }
+  const { error } = await sb.from('academia_pagos').update({ monto, estado }).eq('id', x.id);
+  if(error){ toast('No se pudo corregir: ' + error.message, true); return; }
+  const antes = `${x.monto != null ? fmtMoney(x.monto) : 'sin monto'} (${AC_ESTADO_PAGO[x.estado]})`;
+  Object.assign(x, { monto, estado });
+  ac.resumen.set(a.id, { alumna_id:a.id, ...resumenPagosDe(ac.pagos) });
+  registrarActividad('academia_pago_corregido', `${a.nombre} · ${x.columna_excel}: ${antes} → ${monto != null ? fmtMoney(monto) : 'sin monto'} (${AC_ESTADO_PAGO[estado]})`);
+  toast('Pago corregido.');
+  pintarAcademia();
+}
+
+async function accionAcademia(acc){
+  const a = ac.filas.find(x=>x.id === ac.sel); if(!a) return;
+  if(acc === 'whats') return abrirEnviarWhatsApp({ nombre:a.personas?.nombre || a.nombre, telefono:telAcademia(a), personaId:a.persona_id, ciudad:a.ciudad_texto || '' });
+  if(acc === 'contacto') return abrirDatosContacto(a.persona_id, ()=>{ ac.pagosDe = null; renderAcademia(); });
+  if(acc === 'privados') return cargarPrivadosAcademia(a);
+  if(acc === 'pago') return registrarPagoAcademia(a);
+  if(acc === 'corregir') return corregirPagoAcademia(a);
+  if(acc === 'revisado'){
+    const nota = a.revisar;
+    if(!await guardarAlumnaAcademia(a, { revisar:null })) return;
+    registrarActividad('academia_revisado', `${a.nombre}: ${nota}`);
+    toast('Listo, ya no sale en “A revisar”.');
+    pintarAcademia();
+  }
+}
+
+document.getElementById('acGen').addEventListener('change', e=>{
+  ac.gen = e.target.value; ac.sel = null; ac.limite = AC_POR_PAGINA; renderAcademia();
+});
+['acBuscar','acPagos'].forEach(id=>document.getElementById(id).addEventListener('input', ()=>{ ac.limite = AC_POR_PAGINA; pintarAcademia(); }));
+document.getElementById('acChips').addEventListener('click', e=>{
+  const b = e.target.closest('[data-ac-filtro]'); if(!b) return;
+  ac.filtro = b.dataset.acFiltro; ac.sel = null; ac.limite = AC_POR_PAGINA; pintarAcademia();
+});
+document.getElementById('acBody').addEventListener('click', e=>{
+  const tr = e.target.closest('[data-ac-id]'); if(!tr) return;
+  ac.sel = tr.dataset.acId; pintarAcademia();
+  if(window.innerWidth < 900) document.getElementById('acDetalle').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+document.getElementById('acMas').addEventListener('click', e=>{
+  if(e.target.closest('[data-ac-mas]')){ ac.limite += AC_POR_PAGINA; pintarAcademia(); }
+});
+document.getElementById('acDetalle').addEventListener('click', e=>{
+  const a = ac.filas.find(x=>x.id === ac.sel); if(!a) return;
+  const dec = e.target.closest('[data-ac-decision]');
+  if(dec) return cambiarDecisionAcademia(a, dec.dataset.acDecision);
+  const pg = e.target.closest('[data-ac-pago]');
+  if(pg){ ac.pagoSel = ac.pagoSel === pg.dataset.acPago ? null : pg.dataset.acPago; return pintarDetalleAcademia(); }
+  const b = e.target.closest('[data-ac-acc]');
+  if(b) accionAcademia(b.dataset.acAcc);
+});
+// Las notas se guardan solas al salir del campo.
+document.getElementById('acDetalle').addEventListener('change', async e=>{
+  if(e.target.id !== 'acNotas') return;
+  const a = ac.filas.find(x=>x.id === ac.sel); if(!a) return;
+  const texto = e.target.value.trim() || null;
+  if(texto === (a.notas || null)) return;
+  const estado = document.getElementById('acNotasEstado');
+  if(await guardarAlumnaAcademia(a, { notas:texto })){
+    registrarActividad('academia_notas', a.nombre);
+    if(estado){ estado.textContent = '✓ Guardado'; estado.style.color = 'var(--success)'; }
+  } else {
+    e.target.value = a.notas || '';
+    if(estado){ estado.textContent = '⚠ No se guardó'; estado.style.color = 'var(--danger)'; }
+  }
+});
 
 /* =========================================================
    PRECIOS — catálogo de lo que se cobra aparte del curso (VIP, uniforme…).
