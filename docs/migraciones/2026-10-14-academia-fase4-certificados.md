@@ -81,6 +81,7 @@ El sitio publica la carpeta `hub/` como raíz. Por eso los fondos y la letra se 
   - Academia crea un certificado, saca folio, edita la plantilla y el programa, sube al bucket y marca la inscripción;
   - borrar un certificado no borra nada;
   - Ventas no ve certificados y se le rechaza crear, sacar folio y subir archivos.
+- **Sitio publicado** (después de la corrección): pdf-lib y fontkit cargan del CDN, el fondo llega como `image/png` y la letra como `font/ttf`, y el PDF se arma sin errores de JS.
 - **Capturas** (no se suben): `certificados-computadora.png`, `certificados-plantilla.png` y `certificados-celular.png`.
 
 ## Pendientes
