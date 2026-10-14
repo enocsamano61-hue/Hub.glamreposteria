@@ -158,7 +158,8 @@ const base = () => ({
   await p.evaluate(() => { seleccionarRecepcion('i:c'); rec.forma = 'Efectivo'; pintarPanelRecepcion(); });
   await h.fallar(op => op.tabla === 'inscripciones' && op.tipo === 'update');
   await p.click('#recCobrar');
-  await p.waitForTimeout(300);
+  // Espera el aviso en lugar de un tiempo fijo: con la máquina ocupada 300 ms no siempre alcanzaban.
+  await p.waitForFunction(() => document.getElementById('recPanel').textContent.includes('SÍ se registró'), null, { timeout:5000 }).catch(() => {});
   check((await txt('#recPanel')).includes('SÍ se registró') && !(await p.isVisible('#recReintentar')), 'dice que sí se registró, sin Reintentar');
   await h.fallar(null);
 
