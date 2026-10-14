@@ -841,6 +841,52 @@
   .ac-mas{ padding:10px 14px; font-size:12px; color:var(--ink-soft); }
   .ac-mas button{ width:auto; }
   .ac-caja .guardado-estado{ font-size:12px; color:var(--ink-soft); }
+  #view-academia [hidden]{ display:none !important; }
+  .ag-cabeza{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+  .ag-cabeza-fila{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
+  .ag-cabeza-fila select{ height:40px; border:1px solid var(--border); border-radius:10px; background:var(--card); padding:0 10px; font-family:inherit; font-size:13.5px; color:var(--ink); }
+  .ag-cabeza-fila .btn-primary{ width:auto; }
+  .ag-datos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+  .ag-datos label{ display:flex; flex-direction:column; gap:4px; font-size:11.5px; font-weight:600; color:var(--ink-soft); }
+  .ag-datos input{ height:38px; border:1px solid var(--border); border-radius:9px; padding:0 10px; font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink); }
+  .ag-conceptos{ display:flex; flex-wrap:wrap; gap:6px; font-size:12px; color:var(--ink-soft); }
+  .ag-conceptos span{ background:var(--bg); border-radius:999px; padding:4px 10px; }
+  .ag-conceptos b{ color:var(--ink); }
+  .ag-agregar{ display:flex; flex-direction:column; gap:6px; border-top:1px solid var(--border); padding-top:12px; }
+  .ag-agregar input{ height:40px; border:1px solid var(--border); border-radius:10px; padding:0 10px; font-family:inherit; font-size:13.5px; }
+  .ag-agregar-op{ display:flex; justify-content:space-between; gap:8px; align-items:center; width:100%; min-height:42px; text-align:left; border:1px solid var(--border); border-radius:10px; background:var(--card); padding:6px 12px; font-family:inherit; font-size:13px; cursor:pointer; color:var(--ink); }
+  .ag-agregar-op:hover{ border-color:var(--wine); }
+  .ag-agregar-op .sub{ margin:0; }
+  .ag-kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:14px; }
+  .ag-barra{ height:6px; background:var(--border); border-radius:4px; margin-top:5px; overflow:hidden; }
+  .ag-barra span{ display:block; height:6px; background:var(--champagne); }
+  .ag-barra span.lleno{ background:var(--success); }
+  .ag-resumenes{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-top:14px; }
+  .ag-resumenes .card{ margin:0; }
+  .ag-tallas{ display:grid; grid-template-columns:minmax(0,1fr) 72px 72px; gap:6px; font-size:13px; align-items:center; }
+  .ag-tallas .h{ font-size:10.5px; font-weight:700; color:var(--ink-soft); letter-spacing:.05em; text-align:center; }
+  .ag-tallas .h:first-child{ text-align:left; }
+  .ag-tallas .b, .ag-tallas .n{ text-align:center; border-radius:6px; padding:4px 0; font-variant-numeric:tabular-nums; }
+  .ag-tallas .b{ background:var(--bg); border:1px solid var(--border); }
+  .ag-tallas .n{ background:#292421; color:#fff; }
+  .ag-cuenta .dato-row:last-of-type{ margin-bottom:0; }
+  .ag-cuenta .total .v{ font-size:15px; }
+  .ag-cuenta .debe .v{ color:var(--danger); }
+  .ag-stepper{ display:inline-flex; align-items:center; gap:8px; }
+  .ag-stepper button{ width:36px; height:36px; border-radius:9px; border:1px solid var(--border); background:var(--card); font-size:18px; font-weight:700; cursor:pointer; color:var(--ink); }
+  .ag-stepper b{ min-width:20px; text-align:center; font-variant-numeric:tabular-nums; }
+  .ag-extras{ display:flex; flex-wrap:wrap; gap:6px; }
+  .ag-extra{ border:1px dashed var(--border); background:var(--card); border-radius:999px; padding:5px 10px; font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; color:var(--ink); }
+  .ag-extra.puesto{ border-style:solid; border-color:var(--champagne); background:rgba(198,166,107,.15); }
+  .ag-inv{ display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:6px; }
+  .ag-inv input{ height:36px; border:1px solid var(--border); border-radius:8px; padding:0 9px; font-family:inherit; font-size:13px; min-width:0; }
+  .ag-pago-fila{ display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:4px 0; border-bottom:1px dashed var(--border); }
+  .ag-cancelada{ background:var(--border); color:var(--ink-soft); }
+  @media (max-width: 600px){
+    .ag-tabla{ min-width:0; }
+    .ag-tabla th:nth-child(2), .ag-tabla td:nth-child(2), .ag-tabla th:nth-child(3), .ag-tabla td:nth-child(3){ display:none; }
+    .ag-tabla th, .ag-tabla td{ padding:10px; }
+  }
   @media (max-width: 600px){
     .ac-tabla{ min-width:0; }
     .ac-tabla th:nth-child(2), .ac-tabla td:nth-child(2){ display:none; }   /* la ciudad está en la ficha */
@@ -959,7 +1005,7 @@
   }
 
   /* ---------- PRECIOS ---------- */
-  .precio-fila{ display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px 12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .precio-fila{ display:grid; grid-template-columns:minmax(0,1fr) 150px 130px auto; gap:8px 12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
   .precio-fila input{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink); min-width:0; }
   .precio-fila .precio-nombre{ font-weight:600; }
   .precio-monto{ display:flex; align-items:center; gap:6px; font-weight:600; }
@@ -968,7 +1014,8 @@
   .precio-meta{ grid-column:1 / -1; font-size:11.5px; color:var(--ink-soft); }
   .precio-fila.oculto .precio-nombre, .precio-fila.oculto .precio-monto{ opacity:.5; }
   .precio-sin{ color:var(--danger); font-weight:600; }
-  .precio-nuevo{ display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px 12px; margin-top:14px; }
+  .precio-nuevo{ display:grid; grid-template-columns:minmax(0,1fr) 150px 130px auto; gap:8px 12px; margin-top:14px; }
+  .precio-fila select, .precio-nuevo select{ padding:9px 8px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); min-width:0; }
   .precio-nuevo input{ padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; background:var(--card); color:var(--ink); min-width:0; }
   .precio-nuevo .btn-primary{ width:auto; }
   @media (max-width: 600px){
@@ -1545,6 +1592,7 @@
         <div class="precio-nuevo">
           <input id="precioNuevoNombre" placeholder="Nuevo: nombre (ej. Mandil)" maxlength="60">
           <input id="precioNuevoMonto" type="number" placeholder="Precio" min="0" step="10" inputmode="decimal">
+          <select id="precioNuevoArea" aria-label="Dónde se cobra"><option value="gira">Gira</option><option value="academia">🎓 Academia</option></select>
           <button class="btn-primary small" id="btnAgregarPrecio">+ Agregar</button>
         </div>
       </div>
@@ -1587,11 +1635,12 @@
     <!-- ACADEMIA — egresadas por generación (Fase 1: Alumnas) -->
     <div class="view" id="view-academia">
       <div class="ac-tabs" role="tablist" aria-label="Academia">
-        <button type="button" class="ac-tab on" role="tab" aria-selected="true">Alumnas</button>
-        <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Graduación <span class="pill-soon">pronto</span></button>
+        <button type="button" class="ac-tab on" role="tab" aria-selected="true" data-ac-tab="alumnas">Alumnas</button>
+        <button type="button" class="ac-tab" role="tab" aria-selected="false" data-ac-tab="graduacion">Graduación</button>
         <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Kits <span class="pill-soon">pronto</span></button>
         <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Certificados <span class="pill-soon">pronto</span></button>
       </div>
+      <div id="acPanelAlumnas">
       <div class="card nl-cabeza">
         <div class="nl-filtros">
           <select id="acGen" aria-label="Generación"></select>
@@ -1617,6 +1666,41 @@
           <div class="ac-mas" id="acMas"></div>
         </div>
         <aside class="card nl-detalle" id="acDetalle"><div class="empty-note">Elige una alumna de la lista.</div></aside>
+      </div>
+      </div>
+
+      <!-- Graduación: alumnas que se gradúan, invitados, hotel, filipinas y su cuenta -->
+      <div id="acPanelGraduacion" hidden>
+        <div class="card ag-cabeza">
+          <div class="ag-cabeza-fila">
+            <select id="agGrad" aria-label="Graduación"></select>
+            <button type="button" class="btn-primary small" id="agAgregarBtn">+ Agregar alumna</button>
+          </div>
+          <div id="agDatos"></div>
+          <div class="ag-agregar" id="agAgregarCaja" hidden>
+            <input id="agAgregarBuscar" type="search" placeholder="Busca a la alumna por nombre o teléfono…" autocomplete="off" aria-label="Buscar alumna para agregar">
+            <div id="agAgregarLista"></div>
+          </div>
+        </div>
+        <div class="ag-kpis" id="agKpis"></div>
+        <div class="card nl-cabeza">
+          <div class="nl-filtros"><input id="agBuscar" type="search" placeholder="Buscar alumna o teléfono…" autocomplete="off" aria-label="Buscar en la graduación"></div>
+          <div class="nl-chips" id="agChips"></div>
+        </div>
+        <div class="nl-cuerpo">
+          <div>
+            <div class="card nl-tabla-caja">
+              <div class="nl-tabla-scroll">
+                <table class="nl-tabla ag-tabla">
+                  <thead><tr><th>Alumna</th><th>Invitados</th><th>Hotel</th><th>Filipina</th><th>Pagado / total</th></tr></thead>
+                  <tbody id="agBody"><tr><td colspan="5" class="empty-note">Cargando…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="ag-resumenes" id="agResumenes"></div>
+          </div>
+          <aside class="card nl-detalle" id="agDetalle"><div class="empty-note">Elige una alumna de la lista.</div></aside>
+        </div>
       </div>
     </div>
 
@@ -2943,6 +3027,11 @@ const ACCION_LABEL = {
   academia_revisado: '🎓 Revisó una alumna marcada “a revisar”',
   academia_pago: '🎓 Registró un pago de la academia',
   academia_pago_corregido: '🎓 Corrigió un pago de la academia',
+  academia_grad_agregada: '🎓 Agregó una alumna a la graduación',
+  academia_grad_quitada: '🎓 Quitó una alumna de la graduación',
+  academia_grad_pago: '🎓 Registró un pago de la graduación',
+  academia_grad_cambio: '🎓 Actualizó datos de graduación de una alumna',
+  academia_grad_datos: '🎓 Cambió fecha, sede o precios de la graduación',
 };
 // Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
 // ya no está activa aunque nunca se haya marcado "fin" explícito
@@ -6909,7 +6998,7 @@ function pintarPanelRecepcion(anim){
     : `<span class="rec-chip falta">○ ${i.asistencia === 'no_llego' ? 'NO LLEGÓ' : 'NO HA LLEGADO'}</span>`;
   const chipPago = d > 0 ? `<span class="rec-chip debe ${anim==='pago'?'brinca':''}">$ DEBE ${fmtMoney(d)}</span>`
                          : `<span class="rec-chip liq ${anim==='pago'?'brinca':''}">✓ LIQUIDADA</span>`;
-  const extras = (PRECIOS || []).filter(p=>p.activo && !(p.clave === 'subir_vip' && (i.paquete === 'VIP')));
+  const extras = (PRECIOS || []).filter(p=>p.activo && (p.area || 'gira') === 'gira' && !(p.clave === 'subir_vip' && (i.paquete === 'VIP')));
   const pend = new Set(rec.extras[i.id] || []);
   const botonesExtra = extras.map(p=>{
     if(rec.precioEditando === p.id) return `<span class="rec-extra-precio"><input type="number" id="recPrecioExtra" min="0" step="10" inputmode="decimal" placeholder="Precio" value="${p.precio ?? ''}" aria-label="Precio de ${escapeAttr(p.nombre)}"><button type="button" data-rec-guardar-precio="${escapeAttr(p.id)}">Guardar</button></span>`;
@@ -7605,7 +7694,7 @@ const AC_POR_PAGINA = 200;
 const AC_SELECT = `id, generacion_id, persona_id, hoja, fila, seccion_excel, matricula, nombre, telefono, sin_telefono, telefono_2,
   ciudad_texto, vendedor_texto, graduacion_excel, comentario_excel, decision, notas, revisar,
   personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento )`;
-let ac = { generaciones:null, gen:null, filas:[], resumen:new Map(), filtro:'todas', sel:null,
+let ac = { tab:'alumnas', generaciones:null, gen:null, filas:[], resumen:new Map(), filtro:'todas', sel:null,
            pagosDe:null, pagos:null, pagoSel:null, privados:null, limite:AC_POR_PAGINA };
 
 /* La API devuelve máximo 1,000 filas: se pide por páginas hasta traer todo. */
@@ -7647,6 +7736,7 @@ async function cargarAlumnasAcademia(){
 }
 
 async function renderAcademia(){
+  if(ac.tab === 'graduacion') return renderGraduacion();
   document.getElementById('acBody').innerHTML = '<tr><td colspan="4" class="empty-note">Cargando…</td></tr>';
   if(!ac.generaciones && !await cargarGeneracionesAcademia()) return;
   document.getElementById('acGen').innerHTML = ac.generaciones.map(g=>
@@ -7840,6 +7930,15 @@ async function cambiarDecisionAcademia(a, dec){
   registrarActividad('academia_decision', `${a.nombre}: ${AC_DEC_CORTA[antes] || antes} → ${AC_DEC_CORTA[dec]}`);
   toast(`${tituloCaso(a.nombre)}: ${AC_DEC_CORTA[dec]}`);
   pintarAcademia();
+  if(dec === 'se_gradua') ofrecerGraduacion(a);
+}
+async function ofrecerGraduacion(a){
+  if(!ag.grads && !await cargarGraduacionesLista()) return;
+  const proxima = ag.grads.find(g=>g.estado !== 'pasada'); if(!proxima) return;
+  const ok = await preguntarConfirmacion({ titulo:'¿Agregarla a la graduación?', textoSi:'Sí, agregarla',
+    aviso:`${escHtml(tituloCaso(a.nombre))} entra a la <b>${escHtml(proxima.nombre)}</b> con el precio de hoy (${fmtMoney(proxima.precio_alumna)} alumna, ${fmtMoney(proxima.precio_acompanante)} por acompañante).` });
+  if(ok === null) return;
+  await asegurarEnGraduacion(a, proxima.id);
 }
 async function registrarPagoAcademia(a){
   const monto = Number(document.getElementById('acPagoMonto').value);
@@ -7935,13 +8034,487 @@ document.getElementById('acDetalle').addEventListener('change', async e=>{
 });
 
 /* =========================================================
+   ACADEMIA — pestaña Graduación (Fase 2).
+   La próxima graduación se trabaja aquí: quién va, sus acompañantes, hotel,
+   filipina y su cuenta (precio congelado al inscribirla + extras − abonos).
+   La que ya pasó (agosto 2026) se ve tal cual vino del Excel, solo consulta.
+   ========================================================= */
+const AG_TALLAS = ['CH', 'M', 'G', 'XL', 'XXL', 'XXXL'];
+const AG_HOTEL = { sencilla:'Sencilla', doble:'Doble', triple:'Triple', cuadruple:'Cuádruple' };
+const AG_COLOR = { blanca:'Blanca', negra:'Negra', ambas:'Blanca y negra' };
+const AG_SELECT = `id, graduacion_id, alumna_id, clave_origen, bloque, fila, nombre, telefono, invitados_texto, filipina_texto,
+  hotel_texto, liquido_texto, abonos, acompanantes, invitados, hotel_tipo, hotel_entrada, hotel_salida, hotel_total,
+  filipina_talla, filipina_color, filipina_nombre, precio_alumna, precio_acompanante, extras, estado, notas,
+  academia_alumnas ( id, nombre, generacion_id, persona_id, telefono )`;
+let ag = { grads:null, grad:null, filas:[], pagos:new Map(), sel:null, filtro:'todas', todas:null };
+
+function gradActual(){ return ag.grads?.find(g=>g.id === ag.grad) || null; }
+function esHistorica(){ return gradActual()?.estado === 'pasada'; }
+function cuentaGrad(x){
+  const extras = (x.extras || []).reduce((s, e)=>s + Number(e.monto || 0), 0);
+  const total = Number(x.precio_alumna || 0) + Number(x.acompanantes || 0) * Number(x.precio_acompanante || 0) + extras;
+  const pagos = ag.pagos.get(x.id) || [];
+  const pagado = pagos.filter(p=>p.concepto === 'graduacion').reduce((s, p)=>s + Number(p.monto), 0);
+  const hotelTotal = Number(x.hotel_total || 0);
+  const hotelPagado = pagos.filter(p=>p.concepto === 'hotel').reduce((s, p)=>s + Number(p.monto), 0);
+  return { total, extras, pagado, debe:Math.max(total - pagado, 0), hotelTotal, hotelPagado, hotelDebe:Math.max(hotelTotal - hotelPagado, 0) };
+}
+
+async function cargarGraduacionesLista(){
+  const { data, error } = await sb.from('academia_graduaciones')
+    .select('id, clave, nombre, fechas_texto, fecha_inicio, sede, generaciones_texto, precio_alumna, precio_acompanante, conceptos, estado')
+    .order('fecha_inicio', { ascending:false });
+  if(error){ toast('No se pudieron cargar las graduaciones: ' + error.message, true); return false; }
+  ag.grads = data || [];
+  if(!ag.grad) ag.grad = (ag.grads.find(g=>g.estado !== 'pasada') || ag.grads[0])?.id || null;
+  return true;
+}
+async function cargarAsistentesGraduacion(){
+  const [ra, rp] = await Promise.all([
+    acTraerTodo(()=>sb.from('academia_graduacion_asistentes').select(AG_SELECT).eq('graduacion_id', ag.grad).order('fila')),
+    acTraerTodo(()=>sb.from('academia_graduacion_pagos').select('id, asistente_id, concepto, monto, forma, fecha, nota, registrado_por, creado_en').eq('graduacion_id', ag.grad)),
+  ]);
+  const error = ra.error || rp.error;
+  if(error){ toast('No se pudo cargar la graduación: ' + error.message, true); return false; }
+  ag.filas = ra.data.sort((a, b)=>(a.estado === 'cancelada') - (b.estado === 'cancelada') || (a.fila ?? 9999) - (b.fila ?? 9999) || a.nombre.localeCompare(b.nombre, 'es'));
+  ag.pagos = new Map();
+  rp.data.forEach(p=>{ if(!ag.pagos.has(p.asistente_id)) ag.pagos.set(p.asistente_id, []); ag.pagos.get(p.asistente_id).push(p); });
+  ag.pagos.forEach(l=>l.sort((a, b)=>String(a.fecha).localeCompare(String(b.fecha)) || String(a.creado_en).localeCompare(String(b.creado_en))));
+  return true;
+}
+
+async function renderGraduacion(){
+  document.getElementById('agBody').innerHTML = '<tr><td colspan="5" class="empty-note">Cargando…</td></tr>';
+  if(!ac.generaciones && !await cargarGeneracionesAcademia()) return;
+  if(!PRECIOS) await cargarPrecios();   // extras de la academia que se agregan con un toque
+  if(!ag.grads && !await cargarGraduacionesLista()) return;
+  if(!ag.grad){ document.getElementById('agBody').innerHTML = '<tr><td colspan="5" class="empty-note">No hay graduaciones registradas.</td></tr>'; return; }
+  document.getElementById('agGrad').innerHTML = ag.grads.map(g=>
+    `<option value="${escapeAttr(g.id)}" ${g.id === ag.grad ? 'selected' : ''}>${escHtml(g.nombre)}${g.estado === 'pasada' ? ' (ya pasó)' : ''}</option>`).join('');
+  if(!await cargarAsistentesGraduacion()) return;
+  pintarGraduacion();
+}
+
+function pintarDatosGraduacion(){
+  const g = gradActual(); if(!g) return;
+  const conceptos = (g.conceptos || []).map(c=>`<span>${escHtml(tituloCaso(c.concepto))} <b>${fmtMoney(c.precio)}</b></span>`).join('');
+  document.getElementById('agAgregarBtn').hidden = esHistorica();
+  if(esHistorica()){
+    document.getElementById('agDatos').innerHTML = `
+      <div class="sub" style="margin:0;">Ya pasó · ${escHtml(g.fechas_texto || '')}${g.generaciones_texto ? ' · ' + escHtml(g.generaciones_texto) : ''}. Lo de esta graduación se ve como vino del Excel (solo consulta).</div>
+      <div class="ag-conceptos">${g.precio_alumna ? `<span>Alumna <b>${fmtMoney(g.precio_alumna)}</b></span>` : ''}${g.precio_acompanante ? `<span>Acompañante <b>${fmtMoney(g.precio_acompanante)}</b></span>` : ''}${conceptos}</div>`;
+    return;
+  }
+  document.getElementById('agDatos').innerHTML = `
+    <div class="ag-datos">
+      <label>Fecha (día 1)<input type="date" data-ag-grad="fecha_inicio" value="${escapeAttr(g.fecha_inicio || '')}"></label>
+      <label>Sede<input data-ag-grad="sede" maxlength="120" placeholder="Salón / hotel en Monterrey" value="${escapeAttr(g.sede || '')}"></label>
+      <label>Precio alumna<input type="number" min="0" step="5" inputmode="decimal" data-ag-grad="precio_alumna" value="${g.precio_alumna ?? ''}"></label>
+      <label>Precio acompañante<input type="number" min="0" step="5" inputmode="decimal" data-ag-grad="precio_acompanante" value="${g.precio_acompanante ?? ''}"></label>
+    </div>
+    <div class="sub" style="margin:0;">${escHtml(g.generaciones_texto || '')}${g.generaciones_texto ? ' · ' : ''}Si cambias el precio, las alumnas ya inscritas conservan el suyo. <span class="guardado-estado" id="agDatosEstado"></span></div>
+    ${conceptos ? `<div class="ag-conceptos">${conceptos}</div>` : ''}`;
+}
+
+function visiblesGraduacion(){
+  const texto = document.getElementById('agBuscar').value;
+  const q = normTexto(texto), digitos = texto.replace(/\D/g, '');
+  return ag.filas.filter(x=>{
+    if(!q) return true;
+    const okNombre = q.split(' ').every(p=>normTexto(x.nombre).includes(p));
+    const okTel = digitos.length >= 3 && String(x.telefono || '').includes(digitos);
+    return okNombre || okTel;
+  });
+}
+function cumpleFiltroGrad(x, f){
+  if(f === 'canceladas') return x.estado === 'cancelada';
+  if(x.estado === 'cancelada') return false;
+  if(f === 'todas' || esHistorica()) return true;
+  const c = cuentaGrad(x);
+  if(f === 'deben') return c.debe > 0;
+  if(f === 'liquidaron') return c.total > 0 && c.debe === 0;
+  if(f === 'sintalla') return !x.filipina_talla;
+  if(f === 'sinhotel') return !x.hotel_tipo;
+  return true;
+}
+
+function pintarGraduacion(){
+  pintarDatosGraduacion();
+  const hist = esHistorica();
+  const base = visiblesGraduacion();
+  const activas = ag.filas.filter(x=>x.estado !== 'cancelada');
+  // Números de la graduación
+  const kpi = (v, l, color)=>`<div class="kpi"><div class="v" ${color ? `style="color:${color}"` : ''}>${v}</div><div class="l">${l}</div></div>`;
+  if(hist){
+    document.getElementById('agKpis').innerHTML = kpi(activas.length, 'Asistentes (Excel)') + kpi(activas.filter(x=>x.hotel_texto).length, 'Con hotel') + kpi(activas.filter(x=>x.filipina_texto).length, 'Con filipina');
+  } else {
+    const cuentas = activas.map(cuentaGrad);
+    const falta = cuentas.reduce((s, c)=>s + c.debe + c.hotelDebe, 0);
+    document.getElementById('agKpis').innerHTML = kpi(activas.length, 'Se gradúan')
+      + kpi(cuentas.filter(c=>c.total > 0 && c.debe === 0).length, 'Ya liquidaron', 'var(--success)')
+      + kpi(activas.reduce((s, x)=>s + Number(x.acompanantes || 0), 0), 'Acompañantes')
+      + kpi(activas.filter(x=>x.hotel_tipo).length, 'Habitaciones')
+      + kpi(fmtMoney(falta), 'Falta por cobrar', falta ? 'var(--danger)' : '');
+  }
+  const chips = hist ? [{ id:'todas', label:'Todas' }]
+    : [{ id:'todas', label:'Todas' }, { id:'deben', label:'Deben' }, { id:'liquidaron', label:'Liquidaron' }, { id:'sintalla', label:'Sin talla' }, { id:'sinhotel', label:'Sin hotel' }, { id:'canceladas', label:'Quitadas' }];
+  if(!chips.some(c=>c.id === ag.filtro)) ag.filtro = 'todas';
+  document.getElementById('agChips').innerHTML = chips.map(c=>{
+    const n = base.filter(x=>cumpleFiltroGrad(x, c.id)).length;
+    if(c.id === 'canceladas' && !n && ag.filtro !== c.id) return '';
+    return `<button type="button" class="nl-chip ${ag.filtro === c.id ? 'on' : ''}" data-ag-filtro="${c.id}">${escHtml(c.label)} <b>${n}</b></button>`;
+  }).join('');
+  const filas = base.filter(x=>cumpleFiltroGrad(x, ag.filtro));
+  if(!filas.some(x=>x.id === ag.sel)) ag.sel = filas[0]?.id ?? null;
+  document.getElementById('agBody').innerHTML = filas.length ? filas.map(x=>{
+    const gen = nombreGenAcademia(x.academia_alumnas?.generacion_id) || x.bloque || '';
+    let inv, hotel, fil, cuenta;
+    if(hist){
+      inv = escHtml(x.invitados_texto || '—'); hotel = escHtml(x.hotel_texto || '—'); fil = escHtml(x.filipina_texto || '—');
+      cuenta = escHtml(x.liquido_texto || (x.abonos || []).join(' · ') || '—');
+    } else {
+      const c = cuentaGrad(x);
+      inv = x.acompanantes ? `${x.acompanantes} acompañante${x.acompanantes === 1 ? '' : 's'}` : '—';
+      hotel = x.hotel_tipo ? escHtml(AG_HOTEL[x.hotel_tipo]) : '<span class="sub">Sin hotel</span>';
+      fil = x.filipina_talla ? `${escHtml(x.filipina_talla)} · ${escHtml(AG_COLOR[x.filipina_color] || '¿color?')}` : '<span class="sub">Sin talla</span>';
+      const pct = c.total ? Math.min(100, Math.round(c.pagado / c.total * 100)) : 0;
+      cuenta = `<div style="display:flex;justify-content:space-between;gap:6px;"><b>${fmtMoney(c.pagado)} / ${fmtMoney(c.total)}</b><span style="color:${c.debe ? 'var(--danger)' : 'var(--success)'};font-weight:700;">${c.debe ? 'debe ' + fmtMoney(c.debe) : 'Liquidó ✓'}</span></div>
+        <div class="ag-barra"><span class="${c.debe ? '' : 'lleno'}" style="width:${pct}%"></span></div>`;
+    }
+    return `<tr data-ag-id="${escapeAttr(x.id)}" class="${x.id === ag.sel ? 'sel' : ''} ${x.estado === 'cancelada' ? 'ag-cancelada' : ''}">
+      <td><b>${escHtml(tituloCaso(x.nombre))}</b><div class="sub">${escHtml(gen)}</div></td>
+      <td>${inv}</td><td>${hotel}</td><td>${fil}</td><td style="min-width:150px;">${cuenta}</td></tr>`;
+  }).join('') : `<tr><td colspan="5" class="empty-note">${ag.filas.length ? 'Nadie con esos filtros.' : 'Todavía no hay alumnas en esta graduación. Agrégalas con “+ Agregar alumna” o marcándolas “🎓 Se gradúa” en Alumnas.'}</td></tr>`;
+  pintarResumenesGraduacion(activas, hist);
+  pintarDetalleGraduacion();
+}
+
+/* Filipinas por talla y color (la de "blanca y negra" cuenta una de cada) y habitaciones por tipo. */
+function pintarResumenesGraduacion(activas, hist){
+  const caja = document.getElementById('agResumenes');
+  if(hist){ caja.innerHTML = ''; return; }
+  const cuenta = {};
+  activas.forEach(x=>{
+    if(!x.filipina_talla) return;
+    const t = cuenta[x.filipina_talla] = cuenta[x.filipina_talla] || { b:0, n:0 };
+    if(x.filipina_color === 'blanca' || x.filipina_color === 'ambas') t.b++;
+    if(x.filipina_color === 'negra' || x.filipina_color === 'ambas') t.n++;
+  });
+  const tallas = AG_TALLAS.filter(t=>cuenta[t]).concat(Object.keys(cuenta).filter(t=>!AG_TALLAS.includes(t)));
+  const sinTalla = activas.filter(x=>!x.filipina_talla).length;
+  const hab = Object.keys(AG_HOTEL).map(k=>[AG_HOTEL[k], activas.filter(x=>x.hotel_tipo === k).length]);
+  caja.innerHTML = `
+    <div class="card">
+      <h3>Filipinas para comprar</h3>
+      <div class="sub">${sinTalla ? `${sinTalla} alumna${sinTalla === 1 ? '' : 's'} sin talla todavía.` : 'Todas tienen talla.'}</div>
+      ${tallas.length ? `<div class="ag-tallas"><div class="h">TALLA</div><div class="h">BLANCA</div><div class="h">NEGRA</div>
+        ${tallas.map(t=>`<div><b>${escHtml(t)}</b></div><div class="b">${cuenta[t].b}</div><div class="n">${cuenta[t].n}</div>`).join('')}</div>
+        <button type="button" class="btn-outline small" data-ag-copiar="1" style="margin-top:12px;">📋 Copiar pedido con nombres a bordar</button>` : ''}
+    </div>
+    <div class="card">
+      <h3>Hotel</h3>
+      <div class="sub">Habitaciones por tipo.</div>
+      ${hab.map(([n, c])=>`<div class="dato-row"><span class="l">${n}</span><span class="v">${c}</span></div>`).join('')}
+    </div>`;
+}
+
+function pintarDetalleGraduacion(){
+  const cont = document.getElementById('agDetalle');
+  const x = ag.filas.find(f=>f.id === ag.sel);
+  if(!x){ cont.innerHTML = '<div class="empty-note">Elige una alumna de la lista.</div>'; return; }
+  const gen = nombreGenAcademia(x.academia_alumnas?.generacion_id) || x.bloque || '';
+  const tel = x.telefono || x.academia_alumnas?.telefono || '';
+  const cabeza = `<div>
+      <div class="sub" style="margin:0;color:#7A5D22;font-weight:700;">${escHtml(gen)}</div>
+      <h3>${escHtml(tituloCaso(x.nombre))}</h3>
+      <div class="sub" style="margin:2px 0 0;">${escHtml(tel || 'Sin teléfono')}${x.estado === 'cancelada' ? ' · <b>Quitada de la graduación</b>' : ''}</div>
+    </div>
+    ${tel ? '<div class="nl-acciones"><button type="button" class="nl-acc primario" data-ag-acc="whats">💬 Enviar WhatsApp</button></div>' : ''}`;
+  if(esHistorica()){
+    const fila = (l, v)=> v ? `<div class="dato-row"><span class="l">${l}</span><span class="v" style="white-space:normal;text-align:right;">${escHtml(v)}</span></div>` : '';
+    cont.innerHTML = cabeza + `<div class="ac-caja"><h4>Del Excel</h4>
+      ${fila('Invitados', x.invitados_texto)}${fila('Hotel', x.hotel_texto)}${fila('Filipina', x.filipina_texto)}${fila('Liquidó', x.liquido_texto)}
+      ${(x.abonos || []).map((a, i)=>fila('Abono ' + (i + 1), a)).join('')}
+      ${!x.invitados_texto && !x.hotel_texto && !x.filipina_texto && !x.liquido_texto && !(x.abonos || []).length ? '<div class="sub" style="margin:0;">Sin datos en el Excel.</div>' : ''}</div>
+      <div class="ac-origen">Graduación pasada · solo consulta${x.fila ? ' · fila ' + x.fila + ' de GRADUACION AC' : ''}</div>`;
+    return;
+  }
+  const c = cuentaGrad(x);
+  const pagos = ag.pagos.get(x.id) || [];
+  const extrasDisp = (PRECIOS || []).filter(p=>p.activo && p.area === 'academia');
+  const inv = x.invitados || [];
+  cont.innerHTML = cabeza + `
+    <div class="ac-caja ag-cuenta">
+      <h4>Cuenta de la graduación</h4>
+      <div class="dato-row"><span class="l">Alumna</span><span class="v">${fmtMoney(x.precio_alumna)}</span></div>
+      <div class="dato-row"><span class="l"><span class="ag-stepper"><button type="button" data-ag-acomp="-1" aria-label="Quitar acompañante">−</button><b>${x.acompanantes}</b><button type="button" data-ag-acomp="1" aria-label="Agregar acompañante">+</button></span> acompañante${x.acompanantes === 1 ? '' : 's'} × ${fmtMoney(x.precio_acompanante)}</span><span class="v">${fmtMoney(Number(x.acompanantes) * Number(x.precio_acompanante || 0))}</span></div>
+      ${(x.extras || []).map((e, i)=>`<div class="dato-row"><span class="l">${escHtml(e.nombre)} <button type="button" class="ag-extra" data-ag-quitar-extra="${i}" aria-label="Quitar ${escapeAttr(e.nombre)}">✕</button></span><span class="v">${fmtMoney(e.monto)}</span></div>`).join('')}
+      <div class="dato-row total"><span class="l"><b>Total</b></span><span class="v">${fmtMoney(c.total)}</span></div>
+      <div class="dato-row"><span class="l">Pagado</span><span class="v">${fmtMoney(c.pagado)}</span></div>
+      <div class="dato-row ${c.debe ? 'debe' : ''}"><span class="l"><b>${c.debe ? 'Debe' : 'Liquidó'}</b></span><span class="v">${c.debe ? fmtMoney(c.debe) : '✓'}</span></div>
+      ${extrasDisp.length ? `<div class="ag-extras">${extrasDisp.map(p=>`<button type="button" class="ag-extra" data-ag-extra="${escapeAttr(p.id)}">+ ${escHtml(p.nombre)} ${p.precio == null ? '(sin precio)' : fmtMoney(p.precio)}</button>`).join('')}</div>`
+        : '<div class="sub" style="margin:0;">Para cobrar extras (gorro, delantal…) dalos de alta en Precios como 🎓 Academia.</div>'}
+    </div>
+    ${x.acompanantes ? `<div class="ac-caja"><h4>Acompañantes</h4>
+      ${Array.from({ length:x.acompanantes }, (_, i)=>`<div class="ag-inv">
+        <input data-ag-inv="${i}" data-ag-inv-campo="nombre" maxlength="80" placeholder="Nombre ${i + 1}" value="${escapeAttr(inv[i]?.nombre || '')}" aria-label="Nombre del acompañante ${i + 1}">
+        <input data-ag-inv="${i}" data-ag-inv-campo="parentesco" maxlength="40" placeholder="Parentesco" value="${escapeAttr(inv[i]?.parentesco || '')}" aria-label="Parentesco del acompañante ${i + 1}">
+      </div>`).join('')}</div>` : ''}
+    <div class="ac-caja"><h4>Hotel</h4>
+      <div class="ac-form">
+        <label>Habitación<select data-ag-campo="hotel_tipo"><option value="">Sin hotel</option>${Object.entries(AG_HOTEL).map(([k, v])=>`<option value="${k}" ${x.hotel_tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        <label>Total del hotel<input type="number" min="0" step="10" inputmode="decimal" data-ag-campo="hotel_total" value="${x.hotel_total ?? ''}" placeholder="$"></label>
+        <label>Entrada<input type="date" data-ag-campo="hotel_entrada" value="${escapeAttr(x.hotel_entrada || '')}"></label>
+        <label>Salida<input type="date" data-ag-campo="hotel_salida" value="${escapeAttr(x.hotel_salida || '')}"></label>
+      </div>
+      ${c.hotelTotal ? `<div class="sub" style="margin:0;">Hotel: pagado ${fmtMoney(c.hotelPagado)} de ${fmtMoney(c.hotelTotal)}${c.hotelDebe ? ` · <b style="color:var(--danger)">debe ${fmtMoney(c.hotelDebe)}</b>` : ' · ✓'}</div>` : ''}
+    </div>
+    <div class="ac-caja"><h4>Filipina</h4>
+      <div class="ac-form">
+        <label>Talla<select data-ag-campo="filipina_talla"><option value="">—</option>${AG_TALLAS.map(t=>`<option ${x.filipina_talla === t ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        <label>Color<select data-ag-campo="filipina_color"><option value="">—</option>${Object.entries(AG_COLOR).map(([k, v])=>`<option value="${k}" ${x.filipina_color === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        <label class="ancho">Nombre a bordar<input data-ag-campo="filipina_nombre" maxlength="40" value="${escapeAttr(x.filipina_nombre || '')}" placeholder="Como quiere que aparezca"></label>
+      </div>
+    </div>
+    <div class="ac-caja"><h4>Registrar pago</h4>
+      ${pagos.length ? pagos.map(p=>`<div class="ag-pago-fila"><span>${escHtml(fechaCorta(p.fecha))} · ${escHtml(p.concepto === 'hotel' ? 'Hotel' : 'Graduación')}${p.forma ? ' · ' + escHtml(p.forma) : ''}${p.nota ? ' · ' + escHtml(p.nota) : ''}</span><b>${fmtMoney(p.monto)}</b></div>`).join('') : '<div class="sub" style="margin:0;">Sin abonos todavía.</div>'}
+      ${!puede('cobrar_academia') ? '<div class="sub" style="margin:0;">Para registrar pagos hace falta el permiso “🎓 Cobrar en Academia”.</div>' : `<div class="ac-form">
+        <label>Concepto<select id="agPagoConcepto"><option value="graduacion">Graduación</option>${c.hotelTotal ? '<option value="hotel">Hotel</option>' : ''}</select></label>
+        <label>Monto<input id="agPagoMonto" type="number" min="0" step="10" inputmode="decimal" placeholder="$"></label>
+        <label>Forma<select id="agPagoForma">${AC_FORMAS_PAGO.map(f=>`<option>${escHtml(f)}</option>`).join('')}</select></label>
+        <label>Fecha<input id="agPagoFecha" type="date" value="${hoyISO()}"></label>
+        <button type="button" class="btn-outline small" data-ag-acc="liquida">Liquida todo</button>
+        <button type="button" class="btn-primary small" data-ag-acc="pago">+ Registrar</button>
+      </div>`}
+    </div>
+    <div class="ac-caja">
+      <label class="modal-notas-titulo" for="agNotas">Notas</label>
+      <textarea id="agNotas" class="textarea" rows="2" maxlength="2000" placeholder="Lo que haga falta recordar…">${escHtml(x.notas || '')}</textarea>
+    </div>
+    <div class="nl-acciones">${x.estado === 'cancelada'
+      ? '<button type="button" class="nl-acc" data-ag-acc="reactivar">↩ Volver a agregarla</button>'
+      : '<button type="button" class="nl-acc peligro" data-ag-acc="quitar">Quitar de la graduación</button>'}</div>`;
+}
+
+async function guardarAsistente(x, cambios, accion, detalle){
+  const { error } = await sb.from('academia_graduacion_asistentes').update(cambios).eq('id', x.id);
+  if(error){ toast('No se pudo guardar: ' + error.message, true); pintarGraduacion(); return false; }
+  Object.assign(x, cambios);
+  if(accion) registrarActividad(accion, detalle);
+  return true;
+}
+
+/* Agrega (o vuelve a activar) a una alumna en la próxima graduación, con el precio de hoy congelado. */
+async function asegurarEnGraduacion(alumna, gradId){
+  const g = ag.grads?.find(x=>x.id === gradId); if(!g) return false;
+  const clave = 'hub:' + alumna.id;
+  const { data:ya, error:e1 } = await sb.from('academia_graduacion_asistentes').select('id, estado').eq('graduacion_id', g.id).eq('alumna_id', alumna.id);
+  if(e1){ toast('No se pudo revisar la graduación: ' + e1.message, true); return false; }
+  const activa = (ya || []).find(x=>x.estado !== 'cancelada');
+  if(activa){ toast(`${tituloCaso(alumna.nombre)} ya está en la ${g.nombre}.`); return true; }
+  let error;
+  if((ya || []).length){
+    ({ error } = await sb.from('academia_graduacion_asistentes').update({ estado:'activa' }).eq('id', ya[0].id));
+  } else {
+    ({ error } = await sb.from('academia_graduacion_asistentes').insert({ graduacion_id:g.id, alumna_id:alumna.id, clave_origen:clave,
+      nombre:alumna.nombre, telefono:alumna.personas?.telefono_principal || alumna.telefono || null,
+      precio_alumna:g.precio_alumna, precio_acompanante:g.precio_acompanante, agregado_por:usuarioActual?.id || null }));
+  }
+  if(error){ toast('No se pudo agregar a la graduación: ' + error.message, true); return false; }
+  registrarActividad('academia_grad_agregada', `${alumna.nombre} → ${g.nombre}`);
+  toast(`🎓 ${tituloCaso(alumna.nombre)} agregada a la ${g.nombre}.`);
+  return true;
+}
+
+async function accionGraduacion(acc){
+  const x = ag.filas.find(f=>f.id === ag.sel); if(!x) return;
+  const g = gradActual();
+  if(acc === 'whats') return abrirEnviarWhatsApp({ nombre:x.nombre, telefono:x.telefono || x.academia_alumnas?.telefono, personaId:x.academia_alumnas?.persona_id, ciudad:'Monterrey', fecha:g?.fecha_inicio || '', sede:g?.sede || '', debe:cuentaGrad(x).debe });
+  if(acc === 'liquida'){
+    const c = cuentaGrad(x);
+    const concepto = document.getElementById('agPagoConcepto').value;
+    document.getElementById('agPagoMonto').value = concepto === 'hotel' ? c.hotelDebe || '' : c.debe || '';
+    return;
+  }
+  if(acc === 'pago'){
+    const concepto = document.getElementById('agPagoConcepto').value;
+    const monto = Number(document.getElementById('agPagoMonto').value);
+    const forma = document.getElementById('agPagoForma').value;
+    const fecha = document.getElementById('agPagoFecha').value || hoyISO();
+    if(!(monto > 0)){ toast('Escribe el monto del pago.', true); return; }
+    const c = cuentaGrad(x);
+    const saldo = concepto === 'hotel' ? c.hotelDebe : c.debe;
+    const ok = await preguntarConfirmacion({ titulo:'¿Registrar el pago?', textoSi:'Sí, registrar',
+      aviso:`${escHtml(tituloCaso(x.nombre))} · ${concepto === 'hotel' ? 'Hotel' : 'Graduación'}: <b>${fmtMoney(monto)}</b> · ${escHtml(forma)} · ${escHtml(fechaCorta(fecha))}`
+        + (monto > saldo ? `<br>⚠️ Es más de lo que debe (${fmtMoney(saldo)}).` : `<br>Le quedaría por pagar ${fmtMoney(saldo - monto)}.`) });
+    if(ok === null) return;
+    const fila = { graduacion_id:x.graduacion_id, asistente_id:x.id, concepto, monto, forma, fecha, registrado_por:usuarioActual?.id || null };
+    const { data, error } = await sb.from('academia_graduacion_pagos').insert(fila).select().single();
+    if(error){ toast('No se pudo registrar el pago: ' + error.message, true); return; }
+    if(!ag.pagos.has(x.id)) ag.pagos.set(x.id, []);
+    ag.pagos.get(x.id).push(data);
+    registrarActividad('academia_grad_pago', `${x.nombre} · ${concepto === 'hotel' ? 'hotel' : 'graduación'} · ${fmtMoney(monto)} · ${forma}`);
+    toast(`💵 Pago de ${fmtMoney(monto)} registrado.`);
+    return pintarGraduacion();
+  }
+  if(acc === 'quitar'){
+    const ok = await preguntarConfirmacion({ titulo:'¿Quitarla de la graduación?', textoSi:'Sí, quitarla',
+      aviso:`${escHtml(tituloCaso(x.nombre))} sale de la lista y de los conteos. Sus pagos se conservan y se puede volver a agregar.` });
+    if(ok === null) return;
+    if(await guardarAsistente(x, { estado:'cancelada' }, 'academia_grad_quitada', `${x.nombre} · ${g?.nombre || ''}`)){ toast('Quitada de la graduación.'); pintarGraduacion(); }
+    return;
+  }
+  if(acc === 'reactivar'){
+    if(await guardarAsistente(x, { estado:'activa' }, 'academia_grad_agregada', `${x.nombre} → ${g?.nombre || ''} (otra vez)`)){ toast('De vuelta en la graduación.'); pintarGraduacion(); }
+  }
+}
+
+function copiarPedidoFilipinas(){
+  const lineas = ag.filas.filter(x=>x.estado !== 'cancelada' && x.filipina_talla)
+    .sort((a, b)=>AG_TALLAS.indexOf(a.filipina_talla) - AG_TALLAS.indexOf(b.filipina_talla))
+    .map(x=>`${x.filipina_talla} · ${AG_COLOR[x.filipina_color] || '¿color?'} · ${x.filipina_nombre || tituloCaso(x.nombre)}`);
+  const texto = `Filipinas · ${gradActual()?.nombre || ''}\n` + lineas.join('\n');
+  navigator.clipboard?.writeText(texto).then(()=>toast('📋 Pedido copiado.'), ()=>toast('No se pudo copiar.', true));
+}
+
+/* Buscador para agregar alumnas: busca en todas las generaciones. */
+async function pintarAgregarGraduacion(){
+  const lista = document.getElementById('agAgregarLista');
+  if(!ag.todas){
+    lista.innerHTML = '<div class="sub">Cargando alumnas…</div>';
+    const r = await acTraerTodo(()=>sb.from('academia_alumnas').select('id, nombre, telefono, generacion_id, decision, personas ( telefono_principal )').order('nombre'));
+    if(r.error){ toast('No se pudieron cargar las alumnas: ' + r.error.message, true); return; }
+    ag.todas = r.data;
+  }
+  const texto = document.getElementById('agAgregarBuscar').value;
+  const q = normTexto(texto), digitos = texto.replace(/\D/g, '');
+  if(q.length < 2 && digitos.length < 3){ lista.innerHTML = '<div class="sub">Escribe al menos 2 letras del nombre o 3 números del teléfono.</div>'; return; }
+  const dentro = new Set(ag.filas.filter(x=>x.estado !== 'cancelada').map(x=>x.alumna_id));
+  const encontradas = ag.todas.filter(a=>(q.length >= 2 && q.split(' ').every(p=>normTexto(a.nombre).includes(p)))
+      || (digitos.length >= 3 && [a.telefono, a.personas?.telefono_principal].join(' ').includes(digitos))).slice(0, 8);
+  lista.innerHTML = encontradas.length ? encontradas.map(a=>`<button type="button" class="ag-agregar-op" data-ag-agregar="${escapeAttr(a.id)}" ${dentro.has(a.id) ? 'disabled' : ''}>
+      <span><b>${escHtml(tituloCaso(a.nombre))}</b><div class="sub">${escHtml(nombreGenAcademia(a.generacion_id))} · ${escHtml(a.personas?.telefono_principal || a.telefono || 'sin teléfono')}</div></span>
+      <span>${dentro.has(a.id) ? 'Ya está' : '+ Agregar'}</span></button>`).join('') : '<div class="sub">No encontré a nadie con eso.</div>';
+}
+
+document.querySelector('#view-academia .ac-tabs').addEventListener('click', e=>{
+  const b = e.target.closest('[data-ac-tab]'); if(!b || b.disabled) return;
+  ac.tab = b.dataset.acTab;
+  document.querySelectorAll('#view-academia [data-ac-tab]').forEach(t=>{ t.classList.toggle('on', t === b); t.setAttribute('aria-selected', t === b); });
+  document.getElementById('acPanelAlumnas').hidden = ac.tab !== 'alumnas';
+  document.getElementById('acPanelGraduacion').hidden = ac.tab !== 'graduacion';
+  if(ac.tab === 'graduacion') renderGraduacion(); else renderAcademia();
+});
+document.getElementById('agGrad').addEventListener('change', e=>{ ag.grad = e.target.value; ag.sel = null; ag.filtro = 'todas'; renderGraduacion(); });
+document.getElementById('agBuscar').addEventListener('input', ()=>pintarGraduacion());
+document.getElementById('agChips').addEventListener('click', e=>{
+  const b = e.target.closest('[data-ag-filtro]'); if(!b) return;
+  ag.filtro = b.dataset.agFiltro; ag.sel = null; pintarGraduacion();
+});
+document.getElementById('agBody').addEventListener('click', e=>{
+  const tr = e.target.closest('[data-ag-id]'); if(!tr) return;
+  ag.sel = tr.dataset.agId; pintarGraduacion();
+  if(window.innerWidth < 900) document.getElementById('agDetalle').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+document.getElementById('agResumenes').addEventListener('click', e=>{ if(e.target.closest('[data-ag-copiar]')) copiarPedidoFilipinas(); });
+document.getElementById('agAgregarBtn').addEventListener('click', ()=>{
+  const caja = document.getElementById('agAgregarCaja');
+  caja.hidden = !caja.hidden;
+  if(!caja.hidden){ document.getElementById('agAgregarBuscar').value = ''; pintarAgregarGraduacion(); document.getElementById('agAgregarBuscar').focus(); }
+});
+document.getElementById('agAgregarBuscar').addEventListener('input', ()=>pintarAgregarGraduacion());
+document.getElementById('agAgregarLista').addEventListener('click', async e=>{
+  const b = e.target.closest('[data-ag-agregar]'); if(!b || b.disabled) return;
+  const a = ag.todas.find(x=>x.id === b.dataset.agAgregar); if(!a) return;
+  b.disabled = true;
+  if(await asegurarEnGraduacion(a, ag.grad)){
+    // Si su decisión no era "se gradúa", se actualiza para que cuadre con la lista.
+    if(a.decision !== 'se_gradua' && a.decision !== 'graduada'){
+      const { error } = await sb.from('academia_alumnas').update({ decision:'se_gradua', actualizado_por:usuarioActual?.id || null }).eq('id', a.id);
+      if(!error){ a.decision = 'se_gradua'; const enLista = ac.filas.find(f=>f.id === a.id); if(enLista) enLista.decision = 'se_gradua'; }
+    }
+    document.getElementById('agAgregarCaja').hidden = true;
+    await renderGraduacion();
+  } else b.disabled = false;
+});
+// Fecha, sede y precios de la graduación: se guardan solos al salir del campo.
+document.getElementById('agDatos').addEventListener('change', async e=>{
+  const campo = e.target.dataset.agGrad; if(!campo) return;
+  const g = gradActual(); if(!g) return;
+  const txt = e.target.value.trim();
+  const valor = campo.startsWith('precio') ? (txt === '' ? null : Number(txt)) : (txt || null);
+  if(campo.startsWith('precio') && valor != null && !(valor >= 0)){ toast('Escribe un precio válido.', true); e.target.value = g[campo] ?? ''; return; }
+  const antes = g[campo];
+  const { error } = await sb.from('academia_graduaciones').update({ [campo]:valor }).eq('id', g.id);
+  const estado = document.getElementById('agDatosEstado');
+  if(error){ toast('No se pudo guardar: ' + error.message, true); e.target.value = antes ?? ''; if(estado) estado.textContent = '⚠ No se guardó'; return; }
+  g[campo] = valor;
+  registrarActividad('academia_grad_datos', `${g.nombre} · ${campo.replace('_', ' ')}: ${antes ?? '—'} → ${valor ?? '—'}`);
+  if(estado){ estado.textContent = '✓ Guardado'; estado.style.color = 'var(--success)'; }
+});
+document.getElementById('agDetalle').addEventListener('click', async e=>{
+  const x = ag.filas.find(f=>f.id === ag.sel); if(!x) return;
+  const ac1 = e.target.closest('[data-ag-acomp]');
+  if(ac1){
+    const n = Math.max(0, Math.min(20, Number(x.acompanantes || 0) + Number(ac1.dataset.agAcomp)));
+    if(n === x.acompanantes) return;
+    const cambios = { acompanantes:n, invitados:(x.invitados || []).slice(0, n) };
+    if(await guardarAsistente(x, cambios, 'academia_grad_cambio', `${x.nombre} · acompañantes: ${n}`)) pintarGraduacion();
+    return;
+  }
+  const ex = e.target.closest('[data-ag-extra]');
+  if(ex){
+    const p = PRECIOS?.find(pr=>pr.id === ex.dataset.agExtra); if(!p) return;
+    if(p.precio == null){ toast(`“${p.nombre}” no tiene precio: pónselo en Precios.`, true); return; }
+    const extras = [...(x.extras || []), { precio_id:p.id, nombre:p.nombre, monto:Number(p.precio) }];
+    if(await guardarAsistente(x, { extras }, 'academia_grad_cambio', `${x.nombre} · extra: ${p.nombre} ${fmtMoney(p.precio)}`)) pintarGraduacion();
+    return;
+  }
+  const qx = e.target.closest('[data-ag-quitar-extra]');
+  if(qx){
+    const i = Number(qx.dataset.agQuitarExtra);
+    const quitado = (x.extras || [])[i];
+    const extras = (x.extras || []).filter((_, k)=>k !== i);
+    if(await guardarAsistente(x, { extras }, 'academia_grad_cambio', `${x.nombre} · quitó extra: ${quitado?.nombre || ''}`)) pintarGraduacion();
+    return;
+  }
+  const b = e.target.closest('[data-ag-acc]');
+  if(b) accionGraduacion(b.dataset.agAcc);
+});
+// Hotel, filipina, acompañantes y notas: se guardan solos al cambiar.
+document.getElementById('agDetalle').addEventListener('change', async e=>{
+  const x = ag.filas.find(f=>f.id === ag.sel); if(!x) return;
+  const t = e.target;
+  if(t.dataset.agCampo){
+    const campo = t.dataset.agCampo;
+    let valor = t.value.trim();
+    if(campo === 'hotel_total') valor = valor === '' ? null : Number(valor);
+    else valor = valor || null;
+    if(campo === 'hotel_total' && valor != null && !(valor >= 0)){ toast('Escribe un monto válido.', true); t.value = x.hotel_total ?? ''; return; }
+    if(await guardarAsistente(x, { [campo]:valor }, 'academia_grad_cambio', `${x.nombre} · ${campo.replace('_', ' ')}: ${valor ?? '—'}`)) pintarGraduacion();
+    return;
+  }
+  if(t.dataset.agInv != null){
+    const i = Number(t.dataset.agInv);
+    const invitados = Array.from({ length:x.acompanantes }, (_, k)=>({ nombre:'', parentesco:'', ...((x.invitados || [])[k] || {}) }));
+    invitados[i][t.dataset.agInvCampo] = t.value.trim();
+    await guardarAsistente(x, { invitados }, 'academia_grad_cambio', `${x.nombre} · acompañante ${i + 1}`);
+    return;
+  }
+  if(t.id === 'agNotas'){
+    const notas = t.value.trim() || null;
+    if(notas !== (x.notas || null)) await guardarAsistente(x, { notas }, null);
+  }
+});
+
+/* =========================================================
    PRECIOS — catálogo de lo que se cobra aparte del curso (VIP, uniforme…).
    Cualquiera lo ajusta y se guarda solo. PRECIOS queda en memoria para que
    Recepción y Cobranza lo usen sin volver a consultarlo.
    ========================================================= */
 let PRECIOS = null;
 async function cargarPrecios(){
-  const { data, error } = await sb.from('precios').select('id, nombre, precio, activo, orden, actualizado_por, actualizado_en').order('orden').order('nombre');
+  const { data, error } = await sb.from('precios').select('id, nombre, precio, activo, orden, area, actualizado_por, actualizado_en').order('orden').order('nombre');
   if(error){ toast('No se pudieron cargar los precios: ' + error.message, true); PRECIOS = PRECIOS || []; return PRECIOS; }
   PRECIOS = data || [];
   return PRECIOS;
@@ -7957,6 +8530,7 @@ async function renderPrecios(){
     return `<div class="precio-fila ${pr.activo ? '' : 'oculto'}" data-precio-id="${escapeAttr(pr.id)}">
       <input class="precio-nombre" value="${escapeAttr(pr.nombre)}" maxlength="60" aria-label="Nombre">
       <div class="precio-monto">$<input class="precio-valor" type="number" min="0" step="10" inputmode="decimal" value="${pr.precio ?? ''}" placeholder="Sin precio" aria-label="Precio de ${escapeAttr(pr.nombre)}"></div>
+      <select class="precio-area" aria-label="Dónde se cobra ${escapeAttr(pr.nombre)}"><option value="gira" ${(pr.area || 'gira') === 'gira' ? 'selected' : ''}>Gira</option><option value="academia" ${pr.area === 'academia' ? 'selected' : ''}>🎓 Academia</option></select>
       <label class="precio-activo"><input type="checkbox" class="precio-visible" ${pr.activo ? 'checked' : ''}> Visible al cobrar</label>
       <div class="precio-meta">${pr.precio == null ? '<span class="precio-sin">Sin precio: quien lo cobre primero lo pone.</span> ' : ''}${quien ? `Último cambio: ${escHtml(quien)}${cuando ? ' · ' + cuando : ''}` : ''} <span class="guardado-estado"></span></div>
     </div>`;
@@ -7976,6 +8550,7 @@ async function guardarPrecio(id, cambios){
     if('nombre' in cambios && cambios.nombre !== antes.nombre) partes.push(`nombre "${antes.nombre}" → "${cambios.nombre}"`);
     if('precio' in cambios && cambios.precio !== antes.precio) partes.push(`${textoPrecio(antes.precio)} → ${textoPrecio(cambios.precio)}`);
     if('activo' in cambios && cambios.activo !== antes.activo) partes.push(cambios.activo ? 'visible otra vez' : 'oculto');
+    if('area' in cambios && cambios.area !== (antes.area || 'gira')) partes.push(cambios.area === 'academia' ? 'ahora es de la Academia' : 'ahora es de la gira');
     if(partes.length) registrarActividad('precio_cambiado', `${nombre}: ${partes.join(', ')}`);
     Object.assign(antes, datos);
   }
@@ -8002,6 +8577,8 @@ document.getElementById('preciosLista').addEventListener('change', async e=>{
     cambios = { precio };
   } else if(e.target.classList.contains('precio-visible')){
     cambios = { activo: e.target.checked };
+  } else if(e.target.classList.contains('precio-area')){
+    cambios = { area: e.target.value };
   } else return;
   marcar('Guardando…');
   const r = await guardarPrecio(id, cambios);
@@ -8011,6 +8588,7 @@ document.getElementById('preciosLista').addEventListener('change', async e=>{
     if('nombre' in cambios) e.target.value = pr.nombre;
     if('precio' in cambios) e.target.value = pr.precio ?? '';
     if('activo' in cambios) e.target.checked = pr.activo;
+    if('area' in cambios) e.target.value = pr.area || 'gira';
     return;
   }
   if('activo' in cambios){ await renderPrecios(); return; }
@@ -8028,10 +8606,11 @@ document.getElementById('btnAgregarPrecio').addEventListener('click', async ()=>
   if(PRECIOS?.some(p=>p.nombre.trim().toLowerCase() === nombre.toLowerCase())){ toast('Ya hay un precio con ese nombre.', true); inpNombre.focus(); return; }
   const btn = document.getElementById('btnAgregarPrecio'); btn.disabled = true;
   const orden = Math.max(0, ...(PRECIOS || []).map(p=>p.orden || 0)) + 1;
-  const { error } = await sb.from('precios').insert({ nombre, precio, orden, activo: true, actualizado_por: usuarioActual?.id || null });
+  const area = document.getElementById('precioNuevoArea').value || 'gira';
+  const { error } = await sb.from('precios').insert({ nombre, precio, orden, area, activo: true, actualizado_por: usuarioActual?.id || null });
   btn.disabled = false;
   if(error){ toast('No se pudo agregar: ' + (error.code === '23505' ? 'ya hay un precio con ese nombre.' : error.message), true); return; }
-  registrarActividad('precio_agregado', `${nombre}: ${textoPrecio(precio)}`);
+  registrarActividad('precio_agregado', `${nombre}: ${textoPrecio(precio)}${area === 'academia' ? ' (Academia)' : ''}`);
   inpNombre.value = ''; inpMonto.value = '';
   toast(`Agregado: ${nombre} · ${textoPrecio(precio)}.`);
   await renderPrecios();
