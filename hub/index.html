@@ -842,6 +842,27 @@
   .ac-mas button{ width:auto; }
   .ac-caja .guardado-estado{ font-size:12px; color:var(--ink-soft); }
   #view-academia [hidden]{ display:none !important; }
+  .ag-cabeza-fila input[type=search]{ flex:1; min-width:180px; height:40px; border:1px solid var(--border); border-radius:10px; padding:0 10px; font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink); }
+  .k-incluye textarea{ width:100%; min-height:54px; resize:vertical; border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); box-sizing:border-box; }
+  /* Kits: el tablero va a todo lo ancho y la ficha debajo, repartida en columnas. */
+  .nl-cuerpo.k-cuerpo{ grid-template-columns:minmax(0,1fr); }
+  #kDetalle{ position:static; display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:12px 20px; align-items:start; }
+  #kDetalle > .empty-note{ grid-column:1 / -1; }
+  .k-tablero{ display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; align-items:flex-start; min-width:0; }
+  .k-col{ flex:1 0 180px; max-width:280px; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .k-col-cab{ display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--border); font-size:12.5px; font-weight:700; }
+  .k-col-cab .punto{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .k-col-cab .n{ margin-left:auto; font-size:11px; color:var(--ink-soft); background:var(--bg); padding:2px 9px; border-radius:999px; }
+  .k-col-cuerpo{ padding:8px; display:flex; flex-direction:column; gap:8px; min-height:40px; }
+  .k-card{ text-align:left; width:100%; background:var(--bg); border:1px solid var(--border); border-top:3px solid var(--k-color, var(--border)); border-radius:9px; padding:9px 10px; font-family:inherit; font-size:11.5px; line-height:1.5; cursor:pointer; color:var(--ink); }
+  .k-card.sel{ outline:2px solid var(--wine); }
+  .k-card b{ font-size:12.5px; }
+  .k-card .sub{ margin:0; font-size:11px; }
+  .k-aviso{ display:inline-block; margin-top:4px; background:rgba(181,69,58,.12); color:#8E3328; border-radius:6px; padding:2px 7px; font-weight:700; }
+  .k-estados{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; }
+  .k-estados button{ min-height:38px; border-radius:9px; border:1px solid var(--border); background:var(--card); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink); }
+  .k-estados button.on{ border:2px solid var(--wine); background:rgba(90,31,43,.06); color:var(--wine); }
+  .k-direccion{ width:100%; min-height:60px; resize:vertical; border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-family:inherit; font-size:13px; box-sizing:border-box; }
   .ag-cabeza{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
   .ag-cabeza-fila{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
   .ag-cabeza-fila select{ height:40px; border:1px solid var(--border); border-radius:10px; background:var(--card); padding:0 10px; font-family:inherit; font-size:13.5px; color:var(--ink); }
@@ -1637,7 +1658,7 @@
       <div class="ac-tabs" role="tablist" aria-label="Academia">
         <button type="button" class="ac-tab on" role="tab" aria-selected="true" data-ac-tab="alumnas">Alumnas</button>
         <button type="button" class="ac-tab" role="tab" aria-selected="false" data-ac-tab="graduacion">Graduación</button>
-        <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Kits <span class="pill-soon">pronto</span></button>
+        <button type="button" class="ac-tab" role="tab" aria-selected="false" data-ac-tab="kits">Kits</button>
         <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Certificados <span class="pill-soon">pronto</span></button>
       </div>
       <div id="acPanelAlumnas">
@@ -1700,6 +1721,25 @@
             <div class="ag-resumenes" id="agResumenes"></div>
           </div>
           <aside class="card nl-detalle" id="agDetalle"><div class="empty-note">Elige una alumna de la lista.</div></aside>
+        </div>
+      </div>
+
+      <!-- Kits a domicilio: tablero por estado y ficha de cada kit -->
+      <div id="acPanelKits" hidden>
+        <div class="card ag-cabeza">
+          <div class="ag-cabeza-fila">
+            <input id="kBuscar" type="search" placeholder="Buscar alumna, teléfono o guía…" autocomplete="off" aria-label="Buscar kit">
+            <button type="button" class="btn-primary small" id="kAgregarBtn">+ Crear kit</button>
+          </div>
+          <div id="kDatos"></div>
+          <div class="ag-agregar" id="kAgregarCaja" hidden>
+            <input id="kAgregarBuscar" type="search" placeholder="Busca a la alumna por nombre o teléfono…" autocomplete="off" aria-label="Buscar alumna para crear su kit">
+            <div id="kAgregarLista"></div>
+          </div>
+        </div>
+        <div class="nl-cuerpo k-cuerpo">
+          <div class="k-tablero" id="kTablero"></div>
+          <aside class="card nl-detalle" id="kDetalle"><div class="empty-note">Elige un kit del tablero.</div></aside>
         </div>
       </div>
     </div>
@@ -3032,6 +3072,11 @@ const ACCION_LABEL = {
   academia_grad_pago: '🎓 Registró un pago de la graduación',
   academia_grad_cambio: '🎓 Actualizó datos de graduación de una alumna',
   academia_grad_datos: '🎓 Cambió fecha, sede o precios de la graduación',
+  academia_kit_creado: '📦 Creó un kit a domicilio',
+  academia_kit_estado: '📦 Movió un kit de estado',
+  academia_kit_pago: '📦 Registró un pago de un kit',
+  academia_kit_cambio: '📦 Actualizó datos de un kit',
+  academia_kit_incluye: '📦 Cambió lo que incluye el kit',
 };
 // Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
 // ya no está activa aunque nunca se haya marcado "fin" explícito
@@ -5319,6 +5364,8 @@ const VARIABLES_MENSAJE = [
   { v:'{sede}',            ayuda:'lugar del curso' },
   { v:'{debe}',            ayuda:'lo que le falta pagar' },
   { v:'{vendedor}',        ayuda:'tu nombre' },
+  { v:'{guia}',            ayuda:'número de guía (kits)' },
+  { v:'{paqueteria}',      ayuda:'paquetería (kits)' },
 ];
 let MENSAJES = null;
 async function cargarMensajes(){
@@ -5334,12 +5381,12 @@ function rellenarMensaje(texto, d){
   const valores = {
     '{nombre}': primer, '{nombre_completo}': tituloCaso(d.nombre || ''), '{ciudad}': d.ciudad || '',
     '{fecha}': fechaLarga, '{sede}': d.sede || '', '{debe}': d.debe != null && d.debe !== '' ? fmtMoney(d.debe) : '',
-    '{vendedor}': usuarioActual?.nombre || '',
+    '{vendedor}': usuarioActual?.nombre || '', '{guia}': d.guia || '', '{paqueteria}': d.paqueteria || '',
   };
-  return String(texto || '').replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor)\}/g, m=>valores[m] ?? m);
+  return String(texto || '').replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor|guia|paqueteria)\}/g, m=>valores[m] ?? m);
 }
 function pintarVariables(texto){
-  return escHtml(texto).replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor)\}/g, '<span class="msj-var">{$1}</span>');
+  return escHtml(texto).replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor|guia|paqueteria)\}/g, '<span class="msj-var">{$1}</span>');
 }
 function puedeEditarMensaje(m){ return m && (m.usuario_id === usuarioActual?.id || usuarioActual?.es_admin); }
 
@@ -7737,6 +7784,7 @@ async function cargarAlumnasAcademia(){
 
 async function renderAcademia(){
   if(ac.tab === 'graduacion') return renderGraduacion();
+  if(ac.tab === 'kits') return renderKits();
   document.getElementById('acBody').innerHTML = '<tr><td colspan="4" class="empty-note">Cargando…</td></tr>';
   if(!ac.generaciones && !await cargarGeneracionesAcademia()) return;
   document.getElementById('acGen').innerHTML = ac.generaciones.map(g=>
@@ -7931,6 +7979,7 @@ async function cambiarDecisionAcademia(a, dec){
   toast(`${tituloCaso(a.nombre)}: ${AC_DEC_CORTA[dec]}`);
   pintarAcademia();
   if(dec === 'se_gradua') ofrecerGraduacion(a);
+  if(dec === 'kit') ofrecerKit(a);
 }
 async function ofrecerGraduacion(a){
   if(!ag.grads && !await cargarGraduacionesLista()) return;
@@ -8046,7 +8095,7 @@ const AG_SELECT = `id, graduacion_id, alumna_id, clave_origen, bloque, fila, nom
   hotel_texto, liquido_texto, abonos, acompanantes, invitados, hotel_tipo, hotel_entrada, hotel_salida, hotel_total,
   filipina_talla, filipina_color, filipina_nombre, precio_alumna, precio_acompanante, extras, estado, notas,
   academia_alumnas ( id, nombre, generacion_id, persona_id, telefono )`;
-let ag = { grads:null, grad:null, filas:[], pagos:new Map(), sel:null, filtro:'todas', todas:null };
+let ag = { grads:null, grad:null, filas:[], pagos:new Map(), sel:null, filtro:'todas', todas:null, kitsPend:[] };
 
 function gradActual(){ return ag.grads?.find(g=>g.id === ag.grad) || null; }
 function esHistorica(){ return gradActual()?.estado === 'pasada'; }
@@ -8070,12 +8119,15 @@ async function cargarGraduacionesLista(){
   return true;
 }
 async function cargarAsistentesGraduacion(){
-  const [ra, rp] = await Promise.all([
+  const [ra, rp, rk] = await Promise.all([
     acTraerTodo(()=>sb.from('academia_graduacion_asistentes').select(AG_SELECT).eq('graduacion_id', ag.grad).order('fila')),
     acTraerTodo(()=>sb.from('academia_graduacion_pagos').select('id, asistente_id, concepto, monto, forma, fecha, nota, registrado_por, creado_en').eq('graduacion_id', ag.grad)),
+    // Kits que todavía no se mandan: sus filipinas también hay que comprarlas.
+    acTraerTodo(()=>sb.from('academia_kits').select('id, nombre, cantidad, filipina_talla, filipina_color, filipina_nombre').in('estado', ['por_pagar', 'por_preparar'])),
   ]);
-  const error = ra.error || rp.error;
+  const error = ra.error || rp.error || rk.error;
   if(error){ toast('No se pudo cargar la graduación: ' + error.message, true); return false; }
+  ag.kitsPend = rk.data;
   ag.filas = ra.data.sort((a, b)=>(a.estado === 'cancelada') - (b.estado === 'cancelada') || (a.fila ?? 9999) - (b.fila ?? 9999) || a.nombre.localeCompare(b.nombre, 'es'));
   ag.pagos = new Map();
   rp.data.forEach(p=>{ if(!ag.pagos.has(p.asistente_id)) ag.pagos.set(p.asistente_id, []); ag.pagos.get(p.asistente_id).push(p); });
@@ -8194,19 +8246,22 @@ function pintarResumenesGraduacion(activas, hist){
   const caja = document.getElementById('agResumenes');
   if(hist){ caja.innerHTML = ''; return; }
   const cuenta = {};
-  activas.forEach(x=>{
+  const kits = ag.kitsPend || [];
+  [...activas, ...kits].forEach(x=>{
     if(!x.filipina_talla) return;
     const t = cuenta[x.filipina_talla] = cuenta[x.filipina_talla] || { b:0, n:0 };
-    if(x.filipina_color === 'blanca' || x.filipina_color === 'ambas') t.b++;
-    if(x.filipina_color === 'negra' || x.filipina_color === 'ambas') t.n++;
+    const n = Number(x.cantidad || 1);
+    if(x.filipina_color === 'blanca' || x.filipina_color === 'ambas') t.b += n;
+    if(x.filipina_color === 'negra' || x.filipina_color === 'ambas') t.n += n;
   });
+  const deKits = kits.filter(x=>x.filipina_talla).length;
   const tallas = AG_TALLAS.filter(t=>cuenta[t]).concat(Object.keys(cuenta).filter(t=>!AG_TALLAS.includes(t)));
   const sinTalla = activas.filter(x=>!x.filipina_talla).length;
   const hab = Object.keys(AG_HOTEL).map(k=>[AG_HOTEL[k], activas.filter(x=>x.hotel_tipo === k).length]);
   caja.innerHTML = `
     <div class="card">
       <h3>Filipinas para comprar</h3>
-      <div class="sub">${sinTalla ? `${sinTalla} alumna${sinTalla === 1 ? '' : 's'} sin talla todavía.` : 'Todas tienen talla.'}</div>
+      <div class="sub">${sinTalla ? `${sinTalla} alumna${sinTalla === 1 ? '' : 's'} sin talla todavía.` : 'Todas tienen talla.'}${deKits ? ` Incluye ${deKits} kit${deKits === 1 ? '' : 's'} por mandar.` : ''}</div>
       ${tallas.length ? `<div class="ag-tallas"><div class="h">TALLA</div><div class="h">BLANCA</div><div class="h">NEGRA</div>
         ${tallas.map(t=>`<div><b>${escHtml(t)}</b></div><div class="b">${cuenta[t].b}</div><div class="n">${cuenta[t].n}</div>`).join('')}</div>
         <button type="button" class="btn-outline small" data-ag-copiar="1" style="margin-top:12px;">📋 Copiar pedido con nombres a bordar</button>` : ''}
@@ -8370,9 +8425,9 @@ async function accionGraduacion(acc){
 }
 
 function copiarPedidoFilipinas(){
-  const lineas = ag.filas.filter(x=>x.estado !== 'cancelada' && x.filipina_talla)
+  const lineas = [...ag.filas.filter(x=>x.estado !== 'cancelada' && x.filipina_talla), ...(ag.kitsPend || []).filter(x=>x.filipina_talla).map(x=>({ ...x, esKit:true }))]
     .sort((a, b)=>AG_TALLAS.indexOf(a.filipina_talla) - AG_TALLAS.indexOf(b.filipina_talla))
-    .map(x=>`${x.filipina_talla} · ${AG_COLOR[x.filipina_color] || '¿color?'} · ${x.filipina_nombre || tituloCaso(x.nombre)}`);
+    .map(x=>`${x.filipina_talla} · ${AG_COLOR[x.filipina_color] || '¿color?'} · ${x.filipina_nombre || tituloCaso(x.nombre)}${x.esKit ? ` · kit${x.cantidad > 1 ? ' ×' + x.cantidad : ''}` : ''}`);
   const texto = `Filipinas · ${gradActual()?.nombre || ''}\n` + lineas.join('\n');
   navigator.clipboard?.writeText(texto).then(()=>toast('📋 Pedido copiado.'), ()=>toast('No se pudo copiar.', true));
 }
@@ -8403,7 +8458,8 @@ document.querySelector('#view-academia .ac-tabs').addEventListener('click', e=>{
   document.querySelectorAll('#view-academia [data-ac-tab]').forEach(t=>{ t.classList.toggle('on', t === b); t.setAttribute('aria-selected', t === b); });
   document.getElementById('acPanelAlumnas').hidden = ac.tab !== 'alumnas';
   document.getElementById('acPanelGraduacion').hidden = ac.tab !== 'graduacion';
-  if(ac.tab === 'graduacion') renderGraduacion(); else renderAcademia();
+  document.getElementById('acPanelKits').hidden = ac.tab !== 'kits';
+  if(ac.tab === 'graduacion') renderGraduacion(); else if(ac.tab === 'kits') renderKits(); else renderAcademia();
 });
 document.getElementById('agGrad').addEventListener('change', e=>{ ag.grad = e.target.value; ag.sel = null; ag.filtro = 'todas'; renderGraduacion(); });
 document.getElementById('agBuscar').addEventListener('input', ()=>pintarGraduacion());
@@ -8508,13 +8564,363 @@ document.getElementById('agDetalle').addEventListener('change', async e=>{
 });
 
 /* =========================================================
+   ACADEMIA — pestaña Kits (Fase 3): kits a domicilio.
+   Tablero Por pagar → Por preparar → Enviado → Entregado. Los 44 kits del
+   Excel arrancan "Del Excel · por clasificar" y Academia los acomoda.
+   El precio sale de Precios ("Kit a domicilio") y se puede ajustar por kit.
+   Al liquidarse, el kit pasa solo a "Por preparar".
+   ========================================================= */
+const K_ESTADOS = [
+  { id:'por_clasificar', label:'Del Excel · por clasificar', color:'#8C8378' },
+  { id:'por_pagar',      label:'Por pagar',    color:'#B56F55' },
+  { id:'por_preparar',   label:'Por preparar', color:'#C6A66B' },
+  { id:'enviado',        label:'Enviado',      color:'#3F6FB0' },
+  { id:'entregado',      label:'Entregado',    color:'#55745C' },
+  { id:'cancelado',      label:'Cancelados',   color:'#B5453A' },
+];
+const K_SELECT = `id, graduacion_id, alumna_id, clave_origen, fila, nombre, telefono, generacion_texto, direccion, anticipo_texto,
+  filipina_texto, pago_texto, envio_texto, situacion_filipina, estado, guia, paqueteria, enviado_en, entregado_en, precio,
+  envio_costo, cantidad, filipina_talla, filipina_color, filipina_nombre, notas,
+  academia_alumnas ( id, nombre, generacion_id, persona_id, telefono, ciudad_texto )`;
+let kk = { filas:[], pagos:new Map(), sel:null, todas:null };
+
+function precioKitCatalogo(){ return (PRECIOS || []).find(p=>p.clave === 'kit_academia') || null; }
+function cuentaKit(x){
+  const pagos = kk.pagos.get(x.id) || [];
+  const total = Number(x.precio || 0) + Number(x.envio_costo || 0);
+  const pagado = pagos.reduce((s, p)=>s + Number(p.monto), 0);
+  return { total, pagado, debe:Math.max(total - pagado, 0) };
+}
+function etiquetaEstadoKit(id){ return K_ESTADOS.find(e=>e.id === id)?.label || id; }
+
+async function cargarKits(){
+  const [rk, rp] = await Promise.all([
+    acTraerTodo(()=>sb.from('academia_kits').select(K_SELECT).order('fila')),
+    acTraerTodo(()=>sb.from('academia_kit_pagos').select('id, kit_id, concepto, monto, forma, fecha, nota, registrado_por, creado_en')),
+  ]);
+  const error = rk.error || rp.error;
+  if(error){ toast('No se pudieron cargar los kits: ' + error.message, true); return false; }
+  kk.filas = rk.data.sort((a, b)=>(a.fila ?? 9999) - (b.fila ?? 9999) || a.nombre.localeCompare(b.nombre, 'es'));
+  kk.pagos = new Map();
+  rp.data.forEach(p=>{ if(!kk.pagos.has(p.kit_id)) kk.pagos.set(p.kit_id, []); kk.pagos.get(p.kit_id).push(p); });
+  kk.pagos.forEach(l=>l.sort((a, b)=>String(a.fecha).localeCompare(String(b.fecha)) || String(a.creado_en).localeCompare(String(b.creado_en))));
+  return true;
+}
+async function renderKits(){
+  document.getElementById('kTablero').innerHTML = '<div class="empty-note">Cargando…</div>';
+  if(!ac.generaciones && !await cargarGeneracionesAcademia()) return;
+  await cargarPrecios();
+  if(!await cargarKits()) return;
+  pintarKits();
+}
+
+function pintarDatosKits(){
+  const pk = precioKitCatalogo();
+  document.getElementById('kDatos').innerHTML = pk ? `
+    <div class="ag-datos">
+      <label>Precio del kit<input type="number" min="0" step="10" inputmode="decimal" data-k-cat="precio" value="${pk.precio ?? ''}" placeholder="Sin precio"></label>
+      <label class="k-incluye" style="grid-column:span 3;">Qué incluye el kit<textarea data-k-cat="descripcion" maxlength="500" placeholder="Ej. filipina con nombre bordado, gorro, certificado…">${escHtml(pk.descripcion || '')}</textarea></label>
+    </div>
+    <div class="sub" style="margin:0;">El precio es el de Precios (“Kit a domicilio”). Cada kit nuevo lo toma de aquí y se puede ajustar en su ficha. <span class="guardado-estado" id="kDatosEstado"></span></div>`
+    : '<div class="sub" style="margin:0;">Falta “Kit a domicilio” en Precios.</div>';
+}
+
+function visiblesKits(){
+  const texto = document.getElementById('kBuscar').value;
+  const q = normTexto(texto), digitos = texto.replace(/\D/g, '');
+  return kk.filas.filter(x=>{
+    if(!q) return true;
+    const okNombre = q.split(' ').every(p=>normTexto(x.nombre + ' ' + (x.academia_alumnas?.ciudad_texto || '')).includes(p));
+    const okNum = digitos.length >= 3 && [x.telefono, x.guia].join(' ').replace(/\D/g, '').includes(digitos);
+    return okNombre || okNum;
+  });
+}
+
+function pintarKits(){
+  pintarDatosKits();
+  const filas = visiblesKits();
+  if(!filas.some(x=>x.id === kk.sel)) kk.sel = filas.find(x=>x.estado !== 'cancelado')?.id ?? null;
+  document.getElementById('kTablero').innerHTML = K_ESTADOS.map(e=>{
+    const items = filas.filter(x=>(x.estado || 'por_clasificar') === e.id);
+    if(!items.length && (e.id === 'por_clasificar' || e.id === 'cancelado')) return '';   // columnas que solo salen si hay algo
+    return `<section class="k-col" aria-label="${escapeAttr(e.label)}">
+      <div class="k-col-cab"><span class="punto" style="background:${e.color}"></span>${escHtml(e.label)}<span class="n">${items.length}</span></div>
+      <div class="k-col-cuerpo">${items.map(x=>{
+        const c = cuentaKit(x);
+        const gen = nombreGenAcademia(x.academia_alumnas?.generacion_id) || x.generacion_texto || '';
+        const fil = x.filipina_talla ? `${x.filipina_talla} · ${AG_COLOR[x.filipina_color] || '¿color?'}${x.cantidad > 1 ? ' ×' + x.cantidad : ''}` : (x.filipina_texto || 'Sin talla');
+        const pago = x.estado === 'por_clasificar' ? (x.pago_texto || x.anticipo_texto || '') : (c.total ? (c.debe ? `Debe ${fmtMoney(c.debe)}` : 'Liquidado ✓') : 'Sin precio');
+        const aviso = x.situacion_filipina && !/^correcta/i.test(x.situacion_filipina) && x.estado !== 'entregado' ? x.situacion_filipina : '';
+        return `<button type="button" class="k-card ${x.id === kk.sel ? 'sel' : ''}" style="--k-color:${e.color}" data-k-id="${escapeAttr(x.id)}">
+          <b>${escHtml(tituloCaso(x.nombre))}</b>
+          <div class="sub">${escHtml([gen, x.academia_alumnas?.ciudad_texto].filter(Boolean).join(' · '))}</div>
+          <div>👕 ${escHtml(fil)}</div>
+          ${pago ? `<div style="font-weight:600;color:${/debe/i.test(pago) ? 'var(--danger)' : /liquid/i.test(pago) ? 'var(--success)' : 'var(--ink-soft)'}">${escHtml(pago)}</div>` : ''}
+          ${x.guia ? `<div>🚚 ${escHtml([x.paqueteria, x.guia].filter(Boolean).join(' · '))}</div>` : ''}
+          ${aviso ? `<span class="k-aviso">${escHtml(aviso)}</span>` : ''}
+        </button>`;
+      }).join('') || '<div class="sub" style="padding:6px;">—</div>'}</div>
+    </section>`;
+  }).join('');
+  pintarDetalleKit();
+}
+
+function pintarDetalleKit(){
+  const cont = document.getElementById('kDetalle');
+  const x = kk.filas.find(f=>f.id === kk.sel);
+  if(!x){ cont.innerHTML = '<div class="empty-note">Elige un kit del tablero.</div>'; return; }
+  const gen = nombreGenAcademia(x.academia_alumnas?.generacion_id) || x.generacion_texto || '';
+  const tel = x.telefono || x.academia_alumnas?.telefono || '';
+  const c = cuentaKit(x);
+  const pagos = kk.pagos.get(x.id) || [];
+  const delExcel = [['Anticipo', x.anticipo_texto], ['Filipina', x.filipina_texto], ['Pago', x.pago_texto], ['Envío', x.envio_texto], ['Situación', x.situacion_filipina]].filter(([, v])=>v);
+  cont.innerHTML = `
+    <div>
+      <div class="sub" style="margin:0;color:#7A5D22;font-weight:700;">${escHtml(gen)}</div>
+      <h3>${escHtml(tituloCaso(x.nombre))}</h3>
+      <div class="sub" style="margin:2px 0 0;">${escHtml(tel || 'Sin teléfono')} · ${escHtml(etiquetaEstadoKit(x.estado))}</div>
+    </div>
+    ${tel ? '<div class="nl-acciones"><button type="button" class="nl-acc primario" data-k-acc="whats">💬 Enviar WhatsApp</button></div>' : ''}
+    <div class="ac-caja"><h4>Estado</h4>
+      <div class="k-estados">${K_ESTADOS.filter(e=>e.id !== 'por_clasificar' && e.id !== 'cancelado').map(e=>
+        `<button type="button" class="${x.estado === e.id ? 'on' : ''}" data-k-estado="${e.id}" aria-pressed="${x.estado === e.id}">${escHtml(e.label)}</button>`).join('')}</div>
+      ${x.estado === 'por_clasificar' ? '<div class="sub" style="margin:0;">Vino del Excel: toca la columna donde va.</div>' : ''}
+      ${x.enviado_en ? `<div class="sub" style="margin:0;">Enviado el ${escHtml(fechaCorta(x.enviado_en))}${x.entregado_en ? ' · entregado el ' + escHtml(fechaCorta(x.entregado_en)) : ''}</div>` : ''}
+    </div>
+    <div class="ac-caja ag-cuenta"><h4>Cuenta del kit</h4>
+      <div class="ac-form">
+        <label>Precio del kit<input type="number" min="0" step="10" inputmode="decimal" data-k-campo="precio" value="${x.precio ?? ''}" placeholder="Sin precio"></label>
+        <label>Envío<input type="number" min="0" step="10" inputmode="decimal" data-k-campo="envio_costo" value="${x.envio_costo ?? ''}" placeholder="$"></label>
+      </div>
+      <div class="dato-row total"><span class="l"><b>Total</b></span><span class="v">${fmtMoney(c.total)}</span></div>
+      <div class="dato-row"><span class="l">Pagado</span><span class="v">${fmtMoney(c.pagado)}</span></div>
+      <div class="dato-row ${c.debe ? 'debe' : ''}"><span class="l"><b>${c.debe ? 'Debe' : c.total ? 'Liquidado' : 'Sin precio'}</b></span><span class="v">${c.debe ? fmtMoney(c.debe) : c.total ? '✓' : '—'}</span></div>
+      ${pagos.map(p=>`<div class="ag-pago-fila"><span>${escHtml(fechaCorta(p.fecha))} · ${p.concepto === 'envio' ? 'Envío' : 'Kit'}${p.forma ? ' · ' + escHtml(p.forma) : ''}</span><b>${fmtMoney(p.monto)}</b></div>`).join('')}
+      ${!puede('cobrar_academia') ? '<div class="sub" style="margin:0;">Para registrar pagos hace falta el permiso “🎓 Cobrar en Academia”.</div>' : `<div class="ac-form">
+        <label>Concepto<select id="kPagoConcepto"><option value="kit">Kit</option><option value="envio">Envío</option></select></label>
+        <label>Monto<input id="kPagoMonto" type="number" min="0" step="10" inputmode="decimal" placeholder="$"></label>
+        <label>Forma<select id="kPagoForma">${AC_FORMAS_PAGO.map(f=>`<option>${escHtml(f)}</option>`).join('')}</select></label>
+        <label>Fecha<input id="kPagoFecha" type="date" value="${hoyISO()}"></label>
+        <button type="button" class="btn-outline small" data-k-acc="liquida">Liquida todo</button>
+        <button type="button" class="btn-primary small" data-k-acc="pago">+ Registrar</button>
+      </div>`}
+    </div>
+    <div class="ac-caja"><h4>Filipina</h4>
+      <div class="ac-form">
+        <label>Talla<select data-k-campo="filipina_talla"><option value="">—</option>${AG_TALLAS.map(t=>`<option ${x.filipina_talla === t ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        <label>Color<select data-k-campo="filipina_color"><option value="">—</option>${Object.entries(AG_COLOR).map(([k, v])=>`<option value="${k}" ${x.filipina_color === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        <label>Nombre a bordar<input data-k-campo="filipina_nombre" maxlength="40" value="${escapeAttr(x.filipina_nombre || '')}"></label>
+        <label>Cantidad<input type="number" min="1" max="20" step="1" data-k-campo="cantidad" value="${x.cantidad || 1}"></label>
+      </div>
+    </div>
+    <div class="ac-caja"><h4>🔒 Envío</h4>
+      <label class="modal-notas-titulo" for="kDireccion">Dirección de envío</label>
+      <textarea id="kDireccion" class="k-direccion" data-k-campo="direccion" maxlength="500" placeholder="Calle, número, colonia, ciudad, CP">${escHtml(x.direccion || '')}</textarea>
+      <div class="ac-form">
+        <label>Paquetería<input data-k-campo="paqueteria" maxlength="40" value="${escapeAttr(x.paqueteria || '')}" placeholder="Estafeta, DHL…"></label>
+        <label>Número de guía<input data-k-campo="guia" maxlength="60" value="${escapeAttr(x.guia || '')}"></label>
+      </div>
+    </div>
+    ${delExcel.length ? `<div class="ac-caja"><h4>Lo que decía el Excel</h4>${delExcel.map(([l, v])=>`<div class="dato-row"><span class="l">${l}</span><span class="v" style="white-space:normal;text-align:right;">${escHtml(v)}</span></div>`).join('')}</div>` : ''}
+    <div class="ac-caja">
+      <label class="modal-notas-titulo" for="kNotas">Notas</label>
+      <textarea id="kNotas" class="textarea" rows="2" maxlength="2000" data-k-campo="notas">${escHtml(x.notas || '')}</textarea>
+    </div>
+    <div class="nl-acciones">${x.estado === 'cancelado'
+      ? '<button type="button" class="nl-acc" data-k-acc="reactivar">↩ Reactivar el kit</button>'
+      : '<button type="button" class="nl-acc peligro" data-k-acc="cancelar">Cancelar el kit</button>'}</div>`;
+}
+
+async function guardarKit(x, cambios, accion, detalle){
+  const { error } = await sb.from('academia_kits').update(cambios).eq('id', x.id);
+  if(error){ toast('No se pudo guardar: ' + error.message, true); pintarKits(); return false; }
+  Object.assign(x, cambios);
+  if(accion) registrarActividad(accion, detalle);
+  return true;
+}
+async function cambiarEstadoKit(x, estado){
+  if(x.estado === estado) return;
+  const cambios = { estado };
+  if(estado === 'enviado'){
+    if(!x.guia){ toast('Escribe primero el número de guía (abajo, en Envío).', true); return; }
+    if(!x.enviado_en) cambios.enviado_en = hoyISO();
+  }
+  if(estado === 'entregado' && !x.entregado_en) cambios.entregado_en = hoyISO();
+  const antes = x.estado;
+  if(!await guardarKit(x, cambios, 'academia_kit_estado', `${x.nombre}: ${etiquetaEstadoKit(antes)} → ${etiquetaEstadoKit(estado)}`)) return;
+  toast(`📦 ${tituloCaso(x.nombre)}: ${etiquetaEstadoKit(estado)}`);
+  pintarKits();
+  if(estado === 'enviado'){
+    const ok = await preguntarConfirmacion({ titulo:'¿Le mandas la guía?', textoSi:'Sí, abrir WhatsApp',
+      aviso:`Se abre WhatsApp para ${escHtml(tituloCaso(x.nombre))} con la guía <b>${escHtml(x.guia)}</b>${x.paqueteria ? ' de ' + escHtml(x.paqueteria) : ''}. Usa un mensaje con <b>{guia}</b> y <b>{paqueteria}</b>.` });
+    if(ok !== null) accionKit('whats');
+  }
+}
+
+/* Crea (o reactiva) el kit de una alumna, con el precio de hoy del catálogo. */
+async function asegurarKit(alumna){
+  const { data:ya, error:e1 } = await sb.from('academia_kits').select('id, estado').eq('alumna_id', alumna.id);
+  if(e1){ toast('No se pudieron revisar sus kits: ' + e1.message, true); return false; }
+  const vivo = (ya || []).find(x=>x.estado !== 'cancelado');
+  if(vivo){ toast(`${tituloCaso(alumna.nombre)} ya tiene su kit.`); return true; }
+  if(!PRECIOS) await cargarPrecios();
+  if(!ag.grads) await cargarGraduacionesLista();
+  let error;
+  if((ya || []).length){
+    ({ error } = await sb.from('academia_kits').update({ estado:'por_pagar' }).eq('id', ya[0].id));
+  } else {
+    ({ error } = await sb.from('academia_kits').insert({ alumna_id:alumna.id, clave_origen:'hub:' + alumna.id, nombre:alumna.nombre,
+      telefono:alumna.personas?.telefono_principal || alumna.telefono || null, generacion_texto:nombreGenAcademia(alumna.generacion_id) || null,
+      graduacion_id:(ag.grads || []).find(g=>g.estado !== 'pasada')?.id || null, estado:'por_pagar',
+      precio:precioKitCatalogo()?.precio ?? null, agregado_por:usuarioActual?.id || null }));
+  }
+  if(error){ toast('No se pudo crear el kit: ' + error.message, true); return false; }
+  registrarActividad('academia_kit_creado', alumna.nombre);
+  toast(`📦 Kit creado para ${tituloCaso(alumna.nombre)}.`);
+  return true;
+}
+async function ofrecerKit(a){
+  const ok = await preguntarConfirmacion({ titulo:'¿Crearle su kit?', textoSi:'Sí, crear el kit',
+    aviso:`${escHtml(tituloCaso(a.nombre))} queda en Kits → “Por pagar” con el precio de hoy del kit.` });
+  if(ok === null) return;
+  await asegurarKit(a);
+}
+
+async function accionKit(acc){
+  const x = kk.filas.find(f=>f.id === kk.sel); if(!x) return;
+  if(acc === 'whats') return abrirEnviarWhatsApp({ nombre:x.nombre, telefono:x.telefono || x.academia_alumnas?.telefono, personaId:x.academia_alumnas?.persona_id,
+    ciudad:x.academia_alumnas?.ciudad_texto || '', debe:cuentaKit(x).debe, guia:x.guia || '', paqueteria:x.paqueteria || '' });
+  if(acc === 'liquida'){ document.getElementById('kPagoMonto').value = cuentaKit(x).debe || ''; return; }
+  if(acc === 'pago'){
+    const concepto = document.getElementById('kPagoConcepto').value;
+    const monto = Number(document.getElementById('kPagoMonto').value);
+    const forma = document.getElementById('kPagoForma').value;
+    const fecha = document.getElementById('kPagoFecha').value || hoyISO();
+    if(!(monto > 0)){ toast('Escribe el monto del pago.', true); return; }
+    const c = cuentaKit(x);
+    const ok = await preguntarConfirmacion({ titulo:'¿Registrar el pago?', textoSi:'Sí, registrar',
+      aviso:`${escHtml(tituloCaso(x.nombre))} · ${concepto === 'envio' ? 'Envío' : 'Kit'}: <b>${fmtMoney(monto)}</b> · ${escHtml(forma)} · ${escHtml(fechaCorta(fecha))}`
+        + (c.total && monto > c.debe ? `<br>⚠️ Es más de lo que debe (${fmtMoney(c.debe)}).` : c.total ? `<br>Le quedaría por pagar ${fmtMoney(c.debe - monto)}.` : '') });
+    if(ok === null) return;
+    const { data, error } = await sb.from('academia_kit_pagos').insert({ kit_id:x.id, concepto, monto, forma, fecha, registrado_por:usuarioActual?.id || null }).select().single();
+    if(error){ toast('No se pudo registrar el pago: ' + error.message, true); return; }
+    if(!kk.pagos.has(x.id)) kk.pagos.set(x.id, []);
+    kk.pagos.get(x.id).push(data);
+    registrarActividad('academia_kit_pago', `${x.nombre} · ${concepto === 'envio' ? 'envío' : 'kit'} · ${fmtMoney(monto)} · ${forma}`);
+    toast(`💵 Pago de ${fmtMoney(monto)} registrado.`);
+    // Liquidado: pasa solo a "Por preparar".
+    const ahora = cuentaKit(x);
+    if(x.estado === 'por_pagar' && ahora.total > 0 && ahora.debe === 0){
+      if(await guardarKit(x, { estado:'por_preparar' }, 'academia_kit_estado', `${x.nombre}: Por pagar → Por preparar (liquidó)`)) toast('✓ Liquidado: pasa a “Por preparar”.');
+    }
+    return pintarKits();
+  }
+  if(acc === 'cancelar'){
+    const ok = await preguntarConfirmacion({ titulo:'¿Cancelar el kit?', textoSi:'Sí, cancelarlo',
+      aviso:`El kit de ${escHtml(tituloCaso(x.nombre))} pasa a “Cancelados”. No se borra nada (sus pagos se conservan) y se puede reactivar.` });
+    if(ok === null) return;
+    if(await guardarKit(x, { estado:'cancelado' }, 'academia_kit_estado', `${x.nombre}: ${etiquetaEstadoKit(x.estado)} → Cancelado`)){ toast('Kit cancelado.'); pintarKits(); }
+    return;
+  }
+  if(acc === 'reactivar'){
+    if(await guardarKit(x, { estado:'por_pagar' }, 'academia_kit_estado', `${x.nombre}: Cancelado → Por pagar`)){ toast('Kit reactivado.'); pintarKits(); }
+  }
+}
+
+async function pintarAgregarKit(){
+  const lista = document.getElementById('kAgregarLista');
+  if(!kk.todas){
+    lista.innerHTML = '<div class="sub">Cargando alumnas…</div>';
+    const r = await acTraerTodo(()=>sb.from('academia_alumnas').select('id, nombre, telefono, generacion_id, decision, personas ( telefono_principal )').order('nombre'));
+    if(r.error){ toast('No se pudieron cargar las alumnas: ' + r.error.message, true); return; }
+    kk.todas = r.data;
+  }
+  const texto = document.getElementById('kAgregarBuscar').value;
+  const q = normTexto(texto), digitos = texto.replace(/\D/g, '');
+  if(q.length < 2 && digitos.length < 3){ lista.innerHTML = '<div class="sub">Escribe al menos 2 letras del nombre o 3 números del teléfono.</div>'; return; }
+  const conKit = new Set(kk.filas.filter(x=>x.estado !== 'cancelado').map(x=>x.alumna_id));
+  const encontradas = kk.todas.filter(a=>(q.length >= 2 && q.split(' ').every(p=>normTexto(a.nombre).includes(p)))
+      || (digitos.length >= 3 && [a.telefono, a.personas?.telefono_principal].join(' ').includes(digitos))).slice(0, 8);
+  lista.innerHTML = encontradas.length ? encontradas.map(a=>`<button type="button" class="ag-agregar-op" data-k-agregar="${escapeAttr(a.id)}" ${conKit.has(a.id) ? 'disabled' : ''}>
+      <span><b>${escHtml(tituloCaso(a.nombre))}</b><div class="sub">${escHtml(nombreGenAcademia(a.generacion_id))} · ${escHtml(a.personas?.telefono_principal || a.telefono || 'sin teléfono')}</div></span>
+      <span>${conKit.has(a.id) ? 'Ya tiene' : '+ Crear kit'}</span></button>`).join('') : '<div class="sub">No encontré a nadie con eso.</div>';
+}
+
+document.getElementById('kBuscar').addEventListener('input', ()=>pintarKits());
+document.getElementById('kTablero').addEventListener('click', e=>{
+  const b = e.target.closest('[data-k-id]'); if(!b) return;
+  kk.sel = b.dataset.kId; pintarKits();
+  document.getElementById('kDetalle').scrollIntoView({ behavior:'smooth', block:'nearest' });
+});
+document.getElementById('kAgregarBtn').addEventListener('click', ()=>{
+  const caja = document.getElementById('kAgregarCaja');
+  caja.hidden = !caja.hidden;
+  if(!caja.hidden){ document.getElementById('kAgregarBuscar').value = ''; pintarAgregarKit(); document.getElementById('kAgregarBuscar').focus(); }
+});
+document.getElementById('kAgregarBuscar').addEventListener('input', ()=>pintarAgregarKit());
+document.getElementById('kAgregarLista').addEventListener('click', async e=>{
+  const b = e.target.closest('[data-k-agregar]'); if(!b || b.disabled) return;
+  const a = kk.todas.find(x=>x.id === b.dataset.kAgregar); if(!a) return;
+  b.disabled = true;
+  if(await asegurarKit(a)){
+    if(a.decision !== 'kit'){
+      const { error } = await sb.from('academia_alumnas').update({ decision:'kit', actualizado_por:usuarioActual?.id || null }).eq('id', a.id);
+      if(!error){ a.decision = 'kit'; const enLista = ac.filas.find(f=>f.id === a.id); if(enLista) enLista.decision = 'kit'; }
+    }
+    document.getElementById('kAgregarCaja').hidden = true;
+    await renderKits();
+  } else b.disabled = false;
+});
+// Precio y "qué incluye" del catálogo: se guardan en Precios.
+document.getElementById('kDatos').addEventListener('change', async e=>{
+  const campo = e.target.dataset.kCat; if(!campo) return;
+  const pk = precioKitCatalogo(); if(!pk) return;
+  const txt = e.target.value.trim();
+  const valor = campo === 'precio' ? (txt === '' ? null : Number(txt)) : (txt || null);
+  if(campo === 'precio' && valor != null && !(valor >= 0)){ toast('Escribe un precio válido.', true); e.target.value = pk.precio ?? ''; return; }
+  if(valor === (pk[campo] ?? null)) return;
+  const r = await guardarPrecio(pk.id, { [campo]:valor });
+  const estado = document.getElementById('kDatosEstado');
+  if(r.error){ toast('No se pudo guardar: ' + r.error, true); e.target.value = pk[campo] ?? ''; if(estado) estado.textContent = '⚠ No se guardó'; return; }
+  if(campo === 'descripcion') registrarActividad('academia_kit_incluye', valor || '(vacío)');
+  if(estado){ estado.textContent = '✓ Guardado'; estado.style.color = 'var(--success)'; }
+});
+document.getElementById('kDetalle').addEventListener('click', e=>{
+  const x = kk.filas.find(f=>f.id === kk.sel); if(!x) return;
+  const es = e.target.closest('[data-k-estado]');
+  if(es) return cambiarEstadoKit(x, es.dataset.kEstado);
+  const b = e.target.closest('[data-k-acc]');
+  if(b) accionKit(b.dataset.kAcc);
+});
+// Campos del kit: se guardan solos al cambiar.
+document.getElementById('kDetalle').addEventListener('change', async e=>{
+  const x = kk.filas.find(f=>f.id === kk.sel); if(!x) return;
+  const campo = e.target.dataset.kCampo; if(!campo) return;
+  let valor = e.target.value.trim();
+  if(['precio', 'envio_costo'].includes(campo)){
+    valor = valor === '' ? null : Number(valor);
+    if(valor != null && !(valor >= 0)){ toast('Escribe un monto válido.', true); e.target.value = x[campo] ?? ''; return; }
+  } else if(campo === 'cantidad'){
+    valor = Math.max(1, Math.min(20, Math.round(Number(valor) || 1)));
+  } else valor = valor || null;
+  if(valor === (x[campo] ?? null)) return;
+  const detalle = campo === 'direccion' ? `${x.nombre} · dirección` : `${x.nombre} · ${campo.replace('_', ' ')}: ${valor ?? '—'}`;
+  if(!await guardarKit(x, { [campo]:valor }, campo === 'notas' ? null : 'academia_kit_cambio', detalle)) return;
+  // Si con el nuevo precio ya quedó liquidado, también pasa a "Por preparar".
+  const c = cuentaKit(x);
+  if(['precio', 'envio_costo'].includes(campo) && x.estado === 'por_pagar' && c.total > 0 && c.debe === 0)
+    await guardarKit(x, { estado:'por_preparar' }, 'academia_kit_estado', `${x.nombre}: Por pagar → Por preparar (liquidó)`);
+  if(campo !== 'notas' && campo !== 'direccion') pintarKits();
+});
+
+/* =========================================================
    PRECIOS — catálogo de lo que se cobra aparte del curso (VIP, uniforme…).
    Cualquiera lo ajusta y se guarda solo. PRECIOS queda en memoria para que
    Recepción y Cobranza lo usen sin volver a consultarlo.
    ========================================================= */
 let PRECIOS = null;
 async function cargarPrecios(){
-  const { data, error } = await sb.from('precios').select('id, nombre, precio, activo, orden, area, actualizado_por, actualizado_en').order('orden').order('nombre');
+  const { data, error } = await sb.from('precios').select('id, nombre, clave, precio, activo, orden, area, descripcion, actualizado_por, actualizado_en').order('orden').order('nombre');
   if(error){ toast('No se pudieron cargar los precios: ' + error.message, true); PRECIOS = PRECIOS || []; return PRECIOS; }
   PRECIOS = data || [];
   return PRECIOS;
