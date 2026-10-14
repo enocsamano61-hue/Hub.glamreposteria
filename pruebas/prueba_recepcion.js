@@ -10,6 +10,7 @@ const base = () => ({
   precios: [
     { id:'pr1', nombre:'Subir a VIP', clave:'subir_vip', precio:500, activo:true, orden:1 },
     { id:'pr2', nombre:'Uniforme', clave:null, precio:null, activo:true, orden:2 },
+    { id:'pr3', nombre:'Gorro de academia', clave:null, precio:250, activo:true, orden:3, area:'academia' },
   ],
   inscripciones: [
     { id:'a', evento_id:'ev1', anticipo:1400, restante:500, precio_pactado:1900, liquidado:false, estatus_id:11, paquete:'VIP', asesor_id:'u2', notas_migracion:null, asistencia:null, asistencia_en:null, estatus_antes_de_cierre:null,
@@ -104,6 +105,7 @@ const base = () => ({
   await fuera();
   await tecla('v');
   check((await txt('#recCobrar')).includes('$1,200'), 'con VIP: Liquida $1,200');
+  check(!(await txt('#recPanel')).includes('Gorro de academia'), 'los extras de la Academia no salen en Recepción');
   await tecla('u');
   check(await p.isVisible('#recPrecioExtra'), 'pide el precio del uniforme');
   await p.fill('#recPrecioExtra', '350');
