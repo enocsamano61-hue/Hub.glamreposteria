@@ -2,7 +2,7 @@
 
 El Hub arma el PDF del certificado (gira) o del diploma (academia), lo guarda con un link permanente y lo manda por WhatsApp.
 
-- **Migración:** `academia_07_certificados`.
+- **Migraciones:** `academia_07_certificados` y `academia_08_rutas_fondos_certificados`.
 - **Respaldos:** `respaldo.academia_generaciones_20261014` y `respaldo.inscripciones_20261014_certificados`.
 - **Código:** `hub/index.html` y `hub/certificados/` (fondos, letra Great Vibes y su licencia OFL).
 - **Pruebas:** `pruebas/prueba_academia_certificados.js`.
@@ -52,6 +52,10 @@ El Hub arma el PDF del certificado (gira) o del diploma (academia), lo guarda co
 - **El registro y el folio se guardan antes que el PDF:** si la subida falla, se reintenta con el mismo folio y el link anterior sigue sirviendo.
 - **Mensajes de WhatsApp:** variable nueva **`{link}`**.
 - **Actividad del equipo:** certificado generado, enviado, agregado a mano y cambios de plantilla o programa.
+
+## Corrección al publicar
+
+El sitio publica la carpeta `hub/` como raíz. Por eso los fondos y la letra se sirven en **`/certificados/…`**, no en `/hub/certificados/…`: la primera versión pedía la ruta equivocada y recibía la página del Hub en lugar del archivo. Se corrigieron el código y las dos plantillas (`academia_08_rutas_fondos_certificados`).
 
 ## Pruebas
 

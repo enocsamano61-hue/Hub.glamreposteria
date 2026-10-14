@@ -844,7 +844,7 @@
   #view-academia [hidden]{ display:none !important; }
   .ag-cabeza-fila input[type=search]{ flex:1; min-width:180px; height:40px; border:1px solid var(--border); border-radius:10px; padding:0 10px; font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink); }
   .k-incluye textarea{ width:100%; min-height:54px; resize:vertical; border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); box-sizing:border-box; }
-  @font-face{ font-family:'Great Vibes'; src:url('/hub/certificados/GreatVibes-Regular.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Great Vibes'; src:url('/certificados/GreatVibes-Regular.ttf') format('truetype'); font-display:swap; }
   .c-tipo{ display:flex; background:var(--border); border-radius:10px; padding:3px; }
   .c-tipo button{ border:0; background:transparent; border-radius:8px; padding:8px 14px; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink-soft); cursor:pointer; }
   .c-tipo button.on{ background:var(--card); color:var(--ink); }
@@ -8979,7 +8979,7 @@ document.getElementById('kDetalle').addEventListener('change', async e=>{
    ========================================================= */
 const PDFLIB_URL = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
 const FONTKIT_URL = 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
-let CERT_FUENTE_MANUSCRITA = '/hub/certificados/GreatVibes-Regular.ttf';
+let CERT_FUENTE_MANUSCRITA = '/certificados/GreatVibes-Regular.ttf';
 const C_SELECT = 'id, tipo, evento_id, inscripcion_id, alumna_id, nombre_impreso, datos, folio, estado, archivo_path, link, generado_en, enviado_en';
 const C_ESTADO = { pendiente:'Pendiente', generado:'Generado', enviado:'Enviado' };
 let cc = { tipo:'gira', plantillas:null, grupos:[], grupo:null, filas:[], otras:[], cola:[], ocupado:false };
