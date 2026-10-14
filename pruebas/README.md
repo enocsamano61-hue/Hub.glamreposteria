@@ -20,7 +20,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | Archivo | Qué es |
 |---|---|
 | `arnes.js` | Arma la página de prueba (CDN → `vendor/`), instala la base en memoria, entra como un usuario de ejemplo y da ayudas (`check`, `ops`, `fallar`, `captura`). |
-| `vendor/` | Copias locales de supabase-js 2 y Chart.js 4.4.4. |
+| `vendor/` | Copias locales de supabase-js 2, Chart.js 4.4.4, pdf-lib 1.17.1 y fontkit 1.1.1. |
 | `correr_todas.js` | Corre cada `prueba_*.js` y dice cuáles fallaron. |
 | `prueba_calendario.js` | Calendario: tarjetas por curso (avance y estado) y hoja del día. |
 | `prueba_humo.js` | Todas las secciones del menú abren sin errores de JS (admin y Logística). |
@@ -35,6 +35,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_academia.js` | 🎓 Academia, pestaña Alumnas: menú por rol, generaciones, filtros y chips, decisión, notas, "ya lo revisé", datos privados, registrar y corregir pagos (con y sin permiso), celular. |
 | `prueba_academia_graduacion.js` | 🎓 Academia, pestaña Graduación: cuenta (precio congelado, acompañantes, extras), hotel, filipinas, pagos, quitar/volver, agregar alumna, graduación pasada, Precios por área. |
 | `prueba_academia_kits.js` | 🎓 Academia, pestaña Kits: tablero por estado, kits del Excel por clasificar, cobro (liquidar → Por preparar), enviado con guía y WhatsApp {guia}, cancelar/reactivar, crear kit, catálogo, filipinas en Graduación. |
+| `prueba_academia_certificados.js` | 🎓 Academia, pestaña Certificados: grupos, folio (sin configurar / configurar), generar uno y todos (PDF real), mandar con {link} → Enviado, regenerar, agregar a mano, programa de la generación, plantilla, celular. |
 
 ## Escribir una prueba nueva
 

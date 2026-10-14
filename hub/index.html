@@ -844,6 +844,36 @@
   #view-academia [hidden]{ display:none !important; }
   .ag-cabeza-fila input[type=search]{ flex:1; min-width:180px; height:40px; border:1px solid var(--border); border-radius:10px; padding:0 10px; font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink); }
   .k-incluye textarea{ width:100%; min-height:54px; resize:vertical; border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); box-sizing:border-box; }
+  @font-face{ font-family:'Great Vibes'; src:url('/hub/certificados/GreatVibes-Regular.ttf') format('truetype'); font-display:swap; }
+  .c-tipo{ display:flex; background:var(--border); border-radius:10px; padding:3px; }
+  .c-tipo button{ border:0; background:transparent; border-radius:8px; padding:8px 14px; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink-soft); cursor:pointer; }
+  .c-tipo button.on{ background:var(--card); color:var(--ink); }
+  .c-grupo{ display:grid; grid-template-columns:minmax(0,2fr) repeat(3, minmax(60px,.6fr)) minmax(0,1.2fr); gap:10px; align-items:center; padding:10px 6px; border-bottom:1px solid var(--border); cursor:pointer; font-size:13px; width:100%; text-align:left; background:transparent; border-left:0; border-right:0; border-top:0; font-family:inherit; color:var(--ink); }
+  .c-grupo.sel{ background:rgba(90,31,43,.06); }
+  .c-grupo .num{ text-align:center; font-variant-numeric:tabular-nums; }
+  .c-grupo .num small{ display:block; font-size:10.5px; color:var(--ink-soft); }
+  .c-fila{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .c-fila input{ width:100%; height:36px; border:1px solid var(--border); border-radius:8px; padding:0 9px; font-family:inherit; font-size:13px; box-sizing:border-box; }
+  .c-acciones{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .c-acciones button, .c-acciones a{ min-height:36px; border-radius:9px; border:1px solid var(--border); background:var(--card); font-family:inherit; font-size:12.5px; font-weight:600; padding:0 10px; cursor:pointer; color:var(--ink); display:inline-flex; align-items:center; text-decoration:none; }
+  .c-estado{ font-size:11.5px; font-weight:700; border-radius:999px; padding:3px 9px; display:inline-block; }
+  .c-estado.pendiente{ background:var(--border); color:#5E564F; }
+  .c-estado.generado{ background:rgba(52,85,196,.12); color:#2F4E86; }
+  .c-estado.enviado{ background:rgba(85,116,92,.15); color:#3F5F47; }
+  .c-cabeza-lista{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .c-cabeza-lista .btns{ display:flex; gap:8px; flex-wrap:wrap; }
+  .c-cabeza-lista .btns button{ width:auto; }
+  .c-previa{ position:relative; width:100%; max-width:720px; aspect-ratio:792 / 612; border:1px solid var(--border); border-radius:6px; overflow:hidden; background:#fff center/cover no-repeat; container-type:inline-size; }
+  .c-previa span{ position:absolute; white-space:nowrap; line-height:1; transform:translateY(-50%); }
+  .c-campos{ display:grid; grid-template-columns:minmax(0,1.2fr) repeat(3, 70px); gap:6px 8px; font-size:12px; align-items:center; }
+  .c-campos input{ height:32px; border:1px solid var(--border); border-radius:7px; padding:0 6px; font-family:inherit; font-size:12.5px; width:100%; box-sizing:border-box; }
+  .c-campos .h{ font-weight:700; color:var(--ink-soft); font-size:10.5px; letter-spacing:.04em; }
+  @media (max-width: 600px){
+    .c-grupo{ grid-template-columns:minmax(0,1fr) repeat(3, 52px); }
+    .c-grupo .barra{ display:none; }
+    .c-fila{ grid-template-columns:minmax(0,1fr); }
+    .c-acciones{ justify-content:flex-start; }
+  }
   /* Kits: el tablero va a todo lo ancho y la ficha debajo, repartida en columnas. */
   .nl-cuerpo.k-cuerpo{ grid-template-columns:minmax(0,1fr); }
   #kDetalle{ position:static; display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:12px 20px; align-items:start; }
@@ -1659,7 +1689,7 @@
         <button type="button" class="ac-tab on" role="tab" aria-selected="true" data-ac-tab="alumnas">Alumnas</button>
         <button type="button" class="ac-tab" role="tab" aria-selected="false" data-ac-tab="graduacion">Graduación</button>
         <button type="button" class="ac-tab" role="tab" aria-selected="false" data-ac-tab="kits">Kits</button>
-        <button type="button" class="ac-tab" role="tab" aria-selected="false" disabled>Certificados <span class="pill-soon">pronto</span></button>
+        <button type="button" class="ac-tab" role="tab" aria-selected="false" data-ac-tab="certificados">Certificados</button>
       </div>
       <div id="acPanelAlumnas">
       <div class="card nl-cabeza">
@@ -1741,6 +1771,22 @@
           <div class="k-tablero" id="kTablero"></div>
           <aside class="card nl-detalle" id="kDetalle"><div class="empty-note">Elige un kit del tablero.</div></aside>
         </div>
+      </div>
+
+      <!-- Certificados: gira (por curso) y academia (diplomas), PDF con la plantilla, link y WhatsApp -->
+      <div id="acPanelCertificados" hidden>
+        <div class="card ag-cabeza">
+          <div class="ag-cabeza-fila">
+            <div role="group" aria-label="Tipo de certificado" class="c-tipo">
+              <button type="button" class="on" data-c-tipo="gira">Cursos de la gira</button>
+              <button type="button" data-c-tipo="academia">Graduadas de la academia</button>
+            </div>
+            <button type="button" class="btn-outline small" id="cPlantillaBtn">⚙️ Plantilla y folio</button>
+          </div>
+          <div id="cPlantilla" hidden></div>
+        </div>
+        <div class="card" id="cGrupos"></div>
+        <div class="card" id="cLista"></div>
       </div>
     </div>
 
@@ -3077,6 +3123,10 @@ const ACCION_LABEL = {
   academia_kit_pago: '📦 Registró un pago de un kit',
   academia_kit_cambio: '📦 Actualizó datos de un kit',
   academia_kit_incluye: '📦 Cambió lo que incluye el kit',
+  cert_generado: '📄 Generó un certificado',
+  cert_enviado: '📄 Mandó un certificado por WhatsApp',
+  cert_agregado: '📄 Agregó a alguien a los certificados de un curso',
+  cert_plantilla: '📄 Cambió la plantilla o el folio de los certificados',
 };
 // Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
 // ya no está activa aunque nunca se haya marcado "fin" explícito
@@ -5366,6 +5416,7 @@ const VARIABLES_MENSAJE = [
   { v:'{vendedor}',        ayuda:'tu nombre' },
   { v:'{guia}',            ayuda:'número de guía (kits)' },
   { v:'{paqueteria}',      ayuda:'paquetería (kits)' },
+  { v:'{link}',            ayuda:'link de descarga (certificados)' },
 ];
 let MENSAJES = null;
 async function cargarMensajes(){
@@ -5381,12 +5432,12 @@ function rellenarMensaje(texto, d){
   const valores = {
     '{nombre}': primer, '{nombre_completo}': tituloCaso(d.nombre || ''), '{ciudad}': d.ciudad || '',
     '{fecha}': fechaLarga, '{sede}': d.sede || '', '{debe}': d.debe != null && d.debe !== '' ? fmtMoney(d.debe) : '',
-    '{vendedor}': usuarioActual?.nombre || '', '{guia}': d.guia || '', '{paqueteria}': d.paqueteria || '',
+    '{vendedor}': usuarioActual?.nombre || '', '{guia}': d.guia || '', '{paqueteria}': d.paqueteria || '', '{link}': d.link || '',
   };
-  return String(texto || '').replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor|guia|paqueteria)\}/g, m=>valores[m] ?? m);
+  return String(texto || '').replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor|guia|paqueteria|link)\}/g, m=>valores[m] ?? m);
 }
 function pintarVariables(texto){
-  return escHtml(texto).replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor|guia|paqueteria)\}/g, '<span class="msj-var">{$1}</span>');
+  return escHtml(texto).replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor|guia|paqueteria|link)\}/g, '<span class="msj-var">{$1}</span>');
 }
 function puedeEditarMensaje(m){ return m && (m.usuario_id === usuarioActual?.id || usuarioActual?.es_admin); }
 
@@ -5556,6 +5607,8 @@ function registrarEnvioWa(conFoto){
   registrarActividad('whatsapp_enviado', `${titulo}${conFoto ? ' 📷' : ''} → ${d.nombre || d.telefono}`);
   if(d.personaId) sb.from('interacciones').insert({ persona_id: d.personaId, lead_id: d.leadId || null, asesor_id: usuarioActual?.id || null,
     canal:'whatsapp', nota:`WHATSAPP (${titulo}${conFoto ? ', con foto' : ''}) enviado desde el Hub por ${usuarioActual?.nombre || 'alguien'}.` });
+  // Quien abrió el WhatsApp puede enterarse de que sí se mandó (p. ej. Certificados lo marca "Enviado").
+  if(typeof d.alEnviar === 'function') d.alEnviar();
 }
 document.getElementById('waEnviar').addEventListener('click', ()=>{
   const texto = document.getElementById('waTexto').value.trim();
@@ -7763,7 +7816,7 @@ function resumenPagosDe(pagos){
 }
 
 async function cargarGeneracionesAcademia(){
-  const { data, error } = await sb.from('academia_generaciones').select('id, clave, nombre, hoja, orden').order('orden');
+  const { data, error } = await sb.from('academia_generaciones').select('id, clave, nombre, hoja, orden, programa').order('orden');
   if(error){ toast('No se pudieron cargar las generaciones: ' + error.message, true); return false; }
   ac.generaciones = data || [];
   if(ac.gen === null) ac.gen = ac.generaciones[0]?.id || '';
@@ -7785,6 +7838,7 @@ async function cargarAlumnasAcademia(){
 async function renderAcademia(){
   if(ac.tab === 'graduacion') return renderGraduacion();
   if(ac.tab === 'kits') return renderKits();
+  if(ac.tab === 'certificados') return renderCertificados();
   document.getElementById('acBody').innerHTML = '<tr><td colspan="4" class="empty-note">Cargando…</td></tr>';
   if(!ac.generaciones && !await cargarGeneracionesAcademia()) return;
   document.getElementById('acGen').innerHTML = ac.generaciones.map(g=>
@@ -8459,7 +8513,9 @@ document.querySelector('#view-academia .ac-tabs').addEventListener('click', e=>{
   document.getElementById('acPanelAlumnas').hidden = ac.tab !== 'alumnas';
   document.getElementById('acPanelGraduacion').hidden = ac.tab !== 'graduacion';
   document.getElementById('acPanelKits').hidden = ac.tab !== 'kits';
-  if(ac.tab === 'graduacion') renderGraduacion(); else if(ac.tab === 'kits') renderKits(); else renderAcademia();
+  document.getElementById('acPanelCertificados').hidden = ac.tab !== 'certificados';
+  if(ac.tab === 'graduacion') renderGraduacion(); else if(ac.tab === 'kits') renderKits();
+  else if(ac.tab === 'certificados') renderCertificados(); else renderAcademia();
 });
 document.getElementById('agGrad').addEventListener('change', e=>{ ag.grad = e.target.value; ag.sel = null; ag.filtro = 'todas'; renderGraduacion(); });
 document.getElementById('agBuscar').addEventListener('input', ()=>pintarGraduacion());
@@ -8911,6 +8967,484 @@ document.getElementById('kDetalle').addEventListener('change', async e=>{
   if(['precio', 'envio_costo'].includes(campo) && x.estado === 'por_pagar' && c.total > 0 && c.debe === 0)
     await guardarKit(x, { estado:'por_preparar' }, 'academia_kit_estado', `${x.nombre}: Por pagar → Por preparar (liquidó)`);
   if(campo !== 'notas' && campo !== 'direccion') pintarKits();
+});
+
+/* =========================================================
+   ACADEMIA — pestaña Certificados (Fase 4).
+   El Hub arma el PDF en el navegador (pdf-lib): fondo de la plantilla +
+   nombre en letra manuscrita + datos. Lo sube al bucket público
+   "certificados" con un nombre aleatorio (link permanente) y se manda por
+   WhatsApp con {link}. Gira: quien llegó (Recepción) o se agregó a mano.
+   Academia: las graduadas. El folio lo configura Academia (prefijo y número).
+   ========================================================= */
+const PDFLIB_URL = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+const FONTKIT_URL = 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
+let CERT_FUENTE_MANUSCRITA = '/hub/certificados/GreatVibes-Regular.ttf';
+const C_SELECT = 'id, tipo, evento_id, inscripcion_id, alumna_id, nombre_impreso, datos, folio, estado, archivo_path, link, generado_en, enviado_en';
+const C_ESTADO = { pendiente:'Pendiente', generado:'Generado', enviado:'Enviado' };
+let cc = { tipo:'gira', plantillas:null, grupos:[], grupo:null, filas:[], otras:[], cola:[], ocupado:false };
+const CERT_BYTES = {};
+
+function cargarScript(src){
+  return new Promise((ok, mal)=>{ const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ()=>mal(new Error('No se pudo cargar ' + src)); document.head.appendChild(s); });
+}
+async function cargarPdfLib(){
+  if(!window.PDFLib) await cargarScript(PDFLIB_URL);
+  if(!window.fontkit) await cargarScript(FONTKIT_URL);
+}
+async function bytesDe(url){
+  if(!CERT_BYTES[url]){
+    const r = await fetch(url);
+    if(!r.ok) throw new Error(`No se pudo bajar ${url} (${r.status})`);
+    CERT_BYTES[url] = new Uint8Array(await r.arrayBuffer());
+  }
+  return CERT_BYTES[url];
+}
+function fechaLargaCert(iso){ return iso ? new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' }) : ''; }
+/* Un dato se imprime solo si todo lo que pide tiene valor ("Matrícula {matricula}" sin matrícula no sale). */
+function rellenarCampo(texto, v){
+  let falta = false;
+  const t = String(texto || '').replace(/\{(\w+)\}/g, (_, k)=>{ const x = v[k]; if(x == null || String(x).trim() === '') falta = true; return x ?? ''; });
+  return falta ? '' : t.trim();
+}
+function rgbHex(hex){
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '') || [0, '11', '11', '11'];
+  return PDFLib.rgb(parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255);
+}
+/* Arma el PDF (carta horizontal, 792 × 612 pt). La posición "y" de cada dato es el centro del renglón, desde arriba. */
+async function armarPdfCertificado(pl, valores){
+  await cargarPdfLib();
+  const { PDFDocument, StandardFonts } = PDFLib;
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(window.fontkit);
+  doc.setTitle(`Certificado ${valores.nombre || ''}`.trim());
+  const pag = doc.addPage([792, 612]);
+  const fondo = await bytesDe(pl.fondo_url);
+  const esPng = fondo[0] === 0x89 && fondo[1] === 0x50;
+  const img = esPng ? await doc.embedPng(fondo) : await doc.embedJpg(fondo);
+  pag.drawImage(img, { x:0, y:0, width:792, height:612 });
+  const fuentes = {
+    normal: await doc.embedFont(StandardFonts.Helvetica),
+    negrita: await doc.embedFont(StandardFonts.HelveticaBold),
+    manuscrita: await doc.embedFont(await bytesDe(CERT_FUENTE_MANUSCRITA), { subset:true }),
+  };
+  for(const c of pl.campos || []){
+    const texto = rellenarCampo(c.texto, valores); if(!texto) continue;
+    const f = fuentes[c.fuente] || fuentes.normal;
+    let tam = Number(c.tam) || 12;
+    let ancho = f.widthOfTextAtSize(texto, tam);
+    if(c.ancho_max && ancho > c.ancho_max){ tam = tam * c.ancho_max / ancho; ancho = c.ancho_max; }   // nombres largos se achican
+    const x = c.alinear === 'izq' ? c.x : c.alinear === 'der' ? c.x - ancho : c.x - ancho / 2;
+    pag.drawText(texto, { x, y:612 - c.y - tam * 0.33, size:tam, font:f, color:rgbHex(c.color) });
+  }
+  return await doc.save();
+}
+
+async function cargarPlantillasCert(){
+  const { data, error } = await sb.from('certificado_plantillas').select('id, tipo, fondo_url, campos, textos, folio_prefijo, folio_siguiente, folio_digitos');
+  if(error){ toast('No se pudieron cargar las plantillas: ' + error.message, true); return false; }
+  cc.plantillas = Object.fromEntries((data || []).map(p=>[p.tipo, p]));
+  return true;
+}
+function plantillaCert(){ return cc.plantillas?.[cc.tipo] || null; }
+function folioEjemplo(pl){ return pl?.folio_prefijo != null && pl?.folio_siguiente != null ? pl.folio_prefijo + String(pl.folio_siguiente).padStart(pl.folio_digitos || 6, '0') : null; }
+
+async function renderCertificados(){
+  document.getElementById('cGrupos').innerHTML = '<div class="empty-note">Cargando…</div>';
+  document.getElementById('cLista').innerHTML = '';
+  if(!ac.generaciones && !await cargarGeneracionesAcademia()) return;
+  if(!cc.plantillas && !await cargarPlantillasCert()) return;
+  document.querySelectorAll('[data-c-tipo]').forEach(b=>b.classList.toggle('on', b.dataset.cTipo === cc.tipo));
+  if(!document.getElementById('cPlantilla').hidden) pintarPlantillaCert();
+  if(!await cargarGruposCert()) return;
+  pintarGruposCert();
+  if(cc.grupo) await abrirGrupoCert(cc.grupo);
+}
+
+/* Grupos: cursos ya pasados del curso activo (gira) o generaciones (academia). */
+async function cargarGruposCert(){
+  if(cc.tipo === 'gira'){
+    const cursoId = await obtenerCursoActivoId();
+    if(!cursoId){ cc.grupos = []; return true; }
+    const { data:evs, error } = await sb.from('eventos').select('id, fecha, sede, ciudades ( nombre )')
+      .eq('curso_id', cursoId).lt('fecha', hoyISO()).order('fecha', { ascending:false }).limit(80);
+    if(error){ toast('No se pudieron cargar los cursos: ' + error.message, true); return false; }
+    const ids = (evs || []).map(e=>e.id);
+    const [ri, rc] = ids.length ? await Promise.all([
+      acTraerTodo(()=>sb.from('inscripciones').select('id, evento_id').in('evento_id', ids).eq('asistencia', 'llego')),
+      acTraerTodo(()=>sb.from('certificados').select('id, evento_id, inscripcion_id, estado').eq('tipo', 'gira').in('evento_id', ids)),
+    ]) : [{ data:[] }, { data:[] }];
+    if(ri.error || rc.error){ toast('No se pudieron cargar los certificados: ' + (ri.error || rc.error).message, true); return false; }
+    cc.grupos = (evs || []).map(e=>{
+      const llegaron = new Set(ri.data.filter(i=>i.evento_id === e.id).map(i=>i.id));
+      const certs = rc.data.filter(c=>c.evento_id === e.id);
+      certs.forEach(c=>llegaron.add(c.inscripcion_id));
+      return { id:e.id, titulo:e.ciudades?.nombre || '(ciudad?)', sub:fechaCorta(e.fecha), evento:e, total:llegaron.size,
+        generados:certs.filter(c=>c.estado !== 'pendiente').length, enviados:certs.filter(c=>c.estado === 'enviado').length };
+    });
+  } else {
+    const [ra, rc] = await Promise.all([
+      acTraerTodo(()=>sb.from('academia_alumnas').select('id, generacion_id').eq('decision', 'graduada')),
+      acTraerTodo(()=>sb.from('certificados').select('id, alumna_id, estado').eq('tipo', 'academia')),
+    ]);
+    if(ra.error || rc.error){ toast('No se pudieron cargar los diplomas: ' + (ra.error || rc.error).message, true); return false; }
+    const certPor = new Map(rc.data.map(c=>[c.alumna_id, c]));
+    cc.grupos = ac.generaciones.map(g=>{
+      const al = ra.data.filter(a=>a.generacion_id === g.id);
+      const certs = al.map(a=>certPor.get(a.id)).filter(Boolean);
+      return { id:g.id, titulo:g.nombre, sub:g.programa || 'Falta el programa', gen:g, total:al.length,
+        generados:certs.filter(c=>c.estado !== 'pendiente').length, enviados:certs.filter(c=>c.estado === 'enviado').length };
+    }).filter(g=>g.total);
+  }
+  if(cc.grupo && !cc.grupos.some(g=>g.id === cc.grupo)) cc.grupo = null;
+  return true;
+}
+function pintarGruposCert(){
+  const caja = document.getElementById('cGrupos');
+  if(!cc.grupos.length){
+    caja.innerHTML = `<div class="empty-note">${cc.tipo === 'gira' ? 'Todavía no hay cursos pasados del curso activo.' : 'Todavía no hay alumnas marcadas “✅ Graduada”.'}</div>`;
+    return;
+  }
+  caja.innerHTML = `<h3 style="margin:0 0 6px;">${cc.tipo === 'gira' ? 'Cursos que ya pasaron' : 'Graduadas por generación'}</h3>
+    <div class="sub" style="margin:0 0 6px;">${cc.tipo === 'gira' ? 'Asistieron = quien Recepción marcó “llegó”, más las que se agreguen a mano.' : 'Las alumnas con decisión “✅ Graduada”.'}</div>`
+    + cc.grupos.map(g=>{
+      const pct = g.total ? Math.round(g.enviados / g.total * 100) : 0;
+      return `<button type="button" class="c-grupo ${g.id === cc.grupo ? 'sel' : ''}" data-c-grupo="${escapeAttr(g.id)}">
+        <span><b>${escHtml(g.titulo)}</b><div class="sub" style="margin:0;">${escHtml(g.sub)}</div></span>
+        <span class="num"><b>${g.total}</b><small>${cc.tipo === 'gira' ? 'asistieron' : 'graduadas'}</small></span>
+        <span class="num"><b>${g.generados}</b><small>generados</small></span>
+        <span class="num"><b style="color:${g.enviados === g.total ? 'var(--success)' : 'var(--danger)'}">${g.enviados}</b><small>enviados</small></span>
+        <span class="barra"><span class="ag-barra" style="display:block;"><span class="${pct === 100 ? 'lleno' : ''}" style="width:${pct}%"></span></span></span>
+      </button>`;
+    }).join('');
+}
+
+/* Lista de un grupo: una fila por alumna con su certificado (si ya existe). */
+async function abrirGrupoCert(id){
+  cc.grupo = id;
+  const g = cc.grupos.find(x=>x.id === id); if(!g) return;
+  pintarGruposCert();
+  document.getElementById('cLista').innerHTML = '<div class="empty-note">Cargando…</div>';
+  if(cc.tipo === 'gira'){
+    const [ri, rc] = await Promise.all([
+      acTraerTodo(()=>sb.from('inscripciones').select('id, evento_id, persona_id, asistencia, estatus_id, certificado_entregado, personas!inscripciones_persona_id_fkey ( id, nombre, telefono_principal )').eq('evento_id', id)),
+      acTraerTodo(()=>sb.from('certificados').select(C_SELECT).eq('tipo', 'gira').eq('evento_id', id)),
+    ]);
+    if(ri.error || rc.error){ toast('No se pudo cargar el curso: ' + (ri.error || rc.error).message, true); return; }
+    const certPor = new Map(rc.data.map(c=>[c.inscripcion_id, c]));
+    const fila = i=>({ clave:i.id, tipo:'gira', insc:i, cert:certPor.get(i.id) || null, personaId:i.personas?.id,
+      nombre:certPor.get(i.id)?.nombre_impreso || tituloCaso(i.personas?.nombre || ''), tel:i.personas?.telefono_principal || '' });
+    cc.filas = ri.data.filter(i=>i.asistencia === 'llego' || certPor.has(i.id)).map(fila).sort((a, b)=>a.nombre.localeCompare(b.nombre, 'es'));
+    const fuera = ['no_va_al_curso', 'perdio_anticipo'];
+    cc.otras = ri.data.filter(i=>i.asistencia !== 'llego' && !certPor.has(i.id) && !fuera.includes(claveEstatus(i.estatus_id))).map(fila)
+      .sort((a, b)=>a.nombre.localeCompare(b.nombre, 'es'));
+  } else {
+    const [ra, rc] = await Promise.all([
+      acTraerTodo(()=>sb.from('academia_alumnas').select('id, generacion_id, nombre, telefono, matricula, persona_id, personas ( telefono_principal )').eq('decision', 'graduada').eq('generacion_id', id)),
+      acTraerTodo(()=>sb.from('certificados').select(C_SELECT).eq('tipo', 'academia')),
+    ]);
+    if(ra.error || rc.error){ toast('No se pudo cargar la generación: ' + (ra.error || rc.error).message, true); return; }
+    const certPor = new Map(rc.data.map(c=>[c.alumna_id, c]));
+    cc.filas = ra.data.map(a=>({ clave:a.id, tipo:'academia', alumna:a, cert:certPor.get(a.id) || null, personaId:a.persona_id,
+      nombre:certPor.get(a.id)?.nombre_impreso || tituloCaso(a.nombre), tel:a.personas?.telefono_principal || a.telefono || '' }))
+      .sort((a, b)=>a.nombre.localeCompare(b.nombre, 'es'));
+    cc.otras = [];
+  }
+  pintarListaCert();
+}
+function pintarListaCert(){
+  const g = cc.grupos.find(x=>x.id === cc.grupo); if(!g) return;
+  const pendientes = cc.filas.filter(f=>!f.cert || f.cert.estado === 'pendiente');
+  const porMandar = cc.filas.filter(f=>f.cert?.estado === 'generado' && f.tel);
+  const pl = plantillaCert();
+  const sinFolio = !folioEjemplo(pl);
+  document.getElementById('cLista').innerHTML = `
+    <div class="c-cabeza-lista">
+      <div><h3 style="margin:0;">${escHtml(g.titulo)}</h3><div class="sub" style="margin:0;">${escHtml(g.sub)} · ${cc.filas.length} alumna${cc.filas.length === 1 ? '' : 's'}</div></div>
+      <div class="btns">
+        <button type="button" class="btn-outline small" data-c-acc="generarTodos" ${pendientes.length && !cc.ocupado ? '' : 'disabled'}>📄 Generar ${pendientes.length === 1 ? 'el 1 pendiente' : `los ${pendientes.length} pendientes`}</button>
+        <button type="button" class="btn-primary small" data-c-acc="mandarTodos" ${porMandar.length && !cc.ocupado ? '' : 'disabled'}>💬 Mandar ${porMandar.length === 1 ? 'el 1 link' : `los ${porMandar.length} links`}</button>
+      </div>
+    </div>
+    ${sinFolio ? '<div class="ac-revisar">⚠️ Antes de generar, configura el folio (prefijo y siguiente número) en “⚙️ Plantilla y folio”.</div>' : ''}
+    ${cc.tipo === 'academia' ? `<div class="ac-form" style="margin:8px 0;"><label class="ancho">Programa de esta generación (sale en el diploma)<input data-c-programa="${escapeAttr(g.id)}" maxlength="80" value="${escapeAttr(g.gen?.programa || '')}" placeholder="Ej. CHEF REPOSTERO EJECUTIVO"></label></div>` : ''}
+    ${cc.filas.length ? cc.filas.map(f=>{
+      const est = f.cert?.estado || 'pendiente';
+      return `<div class="c-fila" data-c-fila="${escapeAttr(f.clave)}">
+        <label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--ink-soft);font-weight:600;">Nombre como se imprime
+          <input data-c-nombre="${escapeAttr(f.clave)}" maxlength="80" value="${escapeAttr(f.nombre)}"></label>
+        <div><span class="c-estado ${est}">${C_ESTADO[est]}</span>${f.cert?.folio ? `<div class="sub" style="margin:2px 0 0;">Folio ${escHtml(f.cert.folio)}</div>` : ''}${f.tel ? '' : '<div class="sub" style="margin:2px 0 0;">Sin teléfono</div>'}</div>
+        <div class="c-acciones">
+          <button type="button" data-c-generar="${escapeAttr(f.clave)}" ${cc.ocupado ? 'disabled' : ''}>${f.cert && est !== 'pendiente' ? '↻ Regenerar' : '📄 Generar'}</button>
+          ${f.cert?.link ? `<a href="${escapeAttr(f.cert.link)}" target="_blank" rel="noopener">Ver PDF</a>` : ''}
+          ${f.cert?.link && f.tel ? `<button type="button" data-c-mandar="${escapeAttr(f.clave)}" aria-label="Enviar link por WhatsApp">💬</button>` : ''}
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty-note">Nadie en este grupo todavía.</div>'}
+    ${cc.otras.length ? `<div class="ac-caja" style="margin-top:12px;"><h4>¿Falta alguien?</h4>
+      <div class="ac-form"><label class="ancho">Agregar a alguien de este curso (aunque no la hayan marcado “llegó”)
+        <select id="cAgregarSel"><option value="">— Elige —</option>${cc.otras.map(o=>`<option value="${escapeAttr(o.clave)}">${escHtml(o.nombre)}</option>`).join('')}</select></label>
+        <button type="button" class="btn-outline small ancho" data-c-acc="agregar">+ Agregar</button></div></div>` : ''}`;
+}
+
+function valoresCert(f){
+  const pl = plantillaCert(); const t = pl?.textos || {};
+  if(f.tipo === 'gira'){
+    const ev = cc.grupos.find(g=>g.id === cc.grupo)?.evento;
+    return { nombre:f.nombre, curso:t.curso || '', ciudad:ev?.ciudades?.nombre || '', fecha:fechaLargaCert(ev?.fecha) };
+  }
+  const g = ac.generaciones.find(x=>x.id === f.alumna.generacion_id);
+  return { nombre:f.nombre, programa:g?.programa || '', generacion:(g?.nombre || '').toUpperCase(), lugar_fecha:t.lugar_fecha || '',
+           firma2:t.firma2 || '', firma2_cargo:t.firma2_cargo || '', matricula:f.alumna.matricula || '' };
+}
+
+/* Genera (o regenera) el PDF de una fila: folio, archivo, link. Regresa false si algo falló. */
+async function generarCertificado(f){
+  const pl = plantillaCert();
+  if(!pl){ toast('Falta la plantilla.', true); return false; }
+  const valores = valoresCert(f);
+  if(!String(f.nombre || '').trim()){ toast('Falta el nombre a imprimir.', true); return false; }
+  if(f.tipo === 'academia' && !valores.programa){ toast('Escribe primero el programa de esta generación.', true); return false; }
+  // El registro y el folio van primero: si el PDF falla, se reintenta con el mismo folio.
+  if(!f.cert){
+    const nuevo = { tipo:f.tipo, nombre_impreso:f.nombre, estado:'pendiente', creado_por:usuarioActual?.id || null,
+      ...(f.tipo === 'gira' ? { inscripcion_id:f.insc.id, evento_id:f.insc.evento_id } : { alumna_id:f.alumna.id }) };
+    const { data, error } = await sb.from('certificados').insert(nuevo).select(C_SELECT).single();
+    if(error){ toast('No se pudo crear el certificado: ' + error.message, true); return false; }
+    f.cert = data;
+  }
+  if(!f.cert.folio){
+    const { data:folio, error } = await sb.rpc('siguiente_folio', { p_tipo:f.tipo });
+    if(error){ toast(error.message, true); return false; }
+    const r = await sb.from('certificados').update({ folio }).eq('id', f.cert.id);
+    if(r.error){ toast('No se pudo guardar el folio: ' + r.error.message, true); return false; }
+    f.cert.folio = folio;
+  }
+  valores.folio = f.cert.folio;
+  let bytes;
+  try{ bytes = await armarPdfCertificado(pl, valores); }
+  catch(err){ toast('No se pudo armar el PDF: ' + (err?.message || err), true); return false; }
+  const ruta = `${f.tipo}/${new Date().getFullYear()}/${crypto.randomUUID()}.pdf`;   // nombre imposible de adivinar
+  const sube = await sb.storage.from('certificados').upload(ruta, bytes, { contentType:'application/pdf', upsert:false });
+  if(sube.error){ toast('No se pudo subir el PDF: ' + sube.error.message, true); return false; }
+  const link = sb.storage.from('certificados').getPublicUrl(ruta).data.publicUrl;
+  const cambios = { nombre_impreso:f.nombre, datos:valores, archivo_path:ruta, link, estado:'generado',
+                    generado_en:new Date().toISOString(), generado_por:usuarioActual?.id || null };
+  const { error } = await sb.from('certificados').update(cambios).eq('id', f.cert.id);
+  if(error){ toast('No se pudo guardar el certificado: ' + error.message, true); return false; }
+  Object.assign(f.cert, cambios);
+  registrarActividad('cert_generado', `${f.nombre} · folio ${f.cert.folio}`);
+  return true;
+}
+async function generarVarios(filas){
+  cc.ocupado = true; let ok = 0;
+  try{
+    for(let i = 0; i < filas.length; i++){
+      toast(`📄 Generando ${i + 1} de ${filas.length}…`);
+      if(await generarCertificado(filas[i])) ok++; else break;   // si algo falla (p. ej. folio), se detiene
+    }
+  } catch(err){ console.error(err); }
+  finally{ cc.ocupado = false; }
+  toast(ok === filas.length ? `✓ ${ok} certificado${ok === 1 ? '' : 's'} listo${ok === 1 ? '' : 's'}.` : `Se generaron ${ok} de ${filas.length}.`, ok !== filas.length);
+  await cargarGruposCert(); pintarGruposCert(); pintarListaCert();
+}
+
+/* WhatsApp con el link; al tocar "Abrir WhatsApp" queda "Enviado". */
+function mandarCertificado(f, alTerminar){
+  return abrirEnviarWhatsApp({ nombre:f.nombre, telefono:f.tel, personaId:f.personaId, link:f.cert.link,
+    ciudad:cc.tipo === 'gira' ? (cc.grupos.find(g=>g.id === cc.grupo)?.evento?.ciudades?.nombre || '') : '',
+    alEnviar: async ()=>{ await marcarEnviadoCert(f); if(alTerminar) alTerminar(); } });
+}
+async function marcarEnviadoCert(f){
+  if(f.cert.estado === 'enviado') return;
+  const cambios = { estado:'enviado', enviado_en:new Date().toISOString(), enviado_por:usuarioActual?.id || null };
+  const { error } = await sb.from('certificados').update(cambios).eq('id', f.cert.id);
+  if(error){ toast('No se pudo marcar como enviado: ' + error.message, true); return; }
+  Object.assign(f.cert, cambios);
+  if(f.tipo === 'gira') await sb.from('inscripciones').update({ certificado_entregado:true }).eq('id', f.insc.id);
+  registrarActividad('cert_enviado', `${f.nombre} · folio ${f.cert.folio}`);
+  const g = cc.grupos.find(x=>x.id === cc.grupo); if(g) g.enviados++;
+  pintarGruposCert(); pintarListaCert();
+}
+function mandarSiguienteCert(){
+  const f = cc.cola.shift();
+  if(!f){ toast('✓ Ya se mandaron todos los links.'); return; }
+  mandarCertificado(f, ()=>{ if(cc.cola.length) setTimeout(mandarSiguienteCert, 400); else toast('✓ Ya se mandaron todos los links.'); });
+}
+
+/* Plantilla: folio, textos fijos, fondo y posición de cada dato (con vista previa). */
+function pintarPlantillaCert(){
+  const pl = plantillaCert(); const caja = document.getElementById('cPlantilla');
+  if(!pl){ caja.innerHTML = '<div class="sub">Falta la plantilla.</div>'; return; }
+  const t = pl.textos || {};
+  const textos = cc.tipo === 'gira' ? [['curso', 'Curso (como sale en el certificado)']]
+    : [['lugar_fecha', 'Lugar y fecha'], ['firma2', 'Segunda firma: nombre'], ['firma2_cargo', 'Segunda firma: cargo']];
+  const muestra = cc.tipo === 'gira'
+    ? { nombre:'Nombre de la Alumna', curso:t.curso || '', ciudad:'Ciudad', fecha:fechaLargaCert(hoyISO()), folio:folioEjemplo(pl) || 'FOLIO' }
+    : { nombre:'Nombre de la Alumna', programa:'PROGRAMA', generacion:'1ª GENERACIÓN', lugar_fecha:t.lugar_fecha || '', firma2:t.firma2 || 'Segunda firma', firma2_cargo:t.firma2_cargo || '', matricula:'XXXXXXXX', folio:folioEjemplo(pl) || 'FOLIO' };
+  caja.innerHTML = `
+    <div class="ac-caja"><h4>Folio</h4>
+      <div class="ag-datos">
+        <label>Prefijo<input data-c-pl="folio_prefijo" maxlength="20" value="${escapeAttr(pl.folio_prefijo ?? '')}" placeholder="${cc.tipo === 'gira' ? 'GLM-26-' : 'ACA-26-'}"></label>
+        <label>Siguiente número<input type="number" min="0" step="1" data-c-pl="folio_siguiente" value="${pl.folio_siguiente ?? ''}"></label>
+        <label>Dígitos<input type="number" min="1" max="10" step="1" data-c-pl="folio_digitos" value="${pl.folio_digitos ?? 6}"></label>
+      </div>
+      <div class="sub" style="margin:0;">${folioEjemplo(pl) ? `El siguiente certificado lleva el folio <b>${escHtml(folioEjemplo(pl))}</b>.` : 'Pon el prefijo y el número donde van; el Hub sigue la cuenta.'}</div>
+    </div>
+    <div class="ac-caja"><h4>Textos</h4><div class="ag-datos">${textos.map(([k, l])=>`<label>${escHtml(l)}<input data-c-texto="${k}" maxlength="120" value="${escapeAttr(t[k] || '')}"></label>`).join('')}</div></div>
+    <div class="ac-caja"><h4>Fondo y posición de cada dato</h4>
+      <div class="c-previa" style="background-image:url('${escapeAttr(pl.fondo_url)}')">${(pl.campos || []).map(c=>{
+        const txt = rellenarCampo(c.texto, muestra) || c.texto;
+        const tx = c.alinear === 'izq' ? '0' : c.alinear === 'der' ? '-100%' : '-50%';
+        return `<span style="left:${(c.x / 792 * 100).toFixed(2)}%;top:${(c.y / 612 * 100).toFixed(2)}%;font-size:${(c.tam / 792 * 100).toFixed(3)}cqw;color:${escapeAttr(c.color || '#111')};transform:translate(${tx},-50%);font-family:${c.fuente === 'manuscrita' ? "'Great Vibes',cursive" : 'Helvetica,Arial,sans-serif'};font-weight:${c.fuente === 'negrita' ? 700 : 400}">${escHtml(txt)}</span>`;
+      }).join('')}</div>
+      <div class="c-campos">
+        <span class="h">DATO (texto)</span><span class="h">X</span><span class="h">Y</span><span class="h">TAMAÑO</span>
+        ${(pl.campos || []).map((c, i)=>`<input data-c-campo="${i}" data-c-prop="texto" value="${escapeAttr(c.texto)}" aria-label="Texto de ${escapeAttr(c.clave)}">
+          <input type="number" step="1" data-c-campo="${i}" data-c-prop="x" value="${c.x}" aria-label="X de ${escapeAttr(c.clave)}">
+          <input type="number" step="1" data-c-campo="${i}" data-c-prop="y" value="${c.y}" aria-label="Y de ${escapeAttr(c.clave)}">
+          <input type="number" step="0.5" data-c-campo="${i}" data-c-prop="tam" value="${c.tam}" aria-label="Tamaño de ${escapeAttr(c.clave)}">`).join('')}
+      </div>
+      <div class="sub" style="margin:0;">Medidas en puntos de una hoja carta horizontal (792 × 612); “Y” es el centro del renglón, desde arriba.</div>
+      <div class="c-acciones" style="justify-content:flex-start;">
+        <label class="btn-outline small" style="width:auto;display:inline-flex;align-items:center;cursor:pointer;">🖼️ Subir otro fondo<input type="file" id="cFondoArchivo" accept="image/png,image/jpeg" hidden></label>
+        <button type="button" data-c-acc="previaPdf">👁️ Vista previa en PDF</button>
+      </div>
+    </div>`;
+}
+async function guardarPlantillaCert(cambios, detalle){
+  const pl = plantillaCert();
+  const { error } = await sb.from('certificado_plantillas').update({ ...cambios, actualizado_por:usuarioActual?.id || null, actualizado_en:new Date().toISOString() }).eq('id', pl.id);
+  if(error){ toast('No se pudo guardar la plantilla: ' + error.message, true); pintarPlantillaCert(); return false; }
+  Object.assign(pl, cambios);
+  registrarActividad('cert_plantilla', `${cc.tipo === 'gira' ? 'Gira' : 'Academia'} · ${detalle}`);
+  pintarPlantillaCert();
+  if(cc.grupo) pintarListaCert();
+  return true;
+}
+
+document.querySelector('#acPanelCertificados .c-tipo').addEventListener('click', e=>{
+  const b = e.target.closest('[data-c-tipo]'); if(!b || b.dataset.cTipo === cc.tipo) return;
+  cc.tipo = b.dataset.cTipo; cc.grupo = null; cc.filas = []; renderCertificados();
+});
+document.getElementById('cPlantillaBtn').addEventListener('click', ()=>{
+  const caja = document.getElementById('cPlantilla'); caja.hidden = !caja.hidden;
+  if(!caja.hidden) pintarPlantillaCert();
+});
+document.getElementById('cGrupos').addEventListener('click', e=>{
+  const b = e.target.closest('[data-c-grupo]'); if(b) abrirGrupoCert(b.dataset.cGrupo);
+});
+document.getElementById('cLista').addEventListener('click', async e=>{
+  if(cc.ocupado) return;
+  const gen = e.target.closest('[data-c-generar]');
+  if(gen){
+    const f = cc.filas.find(x=>x.clave === gen.dataset.cGenerar); if(!f) return;
+    if(f.cert?.estado === 'enviado'){
+      const ok = await preguntarConfirmacion({ titulo:'¿Regenerar el certificado?', textoSi:'Sí, regenerar',
+        aviso:`Ya se le mandó a ${escHtml(f.nombre)}. Se hace un PDF nuevo con el mismo folio y otro link: habría que mandárselo de nuevo.` });
+      if(ok === null) return;
+    }
+    cc.ocupado = true; pintarListaCert();
+    let ok = false;
+    try{ ok = await generarCertificado(f); }
+    catch(err){ toast('No se pudo generar: ' + (err?.message || err), true); }
+    finally{ cc.ocupado = false; }   // aunque algo truene, la lista no se queda bloqueada
+    if(ok) toast(`📄 Certificado de ${f.nombre} listo.`);
+    await cargarGruposCert(); pintarGruposCert(); pintarListaCert();
+    return;
+  }
+  const man = e.target.closest('[data-c-mandar]');
+  if(man){ const f = cc.filas.find(x=>x.clave === man.dataset.cMandar); if(f) mandarCertificado(f); return; }
+  const b = e.target.closest('[data-c-acc]'); if(!b) return;
+  if(b.dataset.cAcc === 'generarTodos') return generarVarios(cc.filas.filter(f=>!f.cert || f.cert.estado === 'pendiente'));
+  if(b.dataset.cAcc === 'mandarTodos'){
+    cc.cola = cc.filas.filter(f=>f.cert?.estado === 'generado' && f.tel);
+    toast(`Se abre WhatsApp de una en una: ${cc.cola.length} por mandar.`);
+    return mandarSiguienteCert();
+  }
+  if(b.dataset.cAcc === 'agregar'){
+    const id = document.getElementById('cAgregarSel').value;
+    const f = cc.otras.find(x=>x.clave === id); if(!f){ toast('Elige a quién agregar.', true); return; }
+    const { data, error } = await sb.from('certificados').insert({ tipo:'gira', inscripcion_id:f.insc.id, evento_id:f.insc.evento_id,
+      nombre_impreso:f.nombre, estado:'pendiente', creado_por:usuarioActual?.id || null }).select(C_SELECT).single();
+    if(error){ toast('No se pudo agregar: ' + error.message, true); return; }
+    f.cert = data;
+    cc.otras = cc.otras.filter(x=>x !== f);
+    cc.filas = [...cc.filas, f].sort((a, c)=>a.nombre.localeCompare(c.nombre, 'es'));
+    registrarActividad('cert_agregado', `${f.nombre} (sin "llegó" en Recepción)`);
+    await cargarGruposCert(); pintarGruposCert(); pintarListaCert();
+  }
+});
+document.getElementById('cLista').addEventListener('change', async e=>{
+  const n = e.target.dataset.cNombre;
+  if(n){
+    const f = cc.filas.find(x=>x.clave === n); if(!f) return;
+    const nombre = e.target.value.trim();
+    if(!nombre){ e.target.value = f.nombre; return; }
+    f.nombre = nombre;
+    if(f.cert){
+      const { error } = await sb.from('certificados').update({ nombre_impreso:nombre }).eq('id', f.cert.id);
+      if(error){ toast('No se pudo guardar el nombre: ' + error.message, true); return; }
+      f.cert.nombre_impreso = nombre;
+      if(f.cert.estado !== 'pendiente') toast('Nombre guardado. Toca “↻ Regenerar” para que salga en el PDF.');
+    }
+    return;
+  }
+  const gid = e.target.dataset.cPrograma;
+  if(gid){
+    const g = ac.generaciones.find(x=>x.id === gid); if(!g) return;
+    const programa = e.target.value.trim() || null;
+    const { error } = await sb.from('academia_generaciones').update({ programa }).eq('id', gid);
+    if(error){ toast('No se pudo guardar el programa: ' + error.message, true); e.target.value = g.programa || ''; return; }
+    g.programa = programa;
+    const grupo = cc.grupos.find(x=>x.id === gid); if(grupo){ grupo.sub = programa || 'Falta el programa'; grupo.gen = g; }
+    registrarActividad('cert_plantilla', `Programa de ${g.nombre}: ${programa || '—'}`);
+    pintarGruposCert(); toast('Programa guardado.');
+  }
+});
+document.getElementById('cPlantilla').addEventListener('change', async e=>{
+  const pl = plantillaCert(); if(!pl) return;
+  const t = e.target;
+  if(t.id === 'cFondoArchivo'){
+    const archivo = t.files?.[0]; if(!archivo) return;
+    if(!/image\/(png|jpeg)/.test(archivo.type)){ toast('El fondo tiene que ser PNG o JPG.', true); return; }
+    const ruta = `plantillas/${crypto.randomUUID()}.${archivo.type === 'image/png' ? 'png' : 'jpg'}`;
+    const sube = await sb.storage.from('certificados').upload(ruta, archivo, { contentType:archivo.type, upsert:false });
+    if(sube.error){ toast('No se pudo subir el fondo: ' + sube.error.message, true); return; }
+    await guardarPlantillaCert({ fondo_url:sb.storage.from('certificados').getPublicUrl(ruta).data.publicUrl }, 'fondo nuevo');
+    return;
+  }
+  if(t.dataset.cPl){
+    const campo = t.dataset.cPl; const txt = t.value.trim();
+    const valor = campo === 'folio_prefijo' ? (txt || null) : (txt === '' ? null : Math.round(Number(txt)));
+    if(campo !== 'folio_prefijo' && valor != null && !(valor >= 0)){ toast('Escribe un número válido.', true); pintarPlantillaCert(); return; }
+    if(campo === 'folio_digitos' && valor == null){ pintarPlantillaCert(); return; }
+    await guardarPlantillaCert({ [campo]:valor }, `folio · ${campo.replace('folio_', '')}: ${valor ?? '—'}`);
+    return;
+  }
+  if(t.dataset.cTexto){
+    await guardarPlantillaCert({ textos:{ ...(pl.textos || {}), [t.dataset.cTexto]:t.value.trim() } }, `${t.dataset.cTexto}: ${t.value.trim() || '—'}`);
+    return;
+  }
+  if(t.dataset.cCampo != null){
+    const i = Number(t.dataset.cCampo), prop = t.dataset.cProp;
+    const campos = (pl.campos || []).map(c=>({ ...c }));
+    campos[i][prop] = prop === 'texto' ? t.value : Number(t.value);
+    if(prop !== 'texto' && !Number.isFinite(campos[i][prop])){ pintarPlantillaCert(); return; }
+    await guardarPlantillaCert({ campos }, `posición de ${campos[i].clave}`);
+  }
+});
+document.getElementById('cPlantilla').addEventListener('click', async e=>{
+  if(!e.target.closest('[data-c-acc="previaPdf"]')) return;
+  const pl = plantillaCert(); if(!pl) return;
+  const t = pl.textos || {};
+  const muestra = cc.tipo === 'gira'
+    ? { nombre:'Nombre Completo de la Alumna', curso:t.curso || '', ciudad:'Ciudad', fecha:fechaLargaCert(hoyISO()), folio:folioEjemplo(pl) || 'FOLIO' }
+    : { nombre:'Nombre Completo de la Alumna', programa:'PROGRAMA DE LA GENERACIÓN', generacion:'1ª GENERACIÓN', lugar_fecha:t.lugar_fecha || '', firma2:t.firma2 || 'Segunda firma', firma2_cargo:t.firma2_cargo || '', matricula:'XXXXXXXX', folio:folioEjemplo(pl) || 'FOLIO' };
+  try{
+    const bytes = await armarPdfCertificado(pl, muestra);
+    window.open(URL.createObjectURL(new Blob([bytes], { type:'application/pdf' })), '_blank', 'noopener');
+  } catch(err){ toast('No se pudo armar la vista previa: ' + (err?.message || err), true); }
 });
 
 /* =========================================================
