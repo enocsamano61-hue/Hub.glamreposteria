@@ -87,4 +87,8 @@ El certificado de la gira ahora es **el diploma que ya usan** (hecho en Canva): 
   - celular.
 - **Revisión a ojo:** los PDF que arma el Hub (`pruebas/capturas/diploma-gira.pdf` y `diploma-gira-largo.pdf`) se compararon con el original: nombre centrado entre las líneas y mes igual al de Canva.
 - **Regresión:** todas en verde (15 archivos).
+- **Sitio publicado** (con la plantilla ya en la base):
+  - el diploma se arma sin errores con el pdf-lib del CDN y el fondo y las letras publicados;
+  - comparado lado a lado con el PDF de Canva, sale igual, con el nombre en su recuadro;
+  - en la vista previa de la pantalla cargan Nickainley y Libre Baskerville.
 - **API real:** las consultas nuevas responden 200 (plantillas con `ancho`, `alto` y `usa_folio`; inscripciones con `pagos!pagos_inscripcion_id_fkey`).
