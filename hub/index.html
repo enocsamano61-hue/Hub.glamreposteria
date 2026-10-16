@@ -845,6 +845,8 @@
   .ag-cabeza-fila input[type=search]{ flex:1; min-width:180px; height:40px; border:1px solid var(--border); border-radius:10px; padding:0 10px; font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink); }
   .k-incluye textarea{ width:100%; min-height:54px; resize:vertical; border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); box-sizing:border-box; }
   @font-face{ font-family:'Great Vibes'; src:url('/certificados/GreatVibes-Regular.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Nickainley'; src:url('/certificados/Nickainley-Normal.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Libre Baskerville Cert'; font-style:italic; src:url('/certificados/LibreBaskerville-Italic.ttf') format('truetype'); font-display:swap; }
   .c-tipo{ display:flex; background:var(--border); border-radius:10px; padding:3px; }
   .c-tipo button{ border:0; background:transparent; border-radius:8px; padding:8px 14px; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink-soft); cursor:pointer; }
   .c-tipo button.on{ background:var(--card); color:var(--ink); }
@@ -863,8 +865,13 @@
   .c-cabeza-lista{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:6px; }
   .c-cabeza-lista .btns{ display:flex; gap:8px; flex-wrap:wrap; }
   .c-cabeza-lista .btns button{ width:auto; }
-  .c-previa{ position:relative; width:100%; max-width:720px; aspect-ratio:792 / 612; border:1px solid var(--border); border-radius:6px; overflow:hidden; background:#fff center/cover no-repeat; container-type:inline-size; }
+  .c-previa{ position:relative; width:100%; max-width:720px; border:1px solid var(--border); border-radius:6px; overflow:hidden; background:#fff center/cover no-repeat; container-type:inline-size; }
   .c-previa span{ position:absolute; white-space:nowrap; line-height:1; transform:translateY(-50%); }
+  .c-previa span.bloque{ text-align:center; }
+  .c-asi{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; }
+  .c-asi b{ font-family:'Nickainley', cursive; font-weight:400; font-size:15px; color:#774228; }
+  .c-deben{ margin-top:12px; }
+  .c-deben .c-fila{ grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); opacity:.85; }
   .c-campos{ display:grid; grid-template-columns:minmax(0,1.2fr) repeat(3, 70px); gap:6px 8px; font-size:12px; align-items:center; }
   .c-campos input{ height:32px; border:1px solid var(--border); border-radius:7px; padding:0 6px; font-family:inherit; font-size:12.5px; width:100%; box-sizing:border-box; }
   .c-campos .h{ font-weight:700; color:var(--ink-soft); font-size:10.5px; letter-spacing:.04em; }
@@ -8974,15 +8981,27 @@ document.getElementById('kDetalle').addEventListener('change', async e=>{
    El Hub arma el PDF en el navegador (pdf-lib): fondo de la plantilla +
    nombre en letra manuscrita + datos. Lo sube al bucket público
    "certificados" con un nombre aleatorio (link permanente) y se manda por
-   WhatsApp con {link}. Gira: quien llegó (Recepción) o se agregó a mano.
-   Academia: las graduadas. El folio lo configura Academia (prefijo y número).
+   WhatsApp con {link}. Gira: quien llegó (Recepción) y ya liquidó con pagos
+   confirmados (o se agregó a mano, también liquidada). Academia: las graduadas.
+   El folio lo configura Academia (prefijo y número); la gira no lleva folio.
    ========================================================= */
 const PDFLIB_URL = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
 const FONTKIT_URL = 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
-let CERT_FUENTE_MANUSCRITA = '/certificados/GreatVibes-Regular.ttf';
+/* Letras propias de las plantillas (campo.fuente). Se cargan solo si la plantilla las usa y van
+   completas dentro del PDF: la licencia de Nickainley no permite modificar (recortar) la letra. */
+let CERT_FUENTES = {
+  manuscrita: '/certificados/GreatVibes-Regular.ttf',
+  nickainley: '/certificados/Nickainley-Normal.ttf',
+  baskerville_italica: '/certificados/LibreBaskerville-Italic.ttf',
+};
+const CERT_FUENTE_CSS = { manuscrita:"'Great Vibes',cursive", nickainley:"'Nickainley',cursive", baskerville_italica:"'Libre Baskerville Cert',serif" };
 const C_SELECT = 'id, tipo, evento_id, inscripcion_id, alumna_id, nombre_impreso, datos, folio, estado, archivo_path, link, generado_en, enviado_en';
 const C_ESTADO = { pendiente:'Pendiente', generado:'Generado', enviado:'Enviado' };
-let cc = { tipo:'gira', plantillas:null, grupos:[], grupo:null, filas:[], otras:[], cola:[], ocupado:false };
+let cc = { tipo:'gira', plantillas:null, grupos:[], grupo:null, filas:[], otras:[], deben:[], cola:[], ocupado:false };
+/* Gira: el certificado se da a quien ya liquidó y no tiene pagos "🏦 por confirmar". */
+const C_INSC_PAGO = 'liquidado, anticipo, restante, precio_pactado, pagos!pagos_inscripcion_id_fkey ( verificacion )';
+function pagoCompletoCert(i){ return debeDe(i) === 0 && !pagosPorConfirmar(i).length; }
+function mesCert(iso){ return iso ? `${new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { month:'long' })} ${iso.slice(0, 4)}` : ''; }
 const CERT_BYTES = {};
 
 function cargarScript(src){
@@ -9011,42 +9030,101 @@ function rgbHex(hex){
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '') || [0, '11', '11', '11'];
   return PDFLib.rgb(parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255);
 }
-/* Arma el PDF (carta horizontal, 792 × 612 pt). La posición "y" de cada dato es el centro del renglón, desde arriba. */
+/* Nombre como se imprime: palabras con mayúscula, "de", "la", "del"… en minúscula. */
+const CERT_PARTICULAS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'di', 'van', 'von']);
+function nombreDiploma(s){
+  return String(s || '').trim().toLowerCase().split(/\s+/).filter(Boolean)
+    .map((w, i)=>i > 0 && CERT_PARTICULAS.has(w) ? w : w.replace(/(^|-)(\p{L})/gu, (m, a, b)=>a + b.toUpperCase())).join(' ');
+}
+/* Renglones del nombre: nombre(s) / apellido paterno / apellido materno.
+   "de la Cruz" o "de los Santos" van juntos (la partícula se pega a la palabra que sigue). */
+function renglonesNombre(nombre, max = 3){
+  const bloques = []; let pend = [];
+  for(const w of String(nombre || '').trim().split(/\s+/).filter(Boolean)){
+    pend.push(w);
+    if(!CERT_PARTICULAS.has(w.toLowerCase())){ bloques.push(pend.join(' ')); pend = []; }
+  }
+  if(pend.length){ if(bloques.length) bloques[bloques.length - 1] += ' ' + pend.join(' '); else bloques.push(pend.join(' ')); }
+  if(bloques.length <= max) return bloques;
+  return [bloques.slice(0, bloques.length - max + 1).join(' '), ...bloques.slice(bloques.length - max + 1)];
+}
+/* Un dato en varios renglones (el nombre del diploma): se mide la tinta real de cada renglón para
+   centrarlo en su caja (c.x, c.y = centro; c.ancho × c.alto) sin tocar las líneas del fondo. */
+function dibujarBloqueCert(pag, f, k, texto, c, H, color){
+  const lineas = renglonesNombre(texto, c.renglones);
+  const m = lineas.map(t=>{
+    if(!k){ const w = f.widthOfTextAtSize(t, 1), alto = f.heightAtSize(1, { descender:false }); return { x0:0, x1:w, arriba:alto, abajo:alto - f.heightAtSize(1) }; }
+    const b = k.layout(t).bbox, u = k.unitsPerEm;
+    return { x0:b.minX / u, x1:b.maxX / u, arriba:b.maxY / u, abajo:b.minY / u };
+  });
+  const paso = Number(c.interlineado) || 1.05, n = lineas.length;
+  const altoT = m[0].arriba + (n - 1) * paso - m[n - 1].abajo;
+  const anchoT = Math.max(...m.map(x=>x.x1 - x.x0));
+  const tam = Math.min(Number(c.tam) || 40, c.ancho / anchoT, c.alto / altoT);
+  // Antes que un diploma con letra diminuta, se detiene y pide acortar el nombre.
+  if(tam < (Number(c.tam_min) || 12)) throw new Error('El nombre es demasiado largo para el diploma. Acórtalo en “Nombre como se imprime”.');
+  const arriba = c.y - altoT * tam / 2;
+  lineas.forEach((t, i)=>{
+    const base = arriba + m[0].arriba * tam + i * paso * tam;   // línea base, desde arriba
+    pag.drawText(t, { x:c.x - (m[i].x0 + m[i].x1) / 2 * tam, y:H - base, size:tam, font:f, color });
+  });
+}
+/* Arma el PDF. Tamaño de hoja de la plantilla (por defecto carta horizontal, 792 × 612 pt).
+   La posición "y" de cada dato es el centro del renglón, desde arriba. */
 async function armarPdfCertificado(pl, valores){
   await cargarPdfLib();
-  const { PDFDocument, StandardFonts } = PDFLib;
+  const { PDFDocument, StandardFonts, pushGraphicsState, popGraphicsState, setCharacterSpacing } = PDFLib;
+  const W = Number(pl.ancho) || 792, H = Number(pl.alto) || 612;
   const doc = await PDFDocument.create();
   doc.registerFontkit(window.fontkit);
   doc.setTitle(`Certificado ${valores.nombre || ''}`.trim());
-  const pag = doc.addPage([792, 612]);
+  const pag = doc.addPage([W, H]);
   const fondo = await bytesDe(pl.fondo_url);
   const esPng = fondo[0] === 0x89 && fondo[1] === 0x50;
   const img = esPng ? await doc.embedPng(fondo) : await doc.embedJpg(fondo);
-  pag.drawImage(img, { x:0, y:0, width:792, height:612 });
-  const fuentes = {
-    normal: await doc.embedFont(StandardFonts.Helvetica),
-    negrita: await doc.embedFont(StandardFonts.HelveticaBold),
-    manuscrita: await doc.embedFont(await bytesDe(CERT_FUENTE_MANUSCRITA), { subset:true }),
-  };
+  pag.drawImage(img, { x:0, y:0, width:W, height:H });
+  const fuentes = { normal: await doc.embedFont(StandardFonts.Helvetica), negrita: await doc.embedFont(StandardFonts.HelveticaBold) };
+  const medidas = {};   // fontkit de cada letra propia: para medir la tinta y revisar que tenga cada letra
+  for(const clave of new Set((pl.campos || []).map(c=>c.fuente))){
+    if(!CERT_FUENTES[clave]) continue;
+    const bytes = await bytesDe(CERT_FUENTES[clave]);
+    fuentes[clave] = await doc.embedFont(bytes, { subset:false });
+    medidas[clave] = window.fontkit.create(bytes);
+  }
   for(const c of pl.campos || []){
     const texto = rellenarCampo(c.texto, valores); if(!texto) continue;
-    const f = fuentes[c.fuente] || fuentes.normal;
+    const f = fuentes[c.fuente] || fuentes.normal, k = medidas[c.fuente];
+    if(k){
+      const faltan = [...new Set([...texto].filter(ch=>ch.trim() && !k.hasGlyphForCodePoint(ch.codePointAt(0))))];
+      if(faltan.length) throw new Error(`La letra del certificado no tiene “${faltan.join(' ')}”. Corrige el texto antes de generar.`);
+    }
+    const color = rgbHex(c.color);
+    if(c.renglones){ dibujarBloqueCert(pag, f, k, texto, c, H, color); continue; }
     let tam = Number(c.tam) || 12;
-    let ancho = f.widthOfTextAtSize(texto, tam);
-    if(c.ancho_max && ancho > c.ancho_max){ tam = tam * c.ancho_max / ancho; ancho = c.ancho_max; }   // nombres largos se achican
-    const x = c.alinear === 'izq' ? c.x : c.alinear === 'der' ? c.x - ancho : c.x - ancho / 2;
-    pag.drawText(texto, { x, y:612 - c.y - tam * 0.33, size:tam, font:f, color:rgbHex(c.color) });
+    const esp = Number(c.espaciado) || 0, nLetras = [...texto].length;
+    // Ancho a centrar: el de la tinta (si se pide y hay medidas) o el del avance normal.
+    const medir = t=>{
+      if(k && c.centrar_tinta){ const b = k.layout(texto).bbox, u = k.unitsPerEm; return { x0:b.minX / u * t, ancho:(b.maxX - b.minX) / u * t + esp * (nLetras - 1) }; }
+      return { x0:0, ancho:f.widthOfTextAtSize(texto, t) + esp * (nLetras - 1) };
+    };
+    let { x0, ancho } = medir(tam);
+    if(c.ancho_max && ancho > c.ancho_max){ tam = tam * c.ancho_max / ancho; ({ x0, ancho } = medir(tam)); }   // textos largos se achican
+    const x = (c.alinear === 'izq' ? c.x : c.alinear === 'der' ? c.x - ancho : c.x - ancho / 2) - x0;
+    if(esp) pag.pushOperators(pushGraphicsState(), setCharacterSpacing(esp));
+    pag.drawText(texto, { x, y:H - c.y - tam * 0.33, size:tam, font:f, color });
+    if(esp) pag.pushOperators(popGraphicsState());
   }
   return await doc.save();
 }
 
 async function cargarPlantillasCert(){
-  const { data, error } = await sb.from('certificado_plantillas').select('id, tipo, fondo_url, campos, textos, folio_prefijo, folio_siguiente, folio_digitos');
+  const { data, error } = await sb.from('certificado_plantillas').select('id, tipo, fondo_url, campos, textos, folio_prefijo, folio_siguiente, folio_digitos, ancho, alto, usa_folio');
   if(error){ toast('No se pudieron cargar las plantillas: ' + error.message, true); return false; }
   cc.plantillas = Object.fromEntries((data || []).map(p=>[p.tipo, p]));
   return true;
 }
 function plantillaCert(){ return cc.plantillas?.[cc.tipo] || null; }
+function usaFolio(pl){ return pl?.usa_folio !== false; }
 function folioEjemplo(pl){ return pl?.folio_prefijo != null && pl?.folio_siguiente != null ? pl.folio_prefijo + String(pl.folio_siguiente).padStart(pl.folio_digitos || 6, '0') : null; }
 
 async function renderCertificados(){
@@ -9071,15 +9149,17 @@ async function cargarGruposCert(){
     if(error){ toast('No se pudieron cargar los cursos: ' + error.message, true); return false; }
     const ids = (evs || []).map(e=>e.id);
     const [ri, rc] = ids.length ? await Promise.all([
-      acTraerTodo(()=>sb.from('inscripciones').select('id, evento_id').in('evento_id', ids).eq('asistencia', 'llego')),
+      acTraerTodo(()=>sb.from('inscripciones').select('id, evento_id, estatus_id, ' + C_INSC_PAGO).in('evento_id', ids).eq('asistencia', 'llego')),
       acTraerTodo(()=>sb.from('certificados').select('id, evento_id, inscripcion_id, estado').eq('tipo', 'gira').in('evento_id', ids)),
     ]) : [{ data:[] }, { data:[] }];
     if(ri.error || rc.error){ toast('No se pudieron cargar los certificados: ' + (ri.error || rc.error).message, true); return false; }
     cc.grupos = (evs || []).map(e=>{
-      const llegaron = new Set(ri.data.filter(i=>i.evento_id === e.id).map(i=>i.id));
       const certs = rc.data.filter(c=>c.evento_id === e.id);
-      certs.forEach(c=>llegaron.add(c.inscripcion_id));
-      return { id:e.id, titulo:e.ciudades?.nombre || '(ciudad?)', sub:fechaCorta(e.fecha), evento:e, total:llegaron.size,
+      const conCert = new Set(certs.map(c=>c.inscripcion_id));
+      const llegaron = ri.data.filter(i=>i.evento_id === e.id && !fueraDeRecepcion(i));
+      const listas = new Set([...llegaron.filter(pagoCompletoCert).map(i=>i.id), ...conCert]);
+      const deben = llegaron.filter(i=>!pagoCompletoCert(i) && !conCert.has(i.id)).length;
+      return { id:e.id, titulo:e.ciudades?.nombre || '(ciudad?)', sub:fechaCorta(e.fecha) + (deben ? ` · ⏳ ${deben} aún no` : ''), evento:e, total:listas.size, deben,
         generados:certs.filter(c=>c.estado !== 'pendiente').length, enviados:certs.filter(c=>c.estado === 'enviado').length };
     });
   } else {
@@ -9106,12 +9186,12 @@ function pintarGruposCert(){
     return;
   }
   caja.innerHTML = `<h3 style="margin:0 0 6px;">${cc.tipo === 'gira' ? 'Cursos que ya pasaron' : 'Graduadas por generación'}</h3>
-    <div class="sub" style="margin:0 0 6px;">${cc.tipo === 'gira' ? 'Asistieron = quien Recepción marcó “llegó”, más las que se agreguen a mano.' : 'Las alumnas con decisión “✅ Graduada”.'}</div>`
+    <div class="sub" style="margin:0 0 6px;">${cc.tipo === 'gira' ? 'Listas = llegaron (Recepción) y ya liquidaron con sus pagos confirmados, más las que se agreguen a mano.' : 'Las alumnas con decisión “✅ Graduada”.'}</div>`
     + cc.grupos.map(g=>{
       const pct = g.total ? Math.round(g.enviados / g.total * 100) : 0;
       return `<button type="button" class="c-grupo ${g.id === cc.grupo ? 'sel' : ''}" data-c-grupo="${escapeAttr(g.id)}">
         <span><b>${escHtml(g.titulo)}</b><div class="sub" style="margin:0;">${escHtml(g.sub)}</div></span>
-        <span class="num"><b>${g.total}</b><small>${cc.tipo === 'gira' ? 'asistieron' : 'graduadas'}</small></span>
+        <span class="num"><b>${g.total}</b><small>${cc.tipo === 'gira' ? 'listas' : 'graduadas'}</small></span>
         <span class="num"><b>${g.generados}</b><small>generados</small></span>
         <span class="num"><b style="color:${g.enviados === g.total ? 'var(--success)' : 'var(--danger)'}">${g.enviados}</b><small>enviados</small></span>
         <span class="barra"><span class="ag-barra" style="display:block;"><span class="${pct === 100 ? 'lleno' : ''}" style="width:${pct}%"></span></span></span>
@@ -9127,17 +9207,21 @@ async function abrirGrupoCert(id){
   document.getElementById('cLista').innerHTML = '<div class="empty-note">Cargando…</div>';
   if(cc.tipo === 'gira'){
     const [ri, rc] = await Promise.all([
-      acTraerTodo(()=>sb.from('inscripciones').select('id, evento_id, persona_id, asistencia, estatus_id, certificado_entregado, personas!inscripciones_persona_id_fkey ( id, nombre, telefono_principal )').eq('evento_id', id)),
+      acTraerTodo(()=>sb.from('inscripciones').select('id, evento_id, persona_id, asistencia, estatus_id, certificado_entregado, ' + C_INSC_PAGO + ', personas!inscripciones_persona_id_fkey ( id, nombre, telefono_principal )').eq('evento_id', id)),
       acTraerTodo(()=>sb.from('certificados').select(C_SELECT).eq('tipo', 'gira').eq('evento_id', id)),
     ]);
     if(ri.error || rc.error){ toast('No se pudo cargar el curso: ' + (ri.error || rc.error).message, true); return; }
     const certPor = new Map(rc.data.map(c=>[c.inscripcion_id, c]));
     const fila = i=>({ clave:i.id, tipo:'gira', insc:i, cert:certPor.get(i.id) || null, personaId:i.personas?.id,
-      nombre:certPor.get(i.id)?.nombre_impreso || tituloCaso(i.personas?.nombre || ''), tel:i.personas?.telefono_principal || '' });
-    cc.filas = ri.data.filter(i=>i.asistencia === 'llego' || certPor.has(i.id)).map(fila).sort((a, b)=>a.nombre.localeCompare(b.nombre, 'es'));
-    const fuera = ['no_va_al_curso', 'perdio_anticipo'];
-    cc.otras = ri.data.filter(i=>i.asistencia !== 'llego' && !certPor.has(i.id) && !fuera.includes(claveEstatus(i.estatus_id))).map(fila)
-      .sort((a, b)=>a.nombre.localeCompare(b.nombre, 'es'));
+      nombre:certPor.get(i.id)?.nombre_impreso || nombreDiploma(i.personas?.nombre || ''), tel:i.personas?.telefono_principal || '',
+      pagoOk:pagoCompletoCert(i), debe:debeDe(i), porConfirmar:pagosPorConfirmar(i).length });
+    const porNombre = (a, b)=>a.nombre.localeCompare(b.nombre, 'es');
+    const dentro = ri.data.filter(i=>!fueraDeRecepcion(i) || certPor.has(i.id));
+    cc.filas = dentro.filter(i=>certPor.has(i.id) || (i.asistencia === 'llego' && pagoCompletoCert(i))).map(fila).sort(porNombre);
+    // Llegaron pero deben o tienen un pago por confirmar: se ven aparte y pasan solas a la lista al liquidar.
+    cc.deben = dentro.filter(i=>!certPor.has(i.id) && i.asistencia === 'llego' && !pagoCompletoCert(i)).map(fila).sort(porNombre);
+    // Para agregar a mano: del mismo curso, sin "llegó", pero ya liquidadas.
+    cc.otras = dentro.filter(i=>!certPor.has(i.id) && i.asistencia !== 'llego' && pagoCompletoCert(i)).map(fila).sort(porNombre);
   } else {
     const [ra, rc] = await Promise.all([
       acTraerTodo(()=>sb.from('academia_alumnas').select('id, generacion_id, nombre, telefono, matricula, persona_id, personas ( telefono_principal )').eq('decision', 'graduada').eq('generacion_id', id)),
@@ -9146,18 +9230,19 @@ async function abrirGrupoCert(id){
     if(ra.error || rc.error){ toast('No se pudo cargar la generación: ' + (ra.error || rc.error).message, true); return; }
     const certPor = new Map(rc.data.map(c=>[c.alumna_id, c]));
     cc.filas = ra.data.map(a=>({ clave:a.id, tipo:'academia', alumna:a, cert:certPor.get(a.id) || null, personaId:a.persona_id,
-      nombre:certPor.get(a.id)?.nombre_impreso || tituloCaso(a.nombre), tel:a.personas?.telefono_principal || a.telefono || '' }))
+      nombre:certPor.get(a.id)?.nombre_impreso || nombreDiploma(a.nombre), tel:a.personas?.telefono_principal || a.telefono || '', pagoOk:true }))
       .sort((a, b)=>a.nombre.localeCompare(b.nombre, 'es'));
-    cc.otras = [];
+    cc.otras = []; cc.deben = [];
   }
   pintarListaCert();
 }
 function pintarListaCert(){
   const g = cc.grupos.find(x=>x.id === cc.grupo); if(!g) return;
-  const pendientes = cc.filas.filter(f=>!f.cert || f.cert.estado === 'pendiente');
+  const pendientes = cc.filas.filter(f=>(!f.cert || f.cert.estado === 'pendiente') && f.pagoOk);
   const porMandar = cc.filas.filter(f=>f.cert?.estado === 'generado' && f.tel);
   const pl = plantillaCert();
-  const sinFolio = !folioEjemplo(pl);
+  const sinFolio = usaFolio(pl) && !folioEjemplo(pl);
+  const bloque = (pl?.campos || []).find(c=>c.renglones && c.texto === '{nombre}');   // nombre en varios renglones
   document.getElementById('cLista').innerHTML = `
     <div class="c-cabeza-lista">
       <div><h3 style="margin:0;">${escHtml(g.titulo)}</h3><div class="sub" style="margin:0;">${escHtml(g.sub)} · ${cc.filas.length} alumna${cc.filas.length === 1 ? '' : 's'}</div></div>
@@ -9172,17 +9257,22 @@ function pintarListaCert(){
       const est = f.cert?.estado || 'pendiente';
       return `<div class="c-fila" data-c-fila="${escapeAttr(f.clave)}">
         <label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--ink-soft);font-weight:600;">Nombre como se imprime
-          <input data-c-nombre="${escapeAttr(f.clave)}" maxlength="80" value="${escapeAttr(f.nombre)}"></label>
-        <div><span class="c-estado ${est}">${C_ESTADO[est]}</span>${f.cert?.folio ? `<div class="sub" style="margin:2px 0 0;">Folio ${escHtml(f.cert.folio)}</div>` : ''}${f.tel ? '' : '<div class="sub" style="margin:2px 0 0;">Sin teléfono</div>'}</div>
+          <input data-c-nombre="${escapeAttr(f.clave)}" maxlength="80" value="${escapeAttr(f.nombre)}">
+          ${bloque ? `<span class="c-asi" data-c-asi="${escapeAttr(f.clave)}">Así sale: <b>${escHtml(renglonesNombre(f.nombre, bloque.renglones).join(' / '))}</b></span>` : ''}</label>
+        <div><span class="c-estado ${est}">${C_ESTADO[est]}</span>${f.pagoOk ? '' : `<div class="sub" style="margin:2px 0 0;color:var(--danger);">⏳ ${f.debe > 0 ? 'Debe ' + fmtMoney(f.debe) : 'Pago por confirmar'}</div>`}${f.cert?.folio ? `<div class="sub" style="margin:2px 0 0;">Folio ${escHtml(f.cert.folio)}</div>` : ''}${f.tel ? '' : '<div class="sub" style="margin:2px 0 0;">Sin teléfono</div>'}</div>
         <div class="c-acciones">
-          <button type="button" data-c-generar="${escapeAttr(f.clave)}" ${cc.ocupado ? 'disabled' : ''}>${f.cert && est !== 'pendiente' ? '↻ Regenerar' : '📄 Generar'}</button>
+          <button type="button" data-c-generar="${escapeAttr(f.clave)}" ${cc.ocupado || !f.pagoOk ? 'disabled' : ''}>${f.cert && est !== 'pendiente' ? '↻ Regenerar' : '📄 Generar'}</button>
           ${f.cert?.link ? `<a href="${escapeAttr(f.cert.link)}" target="_blank" rel="noopener">Ver PDF</a>` : ''}
           ${f.cert?.link && f.tel ? `<button type="button" data-c-mandar="${escapeAttr(f.clave)}" aria-label="Enviar link por WhatsApp">💬</button>` : ''}
         </div>
       </div>`;
     }).join('') : '<div class="empty-note">Nadie en este grupo todavía.</div>'}
+    ${cc.deben.length ? `<div class="ac-caja c-deben"><h4>⏳ Llegaron, pero todavía no les toca (${cc.deben.length})</h4>
+      <div class="sub" style="margin:0 0 4px;">Pasan solas a la lista cuando liquidan y sus pagos quedan confirmados.</div>
+      ${cc.deben.map(f=>`<div class="c-fila" data-c-debe="${escapeAttr(f.clave)}"><span>${escHtml(f.nombre)}</span>
+        <span class="sub" style="margin:0;">${[f.debe > 0 ? 'Debe ' + fmtMoney(f.debe) : '', f.porConfirmar ? '🏦 Pago por confirmar' : ''].filter(Boolean).join(' · ')}</span></div>`).join('')}</div>` : ''}
     ${cc.otras.length ? `<div class="ac-caja" style="margin-top:12px;"><h4>¿Falta alguien?</h4>
-      <div class="ac-form"><label class="ancho">Agregar a alguien de este curso (aunque no la hayan marcado “llegó”)
+      <div class="ac-form"><label class="ancho">Agregar a alguien de este curso que ya liquidó (aunque no la hayan marcado “llegó”)
         <select id="cAgregarSel"><option value="">— Elige —</option>${cc.otras.map(o=>`<option value="${escapeAttr(o.clave)}">${escHtml(o.nombre)}</option>`).join('')}</select></label>
         <button type="button" class="btn-outline small ancho" data-c-acc="agregar">+ Agregar</button></div></div>` : ''}`;
 }
@@ -9191,7 +9281,8 @@ function valoresCert(f){
   const pl = plantillaCert(); const t = pl?.textos || {};
   if(f.tipo === 'gira'){
     const ev = cc.grupos.find(g=>g.id === cc.grupo)?.evento;
-    return { nombre:f.nombre, curso:t.curso || '', ciudad:ev?.ciudades?.nombre || '', fecha:fechaLargaCert(ev?.fecha) };
+    return { nombre:f.nombre, curso:t.curso || '', ciudad:ev?.ciudades?.nombre || '', fecha:fechaLargaCert(ev?.fecha),
+             mes:(String(t.mes || '').trim() || mesCert(ev?.fecha)).toUpperCase() };   // el mes de cada curso, salvo que la plantilla diga otro
   }
   const g = ac.generaciones.find(x=>x.id === f.alumna.generacion_id);
   return { nombre:f.nombre, programa:g?.programa || '', generacion:(g?.nombre || '').toUpperCase(), lugar_fecha:t.lugar_fecha || '',
@@ -9205,6 +9296,7 @@ async function generarCertificado(f){
   const valores = valoresCert(f);
   if(!String(f.nombre || '').trim()){ toast('Falta el nombre a imprimir.', true); return false; }
   if(f.tipo === 'academia' && !valores.programa){ toast('Escribe primero el programa de esta generación.', true); return false; }
+  if(!f.pagoOk){ toast(`Todavía no le toca a ${f.nombre}: ${f.debe > 0 ? 'debe ' + fmtMoney(f.debe) : 'tiene un pago por confirmar'}.`, true); return false; }
   // El registro y el folio van primero: si el PDF falla, se reintenta con el mismo folio.
   if(!f.cert){
     const nuevo = { tipo:f.tipo, nombre_impreso:f.nombre, estado:'pendiente', creado_por:usuarioActual?.id || null,
@@ -9213,14 +9305,14 @@ async function generarCertificado(f){
     if(error){ toast('No se pudo crear el certificado: ' + error.message, true); return false; }
     f.cert = data;
   }
-  if(!f.cert.folio){
+  if(usaFolio(pl) && !f.cert.folio){
     const { data:folio, error } = await sb.rpc('siguiente_folio', { p_tipo:f.tipo });
     if(error){ toast(error.message, true); return false; }
     const r = await sb.from('certificados').update({ folio }).eq('id', f.cert.id);
     if(r.error){ toast('No se pudo guardar el folio: ' + r.error.message, true); return false; }
     f.cert.folio = folio;
   }
-  valores.folio = f.cert.folio;
+  valores.folio = f.cert.folio || '';
   let bytes;
   try{ bytes = await armarPdfCertificado(pl, valores); }
   catch(err){ toast('No se pudo armar el PDF: ' + (err?.message || err), true); return false; }
@@ -9233,7 +9325,7 @@ async function generarCertificado(f){
   const { error } = await sb.from('certificados').update(cambios).eq('id', f.cert.id);
   if(error){ toast('No se pudo guardar el certificado: ' + error.message, true); return false; }
   Object.assign(f.cert, cambios);
-  registrarActividad('cert_generado', `${f.nombre} · folio ${f.cert.folio}`);
+  registrarActividad('cert_generado', f.nombre + (f.cert.folio ? ` · folio ${f.cert.folio}` : ''));
   return true;
 }
 async function generarVarios(filas){
@@ -9262,7 +9354,7 @@ async function marcarEnviadoCert(f){
   if(error){ toast('No se pudo marcar como enviado: ' + error.message, true); return; }
   Object.assign(f.cert, cambios);
   if(f.tipo === 'gira') await sb.from('inscripciones').update({ certificado_entregado:true }).eq('id', f.insc.id);
-  registrarActividad('cert_enviado', `${f.nombre} · folio ${f.cert.folio}`);
+  registrarActividad('cert_enviado', f.nombre + (f.cert.folio ? ` · folio ${f.cert.folio}` : ''));
   const g = cc.grupos.find(x=>x.id === cc.grupo); if(g) g.enviados++;
   pintarGruposCert(); pintarListaCert();
 }
@@ -9273,30 +9365,49 @@ function mandarSiguienteCert(){
 }
 
 /* Plantilla: folio, textos fijos, fondo y posición de cada dato (con vista previa). */
+const TEXTOS_CERT = { curso:'Curso (como sale en el certificado)', mes:'Mes de abajo (vacío = el mes de cada curso)', lugar_fecha:'Lugar y fecha',
+                      firma2:'Segunda firma: nombre', firma2_cargo:'Segunda firma: cargo' };
+/* Datos de ejemplo para la vista previa (en pantalla y en PDF). */
+function muestraCert(pl){
+  const t = pl?.textos || {};
+  return cc.tipo === 'gira'
+    ? { nombre:'María Fernanda López García', curso:t.curso || '', ciudad:'Ciudad', fecha:fechaLargaCert(hoyISO()),
+        mes:(String(t.mes || '').trim() || mesCert(hoyISO())).toUpperCase(), folio:folioEjemplo(pl) || 'FOLIO' }
+    : { nombre:'Nombre Completo de la Alumna', programa:'PROGRAMA DE LA GENERACIÓN', generacion:'1ª GENERACIÓN', lugar_fecha:t.lugar_fecha || '',
+        firma2:t.firma2 || 'Segunda firma', firma2_cargo:t.firma2_cargo || '', matricula:'XXXXXXXX', folio:folioEjemplo(pl) || 'FOLIO' };
+}
 function pintarPlantillaCert(){
   const pl = plantillaCert(); const caja = document.getElementById('cPlantilla');
   if(!pl){ caja.innerHTML = '<div class="sub">Falta la plantilla.</div>'; return; }
   const t = pl.textos || {};
-  const textos = cc.tipo === 'gira' ? [['curso', 'Curso (como sale en el certificado)']]
-    : [['lugar_fecha', 'Lugar y fecha'], ['firma2', 'Segunda firma: nombre'], ['firma2_cargo', 'Segunda firma: cargo']];
-  const muestra = cc.tipo === 'gira'
-    ? { nombre:'Nombre de la Alumna', curso:t.curso || '', ciudad:'Ciudad', fecha:fechaLargaCert(hoyISO()), folio:folioEjemplo(pl) || 'FOLIO' }
-    : { nombre:'Nombre de la Alumna', programa:'PROGRAMA', generacion:'1ª GENERACIÓN', lugar_fecha:t.lugar_fecha || '', firma2:t.firma2 || 'Segunda firma', firma2_cargo:t.firma2_cargo || '', matricula:'XXXXXXXX', folio:folioEjemplo(pl) || 'FOLIO' };
+  const W = Number(pl.ancho) || 792, H = Number(pl.alto) || 612;
+  // Solo los textos fijos que la plantilla usa.
+  const textos = Object.entries(TEXTOS_CERT).filter(([k])=>(pl.campos || []).some(c=>String(c.texto || '').includes(`{${k}}`)));
+  const muestra = muestraCert(pl);
+  const pct = (v, total)=>(v / total * 100).toFixed(2);
   caja.innerHTML = `
-    <div class="ac-caja"><h4>Folio</h4>
+    ${usaFolio(pl) ? `<div class="ac-caja"><h4>Folio</h4>
       <div class="ag-datos">
         <label>Prefijo<input data-c-pl="folio_prefijo" maxlength="20" value="${escapeAttr(pl.folio_prefijo ?? '')}" placeholder="${cc.tipo === 'gira' ? 'GLM-26-' : 'ACA-26-'}"></label>
         <label>Siguiente número<input type="number" min="0" step="1" data-c-pl="folio_siguiente" value="${pl.folio_siguiente ?? ''}"></label>
         <label>Dígitos<input type="number" min="1" max="10" step="1" data-c-pl="folio_digitos" value="${pl.folio_digitos ?? 6}"></label>
       </div>
       <div class="sub" style="margin:0;">${folioEjemplo(pl) ? `El siguiente certificado lleva el folio <b>${escHtml(folioEjemplo(pl))}</b>.` : 'Pon el prefijo y el número donde van; el Hub sigue la cuenta.'}</div>
-    </div>
-    <div class="ac-caja"><h4>Textos</h4><div class="ag-datos">${textos.map(([k, l])=>`<label>${escHtml(l)}<input data-c-texto="${k}" maxlength="120" value="${escapeAttr(t[k] || '')}"></label>`).join('')}</div></div>
+    </div>` : ''}
+    ${textos.length ? `<div class="ac-caja"><h4>Textos</h4><div class="ag-datos">${textos.map(([k, l])=>`<label>${escHtml(l)}<input data-c-texto="${k}" maxlength="120" value="${escapeAttr(t[k] || '')}"></label>`).join('')}</div></div>` : ''}
     <div class="ac-caja"><h4>Fondo y posición de cada dato</h4>
-      <div class="c-previa" style="background-image:url('${escapeAttr(pl.fondo_url)}')">${(pl.campos || []).map(c=>{
+      <div class="c-previa" style="aspect-ratio:${W} / ${H};max-width:${W > H ? 720 : 420}px;background-image:url('${escapeAttr(pl.fondo_url)}')">${(pl.campos || []).map(c=>{
         const txt = rellenarCampo(c.texto, muestra) || c.texto;
+        const familia = CERT_FUENTE_CSS[c.fuente] || 'Helvetica,Arial,sans-serif';
+        const estilo = `left:${pct(c.x, W)}%;top:${pct(c.y, H)}%;color:${escapeAttr(c.color || '#111')};font-family:${familia};font-weight:${c.fuente === 'negrita' ? 700 : 400};font-style:${c.fuente === 'baskerville_italica' ? 'italic' : 'normal'}`;
+        if(c.renglones){
+          // Aproximado: el tamaño exacto (según el nombre) lo da la vista previa en PDF.
+          const lineas = renglonesNombre(txt, c.renglones), paso = Number(c.interlineado) || 1.05;
+          const tam = Math.min(Number(c.tam) || 40, c.alto / (lineas.length * paso * 1.15));
+          return `<span class="bloque" style="${estilo};font-size:${(tam / W * 100).toFixed(3)}cqw;line-height:${paso};transform:translate(-50%,-50%)">${lineas.map(escHtml).join('<br>')}</span>`;
+        }
         const tx = c.alinear === 'izq' ? '0' : c.alinear === 'der' ? '-100%' : '-50%';
-        return `<span style="left:${(c.x / 792 * 100).toFixed(2)}%;top:${(c.y / 612 * 100).toFixed(2)}%;font-size:${(c.tam / 792 * 100).toFixed(3)}cqw;color:${escapeAttr(c.color || '#111')};transform:translate(${tx},-50%);font-family:${c.fuente === 'manuscrita' ? "'Great Vibes',cursive" : 'Helvetica,Arial,sans-serif'};font-weight:${c.fuente === 'negrita' ? 700 : 400}">${escHtml(txt)}</span>`;
+        return `<span style="${estilo};font-size:${(c.tam / W * 100).toFixed(3)}cqw;letter-spacing:${((Number(c.espaciado) || 0) / W * 100).toFixed(3)}cqw;transform:translate(${tx},-50%)">${escHtml(txt)}</span>`;
       }).join('')}</div>
       <div class="c-campos">
         <span class="h">DATO (texto)</span><span class="h">X</span><span class="h">Y</span><span class="h">TAMAÑO</span>
@@ -9305,7 +9416,7 @@ function pintarPlantillaCert(){
           <input type="number" step="1" data-c-campo="${i}" data-c-prop="y" value="${c.y}" aria-label="Y de ${escapeAttr(c.clave)}">
           <input type="number" step="0.5" data-c-campo="${i}" data-c-prop="tam" value="${c.tam}" aria-label="Tamaño de ${escapeAttr(c.clave)}">`).join('')}
       </div>
-      <div class="sub" style="margin:0;">Medidas en puntos de una hoja carta horizontal (792 × 612); “Y” es el centro del renglón, desde arriba.</div>
+      <div class="sub" style="margin:0;">Medidas en puntos de la hoja (${W} × ${H}); “Y” es el centro del renglón, desde arriba.${(pl.campos || []).some(c=>c.renglones) ? ' El nombre se acomoda solo en su caja; “Tamaño” es el más grande que puede tener.' : ''}</div>
       <div class="c-acciones" style="justify-content:flex-start;">
         <label class="btn-outline small" style="width:auto;display:inline-flex;align-items:center;cursor:pointer;">🖼️ Subir otro fondo<input type="file" id="cFondoArchivo" accept="image/png,image/jpeg" hidden></label>
         <button type="button" data-c-acc="previaPdf">👁️ Vista previa en PDF</button>
@@ -9325,7 +9436,7 @@ async function guardarPlantillaCert(cambios, detalle){
 
 document.querySelector('#acPanelCertificados .c-tipo').addEventListener('click', e=>{
   const b = e.target.closest('[data-c-tipo]'); if(!b || b.dataset.cTipo === cc.tipo) return;
-  cc.tipo = b.dataset.cTipo; cc.grupo = null; cc.filas = []; renderCertificados();
+  cc.tipo = b.dataset.cTipo; cc.grupo = null; cc.filas = []; cc.otras = []; cc.deben = []; renderCertificados();
 });
 document.getElementById('cPlantillaBtn').addEventListener('click', ()=>{
   const caja = document.getElementById('cPlantilla'); caja.hidden = !caja.hidden;
@@ -9382,6 +9493,9 @@ document.getElementById('cLista').addEventListener('change', async e=>{
     const nombre = e.target.value.trim();
     if(!nombre){ e.target.value = f.nombre; return; }
     f.nombre = nombre;
+    const asi = document.querySelector(`[data-c-asi="${CSS.escape(n)}"] b`);
+    const bloque = (plantillaCert()?.campos || []).find(c=>c.renglones && c.texto === '{nombre}');
+    if(asi && bloque) asi.textContent = renglonesNombre(nombre, bloque.renglones).join(' / ');
     if(f.cert){
       const { error } = await sb.from('certificados').update({ nombre_impreso:nombre }).eq('id', f.cert.id);
       if(error){ toast('No se pudo guardar el nombre: ' + error.message, true); return; }
@@ -9437,12 +9551,8 @@ document.getElementById('cPlantilla').addEventListener('change', async e=>{
 document.getElementById('cPlantilla').addEventListener('click', async e=>{
   if(!e.target.closest('[data-c-acc="previaPdf"]')) return;
   const pl = plantillaCert(); if(!pl) return;
-  const t = pl.textos || {};
-  const muestra = cc.tipo === 'gira'
-    ? { nombre:'Nombre Completo de la Alumna', curso:t.curso || '', ciudad:'Ciudad', fecha:fechaLargaCert(hoyISO()), folio:folioEjemplo(pl) || 'FOLIO' }
-    : { nombre:'Nombre Completo de la Alumna', programa:'PROGRAMA DE LA GENERACIÓN', generacion:'1ª GENERACIÓN', lugar_fecha:t.lugar_fecha || '', firma2:t.firma2 || 'Segunda firma', firma2_cargo:t.firma2_cargo || '', matricula:'XXXXXXXX', folio:folioEjemplo(pl) || 'FOLIO' };
   try{
-    const bytes = await armarPdfCertificado(pl, muestra);
+    const bytes = await armarPdfCertificado(pl, muestraCert(pl));
     window.open(URL.createObjectURL(new Blob([bytes], { type:'application/pdf' })), '_blank', 'noopener');
   } catch(err){ toast('No se pudo armar la vista previa: ' + (err?.message || err), true); }
 });
