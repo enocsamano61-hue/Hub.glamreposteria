@@ -35,7 +35,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_academia.js` | 🎓 Academia, pestaña Alumnas: menú por rol, generaciones, filtros y chips, decisión, notas, "ya lo revisé", datos privados, registrar y corregir pagos (con y sin permiso), celular. |
 | `prueba_academia_graduacion.js` | 🎓 Academia, pestaña Graduación: cuenta (precio congelado, acompañantes, extras), hotel, filipinas, pagos, quitar/volver, agregar alumna, graduación pasada, Precios por área. |
 | `prueba_academia_kits.js` | 🎓 Academia, pestaña Kits: tablero por estado, kits del Excel por clasificar, cobro (liquidar → Por preparar), enviado con guía y WhatsApp {guia}, cancelar/reactivar, crear kit, catálogo, filipinas en Graduación. |
-| `prueba_academia_certificados.js` | 🎓 Academia, pestaña Certificados: grupos, folio (sin configurar / configurar), generar uno y todos (PDF real), mandar con {link} → Enviado, regenerar, agregar a mano, programa de la generación, plantilla, celular. |
+| `prueba_academia_certificados.js` | 🎓 Academia, pestaña Certificados: diploma de gira (solo liquidadas con pagos confirmados, nombre en 3 renglones, mes, sin folio, letras faltantes y nombres demasiado largos), mandar con {link} → Enviado, regenerar, agregar a mano, plantilla; academia con folio y programa; celular. |
 
 ## Escribir una prueba nueva
 
