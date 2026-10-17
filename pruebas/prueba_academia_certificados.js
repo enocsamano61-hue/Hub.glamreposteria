@@ -45,10 +45,14 @@ const base = () => ({
     INS('i8', 'e1', PER('p8', 'HELE SIN LLEGAR DEBE', '0000000008'), null, 'debe'),
     INS('i4', 'e1', PER('p4', 'DORA NO VA', '0000000004'), null, 'ok', 6),
     INS('i5', 'e2', PER('p5', 'ELSA PRUEBA CINCO', '0000000005'), 'llego'),
+    INS('i10', 'e2', PER('p10', 'LUZ DESCARGO PRUEBA', '0000000010'), 'llego'),
   ],
   certificados: [
     { id:'cx', tipo:'gira', evento_id:'e2', inscripcion_id:'i5', alumna_id:null, nombre_impreso:'Elsa Prueba Cinco', datos:{}, folio:null,
       estado:'enviado', archivo_path:'gira/2026/x.pdf', link:'https://prueba.local/x.pdf', generado_en:'2026-10-06T10:00:00Z', enviado_en:'2026-10-06T11:00:00Z' },
+    // Lo descargó ella en certificados.glamreposteria.com y pidió otro nombre.
+    { id:'cd', tipo:'gira', evento_id:'e2', inscripcion_id:'i10', alumna_id:null, nombre_impreso:null, datos:{}, folio:null, estado:'pendiente',
+      archivo_path:null, link:null, descargado_en:'2026-10-14T18:00:00Z', descargas:2, nombre_reportado:'Luz Divina Prueba', nombre_reportado_en:'2026-10-14T18:05:00Z' },
   ],
   certificado_plantillas: [
     { id:'pg', tipo:'gira', fondo_url:'https://prueba.local/diploma-gira.jpg', campos:CAMPOS_GIRA, textos:{ curso:'LOS PASTELES', mes:'' },
@@ -132,7 +136,7 @@ const ACADEMIA = { id:'u3', nombre:'Academia Prueba', rol:'Academia e Inbox', es
   check(await p.isVisible('#acPanelCertificados') && !(await p.isVisible('#acPanelKits')), 'cambia a la pestaña Certificados');
   const g1 = await txt('[data-c-grupo="e1"]'), g2 = await txt('[data-c-grupo="e2"]');
   check(g1.includes('Ciudad Prueba') && /3\s*listas/.test(g1) && /0\s*generados/.test(g1) && g1.includes('2 aún no'), 'curso 1: 3 listas, 2 aún no: ' + g1);
-  check(g2.includes('Otra Ciudad') && /1\s*listas/.test(g2) && /1\s*enviados/.test(g2), 'curso 2: 1 enviado: ' + g2);
+  check(g2.includes('Otra Ciudad') && /2\s*listas/.test(g2) && /2\s*entregados/.test(g2), 'curso 2: enviado por WhatsApp + descargado en la página: ' + g2);
   check((await h.ops('certificados', 'insert')).length === 0, 'abrir no crea nada');
 
   h.paso('2. Lista: listas, las que aún no y agregar a mano');
@@ -189,7 +193,7 @@ const ACADEMIA = { id:'u3', nombre:'Academia Prueba', rol:'Academia e Inbox', es
   await p.click('#waEnviar'); await esperar();
   check((await ultimo('certificados', 'update'))?.estado === 'enviado', 'queda "Enviado"');
   check((await ultimo('inscripciones', 'update'))?.certificado_entregado === true, 'marca certificado_entregado en la inscripción');
-  check((await txt('[data-c-fila="i9"]')).includes('Enviado') && /1\s*enviados/.test(await txt('[data-c-grupo="e1"]')), 'lista y grupo se actualizan');
+  check((await txt('[data-c-fila="i9"]')).includes('Enviado') && /1\s*entregados/.test(await txt('[data-c-grupo="e1"]')), 'lista y grupo se actualizan');
 
   h.paso('7. Agregar a mano (ya liquidada) y generar las pendientes');
   await p.selectOption('#cAgregarSel', 'i3'); await p.click('[data-c-acc="agregar"]'); await esperar();
@@ -236,7 +240,34 @@ const ACADEMIA = { id:'u3', nombre:'Academia Prueba', rol:'Academia e Inbox', es
   await abrir(pagada); await grupo('e1');
   check(await filasLista() === 'i1,i2,i6,i7,i9' && !(await p.$('.c-deben')), 'Fabi y Gina ya están en la lista: ' + await filasLista());
 
+  h.paso('11b. Descargado en la página y "Usar este nombre"');
+  await grupo('e2');
+  const fd = await txt('[data-c-fila="i10"]');
+  check(fd.includes('Descargado') && fd.includes('Lo descargó') && fd.includes('(2 veces)'), 'muestra que lo descargó: ' + fd);
+  check(fd.includes('Pidió que diga') && fd.includes('«Luz Divina Prueba»'), 'muestra el nombre que pidió');
+  check((await txt('[data-c-acc="generarTodos"]')).includes('0 pendientes'), 'las que ya lo descargaron no cuentan como pendientes');
+  await h.limpiarOps();
+  await p.click('[data-c-usar="i10"]'); await esperar();
+  check((await ultimo('certificados', 'update'))?.nombre_impreso === 'Luz Divina Prueba', 'guarda el nombre pedido como nombre impreso');
+  check(await p.$eval('[data-c-nombre="i10"]', i => i.value) === 'Luz Divina Prueba' && !(await p.$('[data-c-usar="i10"]')), 'actualiza la fila y quita el aviso');
+  check((await txt('#toast')).includes('vuelva a entrar'), 'avisa que en la página ya le sale así');
+  // La tarea automática del sistema y su "Ir →".
+  await p.evaluate(() => {
+    NOTAS = [{ id:'n1', usuario_id:'u3', texto:'✏️ Corregir nombre del diploma: LUZ DESCARGO PRUEBA (Otra Ciudad, 05/10)', color:'champagne', completado:false,
+      de_sistema:true, asignado_por:null, nota_sistema:'La alumna pidió que su diploma diga: «<b>Luz</b>».', creado_en:new Date().toISOString(),
+      enlace:{ vista:'academia', etiqueta:'Corregir nombre', cert_evento:'e2' } }];
+    renderNotas();
+  });
+  const nota = await p.$eval('[data-nota-id="n1"]', n => n.innerHTML);
+  check(nota.includes('⚙️ Sistema') && !nota.includes('Te asignó') && nota.includes('Corregir nombre →'), 'tarea del sistema sin "Te asignó"');
+  check(nota.includes('&lt;b&gt;Luz&lt;/b&gt;'), 'lo que escribió la alumna se muestra escapado');
+  check((await txt('#notasBadge')).trim() === '1', 'cuenta en el contador del bloc');
+  await p.click('#cGrupos [data-c-grupo="e1"]'); await esperar();
+  await p.evaluate(() => irAEnlaceNota('n1')); await p.waitForTimeout(500);
+  check(await p.isVisible('#acPanelCertificados') && !!(await p.$('[data-c-fila="i10"]')), '"Ir →" abre Certificados en ese curso');
+
   h.paso('12. Plantilla de gira: sin folio, mes editable, hoja vertical');
+  await grupo('e1');
   await abrirPlantilla();
   const plTxt = await txt('#cPlantilla');
   check(!plTxt.includes('Prefijo') && plTxt.includes('Mes de abajo') && !plTxt.includes('Curso (como sale'), 'sin folio; solo el texto que usa la plantilla (el mes)');

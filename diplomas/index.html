@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tu diploma · Glam Repostería</title>
+<meta name="description" content="Descarga tu diploma del curso de Glam Repostería.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="https://hub.glamreposteria.com/icono.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Página de diplomas de la gira (certificados.glamreposteria.com).
+     La alumna escribe su celular, confirma su nombre y descarga su diploma.
+     El PDF se arma en su teléfono con el mismo código que usa el Hub. */
+  :root{
+    --bg:#F7F4EE; --card:#FFFEFB; --ink:#292421; --ink-soft:#756D65; --border:#E5DED4;
+    --wine:#5A1F2B; --wine-dark:#3B151D; --rosa:#B5308E; --cafe:#774228; --danger:#B5453A; --success:#55745C;
+  }
+  @font-face{ font-family:'Nickainley'; src:url('https://hub.glamreposteria.com/certificados/Nickainley-Normal.ttf') format('truetype'); font-display:swap; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:Inter, system-ui, sans-serif; font-size:15px; line-height:1.45; }
+  .marco{ max-width:460px; margin:0 auto; padding:20px 16px 40px; }
+  header{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  header img{ width:38px; height:38px; }
+  header .marca{ font-family:Newsreader, Georgia, serif; font-weight:600; font-size:20px; color:var(--wine); letter-spacing:.02em; line-height:1.1; }
+  header .marca small{ display:block; font-family:Inter, sans-serif; font-size:11px; font-weight:600; letter-spacing:.14em; color:var(--ink-soft); }
+  .tarjeta{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px 18px; box-shadow:0 1px 2px rgba(41,36,33,.04); }
+  h1{ font-family:Newsreader, Georgia, serif; font-weight:600; font-size:26px; line-height:1.15; margin:0 0 6px; color:var(--wine-dark); }
+  p.sub{ margin:0 0 16px; color:var(--ink-soft); font-size:14px; }
+  label{ display:block; font-weight:600; font-size:13px; margin-bottom:6px; }
+  input{ width:100%; height:52px; border:1.5px solid var(--border); border-radius:12px; padding:0 14px; font-family:inherit; font-size:20px; letter-spacing:.04em; background:#fff; color:var(--ink); }
+  input:focus{ outline:none; border-color:var(--rosa); box-shadow:0 0 0 3px rgba(181,48,142,.15); }
+  input.nombre{ font-size:17px; letter-spacing:0; }
+  .ayuda{ font-size:12.5px; color:var(--ink-soft); margin-top:6px; }
+  button, .boton{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:52px; border-radius:12px; border:0;
+    font-family:inherit; font-size:16px; font-weight:700; cursor:pointer; text-decoration:none; margin-top:12px; padding:0 14px; text-align:center; }
+  .principal{ background:var(--wine); color:#fff; }
+  .principal:active{ background:var(--wine-dark); }
+  .secundario{ background:#fff; color:var(--wine); border:1.5px solid var(--border); }
+  .discreto{ background:transparent; color:var(--ink-soft); font-weight:600; font-size:14px; min-height:44px; }
+  button:disabled{ opacity:.55; cursor:default; }
+  .aviso{ border-radius:12px; padding:12px 14px; margin-top:14px; font-size:14px; }
+  .aviso.error{ background:rgba(181,69,58,.1); color:#8A2F26; }
+  .aviso.info{ background:rgba(181,48,142,.08); color:var(--wine-dark); }
+  .aviso.ok{ background:rgba(85,116,92,.12); color:#2F4A36; }
+  .curso{ border:1px solid var(--border); border-radius:14px; padding:16px 14px; margin-top:14px; background:#fff; }
+  .curso .donde{ font-size:12.5px; font-weight:600; color:var(--ink-soft); letter-spacing:.02em; text-transform:uppercase; }
+  .curso .nombre-diploma{ font-family:'Nickainley', cursive; color:var(--cafe); font-size:30px; line-height:1.15; text-align:center; margin:12px 0 4px; white-space:nowrap; overflow:hidden; }
+  .curso .pregunta{ text-align:center; font-weight:600; margin-top:6px; }
+  .previa{ width:100%; border-radius:10px; border:1px solid var(--border); display:block; margin:14px 0 4px; background:#fff; aspect-ratio:595.5 / 842.25; }
+  .cargando{ display:flex; align-items:center; gap:10px; color:var(--ink-soft); font-size:14px; margin-top:14px; }
+  .cargando::before{ content:''; width:18px; height:18px; border-radius:50%; border:2.5px solid var(--border); border-top-color:var(--rosa); animation:gira 0.8s linear infinite; }
+  @keyframes gira{ to{ transform:rotate(360deg); } }
+  footer{ text-align:center; font-size:12px; color:var(--ink-soft); margin-top:22px; }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <img src="https://hub.glamreposteria.com/icono.png" alt="">
+    <div class="marca">Glam Repostería<small>TU DIPLOMA</small></div>
+  </header>
+
+  <!-- 1. Celular -->
+  <section class="tarjeta" id="pasoTel">
+    <h1>🎓 Descarga tu diploma</h1>
+    <p class="sub">Escribe el número de celular que diste al inscribirte al curso.</p>
+    <form id="formTel" novalidate>
+      <label for="tel">Tu número de celular</label>
+      <input id="tel" type="tel" inputmode="numeric" autocomplete="tel" maxlength="16" placeholder="10 dígitos">
+      <button type="submit" class="principal" id="btnBuscar">Buscar mi diploma</button>
+    </form>
+    <div id="avisoTel"></div>
+  </section>
+
+  <!-- 2. ¿Eres tú? -->
+  <section class="tarjeta" id="pasoQuien" hidden>
+    <h1>¿Eres tú?</h1>
+    <p class="sub">Así va a salir tu nombre en el diploma.</p>
+    <div id="listaCursos"></div>
+    <button type="button" class="discreto" data-volver>✗ No soy yo · me equivoqué de número</button>
+  </section>
+
+  <!-- 3. Mi nombre está mal -->
+  <section class="tarjeta" id="pasoNombre" hidden>
+    <h1>¿Cómo debe ir tu nombre?</h1>
+    <p class="sub">Escríbelo completo, con acentos, tal como quieres que salga en tu diploma. Academia lo revisa y lo corrige.</p>
+    <form id="formNombre" novalidate>
+      <label for="nombreCorrecto">Tu nombre completo</label>
+      <input id="nombreCorrecto" class="nombre" type="text" autocomplete="name" maxlength="80" placeholder="Ej. María Fernanda López García">
+      <button type="submit" class="principal" id="btnNombre">Enviar</button>
+    </form>
+    <div id="avisoNombre"></div>
+    <button type="button" class="discreto" data-atras>← Regresar</button>
+  </section>
+
+  <!-- 4. Diploma -->
+  <section class="tarjeta" id="pasoDiploma" hidden>
+    <h1 id="tituloDiploma">Preparando tu diploma…</h1>
+    <p class="sub" id="subDiploma"></p>
+    <div class="cargando" id="cargando">Esto tarda unos segundos.</div>
+    <canvas class="previa" id="previa" hidden></canvas>
+    <a class="boton principal" id="btnDescargar" hidden>⬇️ Descargar mi diploma (PDF)</a>
+    <button type="button" class="secundario" id="btnCompartir" hidden>📤 Guardar o compartir</button>
+    <div id="avisoDiploma"></div>
+    <button type="button" class="discreto" data-volver>← Buscar otro número</button>
+  </section>
+
+  <footer>¿Algún problema? Pasa con Recepción durante el curso.</footer>
+</div>
+
+<!-- Armado del PDF: el mismo archivo que usa el Hub -->
+<script src="https://hub.glamreposteria.com/certificados/pdf-certificado.js?v=20261017"></script>
+<script>
+const SUPABASE_URL = 'https://bomlszsnixazhnsegeik.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_w85mi4Z_NunDmMQIcWGaaw_KqNSN2lq';   // llave pública: la base solo deja usar 3 funciones
+CERT_BASE = 'https://hub.glamreposteria.com';
+
+const estado = { tel:'', resultados:[], elegido:null, pdf:null, archivo:null };
+const $ = id => document.getElementById(id);
+function escHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function aviso(id, tipo, texto){ $(id).innerHTML = texto ? `<div class="aviso ${tipo}">${escHtml(texto)}</div>` : ''; }
+function mostrar(paso){ ['pasoTel', 'pasoQuien', 'pasoNombre', 'pasoDiploma'].forEach(p=>$(p).hidden = p !== paso); window.scrollTo(0, 0); }
+function fechaBonita(iso){ return new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' }); }
+function nombreDe(r){ return r.nombre_impreso || nombreDiploma(r.nombre); }
+
+/* Llama a una función de la base. Si falla, regresa el mensaje para la alumna. */
+async function rpc(fn, args){
+  let r;
+  try{
+    r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, { method:'POST', cache:'no-store',
+      headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify(args) });
+  } catch(_){ throw new Error('No hay conexión. Revisa tu internet y vuelve a intentar.'); }
+  const datos = await r.json().catch(()=>null);
+  if(!r.ok) throw new Error(datos?.message || 'Algo falló. Vuelve a intentar en un momento.');
+  return datos;
+}
+
+/* 1. Buscar por celular */
+$('formTel').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const tel = $('tel').value.replace(/\D/g, '').slice(-10);
+  if(tel.length !== 10){ aviso('avisoTel', 'error', 'Escribe tu número de celular a 10 dígitos.'); return; }
+  $('btnBuscar').disabled = true; $('btnBuscar').textContent = 'Buscando…'; aviso('avisoTel');
+  try{
+    const res = await rpc('diploma_buscar', { p_telefono:tel });
+    if(!res.length){ aviso('avisoTel', 'error', 'No encontramos ese número en los cursos de la gira. Revísalo o pasa con Recepción.'); return; }
+    estado.tel = tel; estado.resultados = res;
+    pintarCursos(); mostrar('pasoQuien');
+  } catch(err){ aviso('avisoTel', 'error', err.message); }
+  finally{ $('btnBuscar').disabled = false; $('btnBuscar').textContent = 'Buscar mi diploma'; }
+});
+
+/* 2. ¿Eres tú? Una tarjeta por curso (casi siempre una). */
+/* Que cada renglón quepa completo, igual que en el diploma (sin partirse en la pantalla). */
+function tamNombre(nombre){ return Math.max(16, Math.min(30, Math.floor(620 / Math.max(...renglonesNombre(nombre, 3).map(l=>l.length))))); }
+function pintarCursos(){
+  $('listaCursos').innerHTML = estado.resultados.map((r, i)=>`
+    <div class="curso">
+      <div class="donde">${escHtml(r.ciudad || '')} · ${escHtml(fechaBonita(r.fecha))}</div>
+      <div class="nombre-diploma" style="font-size:${tamNombre(nombreDe(r))}px">${renglonesNombre(nombreDe(r), 3).map(escHtml).join('<br>')}</div>
+      ${r.listo ? `
+        <div class="pregunta">¿Eres tú y así va tu nombre?</div>
+        <button type="button" class="principal" data-si="${i}">✓ Sí, soy yo y así va</button>`
+      : `<div class="aviso info">Todavía tienes un pago pendiente o por confirmar. Pasa con Recepción y vuelve a entrar: tu diploma aparece en cuanto quede liquidado.</div>`}
+      <button type="button" class="secundario" data-mal="${i}">✏️ Soy yo, pero mi nombre está mal</button>
+    </div>`).join('');
+}
+$('listaCursos').addEventListener('click', e=>{
+  const si = e.target.closest('[data-si]'), mal = e.target.closest('[data-mal]');
+  if(si){ estado.elegido = estado.resultados[+si.dataset.si]; prepararDiploma(); }
+  if(mal){ estado.elegido = estado.resultados[+mal.dataset.mal]; $('nombreCorrecto').value = ''; aviso('avisoNombre'); $('formNombre').hidden = false; mostrar('pasoNombre'); }
+});
+document.querySelectorAll('[data-volver]').forEach(b=>b.addEventListener('click', ()=>{ $('tel').value = ''; aviso('avisoTel'); mostrar('pasoTel'); $('tel').focus(); }));
+document.querySelector('[data-atras]').addEventListener('click', ()=>mostrar('pasoQuien'));
+
+/* 3. Mi nombre está mal → le llega una tarea a Academia */
+$('formNombre').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const nombre = $('nombreCorrecto').value.trim().replace(/\s+/g, ' ');
+  if(nombre.length < 3){ aviso('avisoNombre', 'error', 'Escribe tu nombre completo.'); return; }
+  $('btnNombre').disabled = true;
+  try{
+    await rpc('diploma_reportar_nombre', { p_telefono:estado.tel, p_inscripcion:estado.elegido.id, p_nombre:nombre });
+    $('formNombre').hidden = true;
+    aviso('avisoNombre', 'ok', '¡Listo! Academia va a corregir tu nombre. Vuelve a entrar a esta página más tarde para descargar tu diploma.');
+  } catch(err){ aviso('avisoNombre', 'error', err.message); }
+  finally{ $('btnNombre').disabled = false; }
+});
+
+/* 4. Armar el diploma en el teléfono y ofrecer la descarga */
+async function prepararDiploma(){
+  mostrar('pasoDiploma');
+  $('tituloDiploma').textContent = 'Preparando tu diploma…'; $('subDiploma').textContent = '';
+  $('cargando').hidden = false; $('previa').hidden = true; $('btnDescargar').hidden = true; $('btnCompartir').hidden = true; aviso('avisoDiploma');
+  try{
+    const d = await rpc('diploma_datos', { p_telefono:estado.tel, p_inscripcion:estado.elegido.id });
+    if(!d.listo){ throw new Error('Todavía tienes un pago pendiente o por confirmar. Pasa con Recepción y vuelve a entrar.'); }
+    const pl = d.plantilla, nombre = nombreDe(d);
+    const valores = { nombre, mes:(String(pl.textos?.mes || '').trim() || mesCert(d.fecha)).toUpperCase() };
+    const bytes = await armarPdfCertificado(pl, valores);
+    // Sin acentos ni símbolos: algunos navegadores ignoran el nombre del archivo si los trae (el diploma sí los lleva).
+    const archivo = `Diploma ${nombre}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9 ._-]/g, '').trim() + '.pdf';
+    estado.pdf = new Blob([bytes], { type:'application/pdf' });
+    estado.archivo = archivo;
+    $('btnDescargar').href = URL.createObjectURL(estado.pdf);
+    $('btnDescargar').download = archivo;
+    await pintarPrevia(pl, valores);
+    $('tituloDiploma').textContent = `¡Felicidades, ${nombre.split(' ')[0]}! 🎉`;
+    $('subDiploma').textContent = 'Tu diploma está listo. Descárgalo y guárdalo.';
+    $('btnDescargar').hidden = false;
+    $('btnCompartir').hidden = !(navigator.canShare && navigator.canShare({ files:[new File([estado.pdf], archivo, { type:'application/pdf' })] }));
+  } catch(err){
+    $('tituloDiploma').textContent = 'No se pudo preparar tu diploma';
+    aviso('avisoDiploma', 'error', err.message);
+  } finally{ $('cargando').hidden = true; }
+}
+$('btnCompartir').addEventListener('click', async ()=>{
+  try{ await navigator.share({ files:[new File([estado.pdf], estado.archivo, { type:'application/pdf' })], title:'Mi diploma' }); }
+  catch(err){ if(err?.name !== 'AbortError') aviso('avisoDiploma', 'error', 'No se pudo compartir. Usa “Descargar”.'); }
+});
+
+/* Vista previa: el fondo y el nombre, con las mismas medidas que el PDF. */
+async function pintarPrevia(pl, valores){
+  const W = Number(pl.ancho) || 792, H = Number(pl.alto) || 612;
+  const lienzo = $('previa'), escala = 2 * (lienzo.clientWidth || 400) / W;
+  lienzo.width = Math.round(W * escala); lienzo.height = Math.round(H * escala);
+  const ctx = lienzo.getContext('2d');
+  const img = new Image();
+  img.src = URL.createObjectURL(new Blob([await bytesDe(pl.fondo_url)]));
+  await img.decode();
+  ctx.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+  for(const c of pl.campos || []){
+    const texto = rellenarCampo(c.texto, valores); if(!texto || !CERT_FUENTES[c.fuente]) continue;
+    const familia = 'Previa_' + c.fuente;
+    if(![...document.fonts].some(f=>f.family === familia)){
+      const ff = new FontFace(familia, await bytesDe(CERT_FUENTES[c.fuente])); await ff.load(); document.fonts.add(ff);
+    }
+    const k = window.fontkit.create(await bytesDe(CERT_FUENTES[c.fuente]));
+    ctx.fillStyle = c.color || '#111';
+    if(c.renglones){
+      const { tam, lineas } = acomodarBloqueCert(null, k, texto, c);
+      ctx.font = `${tam * escala}px "${familia}"`; ctx.textAlign = 'left';
+      lineas.forEach(l=>ctx.fillText(l.texto, l.x * escala, l.base * escala));
+    } else {
+      ctx.font = `${c.tam * escala}px "${familia}"`; ctx.textAlign = 'center';
+      if('letterSpacing' in ctx) ctx.letterSpacing = `${(Number(c.espaciado) || 0) * escala}px`;
+      ctx.fillText(texto, c.x * escala, (c.y + c.tam * 0.33) * escala);
+      if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    }
+  }
+  lienzo.hidden = false;
+}
+</script>
+</body>
+</html>

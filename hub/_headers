@@ -1,0 +1,4 @@
+# Cloudflare Pages: la página de diplomas (certificados.glamreposteria.com) usa los
+# fondos, las letras y el armado del PDF que viven aquí, desde otro dominio.
+/certificados/*
+  Access-Control-Allow-Origin: *
