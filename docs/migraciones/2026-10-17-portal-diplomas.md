@@ -98,6 +98,13 @@ La página vive en la carpeta **`diplomas/`** del mismo repo y rama `main`. Usa 
   - "nombre mal": 2 tareas, una para cada persona de Academia, con el texto saneado;
   - sin sesión no se usan las funciones de apoyo ni se lee `diploma_intentos`;
   - con 30 intentos fallidos, el límite frena.
+- **Ya publicado:**
+  - el Hub sirve `pdf-certificado.js`, las letras y el fondo con `access-control-allow-origin: *`;
+  - el Hub publicado arma el diploma con el archivo compartido;
+  - con la llave pública, `diploma_buscar` responde `[]` con un número inventado y rechaza uno corto;
+  - `diploma_listo` y `diploma_intentos` responden 401;
+  - el límite registra la IP real que manda Cloudflare.
+- **La página contra el Hub publicado y la base real** (con un número inventado): carga el código del PDF desde el Hub y responde "No encontramos ese número", sin errores de JS.
 - **PDF de la página revisado a ojo:** `pruebas/capturas/diploma-portal.pdf`, igual al del Hub.
 
 ## Nota técnica
