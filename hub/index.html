@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Armado del diploma en PDF: compartido con la página de diplomas -->
+<script src="/certificados/pdf-certificado.js?v=20261017"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
@@ -870,6 +872,8 @@
   .c-previa span.bloque{ text-align:center; }
   .c-asi{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; }
   .c-asi b{ font-family:'Nickainley', cursive; font-weight:400; font-size:15px; color:#774228; }
+  .c-pidio{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:12px; color:var(--ink); background:rgba(181,48,142,.08); border-radius:8px; padding:6px 8px; margin-top:4px; font-weight:500; }
+  .c-pidio button{ width:auto; min-height:30px; border-radius:8px; border:1px solid var(--border); background:var(--card); font-family:inherit; font-size:12px; font-weight:700; padding:0 9px; cursor:pointer; }
   .c-deben{ margin-top:12px; }
   .c-deben .c-fila{ grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); opacity:.85; }
   .c-campos{ display:grid; grid-template-columns:minmax(0,1.2fr) repeat(3, 70px); gap:6px 8px; font-size:12px; align-items:center; }
@@ -3134,6 +3138,7 @@ const ACCION_LABEL = {
   cert_enviado: '📄 Mandó un certificado por WhatsApp',
   cert_agregado: '📄 Agregó a alguien a los certificados de un curso',
   cert_plantilla: '📄 Cambió la plantilla o el folio de los certificados',
+  cert_nombre: '✏️ Usó el nombre que pidió la alumna para su diploma',
 };
 // Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
 // ya no está activa aunque nunca se haya marcado "fin" explícito
@@ -8985,137 +8990,14 @@ document.getElementById('kDetalle').addEventListener('change', async e=>{
    confirmados (o se agregó a mano, también liquidada). Academia: las graduadas.
    El folio lo configura Academia (prefijo y número); la gira no lleva folio.
    ========================================================= */
-const PDFLIB_URL = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
-const FONTKIT_URL = 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
-/* Letras propias de las plantillas (campo.fuente). Se cargan solo si la plantilla las usa y van
-   completas dentro del PDF: la licencia de Nickainley no permite modificar (recortar) la letra. */
-let CERT_FUENTES = {
-  manuscrita: '/certificados/GreatVibes-Regular.ttf',
-  nickainley: '/certificados/Nickainley-Normal.ttf',
-  baskerville_italica: '/certificados/LibreBaskerville-Italic.ttf',
-};
-const CERT_FUENTE_CSS = { manuscrita:"'Great Vibes',cursive", nickainley:"'Nickainley',cursive", baskerville_italica:"'Libre Baskerville Cert',serif" };
-const C_SELECT = 'id, tipo, evento_id, inscripcion_id, alumna_id, nombre_impreso, datos, folio, estado, archivo_path, link, generado_en, enviado_en';
+const C_SELECT = 'id, tipo, evento_id, inscripcion_id, alumna_id, nombre_impreso, datos, folio, estado, archivo_path, link, generado_en, enviado_en, descargado_en, descargas, nombre_reportado, nombre_reportado_en';
+/* Ya le llegó: se lo mandaron por WhatsApp o lo descargó ella en certificados.glamreposteria.com. */
+function certEntregado(c){ return c?.estado === 'enviado' || !!c?.descargado_en; }
 const C_ESTADO = { pendiente:'Pendiente', generado:'Generado', enviado:'Enviado' };
 let cc = { tipo:'gira', plantillas:null, grupos:[], grupo:null, filas:[], otras:[], deben:[], cola:[], ocupado:false };
 /* Gira: el certificado se da a quien ya liquidó y no tiene pagos "🏦 por confirmar". */
 const C_INSC_PAGO = 'liquidado, anticipo, restante, precio_pactado, pagos!pagos_inscripcion_id_fkey ( verificacion )';
 function pagoCompletoCert(i){ return debeDe(i) === 0 && !pagosPorConfirmar(i).length; }
-function mesCert(iso){ return iso ? `${new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { month:'long' })} ${iso.slice(0, 4)}` : ''; }
-const CERT_BYTES = {};
-
-function cargarScript(src){
-  return new Promise((ok, mal)=>{ const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ()=>mal(new Error('No se pudo cargar ' + src)); document.head.appendChild(s); });
-}
-async function cargarPdfLib(){
-  if(!window.PDFLib) await cargarScript(PDFLIB_URL);
-  if(!window.fontkit) await cargarScript(FONTKIT_URL);
-}
-async function bytesDe(url){
-  if(!CERT_BYTES[url]){
-    const r = await fetch(url);
-    if(!r.ok) throw new Error(`No se pudo bajar ${url} (${r.status})`);
-    CERT_BYTES[url] = new Uint8Array(await r.arrayBuffer());
-  }
-  return CERT_BYTES[url];
-}
-function fechaLargaCert(iso){ return iso ? new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' }) : ''; }
-/* Un dato se imprime solo si todo lo que pide tiene valor ("Matrícula {matricula}" sin matrícula no sale). */
-function rellenarCampo(texto, v){
-  let falta = false;
-  const t = String(texto || '').replace(/\{(\w+)\}/g, (_, k)=>{ const x = v[k]; if(x == null || String(x).trim() === '') falta = true; return x ?? ''; });
-  return falta ? '' : t.trim();
-}
-function rgbHex(hex){
-  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '') || [0, '11', '11', '11'];
-  return PDFLib.rgb(parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255);
-}
-/* Nombre como se imprime: palabras con mayúscula, "de", "la", "del"… en minúscula. */
-const CERT_PARTICULAS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'di', 'van', 'von']);
-function nombreDiploma(s){
-  return String(s || '').trim().toLowerCase().split(/\s+/).filter(Boolean)
-    .map((w, i)=>i > 0 && CERT_PARTICULAS.has(w) ? w : w.replace(/(^|-)(\p{L})/gu, (m, a, b)=>a + b.toUpperCase())).join(' ');
-}
-/* Renglones del nombre: nombre(s) / apellido paterno / apellido materno.
-   "de la Cruz" o "de los Santos" van juntos (la partícula se pega a la palabra que sigue). */
-function renglonesNombre(nombre, max = 3){
-  const bloques = []; let pend = [];
-  for(const w of String(nombre || '').trim().split(/\s+/).filter(Boolean)){
-    pend.push(w);
-    if(!CERT_PARTICULAS.has(w.toLowerCase())){ bloques.push(pend.join(' ')); pend = []; }
-  }
-  if(pend.length){ if(bloques.length) bloques[bloques.length - 1] += ' ' + pend.join(' '); else bloques.push(pend.join(' ')); }
-  if(bloques.length <= max) return bloques;
-  return [bloques.slice(0, bloques.length - max + 1).join(' '), ...bloques.slice(bloques.length - max + 1)];
-}
-/* Un dato en varios renglones (el nombre del diploma): se mide la tinta real de cada renglón para
-   centrarlo en su caja (c.x, c.y = centro; c.ancho × c.alto) sin tocar las líneas del fondo. */
-function dibujarBloqueCert(pag, f, k, texto, c, H, color){
-  const lineas = renglonesNombre(texto, c.renglones);
-  const m = lineas.map(t=>{
-    if(!k){ const w = f.widthOfTextAtSize(t, 1), alto = f.heightAtSize(1, { descender:false }); return { x0:0, x1:w, arriba:alto, abajo:alto - f.heightAtSize(1) }; }
-    const b = k.layout(t).bbox, u = k.unitsPerEm;
-    return { x0:b.minX / u, x1:b.maxX / u, arriba:b.maxY / u, abajo:b.minY / u };
-  });
-  const paso = Number(c.interlineado) || 1.05, n = lineas.length;
-  const altoT = m[0].arriba + (n - 1) * paso - m[n - 1].abajo;
-  const anchoT = Math.max(...m.map(x=>x.x1 - x.x0));
-  const tam = Math.min(Number(c.tam) || 40, c.ancho / anchoT, c.alto / altoT);
-  // Antes que un diploma con letra diminuta, se detiene y pide acortar el nombre.
-  if(tam < (Number(c.tam_min) || 12)) throw new Error('El nombre es demasiado largo para el diploma. Acórtalo en “Nombre como se imprime”.');
-  const arriba = c.y - altoT * tam / 2;
-  lineas.forEach((t, i)=>{
-    const base = arriba + m[0].arriba * tam + i * paso * tam;   // línea base, desde arriba
-    pag.drawText(t, { x:c.x - (m[i].x0 + m[i].x1) / 2 * tam, y:H - base, size:tam, font:f, color });
-  });
-}
-/* Arma el PDF. Tamaño de hoja de la plantilla (por defecto carta horizontal, 792 × 612 pt).
-   La posición "y" de cada dato es el centro del renglón, desde arriba. */
-async function armarPdfCertificado(pl, valores){
-  await cargarPdfLib();
-  const { PDFDocument, StandardFonts, pushGraphicsState, popGraphicsState, setCharacterSpacing } = PDFLib;
-  const W = Number(pl.ancho) || 792, H = Number(pl.alto) || 612;
-  const doc = await PDFDocument.create();
-  doc.registerFontkit(window.fontkit);
-  doc.setTitle(`Certificado ${valores.nombre || ''}`.trim());
-  const pag = doc.addPage([W, H]);
-  const fondo = await bytesDe(pl.fondo_url);
-  const esPng = fondo[0] === 0x89 && fondo[1] === 0x50;
-  const img = esPng ? await doc.embedPng(fondo) : await doc.embedJpg(fondo);
-  pag.drawImage(img, { x:0, y:0, width:W, height:H });
-  const fuentes = { normal: await doc.embedFont(StandardFonts.Helvetica), negrita: await doc.embedFont(StandardFonts.HelveticaBold) };
-  const medidas = {};   // fontkit de cada letra propia: para medir la tinta y revisar que tenga cada letra
-  for(const clave of new Set((pl.campos || []).map(c=>c.fuente))){
-    if(!CERT_FUENTES[clave]) continue;
-    const bytes = await bytesDe(CERT_FUENTES[clave]);
-    fuentes[clave] = await doc.embedFont(bytes, { subset:false });
-    medidas[clave] = window.fontkit.create(bytes);
-  }
-  for(const c of pl.campos || []){
-    const texto = rellenarCampo(c.texto, valores); if(!texto) continue;
-    const f = fuentes[c.fuente] || fuentes.normal, k = medidas[c.fuente];
-    if(k){
-      const faltan = [...new Set([...texto].filter(ch=>ch.trim() && !k.hasGlyphForCodePoint(ch.codePointAt(0))))];
-      if(faltan.length) throw new Error(`La letra del certificado no tiene “${faltan.join(' ')}”. Corrige el texto antes de generar.`);
-    }
-    const color = rgbHex(c.color);
-    if(c.renglones){ dibujarBloqueCert(pag, f, k, texto, c, H, color); continue; }
-    let tam = Number(c.tam) || 12;
-    const esp = Number(c.espaciado) || 0, nLetras = [...texto].length;
-    // Ancho a centrar: el de la tinta (si se pide y hay medidas) o el del avance normal.
-    const medir = t=>{
-      if(k && c.centrar_tinta){ const b = k.layout(texto).bbox, u = k.unitsPerEm; return { x0:b.minX / u * t, ancho:(b.maxX - b.minX) / u * t + esp * (nLetras - 1) }; }
-      return { x0:0, ancho:f.widthOfTextAtSize(texto, t) + esp * (nLetras - 1) };
-    };
-    let { x0, ancho } = medir(tam);
-    if(c.ancho_max && ancho > c.ancho_max){ tam = tam * c.ancho_max / ancho; ({ x0, ancho } = medir(tam)); }   // textos largos se achican
-    const x = (c.alinear === 'izq' ? c.x : c.alinear === 'der' ? c.x - ancho : c.x - ancho / 2) - x0;
-    if(esp) pag.pushOperators(pushGraphicsState(), setCharacterSpacing(esp));
-    pag.drawText(texto, { x, y:H - c.y - tam * 0.33, size:tam, font:f, color });
-    if(esp) pag.pushOperators(popGraphicsState());
-  }
-  return await doc.save();
-}
 
 async function cargarPlantillasCert(){
   const { data, error } = await sb.from('certificado_plantillas').select('id, tipo, fondo_url, campos, textos, folio_prefijo, folio_siguiente, folio_digitos, ancho, alto, usa_folio');
@@ -9150,7 +9032,7 @@ async function cargarGruposCert(){
     const ids = (evs || []).map(e=>e.id);
     const [ri, rc] = ids.length ? await Promise.all([
       acTraerTodo(()=>sb.from('inscripciones').select('id, evento_id, estatus_id, ' + C_INSC_PAGO).in('evento_id', ids).eq('asistencia', 'llego')),
-      acTraerTodo(()=>sb.from('certificados').select('id, evento_id, inscripcion_id, estado').eq('tipo', 'gira').in('evento_id', ids)),
+      acTraerTodo(()=>sb.from('certificados').select('id, evento_id, inscripcion_id, estado, descargado_en').eq('tipo', 'gira').in('evento_id', ids)),
     ]) : [{ data:[] }, { data:[] }];
     if(ri.error || rc.error){ toast('No se pudieron cargar los certificados: ' + (ri.error || rc.error).message, true); return false; }
     cc.grupos = (evs || []).map(e=>{
@@ -9160,12 +9042,12 @@ async function cargarGruposCert(){
       const listas = new Set([...llegaron.filter(pagoCompletoCert).map(i=>i.id), ...conCert]);
       const deben = llegaron.filter(i=>!pagoCompletoCert(i) && !conCert.has(i.id)).length;
       return { id:e.id, titulo:e.ciudades?.nombre || '(ciudad?)', sub:fechaCorta(e.fecha) + (deben ? ` · ⏳ ${deben} aún no` : ''), evento:e, total:listas.size, deben,
-        generados:certs.filter(c=>c.estado !== 'pendiente').length, enviados:certs.filter(c=>c.estado === 'enviado').length };
+        generados:certs.filter(c=>c.estado !== 'pendiente').length, enviados:certs.filter(certEntregado).length };
     });
   } else {
     const [ra, rc] = await Promise.all([
       acTraerTodo(()=>sb.from('academia_alumnas').select('id, generacion_id').eq('decision', 'graduada')),
-      acTraerTodo(()=>sb.from('certificados').select('id, alumna_id, estado').eq('tipo', 'academia')),
+      acTraerTodo(()=>sb.from('certificados').select('id, alumna_id, estado, descargado_en').eq('tipo', 'academia')),
     ]);
     if(ra.error || rc.error){ toast('No se pudieron cargar los diplomas: ' + (ra.error || rc.error).message, true); return false; }
     const certPor = new Map(rc.data.map(c=>[c.alumna_id, c]));
@@ -9173,7 +9055,7 @@ async function cargarGruposCert(){
       const al = ra.data.filter(a=>a.generacion_id === g.id);
       const certs = al.map(a=>certPor.get(a.id)).filter(Boolean);
       return { id:g.id, titulo:g.nombre, sub:g.programa || 'Falta el programa', gen:g, total:al.length,
-        generados:certs.filter(c=>c.estado !== 'pendiente').length, enviados:certs.filter(c=>c.estado === 'enviado').length };
+        generados:certs.filter(c=>c.estado !== 'pendiente').length, enviados:certs.filter(certEntregado).length };
     }).filter(g=>g.total);
   }
   if(cc.grupo && !cc.grupos.some(g=>g.id === cc.grupo)) cc.grupo = null;
@@ -9193,7 +9075,7 @@ function pintarGruposCert(){
         <span><b>${escHtml(g.titulo)}</b><div class="sub" style="margin:0;">${escHtml(g.sub)}</div></span>
         <span class="num"><b>${g.total}</b><small>${cc.tipo === 'gira' ? 'listas' : 'graduadas'}</small></span>
         <span class="num"><b>${g.generados}</b><small>generados</small></span>
-        <span class="num"><b style="color:${g.enviados === g.total ? 'var(--success)' : 'var(--danger)'}">${g.enviados}</b><small>enviados</small></span>
+        <span class="num"><b style="color:${g.enviados === g.total ? 'var(--success)' : 'var(--danger)'}">${g.enviados}</b><small>entregados</small></span>
         <span class="barra"><span class="ag-barra" style="display:block;"><span class="${pct === 100 ? 'lleno' : ''}" style="width:${pct}%"></span></span></span>
       </button>`;
     }).join('');
@@ -9238,7 +9120,8 @@ async function abrirGrupoCert(id){
 }
 function pintarListaCert(){
   const g = cc.grupos.find(x=>x.id === cc.grupo); if(!g) return;
-  const pendientes = cc.filas.filter(f=>(!f.cert || f.cert.estado === 'pendiente') && f.pagoOk);
+  // Pendientes de generar: las que ni se generaron ni lo descargaron ellas mismas.
+  const pendientes = cc.filas.filter(f=>(!f.cert || f.cert.estado === 'pendiente') && !f.cert?.descargado_en && f.pagoOk);
   const porMandar = cc.filas.filter(f=>f.cert?.estado === 'generado' && f.tel);
   const pl = plantillaCert();
   const sinFolio = usaFolio(pl) && !folioEjemplo(pl);
@@ -9258,8 +9141,10 @@ function pintarListaCert(){
       return `<div class="c-fila" data-c-fila="${escapeAttr(f.clave)}">
         <label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--ink-soft);font-weight:600;">Nombre como se imprime
           <input data-c-nombre="${escapeAttr(f.clave)}" maxlength="80" value="${escapeAttr(f.nombre)}">
-          ${bloque ? `<span class="c-asi" data-c-asi="${escapeAttr(f.clave)}">Así sale: <b>${escHtml(renglonesNombre(f.nombre, bloque.renglones).join(' / '))}</b></span>` : ''}</label>
-        <div><span class="c-estado ${est}">${C_ESTADO[est]}</span>${f.pagoOk ? '' : `<div class="sub" style="margin:2px 0 0;color:var(--danger);">⏳ ${f.debe > 0 ? 'Debe ' + fmtMoney(f.debe) : 'Pago por confirmar'}</div>`}${f.cert?.folio ? `<div class="sub" style="margin:2px 0 0;">Folio ${escHtml(f.cert.folio)}</div>` : ''}${f.tel ? '' : '<div class="sub" style="margin:2px 0 0;">Sin teléfono</div>'}</div>
+          ${bloque ? `<span class="c-asi" data-c-asi="${escapeAttr(f.clave)}">Así sale: <b>${escHtml(renglonesNombre(f.nombre, bloque.renglones).join(' / '))}</b></span>` : ''}
+          ${f.cert?.nombre_reportado && f.cert.nombre_reportado !== f.nombre ? `<span class="c-pidio">✏️ Pidió que diga: <b>«${escHtml(f.cert.nombre_reportado)}»</b>
+            <button type="button" data-c-usar="${escapeAttr(f.clave)}">Usar este nombre</button></span>` : ''}</label>
+        <div><span class="c-estado ${f.cert?.descargado_en && est === 'pendiente' ? 'enviado' : est}">${f.cert?.descargado_en && est === 'pendiente' ? 'Descargado' : C_ESTADO[est]}</span>${f.cert?.descargado_en ? `<div class="sub" style="margin:2px 0 0;">⬇️ Lo descargó ${escHtml(fechaCorta(f.cert.descargado_en.slice(0, 10)))}${f.cert.descargas > 1 ? ` (${f.cert.descargas} veces)` : ''}</div>` : ''}${f.pagoOk ? '' : `<div class="sub" style="margin:2px 0 0;color:var(--danger);">⏳ ${f.debe > 0 ? 'Debe ' + fmtMoney(f.debe) : 'Pago por confirmar'}</div>`}${f.cert?.folio ? `<div class="sub" style="margin:2px 0 0;">Folio ${escHtml(f.cert.folio)}</div>` : ''}${f.tel ? '' : '<div class="sub" style="margin:2px 0 0;">Sin teléfono</div>'}</div>
         <div class="c-acciones">
           <button type="button" data-c-generar="${escapeAttr(f.clave)}" ${cc.ocupado || !f.pagoOk ? 'disabled' : ''}>${f.cert && est !== 'pendiente' ? '↻ Regenerar' : '📄 Generar'}</button>
           ${f.cert?.link ? `<a href="${escapeAttr(f.cert.link)}" target="_blank" rel="noopener">Ver PDF</a>` : ''}
@@ -9445,8 +9330,24 @@ document.getElementById('cPlantillaBtn').addEventListener('click', ()=>{
 document.getElementById('cGrupos').addEventListener('click', e=>{
   const b = e.target.closest('[data-c-grupo]'); if(b) abrirGrupoCert(b.dataset.cGrupo);
 });
+/* "Usar este nombre": lo que la alumna pidió en la página de diplomas pasa a ser el nombre impreso. */
+async function usarNombrePedido(f){
+  const nombre = f.cert.nombre_reportado;
+  const { error } = await sb.from('certificados').update({ nombre_impreso:nombre }).eq('id', f.cert.id);
+  if(error){ toast('No se pudo guardar el nombre: ' + error.message, true); return; }
+  f.nombre = nombre; f.cert.nombre_impreso = nombre;
+  registrarActividad('cert_nombre', nombre);
+  toast(f.cert.link ? 'Nombre corregido. Toca “↻ Regenerar” para que salga en el PDF.' : 'Nombre corregido. Cuando la alumna vuelva a entrar a la página, ya le sale así.');
+  pintarListaCert();
+}
 document.getElementById('cLista').addEventListener('click', async e=>{
   if(cc.ocupado) return;
+  const usar = e.target.closest('[data-c-usar]');
+  if(usar){
+    e.preventDefault();
+    const f = cc.filas.find(x=>x.clave === usar.dataset.cUsar); if(f?.cert?.nombre_reportado) await usarNombrePedido(f);
+    return;
+  }
   const gen = e.target.closest('[data-c-generar]');
   if(gen){
     const f = cc.filas.find(x=>x.clave === gen.dataset.cGenerar); if(!f) return;
@@ -11045,7 +10946,7 @@ async function cargarNotas(){
 }
 
 const esMia      = n => n.usuario_id === usuarioActual?.id;
-const esTarea    = n => !!n.asignado_por;
+const esTarea    = n => !!n.asignado_por || !!n.de_sistema;   // las del sistema (p. ej. "corregir nombre del diploma") no tienen quién las asignó
 const meAsignaron = n => esTarea(n) && esMia(n);
 const yoAsigne    = n => esTarea(n) && n.asignado_por === usuarioActual?.id && !esMia(n);
 
@@ -11066,7 +10967,7 @@ function tarjetaNota(n){
   const puedeBorrar = !tarea || !mia;
   let encabezado = '';
   const deSistema = n.de_sistema ? '⚙️ Sistema · ' : '';
-  if(meAsignaron(n))  encabezado = `<div class="quien">🔔 ${deSistema}Te asignó ${n.asignador?.nombre || 'un admin'} · ${fechaNota(n.creado_en)}</div>`;
+  if(meAsignaron(n))  encabezado = `<div class="quien">🔔 ${deSistema}${n.asignado_por ? `Te asignó ${n.asignador?.nombre || 'un admin'} · ` : ''}${fechaNota(n.creado_en)}</div>`;
   else if(yoAsigne(n)) encabezado = `<div class="quien">📤 ${deSistema}Para ${n.destinatario?.nombre || 'alguien'} · ${fechaNota(n.creado_en)}</div>`;
   const estado = yoAsigne(n)
     ? `<div class="estado-tarea">${n.completado ? '✅ Hecha ' + fechaNota(n.completado_en) : (n.visto_en ? '👀 Ya la vio' : '⏳ Todavía no la ve')}</div>`
@@ -11136,6 +11037,13 @@ async function irAEnlaceNota(id){
   document.getElementById('notasPanel').classList.remove('open');
   if(e.vista === 'nollegaron' && e.ciudad){ nl.ciudadInicial = e.ciudad; nl.estado = 'todas'; }
   if(SECCIONES.some(s=>s.id===e.vista)) setActiveSection(e.vista);
+  // Diploma con nombre por corregir: Academia → Certificados → ese curso.
+  if(e.cert_evento){
+    cc.tipo = 'gira'; cc.grupo = e.cert_evento;
+    document.querySelectorAll('[data-c-tipo]').forEach(b=>b.classList.toggle('on', b.dataset.cTipo === 'gira'));
+    document.querySelector('#view-academia [data-ac-tab="certificados"]')?.click();
+    return;
+  }
   if(e.inscripcion) return abrirModalInscripcion(e.inscripcion);
   if(e.lead) return abrirModalLead(e.lead);
   if(e.evento){
@@ -11157,7 +11065,7 @@ async function marcarNota(id, completado){
     .eq('id', id);
   if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
   // Quien la asignó tiene que poder ver que ya se hizo, y cuándo.
-  if(completado && esTarea(n)) registrarActividad('tarea_completada', `«${n.texto}» (de ${n.asignador?.nombre || 'un admin'})`);
+  if(completado && esTarea(n)) registrarActividad('tarea_completada', `«${n.texto}» (de ${n.asignador?.nombre || (n.de_sistema ? 'el sistema' : 'un admin')})`);
 }
 
 async function borrarNota(id){

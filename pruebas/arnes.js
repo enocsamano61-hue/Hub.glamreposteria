@@ -22,7 +22,8 @@ const CAPTURAS = path.join(__dirname, 'capturas');
 function generarPagina(){
   const html = fs.readFileSync(path.join(RAIZ, 'hub', 'index.html'), 'utf8')
     .replace('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', 'vendor/supabase.js')
-    .replace('https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js', 'vendor/chart.js');
+    .replace('https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js', 'vendor/chart.js')
+    .replace(/"\/certificados\/pdf-certificado\.js[^"]*"/, '"../hub/certificados/pdf-certificado.js"');
   fs.writeFileSync(PAGINA, html);
 }
 
