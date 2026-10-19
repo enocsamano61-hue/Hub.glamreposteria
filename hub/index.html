@@ -650,6 +650,7 @@
   .recepcion.open{ display:flex; }
   .recepcion [hidden]{ display:none !important; }
   body.en-recepcion .glamtut-fab, body.en-recepcion .notas-fab{ display:none; }
+  body.en-recepcion .glamy-fab, body.en-recepcion .glamy-panel{ display:none !important; }  /* el botón trae display en línea */
   .rec-top{ min-height:56px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; padding:8px 20px; background:var(--card); border-bottom:1px solid var(--border); }
   .rec-volver{ background:none; border:0; color:var(--ink-soft); font-family:inherit; font-size:13px; cursor:pointer; padding:6px 0; }
   .rec-volver:hover{ color:var(--ink); }
@@ -1222,6 +1223,59 @@
   .glamtut-check-item:last-child{ border-bottom:none; }
   .glamtut-check-item input{ width:17px; height:17px; flex-shrink:0; }
   .glamtut-check-item .done{ color:var(--ink-soft); text-decoration:line-through; }
+  /* GLAMY — asistente con IA (botón ✨ arriba del "?") */
+  .glamy-fab{ position:fixed; right:24px; bottom:88px; width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,#B02D80,var(--wine-dark)); color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:151; display:flex; align-items:center; justify-content:center; }
+  .glamy-panel{ display:none; position:fixed; right:24px; bottom:152px; width:380px; height:560px; max-height:calc(100vh - 176px); max-width:calc(100vw - 32px); background:var(--card); border-radius:18px; box-shadow:0 20px 48px rgba(41,36,33,.30); z-index:160; flex-direction:column; overflow:hidden; }
+  .glamy-panel.open{ display:flex; }
+  .glamy-head{ background:linear-gradient(135deg,#B02D80,var(--wine-dark)); color:#fff; padding:14px 16px; display:flex; align-items:center; gap:10px; }
+  .glamy-head h3{ font-size:15px; color:#fff; margin:0; }
+  .glamy-head .sub{ font-size:11px; color:#F5E6FA; margin-top:2px; }
+  .glamy-head .glamy-x{ margin-left:auto; background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 6px; }
+  .glamy-head .glamy-nueva{ background:rgba(255,255,255,.16); border:none; color:#fff; font-size:11px; font-weight:600; border-radius:8px; padding:6px 9px; cursor:pointer; font-family:inherit; }
+  .glamy-msgs{ flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; background:var(--bg); }
+  .glamy-msg{ max-width:88%; padding:10px 12px; border-radius:14px; font-size:13px; line-height:1.5; word-wrap:break-word; }
+  .glamy-msg.yo{ align-self:flex-end; background:var(--wine); color:#fff; border-bottom-right-radius:4px; white-space:pre-wrap; }
+  .glamy-msg.ella{ align-self:flex-start; background:var(--card); color:var(--ink); border:1px solid var(--border); border-bottom-left-radius:4px; }
+  .glamy-msg.ella p{ margin:0 0 6px; } .glamy-msg.ella p:last-child{ margin-bottom:0; }
+  .glamy-msg.ella ul{ margin:4px 0 6px; padding-left:18px; }
+  .glamy-msg.error{ border-color:var(--danger, #C0392B); }
+  .glamy-botones{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .glamy-boton{ background:var(--bg); border:1.5px solid var(--wine); color:var(--wine); border-radius:20px; padding:5px 11px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .glamy-pensando{ align-self:flex-start; font-size:12px; color:var(--ink-soft); padding:4px 6px; }
+  .glamy-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .glamy-chip{ background:var(--card); border:1px solid var(--border); color:var(--ink); border-radius:20px; padding:7px 11px; font-size:12px; cursor:pointer; font-family:inherit; text-align:left; }
+  .glamy-pie{ border-top:1px solid var(--border); padding:10px; display:flex; gap:8px; align-items:flex-end; background:var(--card); }
+  .glamy-pie textarea{ flex:1; resize:none; border:1px solid var(--border); border-radius:12px; padding:9px 11px; font-size:13px; font-family:inherit; max-height:110px; min-height:40px; color:var(--ink); background:var(--card); }
+  .glamy-pie button{ background:var(--wine); color:#fff; border:none; border-radius:12px; padding:0 14px; height:40px; font-size:16px; cursor:pointer; }
+  .glamy-pie button:disabled{ opacity:.5; cursor:default; }
+  .glamy-restan{ font-size:10.5px; color:var(--ink-soft); padding:0 12px 8px; background:var(--card); }
+  @media (max-width: 600px){
+    .glamy-panel{ inset:0; width:100%; height:100%; max-width:none; max-height:none; border-radius:0; }
+  }
+
+  /* PEDIDOS AL HUB — tablero solo para quien recibe pedidos */
+  .ped-tablero{ display:grid; grid-template-columns:repeat(5, minmax(170px,1fr)); gap:12px; overflow-x:auto; }
+  .ped-col{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:10px; min-height:120px; }
+  .ped-col h4{ margin:2px 4px 10px; font-size:12.5px; display:flex; justify-content:space-between; color:var(--ink); }
+  .ped-col h4 span{ color:var(--ink-soft); font-weight:600; }
+  .ped-tarjeta{ background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:9px 10px; margin-bottom:8px; cursor:pointer; font-size:12.5px; }
+  .ped-tarjeta:hover{ border-color:var(--wine); }
+  .ped-tarjeta b{ display:block; color:var(--ink); margin-bottom:3px; }
+  .ped-tarjeta small{ color:var(--ink-soft); }
+  .ped-detalle{ margin-bottom:16px; }
+  .ped-detalle dl{ display:grid; grid-template-columns:130px 1fr; gap:6px 12px; margin:12px 0; font-size:13px; }
+  .ped-detalle dt{ color:var(--ink-soft); font-weight:600; }
+  .ped-detalle dd{ margin:0; white-space:pre-wrap; color:var(--ink); }
+  .ped-estados{ display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 12px; }
+  .ped-estados button{ background:var(--card); border:1.5px solid var(--border); color:var(--ink); border-radius:20px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .ped-estados button.on{ background:var(--wine); border-color:var(--wine); color:#fff; }
+  .ped-detalle textarea{ width:100%; min-height:70px; border:1px solid var(--border); border-radius:10px; padding:9px 11px; font-family:inherit; font-size:13px; box-sizing:border-box; }
+  .ped-acciones{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .ped-acciones button{ width:auto; }
+  @media (max-width: 760px){
+    .ped-tablero{ grid-template-columns:1fr; }
+    .ped-detalle dl{ grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
@@ -1875,6 +1929,16 @@
         <div id="matrizAccionesRol" style="margin-top:12px;">Cargando…</div>
       </div>
     </div>
+
+    <!-- PEDIDOS AL HUB (solo quien recibe pedidos: los manda Glamy) -->
+    <div class="view" id="view-pedidos">
+      <div class="card ped-detalle" id="pedDetalle" style="display:none;"></div>
+      <div class="card" style="margin-bottom:16px;">
+        <h3><span class="spark">✦</span> Pedidos al Hub</h3>
+        <div class="sub">Lo que el equipo pidió a Glamy y el Hub todavía no hace. Al cambiar el estado, a quien lo pidió le llega un aviso a su bloc.</div>
+      </div>
+      <div class="ped-tablero" id="pedTablero">Cargando…</div>
+    </div>
   </div>
 </div>
 
@@ -2308,6 +2372,22 @@
   </div>
 </div>
 
+<!-- GLAMY -->
+<button class="glamy-fab" id="glamyFab" style="display:none;" aria-label="Abrir a Glamy, la asistente" title="Glamy, tu asistente">✨</button>
+<div class="glamy-panel" id="glamyPanel" role="dialog" aria-label="Glamy">
+  <div class="glamy-head">
+    <div><h3>✨ Glamy</h3><div class="sub">Tu asistente del Hub</div></div>
+    <button class="glamy-x glamy-nueva" id="glamyNueva" title="Empezar de nuevo">Nueva</button>
+    <button class="glamy-x" id="glamyCerrar" aria-label="Cerrar" style="margin-left:0;">×</button>
+  </div>
+  <div class="glamy-msgs" id="glamyMsgs"></div>
+  <div class="glamy-pie">
+    <textarea id="glamyTexto" rows="1" maxlength="1500" placeholder="Pregúntale a Glamy… (o pega un celular)"></textarea>
+    <button id="glamyEnviar" aria-label="Enviar">➤</button>
+  </div>
+  <div class="glamy-restan" id="glamyRestan"></div>
+</div>
+<!-- /GLAMY -->
 <button class="glamtut-fab" id="glamtutFab" style="display:none;" aria-label="Abrir asistente">?</button>
 <div class="glamtut-panel" id="glamtutPanel">
   <div class="glamtut-panel-head">
@@ -2488,6 +2568,8 @@ function showLogin(){
   NOTAS = [];
   if(canalNotas){ sb.removeChannel(canalNotas); canalNotas = null; }
   detenerSincronizacion();
+  cerrarGlamy();
+  document.getElementById('glamyFab').style.display = 'none';
   // TUTORIAL — quitar estas 4 líneas
   document.getElementById('glamtutFab').style.display = 'none';
   document.getElementById('glamtutPanel').classList.remove('open');
@@ -2529,6 +2611,7 @@ async function continuarSesion(){
   // Aviso al entrar: si hay tareas sin ver, que no pase desapercibido.
   const sinVer = NOTAS.filter(n=> meAsignaron(n) && !n.visto_en && !n.completado).length;
   if(sinVer) toast(`🔔 Tienes ${sinVer} ${sinVer===1?'tarea nueva':'tareas nuevas'} — ábrelas en el 📝 de abajo.`);
+  document.getElementById('glamyFab').style.display = usuarioActual?.id ? 'flex' : 'none';
   // TUTORIAL — quitar estas 6 líneas
   await cargarTutorial();
   document.getElementById('glamtutFab').style.display = usuarioActual?.id ? 'flex' : 'none';
@@ -2616,6 +2699,7 @@ const SECCIONES = [
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
   { id:'usuarios', label:'Usuarios y permisos', sub:'Quién es admin y quién puede ver la actividad del equipo', soon:false, icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/>' },
+  { id:'pedidos', label:'Pedidos al Hub', sub:'Lo que el equipo le pidió a Glamy y el Hub todavía no hace', soon:false, icon:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>' },
 ];
 function svgIcon(p,c){ return `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`; }
 document.getElementById('desktopNav').innerHTML = SECCIONES.map((s,i)=>`<div class="nav-item ${i===0?'active':''} ${s.soon?'soon':''}" data-view="${s.id}">${svgIcon(s.icon,'nav-ico')}<span>${s.label}</span>${s.soon?'<span class="pill-soon">pronto</span>':''}</div>`).join('');
@@ -2646,6 +2730,7 @@ function setActiveSection(id){
   if(id==='precios') renderPrecios();
   if(id==='nollegaron') renderNoLlegaron();
   if(id==='academia') renderAcademia();
+  if(id==='pedidos') renderPedidos();
   if(usuarioActual?.id){
     // TUTORIAL — quitar estas 3 líneas
     marcarProgresoPorVista(id);
@@ -2668,14 +2753,15 @@ pickerOverlay.addEventListener('click', closePicker);
 let usuarioActual = null; // { id, nombre, rol, es_admin, puede_ver_actividad } — fila de public.usuarios
 async function resolverUsuarioActual(){
   if(!sesionActual) return;
-  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad, debe_cambiar_password').eq('email', sesionActual.user.email).maybeSingle();
+  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad, debe_cambiar_password, recibe_pedidos').eq('email', sesionActual.user.email).maybeSingle();
   usuarioActual = data || { id:null, nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false, puede_ver_actividad:false, debe_cambiar_password:false };
 }
 const TODAS_SECCIONES = SECCIONES.map(s=>s.id);
 // Secciones que sí se pueden restringir por rol desde "Usuarios y permisos".
 // "Actividad del equipo" y "Usuarios y permisos" quedan fuera: esas se
 // gobiernan aparte, por es_admin/puede_ver_actividad, nunca por rol.
-const SECCIONES_ASIGNABLES_POR_ROL = SECCIONES.filter(s=>s.id!=='actividad' && s.id!=='usuarios');
+// "Pedidos al Hub" tampoco: solo lo ve quien recibe pedidos (usuarios.recibe_pedidos).
+const SECCIONES_ASIGNABLES_POR_ROL = SECCIONES.filter(s=>s.id!=='actividad' && s.id!=='usuarios' && s.id!=='pedidos');
 // Respaldo si un rol todavía no tiene ninguna fila en permisos_rol (rol
 // nuevo que no hemos configurado) — para no dejar a alguien sin nav por
 // accidente. Una vez que un admin toca la matriz de un rol en la UI,
@@ -2735,6 +2821,9 @@ function seccionesPermitidas(){
   // se queda estrictamente en manos de admins, sin excepción.
   if(usuarioActual?.es_admin) permitidas.add('usuarios');
   else permitidas.delete('usuarios');
+  // "Pedidos al Hub": solo quien recibe los pedidos de Glamy.
+  if(usuarioActual?.recibe_pedidos) permitidas.add('pedidos');
+  else permitidas.delete('pedidos');
   return [...permitidas];
 }
 function aplicarPermisosNav(){
@@ -3143,6 +3232,8 @@ const ACCION_LABEL = {
   cert_agregado: '📄 Agregó a alguien a los certificados de un curso',
   cert_plantilla: '📄 Cambió la plantilla o el folio de los certificados',
   cert_nombre: '✏️ Usó el nombre que pidió la alumna para su diploma',
+  pedido_estado: '💡 Movió un pedido al Hub',
+  pedido_nota: '💡 Escribió una nota en un pedido al Hub',
 };
 // Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
 // ya no está activa aunque nunca se haya marcado "fin" explícito
@@ -11040,6 +11131,9 @@ async function irAEnlaceNota(id){
   const e = n?.enlace; if(!e?.vista) return;
   document.getElementById('notasPanel').classList.remove('open');
   if(e.vista === 'nollegaron' && e.ciudad){ nl.ciudadInicial = e.ciudad; nl.estado = 'todas'; }
+  if(e.vista === 'pedidos') ped.abrirNumero = e.pedido || null;
+  // Aviso de un pedido propio a quien no ve el tablero: lo explica Glamy.
+  if(e.vista === 'pedidos' && !seccionesPermitidas().includes('pedidos')){ abrirGlamy(); return glamyPreguntar('¿Cómo van mis pedidos?'); }
   if(SECCIONES.some(s=>s.id===e.vista)) setActiveSection(e.vista);
   // Diploma con nombre por corregir: Academia → Certificados → ese curso.
   if(e.cert_evento){
@@ -12109,6 +12203,255 @@ document.getElementById('guardarNuevoContacto').addEventListener('click', async 
   aplicarFiltrosCatalogo();
   if(logisticaCargado.pipeline) renderLogisticaPipeline();
 });
+
+/* =========================================================
+   GLAMY — asistente con IA (Claude Haiku) para todo el equipo
+   La función de Supabase "glamy" hace el trabajo: revisa la sesión, el
+   límite de 40 preguntas al día y consulta datos con los permisos de
+   quien pregunta. Aquí solo va el chat. La conversación vive en
+   sessionStorage (por persona) y se pierde al cerrar la pestaña.
+   Las marcas ⟦ir:…⟧ ⟦ficha:…⟧ ⟦lead:…⟧ ⟦pedidos⟧ se vuelven botones.
+   ========================================================= */
+const glamy = { mensajes:[], enviando:false, restantes:null };
+const GLAMY_SUGERENCIAS = [
+  '¿Qué puedo hacer en esta sección?',
+  '¿Qué tareas tengo pendientes?',
+  '¿Cuáles son los próximos cursos?',
+  '¿Cómo se cobra en Recepción?',
+  'Quiero pedir algo que el Hub no hace',
+];
+function glamyClave(){ return 'glamy:' + (usuarioActual?.id || 'nadie'); }
+function glamyGuardar(){
+  try{ sessionStorage.setItem(glamyClave(), JSON.stringify({ mensajes: glamy.mensajes.slice(-40), restantes: glamy.restantes })); }catch(_){}
+}
+function glamyCargar(){
+  glamy.mensajes = []; glamy.restantes = null;
+  try{
+    const g = JSON.parse(sessionStorage.getItem(glamyClave()) || 'null');
+    if(Array.isArray(g?.mensajes)) glamy.mensajes = g.mensajes.filter(m=> (m.rol==='user' || m.rol==='assistant') && typeof m.texto === 'string');
+    if(typeof g?.restantes === 'number') glamy.restantes = g.restantes;
+  }catch(_){}
+}
+const GLAMY_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Separa las marcas de botón del texto y valida cada una (sección permitida, ID con forma de ID).
+function glamyBotones(texto){
+  const botones = [], vistos = new Set();
+  const permitidas = new Set(seccionesPermitidas());
+  const limpio = String(texto||'').replace(/⟦(ir|ficha|lead):([^⟧\s]{1,60})⟧|⟦pedidos⟧/g, (m, tipo, id)=>{
+    tipo = tipo || 'pedidos';
+    const llave = tipo + ':' + (id||'');
+    if(vistos.has(llave) || botones.length >= 6) return '';
+    vistos.add(llave);
+    if(tipo === 'ir'){
+      const sec = SECCIONES.find(s=>s.id===id);
+      if(sec && permitidas.has(id)) botones.push({ tipo, id, label: 'Ir a ' + sec.label });
+    } else if(tipo === 'ficha' && GLAMY_UUID.test(id)) botones.push({ tipo, id, label: 'Abrir ficha' });
+    else if(tipo === 'lead' && GLAMY_UUID.test(id)) botones.push({ tipo, id, label: 'Abrir lead' });
+    else if(tipo === 'pedidos' && permitidas.has('pedidos')) botones.push({ tipo, id:'', label: '💡 Ver pedidos' });
+    return '';
+  });
+  return { limpio, botones };
+}
+// Markdown mínimo y siempre escapado: **negritas**, listas con "- " y renglones.
+function glamyFormato(texto){
+  const lineas = String(texto||'').replace(/\n{3,}/g, '\n\n').trim().split('\n');
+  const enLinea = l => escHtml(l).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  let html = '', parrafo = [], lista = [];
+  const cerrar = ()=>{
+    if(parrafo.length){ html += '<p>' + parrafo.join('<br>') + '</p>'; parrafo = []; }
+    if(lista.length){ html += '<ul>' + lista.map(x=>'<li>'+x+'</li>').join('') + '</ul>'; lista = []; }
+  };
+  lineas.forEach(l=>{
+    const t = l.trim();
+    if(!t){ cerrar(); return; }
+    const item = t.match(/^[-•*]\s+(.*)$/);
+    if(item){ if(parrafo.length) cerrar(); lista.push(enLinea(item[1])); }
+    else { if(lista.length) cerrar(); parrafo.push(enLinea(t)); }
+  });
+  cerrar();
+  return html;
+}
+function pintarGlamy(){
+  const caja = document.getElementById('glamyMsgs');
+  if(!glamy.mensajes.length){
+    const nombre = (usuarioActual?.nombre || '').split(' ')[0];
+    caja.innerHTML = `<div class="glamy-msg ella"><p>¡Hola${nombre ? ' ' + escHtml(nombre) : ''}! Soy <strong>Glamy</strong> ✨</p>
+      <p>Te ayudo a encontrar cosas en el Hub, a buscar a una alumna (pega su celular o su nombre) y a ver cómo va un curso. Si algo no existe en el Hub, se lo pido a Enoc por ti.</p></div>
+      <div class="glamy-chips">${GLAMY_SUGERENCIAS.map(s=>`<button class="glamy-chip" data-sugerencia="${escHtml(s)}">${escHtml(s)}</button>`).join('')}</div>`;
+  } else {
+    caja.innerHTML = glamy.mensajes.map(m=>{
+      if(m.rol === 'user') return `<div class="glamy-msg yo">${escHtml(m.texto)}</div>`;
+      const { limpio, botones } = glamyBotones(m.texto);
+      return `<div class="glamy-msg ella${m.error ? ' error' : ''}">${glamyFormato(limpio)}${botones.length ? `<div class="glamy-botones">${botones.map(b=>`<button class="glamy-boton" data-g-tipo="${b.tipo}" data-g-id="${escHtml(b.id)}">${escHtml(b.label)}</button>`).join('')}</div>` : ''}</div>`;
+    }).join('') + (glamy.enviando ? '<div class="glamy-pensando">Glamy está escribiendo…</div>' : '');
+  }
+  document.getElementById('glamyRestan').textContent = typeof glamy.restantes === 'number'
+    ? (glamy.restantes === 1 ? 'Te queda 1 pregunta hoy.' : `Te quedan ${glamy.restantes} preguntas hoy.`) : '';
+  document.getElementById('glamyEnviar').disabled = glamy.enviando;
+  caja.scrollTop = caja.scrollHeight;
+}
+function abrirGlamy(){
+  glamyCargar();
+  document.getElementById('glamyPanel').classList.add('open');
+  document.getElementById('glamtutPanel').classList.remove('open');
+  pintarGlamy();
+  if(window.innerWidth > 600) document.getElementById('glamyTexto').focus();
+}
+function cerrarGlamy(){ document.getElementById('glamyPanel').classList.remove('open'); }
+async function glamyPreguntar(texto){
+  texto = String(texto||'').trim();
+  if(!texto || glamy.enviando) return;
+  glamy.mensajes.push({ rol:'user', texto });
+  glamy.enviando = true;
+  glamyGuardar(); pintarGlamy();
+  // Solo se mandan los últimos mensajes buenos (los errores no cuentan como conversación).
+  const historial = glamy.mensajes.filter(m=>!m.error).slice(-16).map(m=>({ rol:m.rol, texto:m.texto }));
+  try{
+    const { data, error } = await sb.functions.invoke('glamy', { body:{ mensajes: historial, seccion: seccionActiva || 'inicio' } });
+    let r = data;
+    if(error){
+      try{ r = await error.context?.json(); }catch(_){ r = null; }
+      if(!r?.texto) throw new Error(r?.error || error.message);
+    }
+    if(!r?.texto) throw new Error(r?.error || 'no llegó respuesta');
+    glamy.mensajes.push({ rol:'assistant', texto: r.texto });
+    if(typeof r.restantes === 'number') glamy.restantes = r.restantes;
+  }catch(e){
+    glamy.mensajes.push({ rol:'assistant', texto: `No pude responder ahora 😔 (${e.message}). Intenta de nuevo en un momento.`, error:true });
+  }finally{
+    glamy.enviando = false;
+    glamyGuardar(); pintarGlamy();
+  }
+}
+async function glamyBoton(tipo, id){
+  // El panel queda encima de las fichas: se cierra (la plática se conserva).
+  cerrarGlamy();
+  if(tipo === 'ir' && seccionesPermitidas().includes(id)) return setActiveSection(id);
+  if(tipo === 'pedidos' && seccionesPermitidas().includes('pedidos')) return setActiveSection('pedidos');
+  if(tipo === 'ficha') return abrirModalInscripcion(id);
+  if(tipo === 'lead'){
+    if(!leadsCache.some(l=>l.id===id)) leadsCache = await cargarLeads();
+    if(!leadsCache.some(l=>l.id===id)){ toast('Ese lead ya no está en el tablero de leads.', true); return; }
+    return abrirModalLead(id);
+  }
+}
+document.getElementById('glamyFab').addEventListener('click', ()=>{
+  document.getElementById('glamyPanel').classList.contains('open') ? cerrarGlamy() : abrirGlamy();
+});
+document.getElementById('glamyCerrar').addEventListener('click', cerrarGlamy);
+document.getElementById('glamyNueva').addEventListener('click', ()=>{
+  if(glamy.enviando) return;
+  glamy.mensajes = []; glamyGuardar(); pintarGlamy();
+});
+document.getElementById('glamyMsgs').addEventListener('click', ev=>{
+  const sug = ev.target.closest('[data-sugerencia]');
+  if(sug) return glamyPreguntar(sug.dataset.sugerencia);
+  const b = ev.target.closest('[data-g-tipo]');
+  if(b) glamyBoton(b.dataset.gTipo, b.dataset.gId);
+});
+const glamyTexto = document.getElementById('glamyTexto');
+function glamyEnviarTexto(){ const t = glamyTexto.value; if(!t.trim() || glamy.enviando) return; glamyTexto.value = ''; glamyTexto.style.height = ''; glamyPreguntar(t); }
+document.getElementById('glamyEnviar').addEventListener('click', glamyEnviarTexto);
+glamyTexto.addEventListener('keydown', ev=>{
+  if(ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); glamyEnviarTexto(); }
+});
+glamyTexto.addEventListener('input', ()=>{ glamyTexto.style.height = ''; glamyTexto.style.height = Math.min(glamyTexto.scrollHeight, 110) + 'px'; });
+
+/* ---------- Pedidos al Hub (solo quien recibe pedidos) ----------
+   Los crea Glamy (función glamy → hub_pedidos). Aquí se ven por estado,
+   se mueven y se copian para trabajarlos con Claude. Al cambiar el
+   estado, el aviso a quien lo pidió lo manda la base (trigger), con la nota. */
+const ped = { lista:[], abierto:null, abrirNumero:null };
+const PED_ESTADOS = [['nuevo','Nuevo'], ['en_revision','En revisión'], ['en_desarrollo','En desarrollo'], ['hecho','Hecho ✅'], ['descartado','Descartado']];
+const fechaPed = f => f ? new Date(f).toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' }) : '';
+async function renderPedidos(){
+  const tablero = document.getElementById('pedTablero');
+  const { data, error } = await sb.from('hub_pedidos')
+    .select('id, numero, seccion, titulo, que_necesita, para_que, ejemplo, resumen, estado, nota_admin, creado_en, actualizado_en, usuarios:creado_por ( nombre )')
+    .order('numero', { ascending:false });
+  if(error){ tablero.innerHTML = `<div class="empty-note">No se pudieron cargar los pedidos: ${escHtml(error.message)}</div>`; return; }
+  ped.lista = data || [];
+  tablero.innerHTML = PED_ESTADOS.map(([k, l])=>{
+    const items = ped.lista.filter(p=>p.estado===k);
+    return `<div class="ped-col"><h4>${l}<span>${items.length}</span></h4>${items.map(p=>`
+      <div class="ped-tarjeta" data-ped="${p.id}"><b>#${p.numero} · ${escHtml(p.titulo)}</b>
+        <small>${escHtml(p.usuarios?.nombre || '—')} · ${fechaPed(p.creado_en)}${p.seccion ? ' · ' + escHtml(p.seccion) : ''}</small></div>`).join('')
+      || '<div class="empty-note" style="padding:8px 4px;">—</div>'}</div>`;
+  }).join('');
+  tablero.querySelectorAll('[data-ped]').forEach(el=> el.addEventListener('click', ()=> abrirPedido(el.dataset.ped)));
+  if(ped.abrirNumero){
+    const p = ped.lista.find(x=>x.numero === Number(ped.abrirNumero));
+    ped.abrirNumero = null;
+    if(p) return abrirPedido(p.id);
+  }
+  if(ped.abierto) abrirPedido(ped.abierto, { sinScroll:true });
+}
+function abrirPedido(id, { sinScroll = false } = {}){
+  const p = ped.lista.find(x=>x.id===id);
+  const caja = document.getElementById('pedDetalle');
+  if(!p){ ped.abierto = null; caja.style.display = 'none'; return; }
+  ped.abierto = id;
+  const fila = (t, v) => v ? `<dt>${t}</dt><dd>${escHtml(v)}</dd>` : '';
+  caja.innerHTML = `
+    <div style="display:flex; gap:10px; align-items:flex-start;">
+      <h3 style="margin:0; flex:1;">💡 #${p.numero} · ${escHtml(p.titulo)}</h3>
+      <button class="glamy-boton" id="pedCerrar" aria-label="Cerrar">Cerrar</button>
+    </div>
+    <dl>
+      ${fila('Lo pidió', (p.usuarios?.nombre || '—') + ' · ' + fechaPed(p.creado_en))}
+      ${fila('Sección', p.seccion)}
+      ${fila('Qué necesita', p.que_necesita)}
+      ${fila('Para qué', p.para_que)}
+      ${fila('Ejemplo', p.ejemplo)}
+      ${fila('Resumen de la plática', p.resumen)}
+    </dl>
+    <div class="sub">Estado (a quien lo pidió le llega un aviso con la nota):</div>
+    <div class="ped-estados">${PED_ESTADOS.map(([k, l])=>`<button data-ped-estado="${k}" class="${p.estado===k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <textarea id="pedNota" maxlength="1000" placeholder="Nota para quien lo pidió (opcional)">${escHtml(p.nota_admin || '')}</textarea>
+    <div class="ped-acciones">
+      <button class="btn-outline" id="pedGuardarNota">Guardar nota</button>
+      <button class="btn-primary small" id="pedCopiar">📋 Copiar para Claude</button>
+    </div>`;
+  caja.style.display = '';
+  caja.querySelector('#pedCerrar').addEventListener('click', ()=>{ ped.abierto = null; caja.style.display = 'none'; });
+  caja.querySelectorAll('[data-ped-estado]').forEach(b=> b.addEventListener('click', ()=> guardarPedido(p, { estado: b.dataset.pedEstado })));
+  caja.querySelector('#pedGuardarNota').addEventListener('click', ()=> guardarPedido(p, {}));
+  caja.querySelector('#pedCopiar').addEventListener('click', ()=> copiarPedido(p));
+  if(!sinScroll) caja.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+async function guardarPedido(p, cambios){
+  const nota = document.getElementById('pedNota').value.trim() || null;
+  const cambio = { ...cambios, nota_admin: nota };
+  if(cambio.estado === p.estado) delete cambio.estado;
+  if(!('estado' in cambio) && nota === (p.nota_admin || null)) return;
+  const { error } = await sb.from('hub_pedidos').update(cambio).eq('id', p.id);
+  if(error){ toast('No se pudo guardar el pedido: ' + error.message, true); return; }
+  if(cambio.estado){
+    registrarActividad('pedido_estado', `#${p.numero} → ${PED_ESTADOS.find(e=>e[0]===cambio.estado)[1]}`);
+    toast(`Pedido #${p.numero} movido. Le llegó el aviso a ${p.usuarios?.nombre || 'quien lo pidió'}.`);
+  } else {
+    registrarActividad('pedido_nota', `#${p.numero}`);
+    toast('Nota guardada.');
+  }
+  await renderPedidos();
+}
+async function copiarPedido(p){
+  const texto = [
+    `Pedido al Hub #${p.numero} — ${p.titulo}`,
+    `Lo pidió: ${p.usuarios?.nombre || '—'} (${fechaPed(p.creado_en)})${p.seccion ? ' · Sección: ' + p.seccion : ''}`,
+    p.que_necesita && `Qué necesita: ${p.que_necesita}`,
+    p.para_que && `Para qué: ${p.para_que}`,
+    p.ejemplo && `Ejemplo: ${p.ejemplo}`,
+    p.resumen && `Resumen de la plática con Glamy: ${p.resumen}`,
+    p.nota_admin && `Nota de Enoc: ${p.nota_admin}`,
+  ].filter(Boolean).join('\n');
+  try{ await navigator.clipboard.writeText(texto); toast('📋 Copiado. Pégalo en tu plática con Claude.'); }
+  catch(_){
+    const t = document.createElement('textarea'); t.value = texto; document.body.appendChild(t); t.select();
+    try{ document.execCommand('copy'); toast('📋 Copiado. Pégalo en tu plática con Claude.'); }catch(__){ toast('No se pudo copiar.', true); }
+    t.remove();
+  }
+}
 
 initAuth();
 </script>
