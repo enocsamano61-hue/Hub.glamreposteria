@@ -37,7 +37,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_academia_kits.js` | 🎓 Academia, pestaña Kits: tablero por estado, kits del Excel por clasificar, cobro (liquidar → Por preparar), enviado con guía y WhatsApp {guia}, cancelar/reactivar, crear kit, catálogo, filipinas en Graduación. |
 | `prueba_academia_certificados.js` | 🎓 Academia, pestaña Certificados: diploma de gira (solo liquidadas con pagos confirmados, nombre en 3 renglones, mes, sin folio, letras faltantes y nombres demasiado largos), mandar con {link}, regenerar, agregar a mano, descargado en la página y "Usar este nombre", tarea del sistema con "Ir →", plantilla; academia con folio y programa; celular. |
 | `prueba_diplomas.js` | Página de diplomas (`diplomas/`, certificados.glamreposteria.com): celular, límite de intentos, "¿Eres tú?" en 3 renglones, diploma real con vista previa y descarga, pago pendiente, "mi nombre está mal", dos cursos, celular. |
-| `prueba_glamy.js` | ✨ Glamy y 💡 Pedidos al Hub: sugerencias, formato escapado, botones validados (sección permitida, ficha, lead), plática por pestaña, errores, "Nueva"; tablero solo para quien recibe pedidos, estado con nota, copiar para Claude, aviso del bloc, Recepción y celular. |
+| `prueba_glamy.js` | 🧁 Glamy y su sección: el tutorial ya no existe, cupcake y globito una vez al día, sugerencias, formato escapado, botones validados (sección permitida, ficha, lead, tickets), plática por pestaña, errores, "Nueva"; 📊 Uso (resumen, proyección, por persona, 14 días); 🎫 Tickets solo para quien los recibe, estado con nota, copiar para Claude, avisos del bloc (nuevos y viejos), Recepción y celular. |
 
 ## Escribir una prueba nueva
 
