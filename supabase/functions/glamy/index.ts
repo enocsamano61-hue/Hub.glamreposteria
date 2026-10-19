@@ -1,11 +1,11 @@
 /* =========================================================
    GLAMY — asistente del Hub (Supabase Edge Function).
-   - Revisa la sesión de quien pregunta y sus límites (40 preguntas al día,
-     tope mensual de gasto).
+   - Revisa la sesión de quien pregunta. Sin límite de preguntas: por ahora
+     solo se mide (Enoc lo ve en la sección Glamy → Uso).
    - Llama a Claude Haiku 5.5 con el manual del Hub y herramientas de
      SOLO LECTURA. Las consultas de datos corren con la sesión de quien
      pregunta (RLS + secciones de su rol, en las funciones glamy_* de la base).
-   - Los pedidos (hub_pedidos) los crea con la llave de servicio.
+   - Los tickets (tabla hub_pedidos) los crea con la llave de servicio.
    - Anota el uso en glamy_uso (sin el texto de la conversación).
    La llave de Anthropic vive en el secreto ANTHROPIC_API_KEY.
    Ver docs/migraciones/2026-10-19-glamy.md
@@ -15,8 +15,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { MANUAL } from "./manual.ts";
 
 const MODELO = "claude-haiku-5-5";
-const LIMITE_DIARIO = 40;          // preguntas por persona al día
-const TOPE_MENSUAL_USD = 25;       // se detiene si el mes llega a esto (además del tope en la consola de Anthropic)
 const MAX_VUELTAS = 6;             // llamadas al modelo por pregunta (cada herramienta es una vuelta)
 // USD por millón de tokens de Claude Haiku 5.5 (prompts de hasta 100K tokens).
 const PRECIO = { entrada: 0.10, salida: 0.50, cacheLectura: 0.01, cacheEscritura: 0.125 };
@@ -68,18 +66,18 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
     input_schema: { type: "object", properties: {} },
   },
   {
-    name: "mis_pedidos",
-    description: "Los pedidos al Hub que ha hecho quien te habla y en qué estado van.",
+    name: "mis_tickets",
+    description: "Los tickets que ha levantado quien te habla y en qué estado van.",
     input_schema: { type: "object", properties: {} },
   },
   {
-    name: "buscar_pedidos_abiertos",
-    description: "Lista los pedidos al Hub que siguen abiertos (número, título, sección y estado) para no duplicar uno. Úsala SIEMPRE antes de crear_pedido.",
+    name: "buscar_tickets_abiertos",
+    description: "Lista los tickets que siguen abiertos (número, título, sección y estado) para no duplicar uno. Úsala SIEMPRE antes de crear_ticket.",
     input_schema: { type: "object", properties: {} },
   },
   {
-    name: "crear_pedido",
-    description: "Manda a Enoc un pedido de algo que el Hub no hace (o un error). Solo después de entenderlo bien y de revisar con buscar_pedidos_abiertos que no exista ya.",
+    name: "crear_ticket",
+    description: "Le levanta a Enoc un ticket de algo que el Hub no hace (o un error). Solo después de entenderlo bien y de revisar con buscar_tickets_abiertos que no exista ya.",
     input_schema: {
       type: "object",
       properties: {
@@ -120,20 +118,20 @@ async function ejecutar(nombre: string, entrada: Record<string, unknown>, sb: Cl
       return rpc("glamy_proximos_cursos", { p_limite: Number(entrada.limite) || 8 });
     case "mis_tareas":
       return rpc("glamy_mis_tareas", {});
-    case "mis_pedidos": {
+    case "mis_tickets": {
       const { data, error } = await servicio.from("hub_pedidos").select("numero, titulo, estado, nota_admin, creado_en")
         .eq("creado_por", usuario.id).order("creado_en", { ascending: false }).limit(15);
       if (error) throw new Error(error.message);
-      return { pedidos: (data ?? []).map((p) => ({ ...p, estado: ESTADOS[p.estado] ?? p.estado })) };
+      return { tickets: (data ?? []).map((p) => ({ ...p, estado: ESTADOS[p.estado] ?? p.estado })) };
     }
-    case "buscar_pedidos_abiertos": {
+    case "buscar_tickets_abiertos": {
       // Solo título, sección y estado: nunca quién lo pidió.
       const { data, error } = await servicio.from("hub_pedidos").select("numero, titulo, seccion, estado")
         .in("estado", ["nuevo", "en_revision", "en_desarrollo"]).order("numero", { ascending: false }).limit(60);
       if (error) throw new Error(error.message);
       return { abiertos: (data ?? []).map((p) => ({ ...p, estado: ESTADOS[p.estado] ?? p.estado })) };
     }
-    case "crear_pedido": {
+    case "crear_ticket": {
       const fila = {
         creado_por: usuario.id,
         titulo: corto(entrada.titulo, 80), que_necesita: corto(entrada.que_necesita, 1500),
@@ -149,14 +147,14 @@ async function ejecutar(nombre: string, entrada: Record<string, unknown>, sb: Cl
   throw new Error("Herramienta desconocida: " + nombre);
 }
 
-/* Preguntas frecuentes del tutorial, en orden fijo (para que el prompt se pueda guardar en caché). */
+/* Preguntas frecuentes del Hub (tabla tutorial_faq), en orden fijo (para que el prompt se pueda guardar en caché). */
 let FAQ: { texto: string; en: number } | null = null;
 async function faq() {
   if (FAQ && Date.now() - FAQ.en < 10 * 60_000) return FAQ.texto;
   const { data } = await servicio.from("tutorial_faq").select("seccion_id, pregunta, respuesta").eq("activo", true)
     .order("seccion_id").order("orden");
   const texto = (data ?? []).map((f) => `- [${f.seccion_id}] ${f.pregunta} → ${f.respuesta}`).join("\n");
-  FAQ = { texto: texto ? `\n# Preguntas frecuentes del tutorial\n${texto}\n` : "", en: Date.now() };
+  FAQ = { texto: texto ? `\n# Preguntas frecuentes del Hub\n${texto}\n` : "", en: Date.now() };
   return FAQ.texto;
 }
 
@@ -232,7 +230,7 @@ Deno.serve(async (req) => {
   }
 
   // Prueba de punta a punta sin sesión del Hub: llave temporal (su huella vive en glamy_prueba_llave y caduca).
-  // Las herramientas no tocan datos de nadie ni crean pedidos.
+  // Las herramientas no tocan datos de nadie ni crean tickets.
   if (cuerpo?.accion === "prueba") {
     const llave = String(cuerpo.llave ?? "");
     const { data: valida } = llave
@@ -256,17 +254,8 @@ Deno.serve(async (req) => {
     .eq("auth_user_id", sesion.user.id).maybeSingle<Usuario>();
   if (!usuario) return responder({ error: "Tu usuario no está dado de alta en el Hub." }, 403);
 
-  // Límites: 40 preguntas al día y tope mensual.
+  // Sin límites por ahora: cada pregunta se anota en glamy_uso para medir.
   const hoy = hoyMX();
-  const { count } = await servicio.from("glamy_uso").select("id", { count: "exact", head: true }).eq("usuario_id", usuario.id).eq("fecha", hoy);
-  if ((count ?? 0) >= LIMITE_DIARIO) {
-    return responder({ texto: `Ya hiciste las ${LIMITE_DIARIO} preguntas de hoy 🙈. Mañana seguimos. Si es urgente, avísale a Enoc.`, restantes: 0 });
-  }
-  const { data: mes } = await servicio.from("glamy_uso").select("costo_usd").gte("fecha", hoy.slice(0, 8) + "01");
-  const gastoMes = (mes ?? []).reduce((s, f) => s + Number(f.costo_usd || 0), 0);
-  if (gastoMes >= TOPE_MENSUAL_USD) {
-    return responder({ texto: "Glamy ya llegó a su límite de este mes 😴. Avísale a Enoc si lo necesitas.", restantes: 0 });
-  }
 
   // Conversación: solo texto, los últimos 16 mensajes, empezando y terminando con la persona.
   const historial: Anthropic.MessageParam[] = (Array.isArray(cuerpo.mensajes) ? cuerpo.mensajes : [])
@@ -283,7 +272,7 @@ Deno.serve(async (req) => {
   const fechaLarga = new Date().toLocaleDateString("es-MX", { timeZone: "America/Mexico_City", weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const contexto = `# Quién te escribe
 ${usuario.nombre} (rol: ${usuario.rol}${usuario.es_admin ? ", administrador" : ""}). Hoy es ${fechaLarga}. Está en la sección "${seccion || "inicio"}".
-Secciones que puede abrir: ${(secciones ?? []).join(", ")}${usuario.recibe_pedidos ? ", pedidos (recibe los pedidos de Glamy)" : ""}.
+Secciones que puede abrir: ${(secciones ?? []).join(", ")}${usuario.recibe_pedidos ? ", glamy (el uso de Glamy y los tickets; los recibe él)" : ""}.
 Solo pon botones ⟦ir:…⟧ de secciones que puede abrir.`;
 
   const sistema: Anthropic.TextBlockParam[] = [
@@ -300,5 +289,5 @@ Solo pon botones ⟦ir:…⟧ de secciones que puede abrir.`;
     tokens_cache_lectura: uso.cacheLectura, tokens_cache_escritura: uso.cacheEscritura,
     costo_usd: Number(costo.toFixed(6)), herramientas: usadas, error,
   });
-  return responder({ texto, restantes: Math.max(LIMITE_DIARIO - (count ?? 0) - 1, 0), herramientas: usadas });
+  return responder({ texto, herramientas: usadas });
 });

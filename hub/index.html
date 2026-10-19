@@ -649,8 +649,8 @@
   .recepcion{ display:none; position:fixed; inset:0; z-index:75; background:var(--bg); flex-direction:column; }
   .recepcion.open{ display:flex; }
   .recepcion [hidden]{ display:none !important; }
-  body.en-recepcion .glamtut-fab, body.en-recepcion .notas-fab{ display:none; }
-  body.en-recepcion .glamy-fab, body.en-recepcion .glamy-panel{ display:none !important; }  /* el botón trae display en línea */
+  body.en-recepcion .notas-fab{ display:none; }
+  body.en-recepcion .glamy-fab, body.en-recepcion .glamy-panel, body.en-recepcion .glamy-globo{ display:none !important; }  /* el botón trae display en línea */
   .rec-top{ min-height:56px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; padding:8px 20px; background:var(--card); border-bottom:1px solid var(--border); }
   .rec-volver{ background:none; border:0; color:var(--ink-soft); font-family:inherit; font-size:13px; cursor:pointer; padding:6px 0; }
   .rec-volver:hover{ color:var(--ink); }
@@ -1189,43 +1189,15 @@
   .notas-para{ display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:11.5px; color:var(--ink-soft); }
   .notas-para select{ flex:1; padding:7px 9px; border:1px solid var(--border); border-radius:9px; font-family:inherit; font-size:12px; background:var(--card); color:var(--ink); }
 
-  /* ---------- TUTORIAL: spotlight, asistente flotante y checklist ---------- */
-  .glamtut-veil{ position:fixed; inset:0; z-index:200; }
-  .glamtut-hole{ position:fixed; display:none; border-radius:12px; box-shadow:0 0 0 9999px rgba(41,36,33,.62); pointer-events:none; transition:left .2s ease, top .2s ease, width .2s ease, height .2s ease; }
-  .glamtut-bubble{ position:fixed; background:var(--wine-dark); color:#FFF0F8; border-radius:14px; padding:16px 18px; width:270px; max-width:calc(100vw - 32px); box-shadow:0 18px 40px rgba(0,0,0,.35); z-index:201; }
-  .glamtut-step{ font-size:10px; font-weight:700; color:var(--champagne); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
-  .glamtut-bubble p{ font-size:13px; line-height:1.55; margin:0 0 16px 0; color:#FFF0F8; }
-  .glamtut-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
-  .glamtut-skip{ background:none; border:none; font-size:11.5px; color:#F5E6FA; text-decoration:underline; cursor:pointer; font-family:inherit; padding:0; }
-  .glamtut-next{ background:var(--champagne); color:var(--sobre-azul); border:none; padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
-
-  .glamtut-fab{ position:fixed; right:24px; bottom:24px; width:52px; height:52px; border-radius:50%; background:var(--champagne); color:var(--sobre-azul); border:none; font-size:20px; font-weight:700; cursor:pointer; box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:150; font-family:inherit; }
-  .glamtut-panel{ display:none; position:fixed; right:24px; bottom:86px; width:320px; max-width:calc(100vw - 32px); max-height:70vh; overflow-y:auto; background:var(--card); border-radius:16px; box-shadow:0 20px 48px rgba(41,36,33,.28); z-index:150; }
-  .glamtut-panel.open{ display:block; }
-  .glamtut-panel-head{ background:var(--wine); color:#fff; padding:16px 18px; position:sticky; top:0; }
-  .glamtut-panel-head h3{ font-size:15px; color:#fff; margin:0; }
-  .glamtut-panel-head .sub{ font-size:11.5px; color:#F5E6FA; margin-top:2px; }
-  .glamtut-panel-body{ padding:8px; }
-  .glamtut-faq-grupo{ font-size:10.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; padding:12px 10px 6px; }
-  .glamtut-faq{ border-bottom:1px solid var(--border); }
-  .glamtut-faq:last-child{ border-bottom:none; }
-  .glamtut-faq-q{ width:100%; text-align:left; background:none; border:none; padding:12px 10px; font-size:12.5px; font-weight:600; font-family:inherit; color:var(--ink); display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
-  .glamtut-faq-q .glamtut-chev{ color:var(--ink-soft); font-size:11px; transition:transform .15s ease; }
-  .glamtut-faq-q.open .glamtut-chev{ transform:rotate(90deg); }
-  .glamtut-faq-a{ display:none; padding:0 10px 14px 10px; font-size:12px; color:var(--ink-soft); line-height:1.5; }
-  .glamtut-faq-a.open{ display:block; }
-  .glamtut-vacio{ padding:16px 12px; font-size:12px; color:var(--ink-soft); }
-
-  .glamtut-checklist-sub{ font-size:12px; color:var(--ink-soft); margin:0 0 10px 0; }
-  .glamtut-progress-track{ height:8px; background:var(--border); border-radius:20px; overflow:hidden; margin-bottom:16px; }
-  .glamtut-progress-fill{ height:100%; background:var(--success); width:0%; transition:width .3s ease; }
-  .glamtut-check-item{ display:flex; align-items:center; gap:12px; padding:9px 2px; border-bottom:1px solid var(--border); font-size:13px; }
-  .glamtut-check-item:last-child{ border-bottom:none; }
-  .glamtut-check-item input{ width:17px; height:17px; flex-shrink:0; }
-  .glamtut-check-item .done{ color:var(--ink-soft); text-decoration:line-through; }
-  /* GLAMY — asistente con IA (botón ✨ arriba del "?") */
-  .glamy-fab{ position:fixed; right:24px; bottom:88px; width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,#B02D80,var(--wine-dark)); color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:151; display:flex; align-items:center; justify-content:center; }
-  .glamy-panel{ display:none; position:fixed; right:24px; bottom:152px; width:380px; height:560px; max-height:calc(100vh - 176px); max-width:calc(100vw - 32px); background:var(--card); border-radius:18px; box-shadow:0 20px 48px rgba(41,36,33,.30); z-index:160; flex-direction:column; overflow:hidden; }
+  /* GLAMY — el cupcake abajo a la derecha */
+  .glamy-fab{ position:fixed; right:24px; bottom:24px; width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,var(--wine),var(--wine-dark)); border:none; cursor:pointer; box-shadow:0 10px 24px rgba(91,44,131,.35); z-index:151; display:flex; align-items:center; justify-content:center; padding:0; transition:transform .15s ease; }
+  .glamy-fab:hover{ transform:scale(1.06); }
+  .glamy-fab .glamy-cup{ width:46px; height:46px; }
+  .glamy-fab .glamy-tag{ position:absolute; bottom:-7px; left:50%; transform:translateX(-50%); background:#fff; color:var(--wine); font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.15); }
+  .glamy-globo{ position:fixed; right:100px; bottom:44px; background:var(--card); color:var(--ink); border:1px solid var(--border); border-radius:14px 14px 4px 14px; padding:8px 12px; font-size:12.5px; box-shadow:0 6px 16px rgba(0,0,0,.10); z-index:151; cursor:pointer; animation:glamyGlobo .3s ease; }
+  @keyframes glamyGlobo{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  .glamy-head .glamy-cup{ width:34px; height:34px; background:#fff; border-radius:50%; padding:2px; flex-shrink:0; }
+  .glamy-panel{ display:none; position:fixed; right:24px; bottom:100px; width:380px; height:560px; max-height:calc(100vh - 124px); max-width:calc(100vw - 32px); background:var(--card); border-radius:18px; box-shadow:0 20px 48px rgba(41,36,33,.30); z-index:160; flex-direction:column; overflow:hidden; }
   .glamy-panel.open{ display:flex; }
   .glamy-head{ background:linear-gradient(135deg,#B02D80,var(--wine-dark)); color:#fff; padding:14px 16px; display:flex; align-items:center; gap:10px; }
   .glamy-head h3{ font-size:15px; color:#fff; margin:0; }
@@ -1248,12 +1220,32 @@
   .glamy-pie textarea{ flex:1; resize:none; border:1px solid var(--border); border-radius:12px; padding:9px 11px; font-size:13px; font-family:inherit; max-height:110px; min-height:40px; color:var(--ink); background:var(--card); }
   .glamy-pie button{ background:var(--wine); color:#fff; border:none; border-radius:12px; padding:0 14px; height:40px; font-size:16px; cursor:pointer; }
   .glamy-pie button:disabled{ opacity:.5; cursor:default; }
-  .glamy-restan{ font-size:10.5px; color:var(--ink-soft); padding:0 12px 8px; background:var(--card); }
   @media (max-width: 600px){
     .glamy-panel{ inset:0; width:100%; height:100%; max-width:none; max-height:none; border-radius:0; }
   }
 
-  /* PEDIDOS AL HUB — tablero solo para quien recibe pedidos */
+  /* SECCIÓN GLAMY (solo quien recibe los tickets): uso y tickets */
+  .gu-kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
+  .gu-kpi{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; }
+  .gu-kpi small{ color:var(--ink-soft); font-size:11.5px; font-weight:600; }
+  .gu-kpi b{ display:block; font-size:24px; margin-top:4px; color:var(--ink); }
+  .gu-kpi span{ font-size:11.5px; color:var(--ink-soft); }
+  .gu-saldo{ height:8px; background:var(--border); border-radius:10px; overflow:hidden; margin-top:8px; }
+  .gu-saldo i{ display:block; height:100%; background:var(--success); }
+  .gu-grid{ display:grid; grid-template-columns:1.1fr 1fr; gap:12px; }
+  .gu-barras{ display:flex; align-items:flex-end; gap:6px; height:130px; border-bottom:1px solid var(--border); padding-top:18px; }
+  .gu-barra{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .gu-barra i{ display:block; width:100%; background:linear-gradient(var(--wine),var(--wine-dark)); border-radius:5px 5px 0 0; min-height:2px; }
+  .gu-barra em{ font-style:normal; font-size:10px; color:var(--ink-soft); margin-bottom:3px; }
+  .gu-dias{ display:flex; gap:6px; font-size:9.5px; color:var(--ink-soft); margin-top:4px; }
+  .gu-dias span{ flex:1; text-align:center; }
+  .gu-tabla{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .gu-tabla th{ text-align:left; color:var(--ink-soft); font-size:11px; font-weight:600; padding:6px 4px; border-bottom:1px solid var(--border); }
+  .gu-tabla td{ padding:7px 4px; border-bottom:1px solid var(--border); color:var(--ink); }
+  .gu-tabla small{ color:var(--ink-soft); }
+  @media (max-width: 900px){ .gu-kpis{ grid-template-columns:1fr 1fr; } .gu-grid{ grid-template-columns:1fr; } }
+
+  /* Tickets: tablero por estado */
   .ped-tablero{ display:grid; grid-template-columns:repeat(5, minmax(170px,1fr)); gap:12px; overflow-x:auto; }
   .ped-col{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:10px; min-height:120px; }
   .ped-col h4{ margin:2px 4px 10px; font-size:12.5px; display:flex; justify-content:space-between; color:var(--ink); }
@@ -1351,12 +1343,6 @@
     <div class="view active" id="view-inicio">
       <div class="card" style="margin-bottom:20px;"><h1 style="font-size:22px;" id="saludoInicio">Buenos días <span class="spark">✦</span></h1><p class="sub" style="margin:4px 0 0 0;">Datos en vivo desde Supabase — todavía sin migrar el histórico, así que varios números empiezan en cero.</p></div>
       <div class="card" id="pendientesCard" style="display:none; margin-bottom:20px;"><h3><span class="spark">✦</span> Tus pendientes</h3><div id="pendientesContenido" class="sub" style="margin-top:10px;">Cargando…</div></div>
-      <div class="card" id="tutorialChecklistCard" style="display:none; margin-bottom:20px;">
-        <h3><span class="spark">✦</span> Tus primeros pasos en el Hub</h3>
-        <p class="glamtut-checklist-sub" id="tutorialChecklistSub">Cargando…</p>
-        <div class="glamtut-progress-track"><div class="glamtut-progress-fill" id="tutorialChecklistBar"></div></div>
-        <div id="tutorialChecklistLista"></div>
-      </div>
       <div class="kpis" id="dashKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
       <div class="card"><h3><span class="spark">✦</span> Leads más recientes</h3><div id="actividadList" class="sub">Cargando…</div></div>
     </div>
@@ -1901,14 +1887,6 @@
         <div id="actividadFeed" class="sub" style="margin-top:10px;">Cargando…</div>
       </div>
 
-      <!-- TUTORIAL — esta tarjeta completa se quita cuando se retire el tutorial
-           (junto con renderTutorialAvance() y su llamada en setActiveSection). -->
-      <div class="card" id="tutorialAvanceCard">
-        <h3><span class="spark">✦</span> Avance del tutorial</h3>
-        <div class="sub">Quién ya entró al Hub, qué tanto del tutorial ha visto y si ya está capturando información real — útil solo mientras el equipo se acostumbra a la plataforma.</div>
-        <div id="tutorialAvanceLista" style="margin-top:12px;">Cargando…</div>
-      </div>
-      <!-- /TUTORIAL -->
     </div>
 
     <!-- USUARIOS Y PERMISOS (solo admins) -->
@@ -1930,14 +1908,21 @@
       </div>
     </div>
 
-    <!-- PEDIDOS AL HUB (solo quien recibe pedidos: los manda Glamy) -->
-    <div class="view" id="view-pedidos">
-      <div class="card ped-detalle" id="pedDetalle" style="display:none;"></div>
-      <div class="card" style="margin-bottom:16px;">
-        <h3><span class="spark">✦</span> Pedidos al Hub</h3>
-        <div class="sub">Lo que el equipo pidió a Glamy y el Hub todavía no hace. Al cambiar el estado, a quien lo pidió le llega un aviso a su bloc.</div>
+    <!-- GLAMY (solo quien recibe los tickets): cuánto se usa y los tickets que levanta el equipo -->
+    <div class="view" id="view-glamy">
+      <div class="ac-tabs" role="tablist">
+        <button type="button" class="ac-tab on" role="tab" data-gl-tab="uso">📊 Uso</button>
+        <button type="button" class="ac-tab" role="tab" data-gl-tab="tickets">🎫 Tickets <span id="glTicketsAbiertos"></span></button>
       </div>
-      <div class="ped-tablero" id="pedTablero">Cargando…</div>
+      <div id="glTabUso">Cargando…</div>
+      <div id="glTabTickets" style="display:none;">
+        <div class="card ped-detalle" id="pedDetalle" style="display:none;"></div>
+        <div class="card" style="margin-bottom:16px;">
+          <h3><span class="spark">✦</span> Tickets</h3>
+          <div class="sub">Lo que el equipo le pidió a Glamy y el Hub todavía no hace, o errores. Al cambiar el estado, a quien lo levantó le llega un aviso a su bloc con tu nota.</div>
+        </div>
+        <div class="ped-tablero" id="pedTablero">Cargando…</div>
+      </div>
     </div>
   </div>
 </div>
@@ -2359,24 +2344,12 @@
 </button>
 <div class="toast" id="toast"></div>
 
-<!-- ===================== TUTORIAL: SPOTLIGHT + ASISTENTE FLOTANTE ===================== -->
-<div class="glamtut-veil" id="glamtutVeil" style="display:none;">
-  <div class="glamtut-hole" id="glamtutHole"></div>
-  <div class="glamtut-bubble" id="glamtutBubble">
-    <div class="glamtut-step" id="glamtutStep">—</div>
-    <p id="glamtutTexto">—</p>
-    <div class="glamtut-row">
-      <button class="glamtut-skip" id="glamtutSkip">Saltar tutorial</button>
-      <button class="glamtut-next" id="glamtutNext">Entendido</button>
-    </div>
-  </div>
-</div>
-
 <!-- GLAMY -->
-<button class="glamy-fab" id="glamyFab" style="display:none;" aria-label="Abrir a Glamy, la asistente" title="Glamy, tu asistente">✨</button>
+<button class="glamy-fab" id="glamyFab" style="display:none;" aria-label="Abrir a Glamy, la asistente" title="Glamy, tu asistente"><svg class="glamy-cup" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 26h24l-3 16H15z" fill="#5B2C83"/><path d="M17 26l1.5 16M24 26v16M31 26l-1.5 16" stroke="#8E5BB8" stroke-width="1.6"/><path d="M10 27c-3-6 3-10 7-9 0-6 7-9 11-5 4-3 11 0 10 6 4 1 5 6 1 8z" fill="#F06BB8"/><path d="M15 20c3 2 6 1 8-1M26 16c3 2 6 2 8 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".7"/><circle cx="19.5" cy="31.5" r="1.8" fill="#fff"/><circle cx="28.5" cy="31.5" r="1.8" fill="#fff"/><path d="M21 35.5q3 2.5 6 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="25" cy="9" r="3.4" fill="#4AA3F0"/><path d="M40 6l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z" fill="#FFD66B"/><path d="M7 12l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" fill="#FFD66B"/></svg><span class="glamy-tag">Glamy</span></button>
+<div class="glamy-globo" id="glamyGlobo" style="display:none;">¿Te ayudo? 💬</div>
 <div class="glamy-panel" id="glamyPanel" role="dialog" aria-label="Glamy">
   <div class="glamy-head">
-    <div><h3>✨ Glamy</h3><div class="sub">Tu asistente del Hub</div></div>
+    <svg class="glamy-cup" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 26h24l-3 16H15z" fill="#5B2C83"/><path d="M17 26l1.5 16M24 26v16M31 26l-1.5 16" stroke="#8E5BB8" stroke-width="1.6"/><path d="M10 27c-3-6 3-10 7-9 0-6 7-9 11-5 4-3 11 0 10 6 4 1 5 6 1 8z" fill="#F06BB8"/><path d="M15 20c3 2 6 1 8-1M26 16c3 2 6 2 8 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".7"/><circle cx="19.5" cy="31.5" r="1.8" fill="#fff"/><circle cx="28.5" cy="31.5" r="1.8" fill="#fff"/><path d="M21 35.5q3 2.5 6 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="25" cy="9" r="3.4" fill="#4AA3F0"/><path d="M40 6l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z" fill="#FFD66B"/><path d="M7 12l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" fill="#FFD66B"/></svg><div><h3>Glamy</h3><div class="sub">Tu asistente del Hub</div></div>
     <button class="glamy-x glamy-nueva" id="glamyNueva" title="Empezar de nuevo">Nueva</button>
     <button class="glamy-x" id="glamyCerrar" aria-label="Cerrar" style="margin-left:0;">×</button>
   </div>
@@ -2385,17 +2358,8 @@
     <textarea id="glamyTexto" rows="1" maxlength="1500" placeholder="Pregúntale a Glamy… (o pega un celular)"></textarea>
     <button id="glamyEnviar" aria-label="Enviar">➤</button>
   </div>
-  <div class="glamy-restan" id="glamyRestan"></div>
 </div>
 <!-- /GLAMY -->
-<button class="glamtut-fab" id="glamtutFab" style="display:none;" aria-label="Abrir asistente">?</button>
-<div class="glamtut-panel" id="glamtutPanel">
-  <div class="glamtut-panel-head">
-    <h3>¿En qué te ayudamos?</h3>
-    <div class="sub" id="glamtutPanelSub">—</div>
-  </div>
-  <div class="glamtut-panel-body" id="glamtutPanelBody"></div>
-</div>
 
 <!-- ===================== MODAL: CONFIRMAR UNA ACCIÓN DELICADA =====================
      Reutilizable. Se usa para reasignar una venta, que es dinero de alguien
@@ -2537,10 +2501,6 @@ let VENDEDORES = [];
 let sesionActual = null;
 let asesorActualId = null; // = usuarioActual.id — para "confirmado_por" en pagos
 
-// Tutorial dentro del Hub: spotlight, asistente flotante y checklist de progreso.
-// El contenido vive en tutorial_spotlight / tutorial_faq / tutorial_pasos (editable
-// sin tocar código); lo demás es qué ya vio/completó cada usuario.
-let TUTORIAL = { spotlight:[], faq:[], pasos:[], vistasVistas:new Set(), pasosCompletados:new Set() };
 
 function toast(msg, esError){
   const t = document.getElementById('toast');
@@ -2570,11 +2530,7 @@ function showLogin(){
   detenerSincronizacion();
   cerrarGlamy();
   document.getElementById('glamyFab').style.display = 'none';
-  // TUTORIAL — quitar estas 4 líneas
-  document.getElementById('glamtutFab').style.display = 'none';
-  document.getElementById('glamtutPanel').classList.remove('open');
-  document.getElementById('glamtutVeil').style.display = 'none';
-  TUTORIAL = { spotlight:[], faq:[], pasos:[], vistasVistas:new Set(), pasosCompletados:new Set() };
+  document.getElementById('glamyGlobo').style.display = 'none';
 }
 async function onLogin(session){
   sesionActual = session;
@@ -2612,13 +2568,7 @@ async function continuarSesion(){
   const sinVer = NOTAS.filter(n=> meAsignaron(n) && !n.visto_en && !n.completado).length;
   if(sinVer) toast(`🔔 Tienes ${sinVer} ${sinVer===1?'tarea nueva':'tareas nuevas'} — ábrelas en el 📝 de abajo.`);
   document.getElementById('glamyFab').style.display = usuarioActual?.id ? 'flex' : 'none';
-  // TUTORIAL — quitar estas 6 líneas
-  await cargarTutorial();
-  document.getElementById('glamtutFab').style.display = usuarioActual?.id ? 'flex' : 'none';
-  renderTutorialChecklist();
-  marcarProgresoPorVista('inicio');
-  actualizarPanelAsistente('inicio');
-  mostrarSpotlightSiHaceFalta('inicio');
+  if(usuarioActual?.id) glamySaludoDelDia();
 }
 function mostrarPantallaCambiarPassword(){
   document.getElementById('cambiarPasswordError').className = 'login-error';
@@ -2699,7 +2649,7 @@ const SECCIONES = [
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
   { id:'usuarios', label:'Usuarios y permisos', sub:'Quién es admin y quién puede ver la actividad del equipo', soon:false, icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/>' },
-  { id:'pedidos', label:'Pedidos al Hub', sub:'Lo que el equipo le pidió a Glamy y el Hub todavía no hace', soon:false, icon:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>' },
+  { id:'glamy', label:'Glamy', sub:'Cuánto se usa Glamy y los tickets que levanta el equipo', soon:false, icon:'<path d="M6 13h12l-1.5 8h-9z"/><path d="M5 13c-1.5-3 1.5-5 3.5-4.5 0-3 3.5-4.5 5.5-2.5 2-1.5 5.5 0 5 3 2 .5 2.5 3 .5 4"/><path d="M12 3.5v.01"/>' },
 ];
 function svgIcon(p,c){ return `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`; }
 document.getElementById('desktopNav').innerHTML = SECCIONES.map((s,i)=>`<div class="nav-item ${i===0?'active':''} ${s.soon?'soon':''}" data-view="${s.id}">${svgIcon(s.icon,'nav-ico')}<span>${s.label}</span>${s.soon?'<span class="pill-soon">pronto</span>':''}</div>`).join('');
@@ -2723,20 +2673,13 @@ function setActiveSection(id){
   if(id==='giras') cargarGirasTab('constructor');
   if(id==='logistica') cargarLogisticaTab('catalogo');
   if(id==='actividad') renderActividad();
-  if(id==='actividad') renderTutorialAvance(); // TUTORIAL — quitar esta línea
   if(id==='usuarios') renderUsuariosPermisos();
   if(id==='cobranza') renderCobranza();
   if(id==='mensajes') renderMensajes();
   if(id==='precios') renderPrecios();
   if(id==='nollegaron') renderNoLlegaron();
   if(id==='academia') renderAcademia();
-  if(id==='pedidos') renderPedidos();
-  if(usuarioActual?.id){
-    // TUTORIAL — quitar estas 3 líneas
-    marcarProgresoPorVista(id);
-    actualizarPanelAsistente(id);
-    mostrarSpotlightSiHaceFalta(id);
-  }
+  if(id==='glamy') renderGlamySeccion();
   closePicker();
 }
 document.querySelectorAll('#desktopNav .nav-item').forEach(el=>el.addEventListener('click', ()=>setActiveSection(el.dataset.view)));
@@ -2760,8 +2703,8 @@ const TODAS_SECCIONES = SECCIONES.map(s=>s.id);
 // Secciones que sí se pueden restringir por rol desde "Usuarios y permisos".
 // "Actividad del equipo" y "Usuarios y permisos" quedan fuera: esas se
 // gobiernan aparte, por es_admin/puede_ver_actividad, nunca por rol.
-// "Pedidos al Hub" tampoco: solo lo ve quien recibe pedidos (usuarios.recibe_pedidos).
-const SECCIONES_ASIGNABLES_POR_ROL = SECCIONES.filter(s=>s.id!=='actividad' && s.id!=='usuarios' && s.id!=='pedidos');
+// "Glamy" (uso y tickets) tampoco: solo la ve quien recibe los tickets (usuarios.recibe_pedidos).
+const SECCIONES_ASIGNABLES_POR_ROL = SECCIONES.filter(s=>s.id!=='actividad' && s.id!=='usuarios' && s.id!=='glamy');
 // Respaldo si un rol todavía no tiene ninguna fila en permisos_rol (rol
 // nuevo que no hemos configurado) — para no dejar a alguien sin nav por
 // accidente. Una vez que un admin toca la matriz de un rol en la UI,
@@ -2821,9 +2764,9 @@ function seccionesPermitidas(){
   // se queda estrictamente en manos de admins, sin excepción.
   if(usuarioActual?.es_admin) permitidas.add('usuarios');
   else permitidas.delete('usuarios');
-  // "Pedidos al Hub": solo quien recibe los pedidos de Glamy.
-  if(usuarioActual?.recibe_pedidos) permitidas.add('pedidos');
-  else permitidas.delete('pedidos');
+  // "Glamy" (uso y tickets): solo quien recibe los tickets.
+  if(usuarioActual?.recibe_pedidos) permitidas.add('glamy');
+  else permitidas.delete('glamy');
   return [...permitidas];
 }
 function aplicarPermisosNav(){
@@ -2836,210 +2779,6 @@ function aplicarPermisosNav(){
     const primera = SECCIONES.find(s=>permitidas.has(s.id));
     if(primera) setActiveSection(primera.id);
   }
-}
-
-/* =========================================================
-   TUTORIAL: SPOTLIGHT + ASISTENTE FLOTANTE + CHECKLIST
-   El contenido (mensajes, preguntas, pasos) vive en tutorial_spotlight,
-   tutorial_faq y tutorial_pasos — se puede editar desde Supabase sin
-   tocar este archivo. Lo único que se guarda por persona es qué vistas
-   ya vio (tutorial_vistas_vistas) y qué pasos ya completó
-   (tutorial_pasos_completados).
-
-   ES TEMPORAL — pensado solo para mientras el equipo se acostumbra al
-   Hub. Cuando ya no haga falta, para quitarlo por completo:
-   1. Borrar este bloque completo (hasta el final de renderTutorialAvance).
-   2. Borrar el CSS marcado "TUTORIAL" (bloque .glamtut-*, cerca del
-      final de las reglas de <style>).
-   3. Borrar el HTML marcado con comentarios "TUTORIAL" (el veil del
-      spotlight y el botón/panel del asistente después del toast; la
-      tarjeta de checklist en Inicio; la tarjeta "Avance del tutorial"
-      en Actividad del equipo).
-   4. Quitar las líneas marcadas "TUTORIAL —" dentro de continuarSesion(),
-      setActiveSection() y showLogin().
-   5. En Supabase: las tablas tutorial_* se pueden dejar (no estorban)
-      o borrarse con una migración aparte.
-   ========================================================= */
-async function cargarTutorial(){
-  if(!usuarioActual?.id) return;
-  const [{ data:sp }, { data:faq }, { data:pasos }, { data:vv }, { data:pc }] = await Promise.all([
-    sb.from('tutorial_spotlight').select('*').eq('activo', true).order('orden'),
-    sb.from('tutorial_faq').select('*').eq('activo', true).order('orden'),
-    sb.from('tutorial_pasos').select('*').eq('activo', true).order('orden'),
-    sb.from('tutorial_vistas_vistas').select('seccion_id').eq('usuario_id', usuarioActual.id),
-    sb.from('tutorial_pasos_completados').select('paso_id').eq('usuario_id', usuarioActual.id),
-  ]);
-  TUTORIAL.spotlight = sp || [];
-  TUTORIAL.faq = faq || [];
-  TUTORIAL.pasos = pasos || [];
-  TUTORIAL.vistasVistas = new Set((vv||[]).map(r=>r.seccion_id));
-  TUTORIAL.pasosCompletados = new Set((pc||[]).map(r=>r.paso_id));
-}
-
-async function marcarVistaVista(seccionId){
-  if(!usuarioActual?.id || TUTORIAL.vistasVistas.has(seccionId)) return;
-  TUTORIAL.vistasVistas.add(seccionId);
-  await sb.from('tutorial_vistas_vistas').upsert({ usuario_id: usuarioActual.id, seccion_id: seccionId });
-}
-function cerrarSpotlightActual(){
-  const veil = document.getElementById('glamtutVeil');
-  const seccionId = veil.dataset.seccion;
-  veil.style.display = 'none';
-  if(seccionId) marcarVistaVista(seccionId);
-}
-function mostrarSpotlightSiHaceFalta(seccionId){
-  if(!usuarioActual?.id || TUTORIAL.vistasVistas.has(seccionId)) return;
-  const item = TUTORIAL.spotlight.find(s=>s.seccion_id===seccionId);
-  if(!item){ marcarVistaVista(seccionId); return; }
-  const veil = document.getElementById('glamtutVeil');
-  const hole = document.getElementById('glamtutHole');
-  const bubble = document.getElementById('glamtutBubble');
-  const target = item.selector ? document.querySelector(item.selector) : null;
-  if(target){
-    const r = target.getBoundingClientRect();
-    hole.style.display = 'block';
-    hole.style.left = (r.left-6)+'px'; hole.style.top = (r.top-6)+'px';
-    hole.style.width = (r.width+12)+'px'; hole.style.height = (r.height+12)+'px';
-    let bx = Math.min(r.left, window.innerWidth-296);
-    let by = r.bottom+14;
-    if(by+180 > window.innerHeight) by = Math.max(14, r.top-190);
-    bubble.style.left = Math.max(14,bx)+'px'; bubble.style.top = by+'px'; bubble.style.transform = 'none';
-  } else {
-    hole.style.display = 'none';
-    bubble.style.left = '50%'; bubble.style.top = '50%'; bubble.style.transform = 'translate(-50%,-50%)';
-  }
-  document.getElementById('glamtutStep').textContent = item.titulo || 'Tip';
-  document.getElementById('glamtutTexto').textContent = item.texto || '';
-  veil.dataset.seccion = seccionId;
-  veil.style.display = 'block';
-}
-document.getElementById('glamtutNext').addEventListener('click', cerrarSpotlightActual);
-document.getElementById('glamtutSkip').addEventListener('click', async ()=>{
-  cerrarSpotlightActual();
-  for(const s of SECCIONES) await marcarVistaVista(s.id);
-  toast('Tutorial omitido — el botón "?" sigue disponible cuando quieras.');
-});
-
-function actualizarPanelAsistente(seccionId){
-  if(!usuarioActual?.id) return;
-  const rol = usuarioActual.rol || null;
-  const sec = SECCIONES.find(s=>s.id===seccionId);
-  const generales = TUTORIAL.faq.filter(f=> f.seccion_id==='general' && (!f.rol || f.rol===rol));
-  const especificas = TUTORIAL.faq.filter(f=> f.seccion_id===seccionId && (!f.rol || f.rol===rol));
-  document.getElementById('glamtutPanelSub').textContent = (sec?.label || '') + (rol ? ' · '+rol : '');
-  const body = document.getElementById('glamtutPanelBody');
-  if(!generales.length && !especificas.length){
-    body.innerHTML = '<div class="glamtut-vacio">Sin preguntas frecuentes para esta vista todavía.</div>';
-    return;
-  }
-  const bloque = (titulo, items, prefijo)=> !items.length ? '' : `
-    <div class="glamtut-faq-grupo">${titulo}</div>
-    ${items.map((it,i)=>`
-      <div class="glamtut-faq">
-        <button class="glamtut-faq-q" data-id="${prefijo}${i}"><span>${it.pregunta}</span><span class="glamtut-chev">›</span></button>
-        <div class="glamtut-faq-a" id="glamtutFaqA${prefijo}${i}">${it.respuesta}</div>
-      </div>`).join('')}`;
-  body.innerHTML = bloque('Navegación general', generales, 'g') + bloque('Esta vista: '+(sec?.label||''), especificas, 'v');
-  body.querySelectorAll('.glamtut-faq-q').forEach(btn=> btn.addEventListener('click', ()=>{
-    const el = document.getElementById('glamtutFaqA'+btn.dataset.id);
-    const abierto = el.classList.toggle('open');
-    btn.classList.toggle('open', abierto);
-  }));
-}
-document.getElementById('glamtutFab').addEventListener('click', ()=>{
-  document.getElementById('glamtutPanel').classList.toggle('open');
-});
-
-async function marcarPasoCompletado(pasoId){
-  if(TUTORIAL.pasosCompletados.has(pasoId)) return;
-  TUTORIAL.pasosCompletados.add(pasoId);
-  await sb.from('tutorial_pasos_completados').upsert({ usuario_id: usuarioActual.id, paso_id: pasoId });
-}
-function marcarProgresoPorVista(seccionId){
-  if(!usuarioActual?.id) return;
-  const rol = usuarioActual.rol || null;
-  const pendientes = TUTORIAL.pasos.filter(p=> p.seccion_id===seccionId && (!p.rol || p.rol===rol) && !TUTORIAL.pasosCompletados.has(p.paso_id));
-  if(!pendientes.length) return;
-  pendientes.forEach(p=> marcarPasoCompletado(p.paso_id));
-  renderTutorialChecklist();
-}
-function renderTutorialChecklist(){
-  const card = document.getElementById('tutorialChecklistCard');
-  if(!usuarioActual?.id){ card.style.display = 'none'; return; }
-  const rol = usuarioActual.rol || null;
-  const pasos = TUTORIAL.pasos.filter(p=> !p.rol || p.rol===rol);
-  if(!pasos.length){ card.style.display = 'none'; return; }
-  const hechos = pasos.filter(p=> TUTORIAL.pasosCompletados.has(p.paso_id)).length;
-  card.style.display = '';
-  document.getElementById('tutorialChecklistSub').textContent = hechos+' de '+pasos.length+' completados';
-  document.getElementById('tutorialChecklistBar').style.width = Math.round((hechos/pasos.length)*100)+'%';
-  document.getElementById('tutorialChecklistLista').innerHTML = pasos.map(p=>{
-    const done = TUTORIAL.pasosCompletados.has(p.paso_id);
-    return `<label class="glamtut-check-item"><input type="checkbox" ${done?'checked':''} disabled><span class="${done?'done':''}">${p.titulo}</span></label>`;
-  }).join('');
-}
-// Vista para administradores: quién ya entró al Hub, qué tanto del
-// tutorial ha visto/completado, y si ya está capturando información real
-// (acciones en la bitácora). Se llama desde setActiveSection('actividad').
-async function renderTutorialAvance(){
-  const cont = document.getElementById('tutorialAvanceLista');
-  if(!cont) return;
-  cont.innerHTML = 'Cargando…';
-  const [{ data:usuarios }, { data:sesiones }, { data:pasos }, { data:pasosHechos }, { data:spotlightActivo }, { data:vistas }, { data:acciones }] = await Promise.all([
-    sb.from('usuarios').select('id, nombre, rol'),
-    sb.from('sesiones_usuario').select('usuario_id, inicio'),
-    sb.from('tutorial_pasos').select('paso_id, rol').eq('activo', true),
-    sb.from('tutorial_pasos_completados').select('usuario_id, paso_id'),
-    sb.from('tutorial_spotlight').select('seccion_id').eq('activo', true),
-    sb.from('tutorial_vistas_vistas').select('usuario_id, seccion_id'),
-    sb.from('actividad_usuario').select('usuario_id, creado_en'),
-  ]);
-  const totalVistas = new Set((spotlightActivo||[]).map(s=>s.seccion_id)).size;
-  const primerIngreso = {};
-  (sesiones||[]).forEach(s=>{
-    if(!primerIngreso[s.usuario_id] || s.inicio < primerIngreso[s.usuario_id]) primerIngreso[s.usuario_id] = s.inicio;
-  });
-  const vistasPorUsuario = {};
-  (vistas||[]).forEach(v=>{
-    if(!vistasPorUsuario[v.usuario_id]) vistasPorUsuario[v.usuario_id] = new Set();
-    vistasPorUsuario[v.usuario_id].add(v.seccion_id);
-  });
-  const pasosHechosPorUsuario = {};
-  (pasosHechos||[]).forEach(p=>{
-    if(!pasosHechosPorUsuario[p.usuario_id]) pasosHechosPorUsuario[p.usuario_id] = new Set();
-    pasosHechosPorUsuario[p.usuario_id].add(p.paso_id);
-  });
-  const accionesPorUsuario = {};
-  (acciones||[]).forEach(a=>{
-    if(!accionesPorUsuario[a.usuario_id]) accionesPorUsuario[a.usuario_id] = { count:0, ultima:null };
-    const reg = accionesPorUsuario[a.usuario_id];
-    reg.count++;
-    if(!reg.ultima || a.creado_en > reg.ultima) reg.ultima = a.creado_en;
-  });
-  const filas = (usuarios||[]).map(u=>{
-    const totalPasos = (pasos||[]).filter(p=> !p.rol || p.rol===u.rol).length;
-    const acc = accionesPorUsuario[u.id] || { count:0, ultima:null };
-    return {
-      nombre: u.nombre, rol: u.rol,
-      primerIngreso: primerIngreso[u.id] || null,
-      vistasHechas: vistasPorUsuario[u.id]?.size || 0, totalVistas,
-      pasosHechos: pasosHechosPorUsuario[u.id]?.size || 0, totalPasos,
-      acciones: acc.count, ultima: acc.ultima,
-    };
-  }).sort((a,b)=> (b.primerIngreso||'').localeCompare(a.primerIngreso||''));
-  if(!filas.length){ cont.innerHTML = '<div class="empty-note">Sin usuarios registrados.</div>'; return; }
-  cont.innerHTML = `<div class="rep-table-wrap"><table class="rep-table">
-    <thead><tr><th>Persona</th><th>Rol</th><th>Primer ingreso</th><th>Vistas del tutorial</th><th>Checklist</th><th>Acciones registradas</th><th>Última actividad</th></tr></thead>
-    <tbody>${filas.map(f=>`<tr>
-      <td>${f.nombre}</td>
-      <td>${f.rol || '—'}</td>
-      <td>${f.primerIngreso ? new Date(f.primerIngreso).toLocaleDateString('es-MX') : 'Nunca ha entrado'}</td>
-      <td class="num">${f.vistasHechas} / ${f.totalVistas}</td>
-      <td class="num">${f.pasosHechos} / ${f.totalPasos}</td>
-      <td class="num">${f.acciones}</td>
-      <td>${f.ultima ? new Date(f.ultima).toLocaleString('es-MX') : '—'}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
 }
 
 // Se activa justo antes de un signInWithPassword real, para distinguir
@@ -3232,8 +2971,8 @@ const ACCION_LABEL = {
   cert_agregado: '📄 Agregó a alguien a los certificados de un curso',
   cert_plantilla: '📄 Cambió la plantilla o el folio de los certificados',
   cert_nombre: '✏️ Usó el nombre que pidió la alumna para su diploma',
-  pedido_estado: '💡 Movió un pedido al Hub',
-  pedido_nota: '💡 Escribió una nota en un pedido al Hub',
+  pedido_estado: '🎫 Movió un ticket de Glamy',
+  pedido_nota: '🎫 Escribió una nota en un ticket de Glamy',
 };
 // Sin heartbeat (cada 60s) por más de esto, se considera que la sesión
 // ya no está activa aunque nunca se haya marcado "fin" explícito
@@ -11131,9 +10870,12 @@ async function irAEnlaceNota(id){
   const e = n?.enlace; if(!e?.vista) return;
   document.getElementById('notasPanel').classList.remove('open');
   if(e.vista === 'nollegaron' && e.ciudad){ nl.ciudadInicial = e.ciudad; nl.estado = 'todas'; }
-  if(e.vista === 'pedidos') ped.abrirNumero = e.pedido || null;
-  // Aviso de un pedido propio a quien no ve el tablero: lo explica Glamy.
-  if(e.vista === 'pedidos' && !seccionesPermitidas().includes('pedidos')){ abrirGlamy(); return glamyPreguntar('¿Cómo van mis pedidos?'); }
+  // Aviso de un ticket ("pedidos" es como se llamaban antes): Glamy → Tickets con ese ticket abierto.
+  if(e.vista === 'pedidos' || e.vista === 'glamy'){
+    if(!seccionesPermitidas().includes('glamy')){ abrirGlamy(); return glamyPreguntar('¿Cómo van mis tickets?'); }
+    ped.abrirNumero = e.pedido || null; gl.tab = 'tickets';
+    return setActiveSection('glamy');
+  }
   if(SECCIONES.some(s=>s.id===e.vista)) setActiveSection(e.vista);
   // Diploma con nombre por corregir: Academia → Certificados → ese curso.
   if(e.cert_evento){
@@ -12212,24 +11954,23 @@ document.getElementById('guardarNuevoContacto').addEventListener('click', async 
    sessionStorage (por persona) y se pierde al cerrar la pestaña.
    Las marcas ⟦ir:…⟧ ⟦ficha:…⟧ ⟦lead:…⟧ ⟦pedidos⟧ se vuelven botones.
    ========================================================= */
-const glamy = { mensajes:[], enviando:false, restantes:null };
+const glamy = { mensajes:[], enviando:false };
 const GLAMY_SUGERENCIAS = [
   '¿Qué puedo hacer en esta sección?',
   '¿Qué tareas tengo pendientes?',
   '¿Cuáles son los próximos cursos?',
   '¿Cómo se cobra en Recepción?',
-  'Quiero pedir algo que el Hub no hace',
+  'Quiero levantar un ticket',
 ];
 function glamyClave(){ return 'glamy:' + (usuarioActual?.id || 'nadie'); }
 function glamyGuardar(){
-  try{ sessionStorage.setItem(glamyClave(), JSON.stringify({ mensajes: glamy.mensajes.slice(-40), restantes: glamy.restantes })); }catch(_){}
+  try{ sessionStorage.setItem(glamyClave(), JSON.stringify({ mensajes: glamy.mensajes.slice(-40) })); }catch(_){}
 }
 function glamyCargar(){
-  glamy.mensajes = []; glamy.restantes = null;
+  glamy.mensajes = [];
   try{
     const g = JSON.parse(sessionStorage.getItem(glamyClave()) || 'null');
     if(Array.isArray(g?.mensajes)) glamy.mensajes = g.mensajes.filter(m=> (m.rol==='user' || m.rol==='assistant') && typeof m.texto === 'string');
-    if(typeof g?.restantes === 'number') glamy.restantes = g.restantes;
   }catch(_){}
 }
 const GLAMY_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12237,8 +11978,9 @@ const GLAMY_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 function glamyBotones(texto){
   const botones = [], vistos = new Set();
   const permitidas = new Set(seccionesPermitidas());
-  const limpio = String(texto||'').replace(/⟦(ir|ficha|lead):([^⟧\s]{1,60})⟧|⟦pedidos⟧/g, (m, tipo, id)=>{
-    tipo = tipo || 'pedidos';
+  // ⟦pedidos⟧ es como se llamaba ⟦tickets⟧ antes (pláticas viejas de la pestaña).
+  const limpio = String(texto||'').replace(/⟦(ir|ficha|lead):([^⟧\s]{1,60})⟧|⟦(?:tickets|pedidos)⟧/g, (m, tipo, id)=>{
+    tipo = tipo || 'tickets';
     const llave = tipo + ':' + (id||'');
     if(vistos.has(llave) || botones.length >= 6) return '';
     vistos.add(llave);
@@ -12247,7 +11989,7 @@ function glamyBotones(texto){
       if(sec && permitidas.has(id)) botones.push({ tipo, id, label: 'Ir a ' + sec.label });
     } else if(tipo === 'ficha' && GLAMY_UUID.test(id)) botones.push({ tipo, id, label: 'Abrir ficha' });
     else if(tipo === 'lead' && GLAMY_UUID.test(id)) botones.push({ tipo, id, label: 'Abrir lead' });
-    else if(tipo === 'pedidos' && permitidas.has('pedidos')) botones.push({ tipo, id:'', label: '💡 Ver pedidos' });
+    else if(tipo === 'tickets' && permitidas.has('glamy')) botones.push({ tipo, id:'', label: '🎫 Ver tickets' });
     return '';
   });
   return { limpio, botones };
@@ -12276,7 +12018,7 @@ function pintarGlamy(){
   if(!glamy.mensajes.length){
     const nombre = (usuarioActual?.nombre || '').split(' ')[0];
     caja.innerHTML = `<div class="glamy-msg ella"><p>¡Hola${nombre ? ' ' + escHtml(nombre) : ''}! Soy <strong>Glamy</strong> ✨</p>
-      <p>Te ayudo a encontrar cosas en el Hub, a buscar a una alumna (pega su celular o su nombre) y a ver cómo va un curso. Si algo no existe en el Hub, se lo pido a Enoc por ti.</p></div>
+      <p>Te ayudo a encontrar cosas en el Hub, a buscar a una alumna (pega su celular o su nombre) y a ver cómo va un curso. Si algo no existe en el Hub o falla, le levanto un ticket a Enoc.</p></div>
       <div class="glamy-chips">${GLAMY_SUGERENCIAS.map(s=>`<button class="glamy-chip" data-sugerencia="${escHtml(s)}">${escHtml(s)}</button>`).join('')}</div>`;
   } else {
     caja.innerHTML = glamy.mensajes.map(m=>{
@@ -12285,19 +12027,26 @@ function pintarGlamy(){
       return `<div class="glamy-msg ella${m.error ? ' error' : ''}">${glamyFormato(limpio)}${botones.length ? `<div class="glamy-botones">${botones.map(b=>`<button class="glamy-boton" data-g-tipo="${b.tipo}" data-g-id="${escHtml(b.id)}">${escHtml(b.label)}</button>`).join('')}</div>` : ''}</div>`;
     }).join('') + (glamy.enviando ? '<div class="glamy-pensando">Glamy está escribiendo…</div>' : '');
   }
-  document.getElementById('glamyRestan').textContent = typeof glamy.restantes === 'number'
-    ? (glamy.restantes === 1 ? 'Te queda 1 pregunta hoy.' : `Te quedan ${glamy.restantes} preguntas hoy.`) : '';
   document.getElementById('glamyEnviar').disabled = glamy.enviando;
   caja.scrollTop = caja.scrollHeight;
 }
 function abrirGlamy(){
+  document.getElementById('glamyGlobo').style.display = 'none';
   glamyCargar();
   document.getElementById('glamyPanel').classList.add('open');
-  document.getElementById('glamtutPanel').classList.remove('open');
   pintarGlamy();
   if(window.innerWidth > 600) document.getElementById('glamyTexto').focus();
 }
 function cerrarGlamy(){ document.getElementById('glamyPanel').classList.remove('open'); }
+// "¿Te ayudo?" una vez al día por persona (se recuerda en este navegador; si no se puede, no pasa nada).
+function glamySaludoDelDia(){
+  const clave = 'glamyGlobo:' + (usuarioActual?.id || ''), hoy = new Date().toLocaleDateString('en-CA');
+  try{ if(localStorage.getItem(clave) === hoy) return; localStorage.setItem(clave, hoy); }catch(_){}
+  const globo = document.getElementById('glamyGlobo');
+  globo.style.display = '';
+  setTimeout(()=>{ globo.style.display = 'none'; }, 9000);
+}
+document.getElementById('glamyGlobo').addEventListener('click', abrirGlamy);
 async function glamyPreguntar(texto){
   texto = String(texto||'').trim();
   if(!texto || glamy.enviando) return;
@@ -12315,7 +12064,6 @@ async function glamyPreguntar(texto){
     }
     if(!r?.texto) throw new Error(r?.error || 'no llegó respuesta');
     glamy.mensajes.push({ rol:'assistant', texto: r.texto });
-    if(typeof r.restantes === 'number') glamy.restantes = r.restantes;
   }catch(e){
     glamy.mensajes.push({ rol:'assistant', texto: `No pude responder ahora 😔 (${e.message}). Intenta de nuevo en un momento.`, error:true });
   }finally{
@@ -12327,7 +12075,7 @@ async function glamyBoton(tipo, id){
   // El panel queda encima de las fichas: se cierra (la plática se conserva).
   cerrarGlamy();
   if(tipo === 'ir' && seccionesPermitidas().includes(id)) return setActiveSection(id);
-  if(tipo === 'pedidos' && seccionesPermitidas().includes('pedidos')) return setActiveSection('pedidos');
+  if(tipo === 'tickets' && seccionesPermitidas().includes('glamy')){ gl.tab = 'tickets'; return setActiveSection('glamy'); }
   if(tipo === 'ficha') return abrirModalInscripcion(id);
   if(tipo === 'lead'){
     if(!leadsCache.some(l=>l.id===id)) leadsCache = await cargarLeads();
@@ -12357,20 +12105,123 @@ glamyTexto.addEventListener('keydown', ev=>{
 });
 glamyTexto.addEventListener('input', ()=>{ glamyTexto.style.height = ''; glamyTexto.style.height = Math.min(glamyTexto.scrollHeight, 110) + 'px'; });
 
-/* ---------- Pedidos al Hub (solo quien recibe pedidos) ----------
-   Los crea Glamy (función glamy → hub_pedidos). Aquí se ven por estado,
-   se mueven y se copian para trabajarlos con Claude. Al cambiar el
-   estado, el aviso a quien lo pidió lo manda la base (trigger), con la nota. */
+/* ---------- Sección Glamy (solo quien recibe los tickets) ----------
+   📊 Uso: cuánto se usa Glamy y cuánto cuesta (tabla glamy_uso, una fila por
+   pregunta, sin el texto de la plática). Por ahora no hay límites: solo se mide.
+   🎫 Tickets: lo que el equipo le pide a Glamy y el Hub no hace (tabla
+   hub_pedidos; antes se llamaban "pedidos"). Al cambiar el estado, el aviso a
+   quien lo levantó lo manda la base (trigger), con la nota. */
+const gl = { tab:'uso' };
+const GLAMY_SALDO_USD = 10;   // saldo cargado en Anthropic, para la barra de la proyección
+const GLAMY_HERRAMIENTA = {
+  buscar_persona:'buscar persona', curso:'curso', proximos_cursos:'próximos cursos', mis_tareas:'sus tareas',
+  mis_tickets:'tickets', buscar_tickets_abiertos:'tickets', crear_ticket:'tickets',
+  mis_pedidos:'tickets', buscar_pedidos_abiertos:'tickets', crear_pedido:'tickets',
+};
+// Qué se consultó en una pregunta: la primera herramienta, o "cómo se hace" si no usó ninguna.
+const usoTema = f => GLAMY_HERRAMIENTA[(f.herramientas || [])[0]] || ((f.herramientas || []).length ? f.herramientas[0] : 'cómo se hace');
+const usd = (n, dec = 3) => '$' + Number(n || 0).toFixed(dec);
+const fechaMX = d => d.toLocaleDateString('en-CA', { timeZone:'America/Mexico_City' });
+
+function renderGlamySeccion(){
+  document.querySelectorAll('#view-glamy [data-gl-tab]').forEach(b=> b.classList.toggle('on', b.dataset.glTab === gl.tab));
+  document.getElementById('glTabUso').style.display = gl.tab === 'uso' ? '' : 'none';
+  document.getElementById('glTabTickets').style.display = gl.tab === 'tickets' ? '' : 'none';
+  renderTickets();
+  if(gl.tab === 'uso') renderUsoGlamy();
+}
+document.querySelectorAll('#view-glamy [data-gl-tab]').forEach(b=> b.addEventListener('click', ()=>{ gl.tab = b.dataset.glTab; renderGlamySeccion(); }));
+
+async function renderUsoGlamy(){
+  const caja = document.getElementById('glTabUso');
+  const ahora = new Date();
+  const hoy = fechaMX(ahora);
+  const dias = [...Array(14)].map((_, i)=> fechaMX(new Date(ahora.getTime() - (13 - i) * 86400000)));
+  const inicioMes = hoy.slice(0, 8) + '01';
+  const desde = dias[0] < inicioMes ? dias[0] : inicioMes;
+  const { data, error } = await sb.from('glamy_uso')
+    .select('usuario_id, fecha, creado_en, costo_usd, herramientas, error')
+    .gte('fecha', desde).order('creado_en', { ascending:false });
+  if(error){ caja.innerHTML = `<div class="empty-note">No se pudo cargar el uso: ${escHtml(error.message)}</div>`; return; }
+  const filas = data || [];
+  const semana = new Set(dias.slice(-7));
+  const suma = arr => ({ n: arr.length, costo: arr.reduce((t, f)=> t + Number(f.costo_usd || 0), 0) });
+  const hoyT = suma(filas.filter(f=>f.fecha === hoy));
+  const semT = suma(filas.filter(f=>semana.has(f.fecha)));
+  const mesF = filas.filter(f=>f.fecha >= inicioMes);
+  const mesT = suma(mesF);
+  const [a, m, d] = hoy.split('-').map(Number);
+  const diasMes = new Date(a, m, 0).getDate();
+  const proyeccion = mesT.costo / d * diasMes;
+  const pct = Math.min(100, proyeccion / GLAMY_SALDO_USD * 100);
+  // Barras de los últimos 14 días.
+  const porDia = dias.map(f=> filas.filter(x=>x.fecha === f).length);
+  const max = Math.max(1, ...porDia);
+  // Lo más consultado y errores del mes.
+  const temas = {};
+  mesF.forEach(f=>{ const t = usoTema(f); temas[t] = (temas[t] || 0) + 1; });
+  const temasTxt = Object.entries(temas).sort((x, y)=> y[1] - x[1])
+    .map(([t, n], i)=> `${i === 0 ? '<b>' + escHtml(t) + '</b>' : escHtml(t)} ${Math.round(n / mesT.n * 100)}%`).join(' · ');
+  const errores = mesF.filter(f=>f.error).length;
+  // Por persona (este mes): todo el equipo, aunque no la haya usado.
+  const personas = {};
+  (EQUIPO || []).forEach(u=>{ personas[u.id] = { nombre:u.nombre, rol:u.rol, n:0, costo:0, temas:{}, ultimo:null }; });
+  mesF.forEach(f=>{
+    const p = personas[f.usuario_id] = personas[f.usuario_id] || { nombre:'(usuario)', rol:'', n:0, costo:0, temas:{}, ultimo:null };
+    p.n++; p.costo += Number(f.costo_usd || 0);
+    const t = usoTema(f); p.temas[t] = (p.temas[t] || 0) + 1;
+    if(!p.ultimo || f.creado_en > p.ultimo) p.ultimo = f.creado_en;
+  });
+  const cuando = iso => {
+    if(!iso) return 'este mes no';
+    const f = fechaMX(new Date(iso));
+    if(f === hoy) return 'hoy ' + new Date(iso).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', timeZone:'America/Mexico_City' });
+    const n = Math.round((new Date(hoy) - new Date(f)) / 86400000);
+    return n === 1 ? 'ayer' : `hace ${n} días`;
+  };
+  const lista = Object.values(personas).sort((x, y)=> y.n - x.n || String(x.nombre).localeCompare(y.nombre));
+  const kpi = (t, v, sub, extra = '') => `<div class="gu-kpi"><small>${t}</small><b>${v}</b><span>${sub}</span>${extra}</div>`;
+  const preg = n => n === 1 ? '1 pregunta' : `${n} preguntas`;
+  caja.innerHTML = `
+    <div class="gu-kpis">
+      ${kpi('Hoy', hoyT.n, (hoyT.n === 1 ? 'pregunta' : 'preguntas') + ' · ' + usd(hoyT.costo) + ' USD')}
+      ${kpi('Últimos 7 días', semT.n, (semT.n === 1 ? 'pregunta' : 'preguntas') + ' · ' + usd(semT.costo) + ' USD')}
+      ${kpi('Este mes', mesT.n, (mesT.n === 1 ? 'pregunta' : 'preguntas') + ' · ' + usd(mesT.costo) + ' USD')}
+      ${kpi('Al cierre del mes (proyección)', usd(proyeccion, 2), `USD · de tus ${usd(GLAMY_SALDO_USD, 0)} de saldo`,
+            `<div class="gu-saldo" title="${pct.toFixed(1)}% del saldo"><i style="width:${Math.max(pct, 1).toFixed(1)}%;${pct > 70 ? ' background:var(--danger);' : ''}"></i></div>`)}
+    </div>
+    <div class="gu-grid">
+      <div class="card">
+        <h3>Preguntas por día</h3><div class="sub">Últimos 14 días</div>
+        <div class="gu-barras">${porDia.map((n, i)=> `<div class="gu-barra" title="${dias[i]}: ${preg(n)}">${n ? `<em>${n}</em>` : ''}<i style="height:${(n / max * 100).toFixed(0)}%"></i></div>`).join('')}</div>
+        <div class="gu-dias">${dias.map(f=>`<span>${Number(f.slice(8))}</span>`).join('')}</div>
+        <div class="sub" style="margin-top:12px;">${mesT.n ? 'Lo más consultado este mes: ' + temasTxt : 'Todavía nadie le pregunta nada este mes.'}${mesT.n ? ` · errores: ${errores}` : ''}</div>
+      </div>
+      <div class="card">
+        <h3>Por persona</h3><div class="sub">Este mes</div>
+        <div style="overflow-x:auto;"><table class="gu-tabla">
+          <tr><th>Persona</th><th>Preguntas</th><th>Costo</th><th>Lo que más usa</th><th>Último uso</th></tr>
+          ${lista.map(p=>{
+            const top = Object.entries(p.temas).sort((x, y)=> y[1] - x[1])[0];
+            return `<tr><td><b>${escHtml(p.nombre)}</b>${p.rol ? '<br><small>' + escHtml(p.rol) + '</small>' : ''}</td><td>${p.n}</td><td>${usd(p.costo)}</td><td>${top ? escHtml(top[0]) : '—'}</td><td>${cuando(p.ultimo)}</td></tr>`;
+          }).join('')}
+        </table></div>
+      </div>
+    </div>`;
+}
+
 const ped = { lista:[], abierto:null, abrirNumero:null };
 const PED_ESTADOS = [['nuevo','Nuevo'], ['en_revision','En revisión'], ['en_desarrollo','En desarrollo'], ['hecho','Hecho ✅'], ['descartado','Descartado']];
 const fechaPed = f => f ? new Date(f).toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' }) : '';
-async function renderPedidos(){
+async function renderTickets(){
   const tablero = document.getElementById('pedTablero');
   const { data, error } = await sb.from('hub_pedidos')
     .select('id, numero, seccion, titulo, que_necesita, para_que, ejemplo, resumen, estado, nota_admin, creado_en, actualizado_en, usuarios:creado_por ( nombre )')
     .order('numero', { ascending:false });
-  if(error){ tablero.innerHTML = `<div class="empty-note">No se pudieron cargar los pedidos: ${escHtml(error.message)}</div>`; return; }
+  if(error){ tablero.innerHTML = `<div class="empty-note">No se pudieron cargar los tickets: ${escHtml(error.message)}</div>`; return; }
   ped.lista = data || [];
+  const abiertos = ped.lista.filter(p=> ['nuevo', 'en_revision', 'en_desarrollo'].includes(p.estado)).length;
+  document.getElementById('glTicketsAbiertos').textContent = abiertos ? abiertos : '';
   tablero.innerHTML = PED_ESTADOS.map(([k, l])=>{
     const items = ped.lista.filter(p=>p.estado===k);
     return `<div class="ped-col"><h4>${l}<span>${items.length}</span></h4>${items.map(p=>`
@@ -12378,15 +12229,15 @@ async function renderPedidos(){
         <small>${escHtml(p.usuarios?.nombre || '—')} · ${fechaPed(p.creado_en)}${p.seccion ? ' · ' + escHtml(p.seccion) : ''}</small></div>`).join('')
       || '<div class="empty-note" style="padding:8px 4px;">—</div>'}</div>`;
   }).join('');
-  tablero.querySelectorAll('[data-ped]').forEach(el=> el.addEventListener('click', ()=> abrirPedido(el.dataset.ped)));
+  tablero.querySelectorAll('[data-ped]').forEach(el=> el.addEventListener('click', ()=> abrirTicket(el.dataset.ped)));
   if(ped.abrirNumero){
     const p = ped.lista.find(x=>x.numero === Number(ped.abrirNumero));
     ped.abrirNumero = null;
-    if(p) return abrirPedido(p.id);
+    if(p) return abrirTicket(p.id);
   }
-  if(ped.abierto) abrirPedido(ped.abierto, { sinScroll:true });
+  if(ped.abierto) abrirTicket(ped.abierto, { sinScroll:true });
 }
-function abrirPedido(id, { sinScroll = false } = {}){
+function abrirTicket(id, { sinScroll = false } = {}){
   const p = ped.lista.find(x=>x.id===id);
   const caja = document.getElementById('pedDetalle');
   if(!p){ ped.abierto = null; caja.style.display = 'none'; return; }
@@ -12394,51 +12245,51 @@ function abrirPedido(id, { sinScroll = false } = {}){
   const fila = (t, v) => v ? `<dt>${t}</dt><dd>${escHtml(v)}</dd>` : '';
   caja.innerHTML = `
     <div style="display:flex; gap:10px; align-items:flex-start;">
-      <h3 style="margin:0; flex:1;">💡 #${p.numero} · ${escHtml(p.titulo)}</h3>
+      <h3 style="margin:0; flex:1;">🎫 #${p.numero} · ${escHtml(p.titulo)}</h3>
       <button class="glamy-boton" id="pedCerrar" aria-label="Cerrar">Cerrar</button>
     </div>
     <dl>
-      ${fila('Lo pidió', (p.usuarios?.nombre || '—') + ' · ' + fechaPed(p.creado_en))}
+      ${fila('Lo levantó', (p.usuarios?.nombre || '—') + ' · ' + fechaPed(p.creado_en))}
       ${fila('Sección', p.seccion)}
       ${fila('Qué necesita', p.que_necesita)}
       ${fila('Para qué', p.para_que)}
       ${fila('Ejemplo', p.ejemplo)}
       ${fila('Resumen de la plática', p.resumen)}
     </dl>
-    <div class="sub">Estado (a quien lo pidió le llega un aviso con la nota):</div>
+    <div class="sub">Estado (a quien lo levantó le llega un aviso con la nota):</div>
     <div class="ped-estados">${PED_ESTADOS.map(([k, l])=>`<button data-ped-estado="${k}" class="${p.estado===k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    <textarea id="pedNota" maxlength="1000" placeholder="Nota para quien lo pidió (opcional)">${escHtml(p.nota_admin || '')}</textarea>
+    <textarea id="pedNota" maxlength="1000" placeholder="Nota para quien lo levantó (opcional)">${escHtml(p.nota_admin || '')}</textarea>
     <div class="ped-acciones">
       <button class="btn-outline" id="pedGuardarNota">Guardar nota</button>
       <button class="btn-primary small" id="pedCopiar">📋 Copiar para Claude</button>
     </div>`;
   caja.style.display = '';
   caja.querySelector('#pedCerrar').addEventListener('click', ()=>{ ped.abierto = null; caja.style.display = 'none'; });
-  caja.querySelectorAll('[data-ped-estado]').forEach(b=> b.addEventListener('click', ()=> guardarPedido(p, { estado: b.dataset.pedEstado })));
-  caja.querySelector('#pedGuardarNota').addEventListener('click', ()=> guardarPedido(p, {}));
-  caja.querySelector('#pedCopiar').addEventListener('click', ()=> copiarPedido(p));
+  caja.querySelectorAll('[data-ped-estado]').forEach(b=> b.addEventListener('click', ()=> guardarTicket(p, { estado: b.dataset.pedEstado })));
+  caja.querySelector('#pedGuardarNota').addEventListener('click', ()=> guardarTicket(p, {}));
+  caja.querySelector('#pedCopiar').addEventListener('click', ()=> copiarTicket(p));
   if(!sinScroll) caja.scrollIntoView({ behavior:'smooth', block:'start' });
 }
-async function guardarPedido(p, cambios){
+async function guardarTicket(p, cambios){
   const nota = document.getElementById('pedNota').value.trim() || null;
   const cambio = { ...cambios, nota_admin: nota };
   if(cambio.estado === p.estado) delete cambio.estado;
   if(!('estado' in cambio) && nota === (p.nota_admin || null)) return;
   const { error } = await sb.from('hub_pedidos').update(cambio).eq('id', p.id);
-  if(error){ toast('No se pudo guardar el pedido: ' + error.message, true); return; }
+  if(error){ toast('No se pudo guardar el ticket: ' + error.message, true); return; }
   if(cambio.estado){
     registrarActividad('pedido_estado', `#${p.numero} → ${PED_ESTADOS.find(e=>e[0]===cambio.estado)[1]}`);
-    toast(`Pedido #${p.numero} movido. Le llegó el aviso a ${p.usuarios?.nombre || 'quien lo pidió'}.`);
+    toast(`Ticket #${p.numero} movido. Le llegó el aviso a ${p.usuarios?.nombre || 'quien lo levantó'}.`);
   } else {
     registrarActividad('pedido_nota', `#${p.numero}`);
     toast('Nota guardada.');
   }
-  await renderPedidos();
+  await renderTickets();
 }
-async function copiarPedido(p){
+async function copiarTicket(p){
   const texto = [
-    `Pedido al Hub #${p.numero} — ${p.titulo}`,
-    `Lo pidió: ${p.usuarios?.nombre || '—'} (${fechaPed(p.creado_en)})${p.seccion ? ' · Sección: ' + p.seccion : ''}`,
+    `Ticket del Hub #${p.numero} — ${p.titulo}`,
+    `Lo levantó: ${p.usuarios?.nombre || '—'} (${fechaPed(p.creado_en)})${p.seccion ? ' · Sección: ' + p.seccion : ''}`,
     p.que_necesita && `Qué necesita: ${p.que_necesita}`,
     p.para_que && `Para qué: ${p.para_que}`,
     p.ejemplo && `Ejemplo: ${p.ejemplo}`,
