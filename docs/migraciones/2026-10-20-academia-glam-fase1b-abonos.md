@@ -1,6 +1,6 @@
 # 🎓 Academia Glam — fase 1b: liquidar con abonos y seguimiento — 20 oct 2026
 
-Sigue a la [fase 1](2026-10-20-academia-glam-fase1.md). Jared y Cinthia explicaron cómo se trabaja hoy:
+Sigue a la [fase 1](2026-10-20-academia-glam-fase1.md). Continúa en la [fase 1c](2026-10-20-academia-glam-fase1c-acceso.md): planes reales y acceso de las alumnas. Jared y Cinthia explicaron cómo se trabaja hoy:
 
 - Las alumnas se inscriben en la gira con Jared.
 - Cinthia captura la hoja con la **fecha de su próximo abono**.
