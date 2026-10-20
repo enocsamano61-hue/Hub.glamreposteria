@@ -58,7 +58,7 @@ const PLANES = [
       window.__tablas.academia_glam_generaciones.find(g => g.generacion_id === p_generacion).tipo = p_tipo;
       return null;
     };
-    window.__rpc.agl_candidatas_gen = ({ p_generacion }) => p_generacion === 'g26' ? [
+    window.__rpc.agl_candidatas_v3 = ({ p_generacion }) => p_generacion === 'g26' ? [
       { alumna_id:'n1', nombre:'Nueva Uno', telefono:'5522222222', vendedor_texto:null, vendedor_propuesto:null, pagadas:2, por_revisar:1, proxima_numero:3, ultimo_pago:'ANT2: WPP HOY 26 SEP', decision:'por_contactar', abonado:3500 },
     ] : p_generacion === 'g25' ? [
       { alumna_id:'c1', nombre:'CANDIDATA UNO', telefono:'5511111111', vendedor_texto:'JARED WPP', vendedor_propuesto:'u3', pagadas:3, por_revisar:0, proxima_numero:4, ultimo_pago:'ANT2: 02 ABRIL HEY BANCO', decision:null },

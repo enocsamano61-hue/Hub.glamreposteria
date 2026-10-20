@@ -68,7 +68,7 @@ const PLANES = [
     window.__rpc.agl_activar = () => 'nueva';
     window.__rpc.agl_guardar_plan = () => 'pid';
     window.__rpc.agl_generaciones = () => [{ generacion_id:'g26', nombre:'Academia 2026', orden:7, alumnas:371, paga_por_mes:true, confirmado:true, columnas:['ANT', 'ANT2'], disponibles:['ANT', 'ANT2'], activadas:0 }];
-    window.__rpc.agl_candidatas_gen = () => [
+    window.__rpc.agl_candidatas_v3 = () => [
       { alumna_id:'c1', nombre:'Candidata Abonos', telefono:'5511111111', vendedor_texto:null, vendedor_propuesto:null, pagadas:2, por_revisar:0, proxima_numero:3, ultimo_pago:'ANT2: 05 SEP', decision:null, abonado:4000 },
     ];
   });
@@ -220,7 +220,7 @@ const PLANES = [
   check(await p.$('[data-agl-seg="k1"]') !== null && await p.$('[data-agl-acceso="k5"]') !== null, 'pero sí da seguimiento y acceso');
   await p.evaluate(() => { usuarioActual = { ...usuarioActual, id:'u2', rol:'Ventas', es_admin:false }; PERMISOS_ACCION_CACHE = {}; });
   await abrir('cobros');
-  check(await p.$('[data-agl-seg="k1"]') !== null && await p.$('[data-agl-acceso]') === null, 'la vendedora da seguimiento a las suyas, sin dar acceso');
+  check(await p.$('#agl-cobros [data-agl-seg="k1"]') !== null && await p.$('#agl-cobros [data-agl-acceso]') === null, 'la vendedora da seguimiento a las suyas, sin dar acceso');
 
   h.paso('11. Celular');
   await p.evaluate(() => { usuarioActual = { id:'u3', nombre:'Admin Prueba', rol:'Gerente', es_admin:true }; });
