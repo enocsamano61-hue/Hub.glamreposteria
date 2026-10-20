@@ -1224,6 +1224,36 @@
     .glamy-panel{ inset:0; width:100%; height:100%; max-width:none; max-height:none; border-radius:0; }
   }
 
+  /* ACADEMIA GLAM — cobros, alumnas y planes */
+  .agl-kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; }
+  .agl-kpi{ background:var(--card); border:1px solid var(--border); border-radius:12px; padding:11px 14px; }
+  .agl-kpi small{ color:var(--ink-soft); font-size:11.5px; font-weight:600; }
+  .agl-kpi b{ display:block; font-size:22px; margin-top:2px; color:var(--ink); }
+  .agl-kpi.rojo b{ color:var(--danger); } .agl-kpi.amb b{ color:var(--ambar); }
+  .agl-filtros{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0; }
+  .agl-filtros select, .agl-filtros input:not([type=checkbox]){ padding:8px 10px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
+  .agl-filtros label{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-soft); }
+  .agl-grupo{ font-size:11.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 6px; }
+  .agl-grupo span{ background:var(--border); border-radius:10px; padding:1px 8px; margin-left:4px; }
+  .agl-fila{ display:grid; grid-template-columns:1.6fr 1fr .7fr 1.1fr auto; gap:10px; align-items:center; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; margin-bottom:6px; font-size:13px; }
+  .agl-acc{ display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
+  .agl-acc button{ width:auto; padding:8px 12px; font-size:12.5px; }
+  .agl-pill{ display:inline-block; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; }
+  .agl-pill.hoy{ background:rgba(var(--wine-rgb),.12); color:var(--wine); } .agl-pill.atr{ background:rgba(181,69,58,.12); color:var(--danger); }
+  .agl-pill.prox{ background:var(--border); color:var(--wine-dark); } .agl-pill.conf{ background:rgba(198,166,107,.22); color:#7A5E1E; }
+  .agl-fila .sub, .agl-tabla .sub{ font-size:11.5px; color:var(--ink-soft); margin:1px 0 0; }
+  .agl-filtros button{ width:auto; }
+  .agl-scroll{ overflow-x:auto; }
+  .agl-tabla{ width:100%; border-collapse:collapse; font-size:13px; background:var(--card); border:1px solid var(--border); border-radius:12px; }
+  .agl-tabla th{ text-align:left; color:var(--ink-soft); font-size:11px; font-weight:600; padding:8px 8px; border-bottom:1px solid var(--border); }
+  .agl-tabla td{ padding:8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .agl-tabla select, .agl-tabla input:not([type=checkbox]){ padding:6px 8px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:12.5px; background:var(--card); color:var(--ink); max-width:170px; }
+  @media (max-width: 900px){
+    .agl-kpis{ grid-template-columns:1fr 1fr; }
+    .agl-fila{ grid-template-columns:1fr 1fr; }
+    .agl-acc{ grid-column:1 / -1; justify-content:flex-start; }
+  }
+
   /* SECCIÓN GLAMY (solo quien recibe los tickets): uso y tickets */
   .gu-kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
   .gu-kpi{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; }
@@ -1908,6 +1938,20 @@
       </div>
     </div>
 
+    <!-- ACADEMIA GLAM: alumnas que pagan por mes (cobros, alumnas y planes) -->
+    <div class="view" id="view-academia_glam">
+      <div class="ac-tabs" role="tablist" aria-label="Academia Glam">
+        <button type="button" class="ac-tab on" role="tab" data-agl-tab="cobros">💳 Cobros</button>
+        <button type="button" class="ac-tab" role="tab" data-agl-tab="alumnas">👥 Alumnas</button>
+        <button type="button" class="ac-tab" role="tab" data-agl-tab="planes">⚙️ Planes</button>
+        <button type="button" class="ac-tab" role="tab" disabled>🎟 Cupones <span class="pill-soon">pronto</span></button>
+        <button type="button" class="ac-tab" role="tab" disabled>💰 Comisiones <span class="pill-soon">pronto</span></button>
+      </div>
+      <div id="agl-cobros"></div>
+      <div id="agl-alumnas" style="display:none;"></div>
+      <div id="agl-planes" style="display:none;"></div>
+    </div>
+
     <!-- GLAMY (solo quien recibe los tickets): cuánto se usa y los tickets que levanta el equipo -->
     <div class="view" id="view-glamy">
       <div class="ac-tabs" role="tablist">
@@ -2406,6 +2450,23 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: REGISTRAR PAGO DE MENSUALIDAD (Academia Glam) ===================== -->
+<div class="modal-overlay" id="modalAglPago">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aglPagoTitulo">
+    <button class="close" id="closeAglPago" aria-label="Cerrar">✕</button>
+    <h3 id="aglPagoTitulo">Registrar pago</h3>
+    <div class="sub" id="aglPagoSub" style="margin-bottom:10px;">—</div>
+    <div class="ac-form">
+      <label>Monto<input id="aglPagoMonto" type="number" min="1" step="10" inputmode="decimal"></label>
+      <label>Forma de pago<select id="aglPagoForma"></select></label>
+      <label>Fecha del pago<input id="aglPagoFecha" type="date"></label>
+    </div>
+    <label style="display:flex; align-items:center; gap:8px; margin:10px 0 4px; cursor:pointer;"><input type="checkbox" id="aglPagoPorConfirmar"> 🏦 Todavía no se ve en el banco (queda por confirmar)</label>
+    <div class="vend-hint" id="aglPagoAviso" style="color:var(--danger);"></div>
+    <button class="btn-primary" id="aglPagoGuardar" style="margin-top:10px;">Registrar pago</button>
+  </div>
+</div>
+
 <!-- ===================== MODAL: DATOS DE CONTACTO (compartido) =====================
      El mismo formulario desde la ficha de inscripción, Historial cliente, etc. -->
 <div class="modal-overlay" id="modalContacto">
@@ -2529,6 +2590,7 @@ function showLogin(){
   if(canalNotas){ sb.removeChannel(canalNotas); canalNotas = null; }
   detenerSincronizacion();
   cerrarGlamy();
+  agl.cand = null; agl.meses = []; agl.mes = ''; agl.cobros = []; agl.susc = [];   // Academia Glam: nada de la sesión anterior
   document.getElementById('glamyFab').style.display = 'none';
   document.getElementById('glamyGlobo').style.display = 'none';
 }
@@ -2643,6 +2705,7 @@ const SECCIONES = [
   { id:'cobranza', label:'Cobranza', sub:'A quién cobrarle y cuándo: anticipos de leads y saldos de inscritas', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 13v5M10.5 14.2h2.3a1 1 0 0 1 0 2h-1.6a1 1 0 0 0 0 2h2.3"/>' },
   { id:'nollegaron', label:'No llegaron', sub:'Alumnas con anticipo que no llegaron a su curso: recuperarlas o cerrar su caso', soon:false, icon:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/>' },
   { id:'academia', label:'Academia', sub:'Egresadas por generación: qué decidió cada una, sus pagos y su ficha', soon:false, icon:'<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/>' },
+  { id:'academia_glam', label:'Academia Glam', sub:'Alumnas que pagan por mes: quién paga, cuándo y de qué vendedora es', soon:false, icon:'<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><circle cx="19" cy="18" r="3"/><path d="M19 17v2"/>' },
   { id:'mensajes', label:'Mensajes', sub:'Mensajes predeterminados para WhatsApp', soon:false, icon:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/>' },
   { id:'precios', label:'Precios', sub:'Lo que se cobra aparte del curso: VIP, uniforme…', soon:false, icon:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
@@ -2679,6 +2742,7 @@ function setActiveSection(id){
   if(id==='precios') renderPrecios();
   if(id==='nollegaron') renderNoLlegaron();
   if(id==='academia') renderAcademia();
+  if(id==='academia_glam') renderAcademiaGlam();
   if(id==='glamy') renderGlamySeccion();
   closePicker();
 }
@@ -2715,10 +2779,10 @@ const PERMISOS_POR_ROL_DEFAULT = {
   'Dueña': TODAS_SECCIONES,
   'Coordinadora': ['inicio','mensajes','nollegaron','precios','board','historial','cursos','plaza','giras','logistica','calendario'],
   'Logística': ['inicio','mensajes','nollegaron','precios','giras','logistica','plaza','calendario'],
-  'Ventas': ['inicio','mensajes','nollegaron','precios','board','historial','ventas','calendario'],
-  'Ventas coordinadora': ['inicio','mensajes','nollegaron','precios','board','historial','ventas','reportes','calendario'],
-  'Academia e Inbox': ['inicio','academia','mensajes','nollegaron','precios','board','historial','cursos','calendario'],
-  'Cobranza': ['inicio','mensajes','nollegaron','precios','ventas','cobranza','historial','calendario'],
+  'Ventas': ['inicio','academia_glam','mensajes','nollegaron','precios','board','historial','ventas','calendario'],
+  'Ventas coordinadora': ['inicio','academia_glam','mensajes','nollegaron','precios','board','historial','ventas','reportes','calendario'],
+  'Academia e Inbox': ['inicio','academia','academia_glam','mensajes','nollegaron','precios','board','historial','cursos','calendario'],
+  'Cobranza': ['inicio','academia_glam','mensajes','nollegaron','precios','ventas','cobranza','historial','calendario'],
 };
 // Cache cargado en cada login desde public.permisos_rol: { [rol]: Set(seccion_id) }.
 let PERMISOS_ROL_CACHE = null;
@@ -2734,6 +2798,7 @@ async function cargarPermisosRol(){
 // Acciones que se dan o quitan por rol (tabla permisos_accion: fila = puede).
 const ACCIONES_POR_ROL = [
   { id:'confirmar_pagos', label:'💳 Confirmar pagos', ayuda:'Convierte un pago reportado (💜) en inscripción, o inscribe directo.' },
+  { id:'ver_todo_academia_glam', label:'👁 Ver todo en Academia Glam', ayuda:'Ve a todas las alumnas, cobros y vendedoras de Academia Glam, y las activa. Sin esto, cada vendedora ve solo las suyas.' },
   { id:'cobrar_academia', label:'🎓 Cobrar en Academia', ayuda:'Registra pagos de mensualidades de la academia y corrige los que vienen del Excel.' },
 ];
 let PERMISOS_ACCION_CACHE = null;   // { [rol]: Set(accion) }
@@ -2971,6 +3036,12 @@ const ACCION_LABEL = {
   cert_agregado: '📄 Agregó a alguien a los certificados de un curso',
   cert_plantilla: '📄 Cambió la plantilla o el folio de los certificados',
   cert_nombre: '✏️ Usó el nombre que pidió la alumna para su diploma',
+  agl_pago: '🎓 Registró el pago de una mensualidad (Academia Glam)',
+  agl_confirmar: '🎓 Confirmó si llegó el pago de una mensualidad (Academia Glam)',
+  agl_activar: '🎓 Activó alumnas en Academia Glam',
+  agl_vendedora: '🎓 Cambió la vendedora de una alumna (Academia Glam)',
+  agl_estado: '🎓 Cambió el estado de una alumna (Academia Glam)',
+  agl_plan: '🎓 Creó o editó un plan de Academia Glam',
   pedido_estado: '🎫 Movió un ticket de Glamy',
   pedido_nota: '🎫 Escribió una nota en un ticket de Glamy',
 };
@@ -11944,6 +12015,387 @@ document.getElementById('guardarNuevoContacto').addEventListener('click', async 
   await abrirFichaSede(modalSedeId);
   aplicarFiltrosCatalogo();
   if(logisticaCargado.pipeline) renderLogisticaPipeline();
+});
+
+/* =========================================================
+   ACADEMIA GLAM — alumnas que pagan por mes (fase 1: planes, vendedoras y cobros)
+   - Los planes (precio, meses, día de cobro) los crean los administradores; a cada alumna se le
+     asigna uno al "activarla" y sus mensualidades se generan solas (tabla academia_glam_mensualidades).
+   - Todo lo que escribe va por funciones de la base (agl_*), que revisan quién eres: registrar o
+     confirmar un pago pide "Cobrar en Academia"; activar y asignar piden "Ver todo en Academia Glam".
+   - Cada vendedora ve solo sus alumnas (RLS); Cobranza, Academia y administradores ven todas.
+   Fase 2: cupones y módulos · Fase 3: comisiones · Fase 4: avisos y Glamy.
+   Ver docs/migraciones/2026-10-20-academia-glam-fase1.md
+   ========================================================= */
+const agl = { tab:'cobros', planes:[], cobros:[], cobradoMes:0, susc:[], cand:null, meses:[], mes:'', filtroVend:'', filtroPlan:'',
+              estado:'activa', buscar:'', sel:new Set(), planEdit:null, pago:null, ocupado:false };
+const AGL_ESTADOS = { activa:'Activas', pausada:'Pausadas', baja:'Bajas', todas:'Todas' };
+const aglVeTodo = () => !!usuarioActual?.es_admin || puede('ver_todo_academia_glam') || puede('cobrar_academia');
+const aglNombreVend = id => id ? (EQUIPO.find(u=>u.id === id)?.nombre || '(otra persona)') : 'Sin vendedora';
+const aglVendedoras = () => EQUIPO.filter(u=>u.es_vendedor);
+const aglNombreAlumna = n => escHtml(tituloCaso(n || ''));
+const aglOpcionesVend = (sel, vacio) => `<option value="">${vacio}</option>` + aglVendedoras().map(u=>
+  `<option value="${escapeAttr(u.id)}" ${u.id === sel ? 'selected' : ''}>${escHtml(u.nombre)}</option>`).join('');
+
+async function renderAcademiaGlam(){
+  document.querySelectorAll('#view-academia_glam [data-agl-tab]').forEach(b=> b.classList.toggle('on', b.dataset.aglTab === agl.tab));
+  ['cobros', 'alumnas', 'planes'].forEach(t=> document.getElementById('agl-' + t).style.display = t === agl.tab ? '' : 'none');
+  const caja = document.getElementById('agl-' + agl.tab);
+  caja.innerHTML = '<div class="empty-note">Cargando…</div>';
+  try{
+    if(agl.tab === 'planes') await aglCargarPlanes();
+    if(agl.tab === 'cobros') await Promise.all([aglCargarPlanes(), aglCargarCobros()]);
+    if(agl.tab === 'alumnas') await Promise.all([aglCargarPlanes(), aglCargarSusc()]);
+  }catch(e){ caja.innerHTML = `<div class="empty-note">No se pudo cargar: ${escHtml(e.message)}</div>`; return; }
+  if(agl.tab === 'cobros') aglPintarCobros();
+  if(agl.tab === 'alumnas') await aglPintarAlumnas();
+  if(agl.tab === 'planes') aglPintarPlanes();
+}
+document.querySelectorAll('#view-academia_glam [data-agl-tab]').forEach(b=> b.addEventListener('click', ()=>{ agl.tab = b.dataset.aglTab; renderAcademiaGlam(); }));
+
+async function aglCargarPlanes(){
+  const { data, error } = await sb.from('academia_glam_planes').select('*').order('nombre');
+  if(error) throw error;
+  agl.planes = data || [];
+}
+async function aglCargarCobros(){
+  const hoy = hoyISO(), inicioMes = hoy.slice(0, 8) + '01', limite = sumarDias(hoy, 7);
+  // Solo lo que ya venció o vence en 7 días (lo demás no estorba), más lo cobrado este mes.
+  const [c, p] = await Promise.all([
+    fetchTodasFilas('vista_agl_cobros', '*', q=>q.lte('vence', limite).order('vence')),
+    fetchTodasFilas('academia_glam_mensualidades', 'monto_pagado, pagado_en', q=>q.eq('estado', 'pagada').eq('previa', false).gte('pagado_en', inicioMes)),
+  ]);
+  if(c.error) throw c.error;
+  if(p.error) throw p.error;
+  agl.cobros = (c.data || []).filter(r=> r.vence <= limite);
+  agl.cobradoMes = (p.data || []).filter(r=> r.pagado_en >= inicioMes).reduce((s, r)=> s + Number(r.monto_pagado || 0), 0);
+}
+async function aglCargarSusc(){
+  const { data, error } = await fetchTodasFilas('vista_agl_suscripciones', '*', q=>q.order('alumna_nombre'));
+  if(error) throw error;
+  agl.susc = data || [];
+}
+// Llama a una función de la base y avisa si falla (los permisos los revisa la base, no la pantalla).
+async function aglRpc(fn, args){
+  const { data, error } = await sb.rpc(fn, args);
+  if(error){ toast(error.message, true); return { error }; }
+  return { data };
+}
+
+/* ---------- 💳 Cobros ---------- */
+function aglBadgeVence(r){
+  const d = diasEntre(hoyISO(), r.vence);
+  if(r.estado === 'por_confirmar') return '<span class="agl-pill conf">🏦 Por confirmar</span>';
+  if(d === 0) return '<span class="agl-pill hoy">Hoy</span>';
+  if(d < 0) return `<span class="agl-pill atr">${-d} ${d === -1 ? 'día' : 'días'} de atraso</span>`;
+  return `<span class="agl-pill prox">${escHtml(new Date(r.vence + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'short', day:'numeric', month:'short' }))}</span>`;
+}
+function aglFilaCobro(r){
+  const acciones = [];
+  if(r.estado === 'por_confirmar' && puede('cobrar_academia')){
+    acciones.push(`<button type="button" class="btn-primary small" data-agl-llego="${escapeAttr(r.mensualidad_id)}">✓ Llegó</button>`,
+                  `<button type="button" class="btn-outline small" data-agl-nollego="${escapeAttr(r.mensualidad_id)}">✗ No llegó</button>`);
+  } else if(r.estado === 'pendiente' && puede('cobrar_academia')){
+    acciones.push(`<button type="button" class="btn-primary small" data-agl-pagar="${escapeAttr(r.mensualidad_id)}">Registrar pago</button>`);
+  }
+  if(r.alumna_telefono) acciones.push(`<button type="button" class="btn-outline small" data-agl-wa="${escapeAttr(r.mensualidad_id)}" aria-label="Mandar WhatsApp" title="WhatsApp">💬</button>`);
+  return `<div class="agl-fila">
+    <div><b>${aglNombreAlumna(r.alumna_nombre)}</b><div class="sub">Vende: ${escHtml(aglNombreVend(r.vendedor_id))} · ${escHtml(r.plan_nombre)}</div></div>
+    <div>Mensualidad ${r.numero} de ${r.meses}</div>
+    <div><b>${fmtMoney(r.monto)}</b></div>
+    <div>${aglBadgeVence(r)}${r.estado === 'por_confirmar' && r.monto_pagado ? `<div class="sub">${fmtMoney(r.monto_pagado)} · ${escHtml(r.forma_pago || '')}</div>` : ''}</div>
+    <div class="agl-acc">${acciones.join('')}</div>
+  </div>`;
+}
+function aglPintarCobros(){
+  const hoy = hoyISO(), finSemana = sumarDias(hoy, 7), caja = document.getElementById('agl-cobros');
+  const visibles = agl.cobros.filter(r=> (!agl.filtroVend || (agl.filtroVend === '_sin' ? !r.vendedor_id : r.vendedor_id === agl.filtroVend))
+                                       && (!agl.filtroPlan || r.plan_nombre === agl.filtroPlan));
+  const pend = visibles.filter(r=>r.estado === 'pendiente');
+  const atrasadas = pend.filter(r=>r.vence < hoy), deHoy = pend.filter(r=>r.vence === hoy), semana = pend.filter(r=>r.vence > hoy && r.vence <= finSemana);
+  const grupos = [['⚠️ Atrasadas', atrasadas], ['⏰ Hoy', deHoy], ['🏦 Por confirmar', visibles.filter(r=>r.estado === 'por_confirmar')], ['📅 Esta semana', semana]];
+  const kpi = (t, v, cls = '') => `<div class="agl-kpi ${cls}"><small>${t}</small><b>${v}</b></div>`;
+  const planesUsados = [...new Set(agl.cobros.map(r=>r.plan_nombre))].sort();
+  const vend = aglVeTodo() ? `<select id="aglFiltroVend" aria-label="Vendedora">${aglOpcionesVend(agl.filtroVend, 'Todas las vendedoras')}
+      <option value="_sin" ${agl.filtroVend === '_sin' ? 'selected' : ''}>Sin vendedora</option></select>` : '';
+  caja.innerHTML = `
+    <div class="agl-kpis">
+      ${kpi('Te pagan hoy', deHoy.length)}${kpi('Esta semana', semana.length, 'amb')}${kpi('Atrasadas', atrasadas.length, 'rojo')}${kpi('Cobrado este mes', fmtMoney(agl.cobradoMes))}
+    </div>
+    <div class="agl-filtros">${vend}
+      <select id="aglFiltroPlan" aria-label="Plan"><option value="">Todos los planes</option>
+        ${planesUsados.map(p=>`<option ${agl.filtroPlan === p ? 'selected' : ''}>${escHtml(p)}</option>`).join('')}</select></div>
+    ${grupos.map(([t, filas])=> filas.length ? `<div class="agl-grupo">${t} <span>${filas.length}</span></div>${filas.map(aglFilaCobro).join('')}` : '').join('')
+      || `<div class="empty-note">${agl.cobros.length ? 'Nada con esos filtros.' : 'No hay cobros para hoy ni para esta semana. Si todavía no hay alumnas aquí, actívalas en la pestaña Alumnas.'}</div>`}`;
+}
+document.getElementById('agl-cobros').addEventListener('change', e=>{
+  if(e.target.id === 'aglFiltroVend'){ agl.filtroVend = e.target.value; aglPintarCobros(); }
+  if(e.target.id === 'aglFiltroPlan'){ agl.filtroPlan = e.target.value; aglPintarCobros(); }
+});
+document.getElementById('agl-cobros').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const id = b.dataset.aglPagar || b.dataset.aglLlego || b.dataset.aglNollego || b.dataset.aglWa;
+  const r = agl.cobros.find(x=>x.mensualidad_id === id); if(!r) return;
+  if(b.dataset.aglPagar) return aglAbrirPago(r);
+  if(b.dataset.aglLlego) return aglConfirmarPago(r, true);
+  if(b.dataset.aglNollego) return aglConfirmarPago(r, false);
+  if(b.dataset.aglWa) return abrirEnviarWhatsApp({ telefono:r.alumna_telefono, nombre:r.alumna_nombre, debe:r.monto, fecha:r.vence });
+});
+
+/* Registrar un pago de mensualidad */
+function aglAbrirPago(r){
+  agl.pago = r;
+  document.getElementById('aglPagoTitulo').textContent = tituloCaso(r.alumna_nombre || '');
+  document.getElementById('aglPagoSub').textContent = `Mensualidad ${r.numero} de ${r.meses} · ${r.plan_nombre} · vence ${fechaCorta(r.vence)}`;
+  document.getElementById('aglPagoMonto').value = r.monto;
+  document.getElementById('aglPagoForma').innerHTML = AC_FORMAS_PAGO.map(f=>`<option>${escHtml(f)}</option>`).join('');
+  document.getElementById('aglPagoFecha').value = hoyISO();
+  document.getElementById('aglPagoPorConfirmar').checked = false;
+  document.getElementById('aglPagoAviso').textContent = '';
+  document.getElementById('modalAglPago').classList.add('open');
+  document.getElementById('aglPagoMonto').focus();
+}
+document.getElementById('closeAglPago').addEventListener('click', ()=> document.getElementById('modalAglPago').classList.remove('open'));
+document.getElementById('aglPagoMonto').addEventListener('input', ()=>{
+  const m = Number(document.getElementById('aglPagoMonto').value);
+  document.getElementById('aglPagoAviso').textContent = agl.pago && m > 0 && m < Number(agl.pago.monto)
+    ? `⚠️ Es menos de ${fmtMoney(agl.pago.monto)}: la mensualidad quedará como pagada con ese monto.` : '';
+});
+document.getElementById('aglPagoGuardar').addEventListener('click', async ()=>{
+  const r = agl.pago; if(!r || agl.ocupado) return;
+  const monto = Number(document.getElementById('aglPagoMonto').value);
+  if(!(monto > 0)){ toast('Escribe el monto.', true); return; }
+  const fecha = document.getElementById('aglPagoFecha').value;
+  if(!fecha){ toast('Escribe la fecha del pago.', true); return; }
+  const porConfirmar = document.getElementById('aglPagoPorConfirmar').checked;
+  agl.ocupado = true;
+  try{
+    const { data, error } = await aglRpc('agl_registrar_pago', { p_mensualidad:r.mensualidad_id, p_monto:monto,
+      p_forma:document.getElementById('aglPagoForma').value, p_fecha:fecha, p_por_confirmar:porConfirmar });
+    if(error) return;
+    registrarActividad('agl_pago', `${tituloCaso(r.alumna_nombre || '')} · mensualidad ${r.numero} · ${fmtMoney(monto)}${data === 'por_confirmar' ? ' (por confirmar)' : ''}`);
+    document.getElementById('modalAglPago').classList.remove('open');
+    toast(data === 'por_confirmar' ? '🏦 Pago registrado: queda por confirmar.' : '✅ Pago registrado.');
+    await renderAcademiaGlam();
+  } finally { agl.ocupado = false; }
+});
+async function aglConfirmarPago(r, llego){
+  if(agl.ocupado) return;
+  if(!llego){
+    const ok = await preguntarConfirmacion({ titulo:'¿El pago no llegó?', textoSi:'Sí, no llegó',
+      aviso:`La mensualidad ${r.numero} de ${escHtml(tituloCaso(r.alumna_nombre || ''))} vuelve a <b>pendiente</b> y queda anotado que ese pago no llegó.` });
+    if(ok === null) return;
+  }
+  agl.ocupado = true;
+  try{
+    const { data, error } = await aglRpc('agl_confirmar_pago', { p_mensualidad:r.mensualidad_id, p_llego:llego });
+    if(error) return;
+    registrarActividad('agl_confirmar', `${tituloCaso(r.alumna_nombre || '')} · mensualidad ${r.numero} · ${llego ? 'llegó' : 'no llegó'}`);
+    toast(data === 'pagada' ? '✅ Pago confirmado.' : 'Volvió a pendiente.');
+    await renderAcademiaGlam();
+  } finally { agl.ocupado = false; }
+}
+
+/* ---------- 👥 Alumnas ---------- */
+function aglFilaSusc(s){
+  const ve = aglVeTodo();
+  const prox = s.proxima_numero ? `${s.proxima_numero} · ${fechaCorta(s.proxima_vence)}` : 'Terminó su plan';
+  return `<tr data-agl-susc="${escapeAttr(s.id)}">
+    <td><b>${aglNombreAlumna(s.alumna_nombre)}</b><div class="sub">${escHtml(s.alumna_telefono || 'Sin teléfono')}</div></td>
+    <td>${escHtml(s.plan_nombre)}<div class="sub">${fmtMoney(s.precio_mensual)} al mes</div></td>
+    <td>${ve ? `<select data-agl-vend aria-label="Vendedora">${aglOpcionesVend(s.vendedor_id, 'Sin vendedora')}</select>` : escHtml(aglNombreVend(s.vendedor_id))}</td>
+    <td>${s.pagadas} de ${s.meses}${s.por_confirmar ? ` <span class="agl-pill conf">${s.por_confirmar} por confirmar</span>` : ''}</td>
+    <td>${escHtml(prox)}${s.atrasadas ? ` <span class="agl-pill atr">${s.atrasadas} atrasada${s.atrasadas === 1 ? '' : 's'}</span>` : ''}</td>
+    <td>${ve ? `<select data-agl-estado aria-label="Estado">${['activa', 'pausada', 'baja'].map(e=>`<option value="${e}" ${s.estado === e ? 'selected' : ''}>${AGL_ESTADOS[e].replace(/s$/, '')}</option>`).join('')}</select>` : escHtml(AGL_ESTADOS[s.estado] || s.estado)}</td>
+  </tr>`;
+}
+async function aglPintarAlumnas(){
+  const caja = document.getElementById('agl-alumnas'), ve = aglVeTodo();
+  const q = normTexto(agl.buscar), dig = agl.buscar.replace(/\D/g, '');
+  const filas = agl.susc.filter(s=> (agl.estado === 'todas' || s.estado === agl.estado)
+      && (!agl.filtroVend || (agl.filtroVend === '_sin' ? !s.vendedor_id : s.vendedor_id === agl.filtroVend))
+      && (!q || normTexto(s.alumna_nombre).includes(q) || (dig.length >= 3 && String(s.alumna_telefono || '').includes(dig))));
+  const chips = Object.entries(AGL_ESTADOS).map(([k, l])=>{
+    const n = agl.susc.filter(s=> k === 'todas' || s.estado === k).length;
+    return `<button type="button" class="nl-chip ${agl.estado === k ? 'on' : ''}" data-agl-estado-f="${k}">${l} <b>${n}</b></button>`;
+  }).join('');
+  caja.innerHTML = `
+    <div class="agl-filtros">${chips}
+      <input type="search" id="aglBuscar" placeholder="Buscar por nombre o teléfono" value="${escapeAttr(agl.buscar)}" aria-label="Buscar alumna">
+      ${ve ? `<select id="aglFiltroVendA" aria-label="Vendedora">${aglOpcionesVend(agl.filtroVend, 'Todas las vendedoras')}<option value="_sin" ${agl.filtroVend === '_sin' ? 'selected' : ''}>Sin vendedora</option></select>` : ''}</div>
+    <div class="agl-scroll"><table class="agl-tabla"><thead><tr><th>Alumna</th><th>Plan</th><th>Vendedora</th><th>Mensualidades pagadas</th><th>Próxima</th><th>Estado</th></tr></thead>
+      <tbody>${filas.map(aglFilaSusc).join('') || `<tr><td colspan="6" class="empty-note">${agl.susc.length ? 'Nada con esos filtros.' : (ve ? 'Todavía no hay alumnas activas. Actívalas aquí abajo, en “Candidatas”.' : 'Todavía no tienes alumnas asignadas.')}</td></tr>`}</tbody></table></div>
+    <div id="aglCandidatas"></div>`;
+  if(ve) await aglPintarCandidatas();
+}
+document.getElementById('agl-alumnas').addEventListener('input', e=>{
+  if(e.target.id === 'aglBuscar'){
+    agl.buscar = e.target.value;
+    const pos = e.target.selectionStart;
+    aglPintarAlumnas().then(()=>{ const i = document.getElementById('aglBuscar'); i.focus(); i.setSelectionRange(pos, pos); });
+  }
+});
+document.getElementById('agl-alumnas').addEventListener('click', e=>{
+  const c = e.target.closest('[data-agl-estado-f]');
+  if(c){ agl.estado = c.dataset.aglEstadoF; aglPintarAlumnas(); }
+});
+document.getElementById('agl-alumnas').addEventListener('change', async e=>{
+  if(e.target.id === 'aglFiltroVendA'){ agl.filtroVend = e.target.value; return aglPintarAlumnas(); }
+  const fila = e.target.closest('[data-agl-susc]');
+  if(!fila) return;
+  const s = agl.susc.find(x=>x.id === fila.dataset.aglSusc); if(!s) return;
+  if(e.target.matches('[data-agl-vend]')){
+    const nuevo = e.target.value || null;
+    const { error } = await aglRpc('agl_asignar_vendedor', { p_suscripcion:s.id, p_vendedor:nuevo });
+    if(error){ e.target.value = s.vendedor_id || ''; return; }
+    registrarActividad('agl_vendedora', `${tituloCaso(s.alumna_nombre || '')} → ${aglNombreVend(nuevo)}`);
+    s.vendedor_id = nuevo; toast('Vendedora cambiada.');
+  }
+  if(e.target.matches('[data-agl-estado]')){
+    const { error } = await aglRpc('agl_cambiar_estado', { p_suscripcion:s.id, p_estado:e.target.value });
+    if(error){ e.target.value = s.estado; return; }
+    registrarActividad('agl_estado', `${tituloCaso(s.alumna_nombre || '')} → ${e.target.value}`);
+    s.estado = e.target.value; toast('Estado cambiado.'); aglPintarAlumnas();
+  }
+});
+
+/* Candidatas: alumnas que pagaron en un mes del Excel y todavía no están en Academia Glam. */
+async function aglPintarCandidatas(){
+  const caja = document.getElementById('aglCandidatas'); if(!caja) return;
+  const activos = agl.planes.filter(p=>p.activo);
+  if(!agl.meses.length){
+    const { data, error } = await sb.rpc('agl_meses_excel');
+    if(error){ caja.innerHTML = `<div class="empty-note">No se pudieron cargar los meses: ${escHtml(error.message)}</div>`; return; }
+    // El Excel trae encabezados de todo tipo ("MENS 22", "INSCRIPCION O PAGO UNICO"…): se dejan solo los meses del calendario.
+    const todos = (data || []).map(m => typeof m === 'string' ? m : Object.values(m)[0]);
+    const MESES_CAL = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    const soloMeses = MESES_CAL.filter(m => todos.includes(m));
+    agl.meses = soloMeses.length ? soloMeses : todos;
+  }
+  if(!agl.mes){
+    const nombre = new Date().toLocaleDateString('es-MX', { month:'long' }).toUpperCase();
+    agl.mes = agl.meses.find(m=>m === nombre) || agl.meses[agl.meses.length - 1] || '';
+  }
+  if(agl.cand === null && agl.mes){
+    const { data, error } = await sb.rpc('agl_candidatas', { p_mes:agl.mes });
+    if(error){ caja.innerHTML = `<div class="empty-note">No se pudieron cargar las candidatas: ${escHtml(error.message)}</div>`; return; }
+    agl.cand = (data || []).map(c=>({ ...c, plan:'', numero:c.proxima_numero, fecha:'', vend:c.vendedor_propuesto || '' }));
+    agl.sel = new Set();
+  }
+  const lista = agl.cand || [];
+  caja.innerHTML = `
+    <div class="agl-grupo" style="margin-top:22px;">➕ Candidatas por activar <span>${lista.length}</span></div>
+    <div class="sub" style="margin-bottom:10px;">Alumnas que pagaron en el mes que elijas del Excel y todavía no están aquí. La vendedora se propone según lo que dice el Excel (solo si nombra a una del Hub); revísala y corrígela.</div>
+    ${!activos.length ? '<div class="empty-note">Primero crea un plan en la pestaña Planes.</div>' : `
+    <div class="agl-filtros">
+      <label>Pagaron en <select id="aglMes">${agl.meses.map(m=>`<option ${m === agl.mes ? 'selected' : ''}>${escHtml(m)}</option>`).join('')}</select></label>
+      <label>Plan <select id="aglPlanTodas"><option value="">Elegir…</option>${activos.map(p=>`<option value="${escapeAttr(p.id)}">${escHtml(p.nombre)}</option>`).join('')}</select></label>
+      <label>Próxima fecha de pago <input type="date" id="aglFechaTodas"></label>
+      <button type="button" class="btn-outline small" id="aglAplicarTodas">Aplicar a las de la lista</button></div>
+    <div class="agl-scroll"><table class="agl-tabla"><thead><tr><th><input type="checkbox" id="aglSelTodas" aria-label="Seleccionar todas"></th><th>Alumna</th><th>Vendedora</th><th>Plan</th><th>Próxima mensualidad</th><th>Fecha</th></tr></thead>
+      <tbody>${lista.map((c, i)=>`<tr data-agl-cand="${i}">
+        <td><input type="checkbox" data-agl-sel ${agl.sel.has(c.alumna_id) ? 'checked' : ''} aria-label="Seleccionar"></td>
+        <td><b>${aglNombreAlumna(c.nombre)}</b><div class="sub">${escHtml(c.telefono || 'Sin teléfono')}${c.vendedor_texto ? ' · Excel: ' + escHtml(c.vendedor_texto) : ''}</div></td>
+        <td><select data-agl-c="vend" aria-label="Vendedora">${aglOpcionesVend(c.vend, 'Sin vendedora')}</select></td>
+        <td><select data-agl-c="plan" aria-label="Plan"><option value="">Elegir…</option>${activos.map(p=>`<option value="${escapeAttr(p.id)}" ${p.id === c.plan ? 'selected' : ''}>${escHtml(p.nombre)}</option>`).join('')}</select></td>
+        <td><input type="number" min="1" max="60" data-agl-c="numero" value="${escapeAttr(c.numero)}" aria-label="Próxima mensualidad" style="width:70px;"> <span class="sub">(lleva ${c.pagadas})</span></td>
+        <td><input type="date" data-agl-c="fecha" value="${escapeAttr(c.fecha)}" aria-label="Fecha de la próxima mensualidad"></td></tr>`).join('')
+        || `<tr><td colspan="6" class="empty-note">No hay candidatas ${agl.mes ? 'para ' + escHtml(agl.mes) : ''}.</td></tr>`}</tbody></table></div>
+    <div class="agl-filtros" style="margin-top:10px;"><button type="button" class="btn-primary small" id="aglActivar">Activar seleccionadas (${agl.sel.size})</button>
+      <span class="sub" id="aglActivarAviso"></span></div>`}`;
+}
+document.getElementById('agl-alumnas').addEventListener('change', async e=>{
+  if(e.target.id === 'aglMes'){ agl.mes = e.target.value; agl.cand = null; return aglPintarCandidatas(); }
+  if(e.target.id === 'aglSelTodas'){
+    (agl.cand || []).forEach(c=> e.target.checked ? agl.sel.add(c.alumna_id) : agl.sel.delete(c.alumna_id));
+    return aglPintarCandidatas();
+  }
+  const fila = e.target.closest('[data-agl-cand]');
+  if(!fila) return;
+  const c = agl.cand[Number(fila.dataset.aglCand)]; if(!c) return;
+  if(e.target.matches('[data-agl-sel]')){ e.target.checked ? agl.sel.add(c.alumna_id) : agl.sel.delete(c.alumna_id); document.getElementById('aglActivar').textContent = `Activar seleccionadas (${agl.sel.size})`; }
+  if(e.target.matches('[data-agl-c]')) c[e.target.dataset.aglC] = e.target.value;
+});
+document.getElementById('agl-alumnas').addEventListener('click', async e=>{
+  if(e.target.id === 'aglAplicarTodas'){
+    const plan = document.getElementById('aglPlanTodas').value, fecha = document.getElementById('aglFechaTodas').value;
+    (agl.cand || []).forEach(c=>{ if(plan) c.plan = plan; if(fecha) c.fecha = fecha; });
+    return aglPintarCandidatas();
+  }
+  if(e.target.id === 'aglActivar') return aglActivarSeleccionadas();
+});
+async function aglActivarSeleccionadas(){
+  if(agl.ocupado) return;
+  const elegidas = (agl.cand || []).filter(c=>agl.sel.has(c.alumna_id));
+  const aviso = document.getElementById('aglActivarAviso');
+  if(!elegidas.length){ aviso.textContent = 'Marca al menos una alumna.'; return; }
+  const falta = elegidas.find(c=> !c.plan || !c.fecha || !(Number(c.numero) >= 1));
+  if(falta){ aviso.textContent = `A ${tituloCaso(falta.nombre || '')} le falta el plan, la próxima mensualidad o la fecha.`; return; }
+  agl.ocupado = true;
+  let hechas = 0; const fallos = [];
+  try{
+    for(const c of elegidas){
+      aviso.textContent = `Activando… ${hechas + fallos.length + 1} de ${elegidas.length}`;
+      const { error } = await sb.rpc('agl_activar', { p_alumna:c.alumna_id, p_plan:c.plan, p_vendedor:c.vend || null,
+        p_proxima_numero:Number(c.numero), p_proxima_fecha:c.fecha });
+      if(error) fallos.push(`${tituloCaso(c.nombre || '')}: ${error.message}`); else hechas++;
+    }
+    if(hechas) registrarActividad('agl_activar', `${hechas} alumna${hechas === 1 ? '' : 's'} activada${hechas === 1 ? '' : 's'} en Academia Glam`);
+    toast(fallos.length ? `Se activaron ${hechas}; ${fallos.length} fallaron.` : `✅ ${hechas} alumna${hechas === 1 ? '' : 's'} activada${hechas === 1 ? '' : 's'}.`, !!fallos.length);
+    agl.cand = null;
+    await renderAcademiaGlam();
+    if(fallos.length){ const a = document.getElementById('aglActivarAviso'); if(a) a.textContent = fallos.join(' · '); }
+  } finally { agl.ocupado = false; }
+}
+
+/* ---------- ⚙️ Planes ---------- */
+function aglPintarPlanes(){
+  const caja = document.getElementById('agl-planes'), admin = !!usuarioActual?.es_admin;
+  const e = agl.planEdit;
+  const diaTxt = p => p.dia_cobro === 'fijo' ? `Día fijo: ${p.dia_fijo}` : 'El día de su primer pago';
+  caja.innerHTML = `
+    <div class="sub" style="margin-bottom:10px;">Los planes definen cuánto paga cada alumna al mes, cuántos meses dura y qué día le toca. ${admin ? 'Al cambiar un plan, las alumnas que ya lo tienen conservan los montos con los que se activaron.' : 'Solo los administradores los editan.'}</div>
+    <div class="agl-scroll"><table class="agl-tabla"><thead><tr><th>Plan</th><th>Precio al mes</th><th>Meses</th><th>Día de cobro</th><th>Estado</th>${admin ? '<th></th>' : ''}</tr></thead>
+      <tbody>${agl.planes.map(p=>`<tr><td><b>${escHtml(p.nombre)}</b></td><td>${fmtMoney(p.precio_mensual)}</td><td>${p.meses}</td><td>${escHtml(diaTxt(p))}</td>
+        <td>${p.activo ? 'Activo' : '<span class="sub">Desactivado</span>'}</td>${admin ? `<td><button type="button" class="btn-outline small" data-agl-editar-plan="${escapeAttr(p.id)}">Editar</button></td>` : ''}</tr>`).join('')
+        || `<tr><td colspan="6" class="empty-note">Todavía no hay planes.${admin ? ' Crea el primero aquí abajo.' : ''}</td></tr>`}</tbody></table></div>
+    ${admin ? `<div class="ac-caja" style="margin-top:14px;"><h4>${e?.id ? 'Editar plan' : 'Plan nuevo'}</h4>
+      <div class="ac-form">
+        <label>Nombre<input id="aglPlanNombre" maxlength="60" value="${escapeAttr(e?.nombre || '')}" placeholder="Ej. Academia"></label>
+        <label>Precio al mes<input id="aglPlanPrecio" type="number" min="1" step="10" inputmode="decimal" value="${escapeAttr(e?.precio_mensual ?? '')}" placeholder="$"></label>
+        <label>Meses que dura<input id="aglPlanMeses" type="number" min="1" max="60" value="${escapeAttr(e?.meses ?? '')}"></label>
+        <label>Día de cobro<select id="aglPlanDiaTipo"><option value="primer_pago" ${e?.dia_cobro !== 'fijo' ? 'selected' : ''}>El día de su primer pago</option><option value="fijo" ${e?.dia_cobro === 'fijo' ? 'selected' : ''}>Un día fijo del mes</option></select></label>
+        <label id="aglPlanDiaFijoCampo" style="${e?.dia_cobro === 'fijo' ? '' : 'display:none;'}">Día fijo (1 a 28)<input id="aglPlanDiaFijo" type="number" min="1" max="28" value="${escapeAttr(e?.dia_fijo ?? '')}"></label>
+        <label style="flex-direction:row; align-items:center; gap:8px;"><input type="checkbox" id="aglPlanActivo" ${e && !e.activo ? '' : 'checked'}> Activo (se puede asignar)</label>
+      </div>
+      <div class="agl-filtros"><button type="button" class="btn-primary small" id="aglPlanGuardar">Guardar plan</button>
+        ${e ? '<button type="button" class="btn-outline small" id="aglPlanCancelar">Cancelar</button>' : ''}</div></div>` : ''}`;
+}
+document.getElementById('agl-planes').addEventListener('change', e=>{
+  if(e.target.id === 'aglPlanDiaTipo') document.getElementById('aglPlanDiaFijoCampo').style.display = e.target.value === 'fijo' ? '' : 'none';
+});
+document.getElementById('agl-planes').addEventListener('click', async e=>{
+  const ed = e.target.closest('[data-agl-editar-plan]');
+  if(ed){ agl.planEdit = agl.planes.find(p=>p.id === ed.dataset.aglEditarPlan) || null; return aglPintarPlanes(); }
+  if(e.target.id === 'aglPlanCancelar'){ agl.planEdit = null; return aglPintarPlanes(); }
+  if(e.target.id !== 'aglPlanGuardar' || agl.ocupado) return;
+  const nombre = document.getElementById('aglPlanNombre').value.trim();
+  const precio = Number(document.getElementById('aglPlanPrecio').value), meses = Number(document.getElementById('aglPlanMeses').value);
+  const tipo = document.getElementById('aglPlanDiaTipo').value, dia = Number(document.getElementById('aglPlanDiaFijo').value);
+  if(!nombre){ toast('Ponle nombre al plan.', true); return; }
+  if(!(precio > 0)){ toast('Escribe el precio al mes.', true); return; }
+  if(!(meses >= 1 && meses <= 60)){ toast('Los meses deben ir de 1 a 60.', true); return; }
+  if(tipo === 'fijo' && !(dia >= 1 && dia <= 28)){ toast('El día fijo va de 1 a 28.', true); return; }
+  agl.ocupado = true;
+  try{
+    const { error } = await aglRpc('agl_guardar_plan', { p_id:agl.planEdit?.id || null, p_nombre:nombre, p_precio:precio, p_meses:meses,
+      p_dia_cobro:tipo, p_dia_fijo:tipo === 'fijo' ? dia : null, p_activo:document.getElementById('aglPlanActivo').checked });
+    if(error) return;
+    registrarActividad('agl_plan', `${agl.planEdit ? 'Editó' : 'Creó'} el plan «${nombre}» · ${fmtMoney(precio)} × ${meses}`);
+    toast('Plan guardado.');
+    agl.planEdit = null; agl.cand = null;
+    await renderAcademiaGlam();
+  } finally { agl.ocupado = false; }
 });
 
 /* =========================================================
