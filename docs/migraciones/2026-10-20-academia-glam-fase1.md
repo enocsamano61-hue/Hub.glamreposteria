@@ -1,5 +1,7 @@
 # 🎓 Academia Glam — fase 1: planes, vendedoras y cobros — 20 oct 2026
 
+> **Sigue en la [fase 1b](2026-10-20-academia-glam-fase1b-abonos.md):** planes "liquidar con abonos", fecha prometida, seguimiento, dar acceso y ficha de la alumna.
+
 > **Corrección del mismo día (auditoría):** la primera versión buscaba candidatas por "mes del Excel" y estaba mal.
 > - Las "230 que pagaron octubre" eran de las **generaciones 1 a 4**, cuyo Excel usa meses **sin año**.
 > - Las alumnas que pagan hoy (**Academia 2025 y 2026**) usan columnas **ANT, ANT2… ANT 11**, que la función excluía.
