@@ -26,14 +26,15 @@ const SUSC = [
   susc('s3', 'Alumna Tres', { estado:'pausada' }), susc('s4', '<b>Alumna</b> Cuatro', { estado:'baja', proxima_numero:null, proxima_vence:null }),
 ];
 const PLANES = [
-  { id:'p1', nombre:'Academia', precio_mensual:1200, meses:12, dia_cobro:'primer_pago', dia_fijo:null, activo:true },
-  { id:'p2', nombre:'Hobbie', precio_mensual:800, meses:6, dia_cobro:'fijo', dia_fijo:5, activo:true },
-  { id:'p3', nombre:'Plan viejo', precio_mensual:500, meses:3, dia_cobro:'primer_pago', dia_fijo:null, activo:false },
+  { id:'p1', nombre:'Academia', modalidad:'mensual', precio_mensual:1200, precio_total:null, meses:12, dia_cobro:'primer_pago', dia_fijo:null, activo:true },
+  { id:'p2', nombre:'Hobbie', modalidad:'mensual', precio_mensual:800, precio_total:null, meses:6, dia_cobro:'fijo', dia_fijo:5, activo:true },
+  { id:'p3', nombre:'Plan viejo', modalidad:'mensual', precio_mensual:500, precio_total:null, meses:3, dia_cobro:'primer_pago', dia_fijo:null, activo:false },
 ];
 
 (async () => {
   const equipo = [...EQUIPO_EJEMPLO, { id:'u3', nombre:'Admin Prueba', es_vendedor:true, rol:'Gerente', es_admin:true }];
-  const h = await abrirHub({ tablas:{ vista_agl_cobros:COBROS, academia_glam_mensualidades:COBRADO, vista_agl_suscripciones:SUSC, academia_glam_planes:PLANES },
+  const h = await abrirHub({ tablas:{ vista_agl_cobros:COBROS, academia_glam_mensualidades:COBRADO, vista_agl_suscripciones:SUSC, academia_glam_planes:PLANES,
+      academia_glam_generaciones:[{ generacion_id:'g1', tipo:'mensualidades' }, { generacion_id:'g25', tipo:'mensualidades' }, { generacion_id:'g26', tipo:'abonos' }] },
     usuario:{ id:'u3', nombre:'Admin Prueba', rol:'Gerente', es_admin:true }, equipo });
   const { p, check } = h;
   // Funciones de la base simuladas: guardan sus llamadas y pueden fallar a pedido.
@@ -52,12 +53,13 @@ const PLANES = [
       { generacion_id:'g26', nombre:'Academia 2026', orden:7, alumnas:371, paga_por_mes:true, confirmado:false, columnas:['ANT', 'ANT2', 'ANT3'], disponibles:['ANT', 'ANT2', 'ANT3', 'INSCRIPCION'], activadas:0 },
     ];
     window.__rpc.agl_generaciones = () => JSON.parse(JSON.stringify(window.__gens));
-    window.__rpc.agl_config_generacion = ({ p_generacion, p_paga_por_mes, p_columnas, p_confirmado }) => {
+    window.__rpc.agl_config_generacion = ({ p_generacion, p_paga_por_mes, p_columnas, p_confirmado, p_tipo }) => {
       Object.assign(window.__gens.find(g => g.generacion_id === p_generacion), { paga_por_mes:p_paga_por_mes, columnas:p_columnas, confirmado:p_confirmado });
+      window.__tablas.academia_glam_generaciones.find(g => g.generacion_id === p_generacion).tipo = p_tipo;
       return null;
     };
-    window.__rpc.agl_candidatas = ({ p_generacion }) => p_generacion === 'g26' ? [
-      { alumna_id:'n1', nombre:'Nueva Uno', telefono:'5522222222', vendedor_texto:null, vendedor_propuesto:null, pagadas:2, por_revisar:1, proxima_numero:3, ultimo_pago:'ANT2: WPP HOY 26 SEP', decision:'por_contactar' },
+    window.__rpc.agl_candidatas_gen = ({ p_generacion }) => p_generacion === 'g26' ? [
+      { alumna_id:'n1', nombre:'Nueva Uno', telefono:'5522222222', vendedor_texto:null, vendedor_propuesto:null, pagadas:2, por_revisar:1, proxima_numero:3, ultimo_pago:'ANT2: WPP HOY 26 SEP', decision:'por_contactar', abonado:3500 },
     ] : p_generacion === 'g25' ? [
       { alumna_id:'c1', nombre:'CANDIDATA UNO', telefono:'5511111111', vendedor_texto:'JARED WPP', vendedor_propuesto:'u3', pagadas:3, por_revisar:0, proxima_numero:4, ultimo_pago:'ANT2: 02 ABRIL HEY BANCO', decision:null },
       { alumna_id:'c2', nombre:'Candidata <b>Dos</b>', telefono:null, vendedor_texto:null, vendedor_propuesto:null, pagadas:0, por_revisar:0, proxima_numero:1, ultimo_pago:null, decision:null },
@@ -228,21 +230,25 @@ const PLANES = [
   check((await p.textContent('#aglCandidatas')).includes('Falta confirmar cómo paga') && (await p.textContent('#aglCandidatas')).includes('ANT, ANT2, ANT3'), 'avisa que falta confirmar y qué columnas cuenta');
   check(await p.isDisabled('#aglActivar'), 'sin confirmar no deja activar');
   const fila1 = (await p.textContent('[data-agl-cand="0"]')).replace(/\s+/g, ' ');
-  check(fila1.includes('2') && fila1.includes('+1 por revisar') && fila1.includes('Último: ANT2: WPP HOY 26 SEP') && fila1.includes('Por contactar'), 'muestra lo que lleva, lo por revisar, el último pago y la decisión');
+  check(fila1.includes('$3,500') && fila1.includes('2 abonos') && fila1.includes('+1 por revisar') && fila1.includes('Último: ANT2: WPP HOY 26 SEP') && fila1.includes('Por contactar'), 'generación de abonos: muestra lo abonado, lo por revisar, el último pago y la decisión (' + fila1 + ')');
+  check((await p.textContent('#aglCandidatas')).includes('se leen como abonos'), 'el aviso dice cómo se leen sus columnas');
   await p.selectOption('#aglGen', 'g25');
   await p.waitForTimeout(250);
   check(!(await p.textContent('#aglCandidatas')).includes('Falta confirmar') && !(await p.isDisabled('#aglActivar')), 'una generación confirmada sí se puede activar');
   const filasC = await p.$$eval('[data-agl-cand]', f => f.length);
   check(filasC === 2 && (await p.textContent('#aglCandidatas')).includes('Excel: JARED WPP'), 'lista las candidatas con lo que dice el Excel');
   check(await p.inputValue('[data-agl-cand="0"] [data-agl-c="vend"]') === 'u3' && await p.inputValue('[data-agl-cand="1"] [data-agl-c="vend"]') === '', 'propone vendedora solo donde el Excel la nombra');
-  check(await p.inputValue('[data-agl-cand="0"] [data-agl-c="numero"]') === '4' && await p.inputValue('[data-agl-cand="1"] [data-agl-c="numero"]') === '1', 'la próxima mensualidad = las que lleva + 1');
+  check((await p.textContent('[data-agl-cand="0"]')).includes('Elige el plan'), 'sin plan, pide elegirlo antes de los datos para activar');
+  await p.selectOption('[data-agl-cand="0"] [data-agl-c="plan"]', 'p1');
+  await p.selectOption('[data-agl-cand="1"] [data-agl-c="plan"]', 'p1');
+  check(await p.inputValue('[data-agl-cand="0"] [data-agl-c="numero"]') === '4' && await p.inputValue('[data-agl-cand="1"] [data-agl-c="numero"]') === '1', 'con plan mensual: la próxima mensualidad = las que lleva + 1');
   check(await p.$('#aglCandidatas b b') === null, 'se escapa el nombre');
   await p.click('#aglActivar');
   check((await p.textContent('#aglActivarAviso')).includes('Marca al menos una'), 'sin marcar nada avisa');
   await p.check('[data-agl-cand="0"] [data-agl-sel]'); await p.check('[data-agl-cand="1"] [data-agl-sel]');
   check(await p.isChecked('#aglSelTodas'), 'si están todas marcadas, la casilla de arriba se marca');
   await p.click('#aglActivar');
-  check((await p.textContent('#aglActivarAviso')).includes('le falta el plan') && (await llamadas('agl_activar')).length === 0, 'si falta plan o fecha no manda nada');
+  check((await p.textContent('#aglActivarAviso')).includes('le falta') && (await llamadas('agl_activar')).length === 0, 'si falta la fecha no manda nada');
   await p.selectOption('#aglPlanTodas', 'p1');
   await p.fill('#aglFechaTodas', mas(10));
   await p.click('#aglAplicarTodas');
@@ -271,7 +277,7 @@ const PLANES = [
   await p.click('#aglPlanGuardar');
   await p.waitForTimeout(300);
   const gp = (await llamadas('agl_guardar_plan'))[0]?.args;
-  check(gp && gp.p_id === null && gp.p_nombre === 'Estrella' && gp.p_precio === 1500 && gp.p_meses === 10 && gp.p_dia_cobro === 'fijo' && gp.p_dia_fijo === 10 && gp.p_activo === true, 'crea el plan');
+  check(gp && gp.p_id === null && gp.p_nombre === 'Estrella' && gp.p_modalidad === 'mensual' && gp.p_precio === 1500 && gp.p_meses === 10 && gp.p_dia_cobro === 'fijo' && gp.p_dia_fijo === 10 && gp.p_activo === true && gp.p_precio_total === null, 'crea el plan mensual');
   await p.click('[data-agl-editar-plan="p2"]');
   check(await p.inputValue('#aglPlanNombre') === 'Hobbie' && await p.inputValue('#aglPlanDiaFijo') === '5', 'editar carga el plan');
   await p.uncheck('#aglPlanActivo');
@@ -289,13 +295,17 @@ const PLANES = [
   await p.click('[data-agl-gen="g26"] [data-agl-gguardar]');
   await p.waitForTimeout(300);
   const cg = (await llamadas('agl_config_generacion'))[0]?.args;
-  check(cg && cg.p_generacion === 'g26' && cg.p_paga_por_mes === true && JSON.stringify(cg.p_columnas) === '["ANT2","ANT3"]' && cg.p_confirmado === true, 'guarda columnas (en el orden del Excel) y confirmada');
+  check(cg && cg.p_generacion === 'g26' && cg.p_paga_por_mes === true && JSON.stringify(cg.p_columnas) === '["ANT2","ANT3"]' && cg.p_confirmado === true && cg.p_tipo === 'abonos', 'guarda columnas (en el orden del Excel), tipo abonos y confirmada');
   check((await p.textContent('[data-agl-gen="g26"]')).includes('Confirmada'), 'se vuelve a cargar ya confirmada');
   check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'agl_generacion'), 'queda en la bitácora');
   await p.check('[data-agl-gen="g1"] [data-agl-gpaga]');
   check(await p.$$eval('[data-agl-gen="g1"] [data-agl-gcol]', c => c.length) === 2, 'al marcar "paga por mes" aparecen sus columnas');
   await p.click('[data-agl-gen="g1"] [data-agl-gguardar]');
   check((await llamadas('agl_config_generacion')).length === 1 && (await p.textContent('#toast')).includes('al menos una columna'), 'sin columnas no guarda');
+  await p.check('[data-agl-gen="g25"] [data-agl-gtipo="abonos"]');
+  await p.click('[data-agl-gen="g25"] [data-agl-gguardar]');
+  await p.waitForTimeout(300);
+  check((await llamadas('agl_config_generacion'))[1]?.args.p_tipo === 'abonos', 'cambiar "mensualidades" a "abonos" es un clic');
   await h.captura('academia-glam-generaciones.png');
   await p.evaluate(() => { usuarioActual = { ...usuarioActual, es_admin:false, rol:'Cobranza' }; PERMISOS_ACCION_CACHE = { Cobranza:new Set(['ver_todo_academia_glam']) }; aglPintarPlanes(); });
   check(await p.$('[data-agl-gguardar]') === null && await p.$('[data-agl-gpaga]') === null && await p.isDisabled('[data-agl-gen="g26"] [data-agl-gcol="ANT2"]'), 'quien ve todo pero no es administrador solo la lee');
