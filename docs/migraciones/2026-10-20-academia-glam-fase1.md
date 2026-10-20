@@ -1,5 +1,11 @@
 # 🎓 Academia Glam — fase 1: planes, vendedoras y cobros — 20 oct 2026
 
+> **Corrección del mismo día (auditoría):** la primera versión buscaba candidatas por "mes del Excel" y estaba mal.
+> - Las "230 que pagaron octubre" eran de las **generaciones 1 a 4**, cuyo Excel usa meses **sin año**.
+> - Las alumnas que pagan hoy (**Academia 2025 y 2026**) usan columnas **ANT, ANT2… ANT 11**, que la función excluía.
+>
+> Nadie había activado alumnas, así que no hubo datos dañados. Se cambió por un catálogo **configurable por generación**: ver "Generaciones (configurable)" abajo.
+
 Jared pidió llevar el control de las alumnas de la Academia que **pagan por mes**: a quién le toca pagar, qué vendedora la atiende, y más adelante qué cupones se le dieron y qué comisión genera cada mensualidad. Esta es la **fase 1**.
 
 - **Fases siguientes (cada una pide su propio "permitido generar"):**
@@ -38,13 +44,38 @@ La sección **Academia Glam** trae 3 pestañas. **Cupones** y **Comisiones** sal
 ### 👥 Alumnas
 - **Lista:** alumnas activas, pausadas o en baja, con búsqueda por nombre o teléfono. Muestra plan, vendedora, mensualidades pagadas, la próxima y las atrasadas.
 - **Cambios:** quien ve a todas cambia la vendedora y el estado desde la misma lista.
+- **Registrar pago** directo desde la lista (quien tenga "Cobrar en Academia"): toma la próxima mensualidad **pendiente**, aunque venza en más de 7 días. Sirve para pagos adelantados.
 - **Candidatas por activar** (solo quien ve a todas):
-  - Son las alumnas que pagaron en el **mes del Excel que se elija** y todavía no están aquí. Hoy hay **230** que pagaron octubre.
-  - La vendedora se **propone** solo si el texto del Excel nombra a **una** vendedora del Hub. Con las 230 alumnas de octubre se propuso en **91**.
-  - La próxima mensualidad se propone como las que lleva + 1.
+  - Son las alumnas de la **generación que se elija** (solo las marcadas como "paga por mes") que todavía no están aquí.
+  - Por defecto se muestra Academia 2026: 371 alumnas, 358 con algún pago.
+  - **"Lleva"** = mensualidades pagadas en el Excel, contando **solo las columnas configuradas** para esa generación. También muestra cuántas están "por revisar", el último pago (columna y texto) y la decisión de Academia.
+  - La vendedora se **propone** solo si el texto del Excel nombra a **una** vendedora del Hub. En Academia 2026 el Excel no trae vendedora, así que hay que asignarla a mano.
+  - La próxima mensualidad se propone como "lleva + 1".
   - Se puede elegir plan y fecha para todas a la vez ("Aplicar a las de la lista") y activar las marcadas.
+  - **Si la generación no está confirmada**, sale un aviso y el botón Activar queda apagado. La base también lo impide.
 
-### ⚙️ Planes
+### ⚙️ Planes y 🎓 Generaciones (configurable)
+**Generaciones que pagan por mes.** Es la parte que se corrige sin tocar código, cuando Jared confirme cómo se lee el Excel.
+- **Qué se marca por generación:**
+  - si **paga por mes**;
+  - qué **columnas** de su Excel son mensualidades (casillas, en el orden del Excel);
+  - **Confirmado**: "ya revisé que estas son las mensualidades".
+- **Quién lo edita:** solo los administradores. Quien ve a todas lo puede leer.
+- **Propuesta inicial, sin confirmar:**
+
+  | Generación | Columnas propuestas |
+  |---|---|
+  | Academia 2026 | ANT, ANT2… ANT 11 |
+  | Academia 2025 | ANT, ANT2… ANT 11 |
+  | 5ª generación mensual | MENS 1… MENS 23 |
+
+  Las generaciones 1 a 4 y las demás quedan como "no paga por mes".
+- **Cómo se corrige:**
+  - Si "ANT" resulta ser la inscripción, se quita su casilla y "lleva" se recalcula solo. Ya se probó contra la base: una alumna pasó de "lleva 2" a "lleva 1".
+  - Si otra generación también paga por mes, se marca y se eligen sus columnas.
+- **Qué no cambia:** las alumnas ya activadas. Su avance vive en sus propias mensualidades.
+
+**Planes:**
 - **Qué definen:** el precio al mes, cuántos meses dura y qué día se cobra.
 - **Día de cobro:**
   - el día de su primer pago;
@@ -85,6 +116,14 @@ Al activar a una alumna se crean **todas** sus mensualidades.
   - La sección `academia_glam` para Cobranza, Ventas, Ventas coordinadora, Academia e Inbox, Gerente, Dueña y Sistemas.
   - La acción nueva **`ver_todo_academia_glam`** para Cobranza y Academia e Inbox. Se reasigna desde "Usuarios y permisos".
 - **`academia_glam_04_dia_fijo_desde_la_fecha`:** la regla del día fijo descrita arriba.
+- **`academia_glam_05_generaciones_configurables`:**
+  - Tabla `academia_glam_generaciones`, con candados, solo lectura y propuesta inicial sin confirmar.
+  - `agl_generaciones()` (quien ve a todas), `agl_config_generacion()` (solo administradores) y `agl_candidatas(generacion)`.
+  - Las funciones viejas `agl_candidatas(texto)` y `agl_meses_excel()` quedaron **sin permiso para nadie**. No se borraron porque la herramienta de migraciones se cuelga con `DROP`.
+- **`academia_glam_06_confirmada_adelantos_y_nota`:**
+  - `agl_activar` exige que la generación esté **confirmada**.
+  - "No llegó" deja en la nota **quién** había registrado el pago.
+  - `vista_agl_suscripciones` trae la generación y la próxima mensualidad **pendiente** (para pagos adelantados).
 
 ### Quién ve qué (en la base, no solo en la pantalla)
 
@@ -104,7 +143,9 @@ Al activar a una alumna se crean **todas** sus mensualidades.
 
 ## Pruebas
 - **Contra la base real**, dentro de una transacción que se revierte al final (no quedó nada):
-  - **Candidatas:** 230 candidatas, 91 con vendedora propuesta.
+  - **Candidatas (versión corregida):** Academia 2026 da 371 candidatas, 358 con pagos y hasta 11 mensualidades. La 1ª generación se rechaza por no ser de pago mensual.
+  - **Confirmación:** sin confirmar no se activa; Eliab (no es administrador) no puede confirmar; sin columnas no se guarda. Al quitar "ANT", lo que lleva cada alumna se recalcula; después de confirmar sí se activa y la alumna sale de candidatas.
+  - **Pagos:** la próxima pendiente aparece para el pago adelantado, y la nota de "no llegó" dice quién lo registró.
   - **Activación:**
     - 12 mensualidades por plan y 3 previas;
     - fechas correctas: 14 oct → 14 nov → … → 14 jun, y día fijo el 5.
@@ -115,7 +156,7 @@ Al activar a una alumna se crean **todas** sus mensualidades.
   - **Registro de pago:** por confirmar → no llegó → efectivo, y los dos pasos se rechazan si el pago ya no está pendiente.
   - **Lo que ve cada quien:** el administrador ve todo; Ines ve solo su alumna; Cinthia (Cobranza) ve todas.
   - **Vistas:** las vistas devuelven las filas y los totales esperados.
-- **`pruebas/prueba_academia_glam.js`** (71/71):
+- **`pruebas/prueba_academia_glam.js`** (91/91). Además de lo de abajo, cubre el pago adelantado desde Alumnas, las candidatas por generación (sin confirmar no se activa) y la configuración de generaciones con casillas (incluida la vista de solo lectura):
   - **Acceso:** la sección por rol; las pestañas "pronto".
   - **Cobros:** indicadores, grupos, filtros, registrar pago, por confirmar, llegó / no llegó, error de la base, y sin permiso de cobrar.
   - **Vendedora sin "ver todo":** sin filtro de vendedoras, candidatas ni edición.
@@ -124,10 +165,14 @@ Al activar a una alumna se crean **todas** sus mensualidades.
   - **Planes:** crear, editar y desactivar.
   - **General:** todo se escapa (XSS) y el celular a 390 px.
 - **Suite completa:** en verde (18 archivos).
-- **Pendiente de revisar a ojo** con datos reales: cómo se ve la pantalla con las 230 candidatas, y la primera activación real.
+- **Pendiente de revisar a ojo** con datos reales: cómo se ve la lista de 371 candidatas, y la primera activación real.
 
 ## Cómo se arranca (primer uso)
-1. Un administrador crea los **planes** en la pestaña Planes, con los montos reales.
-2. En **Alumnas → Candidatas**, elegir el mes (OCTUBRE), asignar plan y fecha, revisar las vendedoras propuestas y activar.
-3. En **Cobros** aparecen las de hoy, esta semana y las atrasadas.
-4. Crear en **Mensajes** una plantilla de recordatorio de mensualidad (con `{nombre}`, `{debe}` y `{fecha}`).
+1. **Confirmar con Jared** cómo se lee el Excel:
+   - ¿"ANT" es la primera mensualidad o la inscripción?
+   - ¿Qué generaciones pagan por mes hoy?
+2. Un administrador lo marca en **Planes → Generaciones** (casillas) y pone **Confirmado**.
+3. Un administrador crea los **planes** con los montos reales.
+4. En **Alumnas → Candidatas**, elegir la generación, asignar plan, fecha y vendedora, y activar.
+5. En **Cobros** aparecen las de hoy, de la semana y las atrasadas.
+6. Crear en **Mensajes** una plantilla de recordatorio de mensualidad (con `{nombre}`, `{debe}` y `{fecha}`).
