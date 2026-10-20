@@ -4,6 +4,10 @@ Fecha: 19 oct 2026. Escrito por Claude (sesión de desarrollo del Hub) para que 
 **no empiece de cero**. Todo lo de aquí se verificó contra el repositorio y contra Supabase
 el mismo día; donde algo es estimado o no se pudo comprobar, lo dice.
 
+> **Corregido el 20 oct 2026** después de la auditoría de Codex: `siguiente_folio` **sí** valida el rol;
+> los candados contra borrado **no** están en todas las tablas; a Anthropic **sí** puede llegar texto privado
+> si alguien lo escribe; y se agregó Academia Glam. Ver `docs/migraciones/2026-10-20-academia-glam-fase1.md`.
+
 > **Regla de oro (léela dos veces):** en este proyecto **nada se construye sin que Enoc diga
 > "permitido generar"**. Leer, hacer SELECT y diagnosticar es libre. Escribir código, migraciones,
 > datos o publicar, no.
@@ -148,7 +152,7 @@ armar maquetas en el scratchpad y proponer.
 - Cada cambio es una **migración con nombre** (`modulo_NN_descripcion`) aplicada con
   `apply_migration` (herramienta MCP de Supabase), **después** del respaldo.
 - Patrones usados: `security invoker` por defecto; `security definer` solo si es indispensable y con
-  `set search_path = ''`; RLS siempre activo; candado contra borrados en toda tabla de negocio.
+  `set search_path = ''`; RLS siempre activo; candado contra borrados en toda tabla de negocio **nueva**. Ojo: no todas las tablas viejas lo tienen (22 con candado DELETE y 21 con TRUNCATE al 20 oct; sin candado, entre otras, `notas_usuario`, `precios`, `permisos_*`, `usuarios`, `ciudades`, `cursos`, `sedes`). Revísalo con `pg_trigger` antes de suponerlo.
 - **Funciones públicas para el portal** (`diploma_*`): `security definer` a propósito, con límite
   de intentos (`diploma_intentos`) y confirmación por teléfono.
 - **Trampas conocidas del MCP de Supabase:**
@@ -179,7 +183,7 @@ armar maquetas en el scratchpad y proponer.
 ### 3.7 Documentación
 
 - Cada cambio deja `docs/migraciones/AAAA-MM-DD-tema.md` con: qué se pidió, qué cambió, migraciones,
-  decisiones, pruebas y qué **no** cambió a propósito. (Hoy hay 36 documentos.)
+  decisiones, pruebas y qué **no** cambió a propósito.
 - Guías vivas:
   - `docs/guia-actualizar-hub-desde-excel.md` y `docs/GUIA_ACTUALIZAR_DESDE_DRIVE.md`: cómo
     sincronizar el Hub con los Excel del Drive **sin perder dinero ni borrar nada**.
@@ -276,8 +280,10 @@ Historial: **~100 migraciones** (`list_migrations`), de `corregir_montos_corrupt
   `temperature`, sin prefill; en el ciclo de herramientas se devuelve `r.content` completo.
 - **Herramientas** (todas de lectura): `buscar_persona`, `curso`, `proximos_cursos`, `mis_tareas`,
   `mis_tickets`, `buscar_tickets_abiertos` y `crear_ticket`. Las de datos corren con **el JWT de
-  quien pregunta** (RLS + secciones del rol). **No** manda dirección, CURP, correo ni fecha de
-  nacimiento.
+  quien pregunta** (RLS + secciones del rol). Sus consultas **no seleccionan** dirección, CURP, correo
+  ni fecha de nacimiento; pero lo que alguien escriba en una pregunta, una nota o un ticket **sí** viaja
+  a Anthropic tal cual. Y `tutorial_faq` (que entra a sus instrucciones) hoy la puede editar cualquier
+  usuario con sesión: pendiente de restringir (auditoría de Codex).
 - **Sin límites** de preguntas (decisión de Enoc el 19 oct); solo mide en `glamy_uso`. El límite
   real es el saldo de Anthropic (~$10 USD) **si la recarga automática está apagada** (confirmar).
 - **Botones en las respuestas:** `⟦ir:seccion⟧`, `⟦ficha:uuid⟧`, `⟦lead:uuid⟧`, `⟦tickets⟧`; el
@@ -305,7 +311,7 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 | 2 | **Protección contra contraseñas filtradas desactivada** (Auth) | Medio: el Hub tiene contraseñas de equipo | Activarla en Supabase → Auth → contraseñas (lo hace Enoc en el panel). |
 | 3 | **`security definer` ejecutable por `anon`**: `diploma_buscar`, `diploma_datos`, `diploma_reportar_nombre` | **Intencional** (portal público): tienen límite de intentos y verificación por teléfono | Mantener. Vigilar `diploma_intentos`. |
 | 4 | **`security definer` ejecutable por `anon`**: `marcar_password_cambiada()`, `recibe_pedidos()` | Bajo (verificado: ambas usan `auth.uid()` y fijan `search_path`), pero **no necesitan** ser públicas | Quitar `EXECUTE` a `anon` en una migración. |
-| 5 | **`security definer` ejecutable por `authenticated`**: `es_academia`, `es_admin_glam`, `siguiente_folio`, etc. | Las de permisos (`es_academia`, `es_admin_glam`) son necesarias para las políticas y usan `auth.uid()`. **`siguiente_folio` no revisa quién la llama**: cualquier usuario con sesión podría consumir folios de certificados | Hacer que `siguiente_folio` valide el rol (Academia o admin). El resto es esperado. |
+| 5 | **`security definer` ejecutable por `authenticated`**: `es_academia`, `es_admin_glam`, `siguiente_folio`, `agl_*`, etc. | Esperado: las de permisos (`es_academia`, `es_admin_glam`) las usan las políticas; `siguiente_folio` **sí** valida `es_academia()` (Academia o admin); las `agl_*` revisan el permiso por dentro. | Mantener. |
 | 6 | `no_borrar_historico` sin `search_path` fijo | Bajo | Fijarle `search_path = ''`. |
 | 7 | 3 tablas con RLS y sin políticas (`academia_carga_llave`, `diploma_intentos`, `glamy_prueba_llave`) | **Intencional**: solo las usan funciones/servicio | Mantener; documentarlo. |
 | 8 | **RLS amplia**: cualquier usuario autenticado lee casi todo; la restricción por rol está en el cliente | Medio | Si el equipo crece, mover las restricciones por rol a políticas RLS (empezando por pagos y datos de Academia). `academia_datos_privados` ya lo hace. |
@@ -336,7 +342,7 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 
 ### 7.3 Lo que está bien hecho (conservar)
 
-- Candados contra borrado en toda tabla de negocio + respaldos con fecha antes de cada migración.
+- Candados contra borrado en las tablas de negocio principales (no en todas; ver arriba) + respaldos con fecha antes de cada migración.
 - Bitácora de actividad (`actividad_usuario`) y checador (`sesiones_usuario`).
 - Documentación por cambio y 17 pruebas automatizadas en verde.
 - Cargas del Excel **repetibles** (`academia_carga()`, llave temporal, no pisa lo editado en el Hub).
@@ -356,7 +362,7 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 
 **De desarrollo:**
 6. Glamy **Fase 2** (asistente personal), aprobada en idea, sin "permitido generar".
-7. Endurecer funciones `security definer` (hallazgos 4–6) y revisar `siguiente_folio`.
+7. Endurecer funciones `security definer` (hallazgos 4 y 6).
 8. Verificar el escapado de `notas_usuario.texto` (tarea `task_3e469f49`).
 
 ---

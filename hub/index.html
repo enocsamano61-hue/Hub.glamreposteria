@@ -1244,6 +1244,12 @@
   .agl-fila .sub, .agl-tabla .sub{ font-size:11.5px; color:var(--ink-soft); margin:1px 0 0; }
   .agl-filtros button{ width:auto; }
   .agl-scroll{ overflow-x:auto; }
+  .agl-aviso{ background:rgba(198,166,107,.16); border:1px solid rgba(198,166,107,.55); border-radius:10px; padding:9px 12px; font-size:12.5px; margin:8px 0; color:var(--ink); }
+  .agl-gen{ background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; margin-bottom:8px; }
+  .agl-gen-cab{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:6px; }
+  .agl-cols{ display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+  .agl-col{ display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border); border-radius:999px; padding:3px 10px; font-size:12px; color:var(--ink); cursor:pointer; }
+  .agl-mini{ width:auto; padding:5px 10px; font-size:11.5px; margin-top:4px; }
   .agl-tabla{ width:100%; border-collapse:collapse; font-size:13px; background:var(--card); border:1px solid var(--border); border-radius:12px; }
   .agl-tabla th{ text-align:left; color:var(--ink-soft); font-size:11px; font-weight:600; padding:8px 8px; border-bottom:1px solid var(--border); }
   .agl-tabla td{ padding:8px; border-bottom:1px solid var(--border); vertical-align:middle; }
@@ -2590,7 +2596,7 @@ function showLogin(){
   if(canalNotas){ sb.removeChannel(canalNotas); canalNotas = null; }
   detenerSincronizacion();
   cerrarGlamy();
-  agl.cand = null; agl.meses = []; agl.mes = ''; agl.cobros = []; agl.susc = [];   // Academia Glam: nada de la sesión anterior
+  agl.cand = null; agl.gens = null; agl.gen = ''; agl.genBorrador = {}; agl.cobros = []; agl.susc = [];   // Academia Glam: nada de la sesión anterior
   document.getElementById('glamyFab').style.display = 'none';
   document.getElementById('glamyGlobo').style.display = 'none';
 }
@@ -3042,6 +3048,7 @@ const ACCION_LABEL = {
   agl_vendedora: '🎓 Cambió la vendedora de una alumna (Academia Glam)',
   agl_estado: '🎓 Cambió el estado de una alumna (Academia Glam)',
   agl_plan: '🎓 Creó o editó un plan de Academia Glam',
+  agl_generacion: '🎓 Configuró cómo paga una generación (Academia Glam)',
   pedido_estado: '🎫 Movió un ticket de Glamy',
   pedido_nota: '🎫 Escribió una nota en un ticket de Glamy',
 };
@@ -12021,13 +12028,15 @@ document.getElementById('guardarNuevoContacto').addEventListener('click', async 
    ACADEMIA GLAM — alumnas que pagan por mes (fase 1: planes, vendedoras y cobros)
    - Los planes (precio, meses, día de cobro) los crean los administradores; a cada alumna se le
      asigna uno al "activarla" y sus mensualidades se generan solas (tabla academia_glam_mensualidades).
+   - Qué generación paga por mes y qué columnas del Excel son mensualidades también es un catálogo
+     (Planes → Generaciones): si cambia, se corrige con casillas, sin tocar código.
    - Todo lo que escribe va por funciones de la base (agl_*), que revisan quién eres: registrar o
      confirmar un pago pide "Cobrar en Academia"; activar y asignar piden "Ver todo en Academia Glam".
    - Cada vendedora ve solo sus alumnas (RLS); Cobranza, Academia y administradores ven todas.
    Fase 2: cupones y módulos · Fase 3: comisiones · Fase 4: avisos y Glamy.
    Ver docs/migraciones/2026-10-20-academia-glam-fase1.md
    ========================================================= */
-const agl = { tab:'cobros', planes:[], cobros:[], cobradoMes:0, susc:[], cand:null, meses:[], mes:'', filtroVend:'', filtroPlan:'',
+const agl = { tab:'cobros', planes:[], cobros:[], cobradoMes:0, susc:[], cand:null, gens:null, gen:'', genBorrador:{}, filtroVend:'', filtroPlan:'',
               estado:'activa', buscar:'', sel:new Set(), planEdit:null, pago:null, ocupado:false };
 const AGL_ESTADOS = { activa:'Activas', pausada:'Pausadas', baja:'Bajas', todas:'Todas' };
 const aglVeTodo = () => !!usuarioActual?.es_admin || puede('ver_todo_academia_glam') || puede('cobrar_academia');
@@ -12043,7 +12052,7 @@ async function renderAcademiaGlam(){
   const caja = document.getElementById('agl-' + agl.tab);
   caja.innerHTML = '<div class="empty-note">Cargando…</div>';
   try{
-    if(agl.tab === 'planes') await aglCargarPlanes();
+    if(agl.tab === 'planes') await Promise.all([aglCargarPlanes(), aglVeTodo() && !agl.gens ? aglCargarGens() : null]);
     if(agl.tab === 'cobros') await Promise.all([aglCargarPlanes(), aglCargarCobros()]);
     if(agl.tab === 'alumnas') await Promise.all([aglCargarPlanes(), aglCargarSusc()]);
   }catch(e){ caja.innerHTML = `<div class="empty-note">No se pudo cargar: ${escHtml(e.message)}</div>`; return; }
@@ -12205,7 +12214,8 @@ function aglFilaSusc(s){
     <td>${escHtml(s.plan_nombre)}<div class="sub">${fmtMoney(s.precio_mensual)} al mes</div></td>
     <td>${ve ? `<select data-agl-vend aria-label="Vendedora">${aglOpcionesVend(s.vendedor_id, 'Sin vendedora')}</select>` : escHtml(aglNombreVend(s.vendedor_id))}</td>
     <td>${s.pagadas} de ${s.meses}${s.por_confirmar ? ` <span class="agl-pill conf">${s.por_confirmar} por confirmar</span>` : ''}</td>
-    <td>${escHtml(prox)}${s.atrasadas ? ` <span class="agl-pill atr">${s.atrasadas} atrasada${s.atrasadas === 1 ? '' : 's'}</span>` : ''}</td>
+    <td>${escHtml(prox)}${s.atrasadas ? ` <span class="agl-pill atr">${s.atrasadas} atrasada${s.atrasadas === 1 ? '' : 's'}</span>` : ''}
+      ${s.estado === 'activa' && s.pendiente_id && puede('cobrar_academia') ? `<div><button type="button" class="btn-outline small agl-mini" data-agl-pagar-susc="${escapeAttr(s.id)}">Registrar pago de la ${s.pendiente_numero}</button></div>` : ''}</td>
     <td>${ve ? `<select data-agl-estado aria-label="Estado">${['activa', 'pausada', 'baja'].map(e=>`<option value="${e}" ${s.estado === e ? 'selected' : ''}>${AGL_ESTADOS[e].replace(/s$/, '')}</option>`).join('')}</select>` : escHtml(AGL_ESTADOS[s.estado] || s.estado)}</td>
   </tr>`;
 }
@@ -12259,53 +12269,60 @@ document.getElementById('agl-alumnas').addEventListener('change', async e=>{
   }
 });
 
-/* Candidatas: alumnas que pagaron en un mes del Excel y todavía no están en Academia Glam. */
+/* Candidatas: alumnas de una generación de pago mensual que todavía no están en Academia Glam.
+   Qué generación paga por mes y qué columnas del Excel cuentan como mensualidad lo define un
+   administrador en Planes → Generaciones; mientras no lo confirme, se pueden revisar pero no activar. */
+async function aglCargarGens(){
+  const { data, error } = await sb.rpc('agl_generaciones');
+  if(error) throw error;
+  agl.gens = data || [];
+}
 async function aglPintarCandidatas(){
   const caja = document.getElementById('aglCandidatas'); if(!caja) return;
   const activos = agl.planes.filter(p=>p.activo);
-  if(!agl.meses.length){
-    const { data, error } = await sb.rpc('agl_meses_excel');
-    if(error){ caja.innerHTML = `<div class="empty-note">No se pudieron cargar los meses: ${escHtml(error.message)}</div>`; return; }
-    // El Excel trae encabezados de todo tipo ("MENS 22", "INSCRIPCION O PAGO UNICO"…): se dejan solo los meses del calendario.
-    const todos = (data || []).map(m => typeof m === 'string' ? m : Object.values(m)[0]);
-    const MESES_CAL = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-    const soloMeses = MESES_CAL.filter(m => todos.includes(m));
-    agl.meses = soloMeses.length ? soloMeses : todos;
+  if(!agl.gens){
+    try{ await aglCargarGens(); }
+    catch(e){ caja.innerHTML = `<div class="empty-note">No se pudieron cargar las generaciones: ${escHtml(e.message)}</div>`; return; }
   }
-  if(!agl.mes){
-    const nombre = new Date().toLocaleDateString('es-MX', { month:'long' }).toUpperCase();
-    agl.mes = agl.meses.find(m=>m === nombre) || agl.meses[agl.meses.length - 1] || '';
-  }
-  if(agl.cand === null && agl.mes){
-    const { data, error } = await sb.rpc('agl_candidatas', { p_mes:agl.mes });
+  const mensuales = agl.gens.filter(g=>g.paga_por_mes);
+  if(!mensuales.some(g=>g.generacion_id === agl.gen))
+    agl.gen = (mensuales.find(g=>g.nombre === 'Academia 2026') || mensuales[0])?.generacion_id || '';
+  const gen = mensuales.find(g=>g.generacion_id === agl.gen);
+  if(agl.cand === null && gen){
+    const { data, error } = await sb.rpc('agl_candidatas', { p_generacion:gen.generacion_id });
     if(error){ caja.innerHTML = `<div class="empty-note">No se pudieron cargar las candidatas: ${escHtml(error.message)}</div>`; return; }
     agl.cand = (data || []).map(c=>({ ...c, plan:'', numero:c.proxima_numero, fecha:'', vend:c.vendedor_propuesto || '' }));
     agl.sel = new Set();
   }
-  const lista = agl.cand || [];
+  const lista = gen ? (agl.cand || []) : [];
+  const todasMarcadas = lista.length > 0 && lista.every(c=>agl.sel.has(c.alumna_id));
+  const confirmada = !!gen?.confirmado;
   caja.innerHTML = `
     <div class="agl-grupo" style="margin-top:22px;">➕ Candidatas por activar <span>${lista.length}</span></div>
-    <div class="sub" style="margin-bottom:10px;">Alumnas que pagaron en el mes que elijas del Excel y todavía no están aquí. La vendedora se propone según lo que dice el Excel (solo si nombra a una del Hub); revísala y corrígela.</div>
-    ${!activos.length ? '<div class="empty-note">Primero crea un plan en la pestaña Planes.</div>' : `
+    <div class="sub" style="margin-bottom:10px;">Alumnas de la generación que elijas que todavía no están aquí. "Lleva" cuenta las mensualidades pagadas en el Excel según las columnas configuradas para esa generación. La vendedora se propone solo si el Excel nombra a una del Hub; revísala y corrígela.</div>
+    ${!mensuales.length ? '<div class="empty-note">Ninguna generación está marcada como de pago mensual. Un administrador lo configura en Planes → Generaciones.</div>'
+    : !activos.length ? '<div class="empty-note">Primero crea un plan en la pestaña Planes.</div>' : `
     <div class="agl-filtros">
-      <label>Pagaron en <select id="aglMes">${agl.meses.map(m=>`<option ${m === agl.mes ? 'selected' : ''}>${escHtml(m)}</option>`).join('')}</select></label>
+      <label>Generación <select id="aglGen">${mensuales.map(g=>`<option value="${escapeAttr(g.generacion_id)}" ${g.generacion_id === agl.gen ? 'selected' : ''}>${escHtml(g.nombre)}${g.confirmado ? '' : ' (sin confirmar)'}</option>`).join('')}</select></label>
       <label>Plan <select id="aglPlanTodas"><option value="">Elegir…</option>${activos.map(p=>`<option value="${escapeAttr(p.id)}">${escHtml(p.nombre)}</option>`).join('')}</select></label>
       <label>Próxima fecha de pago <input type="date" id="aglFechaTodas"></label>
       <button type="button" class="btn-outline small" id="aglAplicarTodas">Aplicar a las de la lista</button></div>
-    <div class="agl-scroll"><table class="agl-tabla"><thead><tr><th><input type="checkbox" id="aglSelTodas" aria-label="Seleccionar todas"></th><th>Alumna</th><th>Vendedora</th><th>Plan</th><th>Próxima mensualidad</th><th>Fecha</th></tr></thead>
+    ${confirmada ? '' : `<div class="agl-aviso">⚠️ Falta confirmar cómo paga <b>${escHtml(gen?.nombre || '')}</b>: qué columnas del Excel son mensualidades (ahora cuenta: ${escHtml((gen?.columnas || []).join(', ') || 'ninguna')}). Puedes revisar la lista, pero no activar hasta que un administrador lo confirme en Planes → Generaciones.</div>`}
+    <div class="agl-scroll"><table class="agl-tabla"><thead><tr><th><input type="checkbox" id="aglSelTodas" aria-label="Seleccionar todas" ${todasMarcadas ? 'checked' : ''}></th><th>Alumna</th><th>Vendedora</th><th>Plan</th><th>Lleva</th><th>Próxima mensualidad</th><th>Fecha</th></tr></thead>
       <tbody>${lista.map((c, i)=>`<tr data-agl-cand="${i}">
         <td><input type="checkbox" data-agl-sel ${agl.sel.has(c.alumna_id) ? 'checked' : ''} aria-label="Seleccionar"></td>
-        <td><b>${aglNombreAlumna(c.nombre)}</b><div class="sub">${escHtml(c.telefono || 'Sin teléfono')}${c.vendedor_texto ? ' · Excel: ' + escHtml(c.vendedor_texto) : ''}</div></td>
+        <td><b>${aglNombreAlumna(c.nombre)}</b><div class="sub">${escHtml(c.telefono || 'Sin teléfono')}${c.vendedor_texto ? ' · Excel: ' + escHtml(c.vendedor_texto) : ''}${c.decision ? ' · ' + escHtml(AC_DEC_CORTA[c.decision] || c.decision) : ''}</div></td>
         <td><select data-agl-c="vend" aria-label="Vendedora">${aglOpcionesVend(c.vend, 'Sin vendedora')}</select></td>
         <td><select data-agl-c="plan" aria-label="Plan"><option value="">Elegir…</option>${activos.map(p=>`<option value="${escapeAttr(p.id)}" ${p.id === c.plan ? 'selected' : ''}>${escHtml(p.nombre)}</option>`).join('')}</select></td>
-        <td><input type="number" min="1" max="60" data-agl-c="numero" value="${escapeAttr(c.numero)}" aria-label="Próxima mensualidad" style="width:70px;"> <span class="sub">(lleva ${c.pagadas})</span></td>
+        <td><b>${c.pagadas}</b>${c.por_revisar ? ` <span class="agl-pill conf">+${c.por_revisar} por revisar</span>` : ''}${c.ultimo_pago ? `<div class="sub">Último: ${escHtml(c.ultimo_pago)}</div>` : ''}</td>
+        <td><input type="number" min="1" max="60" data-agl-c="numero" value="${escapeAttr(c.numero)}" aria-label="Próxima mensualidad" style="width:70px;"></td>
         <td><input type="date" data-agl-c="fecha" value="${escapeAttr(c.fecha)}" aria-label="Fecha de la próxima mensualidad"></td></tr>`).join('')
-        || `<tr><td colspan="6" class="empty-note">No hay candidatas ${agl.mes ? 'para ' + escHtml(agl.mes) : ''}.</td></tr>`}</tbody></table></div>
-    <div class="agl-filtros" style="margin-top:10px;"><button type="button" class="btn-primary small" id="aglActivar">Activar seleccionadas (${agl.sel.size})</button>
+        || `<tr><td colspan="7" class="empty-note">No hay candidatas en esta generación.</td></tr>`}</tbody></table></div>
+    <div class="agl-filtros" style="margin-top:10px;"><button type="button" class="btn-primary small" id="aglActivar" ${confirmada ? '' : 'disabled'}>Activar seleccionadas (${agl.sel.size})</button>
       <span class="sub" id="aglActivarAviso"></span></div>`}`;
 }
 document.getElementById('agl-alumnas').addEventListener('change', async e=>{
-  if(e.target.id === 'aglMes'){ agl.mes = e.target.value; agl.cand = null; return aglPintarCandidatas(); }
+  if(e.target.id === 'aglGen'){ agl.gen = e.target.value; agl.cand = null; return aglPintarCandidatas(); }
   if(e.target.id === 'aglSelTodas'){
     (agl.cand || []).forEach(c=> e.target.checked ? agl.sel.add(c.alumna_id) : agl.sel.delete(c.alumna_id));
     return aglPintarCandidatas();
@@ -12313,7 +12330,11 @@ document.getElementById('agl-alumnas').addEventListener('change', async e=>{
   const fila = e.target.closest('[data-agl-cand]');
   if(!fila) return;
   const c = agl.cand[Number(fila.dataset.aglCand)]; if(!c) return;
-  if(e.target.matches('[data-agl-sel]')){ e.target.checked ? agl.sel.add(c.alumna_id) : agl.sel.delete(c.alumna_id); document.getElementById('aglActivar').textContent = `Activar seleccionadas (${agl.sel.size})`; }
+  if(e.target.matches('[data-agl-sel]')){
+    e.target.checked ? agl.sel.add(c.alumna_id) : agl.sel.delete(c.alumna_id);
+    document.getElementById('aglActivar').textContent = `Activar seleccionadas (${agl.sel.size})`;
+    document.getElementById('aglSelTodas').checked = (agl.cand || []).every(x=>agl.sel.has(x.alumna_id));
+  }
   if(e.target.matches('[data-agl-c]')) c[e.target.dataset.aglC] = e.target.value;
 });
 document.getElementById('agl-alumnas').addEventListener('click', async e=>{
@@ -12323,6 +12344,13 @@ document.getElementById('agl-alumnas').addEventListener('click', async e=>{
     return aglPintarCandidatas();
   }
   if(e.target.id === 'aglActivar') return aglActivarSeleccionadas();
+  // Pago adelantado (o de cualquier mensualidad pendiente) desde la lista de alumnas.
+  const pagar = e.target.closest('[data-agl-pagar-susc]');
+  if(pagar){
+    const s = agl.susc.find(x=>x.id === pagar.dataset.aglPagarSusc); if(!s?.pendiente_id) return;
+    return aglAbrirPago({ mensualidad_id:s.pendiente_id, numero:s.pendiente_numero, meses:s.meses, monto:s.pendiente_monto,
+      vence:s.pendiente_vence, plan_nombre:s.plan_nombre, alumna_nombre:s.alumna_nombre });
+  }
 });
 async function aglActivarSeleccionadas(){
   if(agl.ocupado) return;
@@ -12342,7 +12370,7 @@ async function aglActivarSeleccionadas(){
     }
     if(hechas) registrarActividad('agl_activar', `${hechas} alumna${hechas === 1 ? '' : 's'} activada${hechas === 1 ? '' : 's'} en Academia Glam`);
     toast(fallos.length ? `Se activaron ${hechas}; ${fallos.length} fallaron.` : `✅ ${hechas} alumna${hechas === 1 ? '' : 's'} activada${hechas === 1 ? '' : 's'}.`, !!fallos.length);
-    agl.cand = null;
+    agl.cand = null; agl.gens = null;
     await renderAcademiaGlam();
     if(fallos.length){ const a = document.getElementById('aglActivarAviso'); if(a) a.textContent = fallos.join(' · '); }
   } finally { agl.ocupado = false; }
@@ -12369,7 +12397,8 @@ function aglPintarPlanes(){
         <label style="flex-direction:row; align-items:center; gap:8px;"><input type="checkbox" id="aglPlanActivo" ${e && !e.activo ? '' : 'checked'}> Activo (se puede asignar)</label>
       </div>
       <div class="agl-filtros"><button type="button" class="btn-primary small" id="aglPlanGuardar">Guardar plan</button>
-        ${e ? '<button type="button" class="btn-outline small" id="aglPlanCancelar">Cancelar</button>' : ''}</div></div>` : ''}`;
+        ${e ? '<button type="button" class="btn-outline small" id="aglPlanCancelar">Cancelar</button>' : ''}</div></div>` : ''}
+    ${aglHtmlGeneraciones()}`;
 }
 document.getElementById('agl-planes').addEventListener('change', e=>{
   if(e.target.id === 'aglPlanDiaTipo') document.getElementById('aglPlanDiaFijoCampo').style.display = e.target.value === 'fijo' ? '' : 'none';
@@ -12397,6 +12426,60 @@ document.getElementById('agl-planes').addEventListener('click', async e=>{
     await renderAcademiaGlam();
   } finally { agl.ocupado = false; }
 });
+/* Generaciones: qué generación paga por mes y qué columnas del Excel cuentan como mensualidad.
+   Se edita con casillas (solo administradores) y se marca "confirmado" cuando ya se revisó;
+   el borrador de cada generación vive en agl.genBorrador hasta que se guarda. */
+function aglBorradorGen(g){
+  return agl.genBorrador[g.generacion_id] || (agl.genBorrador[g.generacion_id] =
+    { paga:g.paga_por_mes, columnas:new Set(g.columnas || []), confirmado:g.confirmado });
+}
+function aglHtmlGeneraciones(){
+  if(!agl.gens || !aglVeTodo()) return '';
+  const admin = !!usuarioActual?.es_admin;
+  return `<div class="agl-grupo" style="margin-top:22px;">🎓 Generaciones que pagan por mes</div>
+    <div class="sub" style="margin-bottom:10px;">Marca qué generaciones pagan mensualidad y qué columnas de su Excel son mensualidades (así se calcula cuántas lleva cada alumna). Cuando ya lo revisaron, marca <b>Confirmado</b>: solo entonces se pueden activar sus alumnas. Las que ya están activas no cambian.</div>
+    ${agl.gens.map(g=>{
+      const b = aglBorradorGen(g);
+      const estado = g.paga_por_mes ? (g.confirmado ? '<span class="agl-pill prox">✅ Confirmada</span>' : '<span class="agl-pill conf">⚠️ Sin confirmar</span>') : '';
+      const cuerpo = !b.paga ? '' : `<div class="agl-cols">${(g.disponibles || []).map(c=>`<label class="agl-col"><input type="checkbox" data-agl-gcol="${escapeAttr(c)}" ${b.columnas.has(c) ? 'checked' : ''} ${admin ? '' : 'disabled'}> ${escHtml(c)}</label>`).join('') || '<span class="sub">Esta generación no trae columnas de pago.</span>'}</div>`;
+      return `<div class="agl-gen" data-agl-gen="${escapeAttr(g.generacion_id)}">
+        <div class="agl-gen-cab"><b>${escHtml(g.nombre)}</b> <span class="sub">${g.alumnas} alumnas${g.activadas ? ` · ${g.activadas} activadas` : ''}</span> ${estado}</div>
+        ${admin ? `<label class="agl-col"><input type="checkbox" data-agl-gpaga ${b.paga ? 'checked' : ''}> Paga por mes</label>` : ''}
+        ${cuerpo}
+        ${admin && b.paga ? `<div class="agl-filtros"><label class="agl-col"><input type="checkbox" data-agl-gconf ${b.confirmado ? 'checked' : ''}> Confirmado: ya revisé que estas son las mensualidades</label>
+          <button type="button" class="btn-primary small" data-agl-gguardar>Guardar</button></div>`
+        : admin && g.paga_por_mes ? '<div class="agl-filtros"><button type="button" class="btn-primary small" data-agl-gguardar>Guardar</button></div>' : ''}
+      </div>`;
+    }).join('')}`;
+}
+document.getElementById('agl-planes').addEventListener('change', e=>{
+  const card = e.target.closest('[data-agl-gen]'); if(!card) return;
+  const g = (agl.gens || []).find(x=>x.generacion_id === card.dataset.aglGen); if(!g) return;
+  const b = aglBorradorGen(g);
+  if(e.target.matches('[data-agl-gpaga]')){ b.paga = e.target.checked; return aglPintarPlanes(); }
+  if(e.target.matches('[data-agl-gcol]')) e.target.checked ? b.columnas.add(e.target.dataset.aglGcol) : b.columnas.delete(e.target.dataset.aglGcol);
+  if(e.target.matches('[data-agl-gconf]')) b.confirmado = e.target.checked;
+});
+document.getElementById('agl-planes').addEventListener('click', async e=>{
+  if(!e.target.matches('[data-agl-gguardar]') || agl.ocupado) return;
+  const card = e.target.closest('[data-agl-gen]');
+  const g = (agl.gens || []).find(x=>x.generacion_id === card?.dataset.aglGen); if(!g) return;
+  const b = aglBorradorGen(g);
+  // Las columnas se guardan en el orden del Excel.
+  const columnas = (g.disponibles || []).filter(c=>b.columnas.has(c));
+  if(b.paga && !columnas.length){ toast('Marca al menos una columna que cuente como mensualidad.', true); return; }
+  agl.ocupado = true;
+  try{
+    const { error } = await aglRpc('agl_config_generacion', { p_generacion:g.generacion_id, p_paga_por_mes:b.paga, p_columnas:columnas, p_confirmado:b.paga && b.confirmado });
+    if(error) return;
+    registrarActividad('agl_generacion', `${g.nombre}: ${b.paga ? `paga por mes · ${columnas.join(', ')}${b.confirmado ? ' · confirmada' : ' · sin confirmar'}` : 'no paga por mes'}`);
+    toast('Generación guardada.');
+    delete agl.genBorrador[g.generacion_id];
+    agl.gens = null; agl.cand = null;
+    await renderAcademiaGlam();
+  } finally { agl.ocupado = false; }
+});
+
 
 /* =========================================================
    GLAMY — asistente con IA (Claude Haiku) para todo el equipo
