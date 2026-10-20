@@ -7,13 +7,18 @@
 const PDFLIB_URL = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
 const FONTKIT_URL = 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
 /* Letras propias de las plantillas (campo.fuente). Se cargan solo si la plantilla las usa y van
-   completas dentro del PDF: la licencia de Nickainley no permite modificar (recortar) la letra. */
+   completas dentro del PDF: la licencia de Nickainley no permite modificar (recortar) la letra.
+   barlow: Barlow Semi Condensed SemiBold (licencia OFL), la del nombre del diploma de gira desde oct 2026. */
 let CERT_FUENTES = {
   manuscrita: '/certificados/GreatVibes-Regular.ttf',
   nickainley: '/certificados/Nickainley-Normal.ttf',
   baskerville_italica: '/certificados/LibreBaskerville-Italic.ttf',
+  barlow: '/certificados/BarlowSemiCondensed-SemiBold.ttf',
 };
-const CERT_FUENTE_CSS = { manuscrita:"'Great Vibes',cursive", nickainley:"'Nickainley',cursive", baskerville_italica:"'Libre Baskerville Cert',serif" };
+const CERT_FUENTE_CSS = { manuscrita:"'Great Vibes',cursive", nickainley:"'Nickainley',cursive", baskerville_italica:"'Libre Baskerville Cert',serif",
+                          barlow:"'Barlow Cert',sans-serif" };
+/* Un dato con "mayusculas": true se imprime en mayúsculas (el nombre del diploma de gira). */
+function textoCert(texto, c){ return c?.mayusculas ? String(texto || '').toLocaleUpperCase('es-MX') : texto; }
 function mesCert(iso){ return iso ? `${new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { month:'long' })} ${iso.slice(0, 4)}` : ''; }
 const CERT_BYTES = {};
 /* Los fondos y las letras viven en el Hub (/certificados/…). La página de diplomas está en otro
@@ -112,7 +117,7 @@ async function armarPdfCertificado(pl, valores){
     medidas[clave] = window.fontkit.create(bytes);
   }
   for(const c of pl.campos || []){
-    const texto = rellenarCampo(c.texto, valores); if(!texto) continue;
+    const texto = textoCert(rellenarCampo(c.texto, valores), c); if(!texto) continue;
     const f = fuentes[c.fuente] || fuentes.normal, k = medidas[c.fuente];
     if(k){
       const faltan = [...new Set([...texto].filter(ch=>ch.trim() && !k.hasGlyphForCodePoint(ch.codePointAt(0))))];

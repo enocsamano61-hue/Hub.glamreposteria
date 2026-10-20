@@ -17,7 +17,7 @@
     --bg:#F7F4EE; --card:#FFFEFB; --ink:#292421; --ink-soft:#756D65; --border:#E5DED4;
     --wine:#5A1F2B; --wine-dark:#3B151D; --rosa:#B5308E; --cafe:#774228; --danger:#B5453A; --success:#55745C;
   }
-  @font-face{ font-family:'Nickainley'; src:url('https://hub.glamreposteria.com/certificados/Nickainley-Normal.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Barlow Cert'; src:url('https://hub.glamreposteria.com/certificados/BarlowSemiCondensed-SemiBold.ttf') format('truetype'); font-display:swap; }
   *{ box-sizing:border-box; }
   body{ margin:0; background:var(--bg); color:var(--ink); font-family:Inter, system-ui, sans-serif; font-size:15px; line-height:1.45; }
   .marco{ max-width:460px; margin:0 auto; padding:20px 16px 40px; }
@@ -46,7 +46,7 @@
   .aviso.ok{ background:rgba(85,116,92,.12); color:#2F4A36; }
   .curso{ border:1px solid var(--border); border-radius:14px; padding:16px 14px; margin-top:14px; background:#fff; }
   .curso .donde{ font-size:12.5px; font-weight:600; color:var(--ink-soft); letter-spacing:.02em; text-transform:uppercase; }
-  .curso .nombre-diploma{ font-family:'Nickainley', cursive; color:var(--cafe); font-size:30px; line-height:1.15; text-align:center; margin:12px 0 4px; white-space:nowrap; overflow:hidden; }
+  .curso .nombre-diploma{ font-family:'Barlow Cert', sans-serif; text-transform:uppercase; color:var(--cafe); font-size:30px; line-height:1.15; text-align:center; margin:12px 0 4px; white-space:nowrap; overflow:hidden; }
   .curso .pregunta{ text-align:center; font-weight:600; margin-top:6px; }
   .previa{ width:100%; border-radius:10px; border:1px solid var(--border); display:block; margin:14px 0 4px; background:#fff; aspect-ratio:595.5 / 842.25; }
   .cargando{ display:flex; align-items:center; gap:10px; color:var(--ink-soft); font-size:14px; margin-top:14px; }
@@ -112,7 +112,7 @@
 </div>
 
 <!-- Armado del PDF: el mismo archivo que usa el Hub -->
-<script src="https://hub.glamreposteria.com/certificados/pdf-certificado.js?v=20261017"></script>
+<script src="https://hub.glamreposteria.com/certificados/pdf-certificado.js?v=20261020c"></script>
 <script>
 const SUPABASE_URL = 'https://bomlszsnixazhnsegeik.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_w85mi4Z_NunDmMQIcWGaaw_KqNSN2lq';   // llave pública: la base solo deja usar 3 funciones
@@ -155,7 +155,7 @@ $('formTel').addEventListener('submit', async e=>{
 
 /* 2. ¿Eres tú? Una tarjeta por curso (casi siempre una). */
 /* Que cada renglón quepa completo, igual que en el diploma (sin partirse en la pantalla). */
-function tamNombre(nombre){ return Math.max(16, Math.min(30, Math.floor(620 / Math.max(...renglonesNombre(nombre, 3).map(l=>l.length))))); }
+function tamNombre(nombre){ return Math.max(16, Math.min(30, Math.floor(520 / Math.max(...renglonesNombre(nombre, 3).map(l=>l.length))))); }
 function pintarCursos(){
   $('listaCursos').innerHTML = estado.resultados.map((r, i)=>`
     <div class="curso">

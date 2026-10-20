@@ -141,10 +141,12 @@ armar maquetas en el scratchpad y proponer.
   `{vista, inscripcion|lead|evento|ciudad|cert_evento|pedido, etiqueta}`); `irAEnlaceNota` lo abre.
 - **Botones flotantes:** el bloc 📝 abajo a la izquierda, Glamy 🧁 abajo a la derecha; ambos se
   ocultan en Recepción (`body.en-recepcion`).
-- **Paleta B (fucsia/morado/azul)**: usar variables CSS (`--wine` = fucsia `#C2338A`,
-  `--wine-dark` = morado `#5B2C83`, `--champagne` = azul `#4AA3F0`, `--ambar` para estados de
-  "pendiente", `--wine-rgb` para tintes). Los **nombres de variable no cambian**
-  (`--wine` ya no es vino). Las gráficas (Chart.js) llevan los colores escritos, no leen CSS.
+- **Paleta C "rosa claro"** (oct 2026, reemplazó a la B fucsia/morado/azul): usar variables CSS
+  (`--wine` = frambuesa `#B23C6C`, `--wine-dark` = frambuesa oscuro `#8E2F57`, `--champagne` =
+  rosa de adorno `#E296B0`, `--barra-1`/`--barra-2`/`--sobre-barra` para la barra lateral rosa
+  pastel con letra oscura, `--ambar` para estados de "pendiente", `--wine-rgb` para tintes).
+  Los **nombres de variable no cambian** (`--wine` ya no es vino). Las gráficas (Chart.js)
+  llevan los colores escritos, no leen CSS. Ver `docs/migraciones/2026-10-20-paleta-c-y-letra-diploma.md`.
 - **Móvil y escritorio:** se revisa con capturas a **1200 px y 390 px**.
 
 ### 3.5 Base de datos: cómo se cambia
@@ -394,7 +396,7 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 - Nunca borres datos: hay candados. Respaldo en `respaldo.tabla_AAAAMMDD` antes de migrar.
 - Cero datos personales en el repo. No toques logistica_cursos, giras, gira_paradas.
 - Código con comentarios en español; escapa con escHtml/escapeAttr; reutiliza funciones existentes;
-  llama registrarActividad. Variables CSS: --wine=fucsia, --wine-dark=morado, --champagne=azul.
+  llama registrarActividad. Variables CSS (paleta C): --wine=frambuesa, --wine-dark=frambuesa oscuro, --champagne=rosa de adorno.
 - Cada cambio: prueba Playwright + capturas 1200/390 px + docs/migraciones/AAAA-MM-DD-tema.md.
 - Lee docs/FLUJO-DE-TRABAJO.md (este reporte) antes de empezar.
 ```
