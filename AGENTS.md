@@ -6,6 +6,6 @@
 - Nunca borres datos: hay candados. Respaldo en `respaldo.tabla_AAAAMMDD` antes de migrar.
 - Cero datos personales en el repo. No toques logistica_cursos, giras, gira_paradas.
 - Código con comentarios en español; escapa con escHtml/escapeAttr; reutiliza funciones existentes;
-  llama registrarActividad. Variables CSS: --wine=fucsia, --wine-dark=morado, --champagne=azul.
+  llama registrarActividad. Variables CSS (paleta C): --wine=frambuesa, --wine-dark=frambuesa oscuro, --champagne=rosa de adorno.
 - Cada cambio: prueba Playwright + capturas 1200/390 px + docs/migraciones/AAAA-MM-DD-tema.md.
 - Lee docs/FLUJO-DE-TRABAJO.md (este reporte) antes de empezar.
