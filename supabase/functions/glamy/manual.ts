@@ -41,7 +41,7 @@ Menú a la izquierda (en celular, botón de arriba). Cada rol ve solo sus seccio
 - **Alumnos y Leads** (board): tablero de leads por estatus (prospecto, contactado, con anticipo, pago por confirmar, liquidado…). "+ Nuevo lead" para registrar. Se arrastran tarjetas entre columnas. En la ficha del lead: datos, WhatsApp, reportar pago (queda 🏦 por confirmar) e inscribir.
 - **Historial cliente** (historial): buscar a cualquier persona por nombre o teléfono y ver todo su historial: cursos, pagos, interacciones. Junta duplicados por mismo teléfono.
 - **Cursos** (cursos): catálogo de cursos → ciudades → alumnas de cada curso; abrir la ficha de cada una.
-- **Ciudades / Plazas** (plaza): por ciudad, qué cursos se han dado y a quién ya conocemos ahí.
+- **Ciudades / Plazas** (plaza): por ciudad, qué cursos se han dado y a quién ya conocemos ahí. Abajo está **"Todas las alumnas de esta ciudad"**: todo el histórico (inscritas, leads y quien tiene esa ciudad en su ficha), con filtros (sin contactar en 30 días, les interesa, no llegaron, VIP, son lead, nunca se inscribieron), búsqueda, botón de WhatsApp, **"Registrar contacto"** (le marqué, no contestó, le interesa, no le interesa, nota) y exportar a CSV. Lo que se registra se ve también en Historial cliente.
 - **Giras** (giras): constructor de ruta de la próxima gira y giras guardadas.
 - **Logística** (logistica): sedes (hoteles, salones), negociaciones, calculadora de cupo.
 - **Ventas** (ventas): ingresos, pagos recientes, asesores y embudo de la gira activa.

@@ -1483,6 +1483,14 @@
       </div>
       <div class="card"><h3>Cursos dados en esta plaza</h3><div class="sub">Elige uno para ver a los alumnos y su estatus</div><div id="plazaLista">Selecciona una ciudad arriba.</div></div>
       <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px;">
+          <h3 style="margin-bottom:0;">👥 Todas las alumnas de esta ciudad</h3>
+          <button class="btn-outline small" id="plzExportar" style="width:auto;">Exportar CSV</button>
+        </div>
+        <div class="sub">Todo el histórico: quien se inscribió a un curso aquí, quien fue lead de esta ciudad y quien la tiene en su ficha. Márcale o mándale WhatsApp y anota cómo te fue.</div>
+        <div id="plazaPersonas" style="margin-top:12px;">Selecciona una ciudad arriba.</div>
+      </div>
+      <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
           <h3 style="margin-bottom:0;">Steward y ayudantes</h3>
           <button class="btn-primary small" id="btnAgregarApoyoPlaza">+ Agregar</button>
@@ -2512,6 +2520,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modalPlzContacto">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="plzContactoTitulo">
+    <button class="close" id="closePlzContacto" aria-label="Cerrar">✕</button>
+    <h3 id="plzContactoTitulo">Registrar contacto</h3>
+    <div class="sub" id="plzContactoSub" style="margin-bottom:10px;">—</div>
+    <div class="ac-form"><label>Qué pasó<select id="plzContactoTipo"></select></label></div>
+    <label style="display:block; margin-top:8px;">Nota<textarea id="plzContactoNota" class="textarea" rows="2" maxlength="1000" placeholder="Ej. le interesa el curso de diciembre, marcarle el lunes"></textarea></label>
+    <button class="btn-primary" id="plzContactoGuardar" style="margin-top:10px;">Guardar</button>
+  </div>
+</div>
+
 <!-- ===================== MODAL: DATOS DE CONTACTO (compartido) =====================
      El mismo formulario desde la ficha de inscripción, Historial cliente, etc. -->
 <div class="modal-overlay" id="modalContacto">
@@ -3094,6 +3113,8 @@ const ACCION_LABEL = {
   agl_seguimiento: '🎓 Registró seguimiento de cobranza (Academia Glam)',
   agl_acceso: '🎓 Registró que se dio acceso a las clases (Academia Glam)',
   agl_retirar_acceso: '⛔ Retiró el acceso a las clases (Academia Glam)',
+  plaza_contacto: '📞 Registró un contacto con una alumna (Ciudades)',
+  plaza_exportar: '📤 Exportó las alumnas de una ciudad',
   pedido_estado: '🎫 Movió un ticket de Glamy',
   pedido_nota: '🎫 Escribió una nota en un ticket de Glamy',
 };
@@ -10661,7 +10682,164 @@ async function renderPlaza(ciudadId){
     const cursoId = el.dataset.cursoId;
     el.addEventListener('click', ()=> abrirModalAlumnos(ciudadId, cursoId, resumen?.ciudad, cursosPorId[cursoId].nombre));
   });
+  cargarPlazaPersonas(ciudadId);
 }
+
+/* =========================================================
+   CIUDADES → TODAS LAS ALUMNAS DE LA CIUDAD (seguimiento)
+   Todo el histórico de la ciudad, sin repetir: inscritas a un curso aquí, leads de esta ciudad y
+   quien la tiene en su ficha (función plaza_personas de la base; la lista negra no sale).
+   Cada contacto (llamada, WhatsApp, "le interesa"…) se guarda en interacciones, así se ve también
+   en Historial cliente. Quien tiene la sección Ciudades ve a todas las de la ciudad.
+   ========================================================= */
+const plz = { ciudad:null, filas:[], filtro:'todas', buscar:'', limite:100, persona:null, turno:0, ocupado:false };
+const PLZ_DIAS_SIN_CONTACTO = 30;
+const PLZ_TIPOS = {
+  contesto:     { l:'📞 Le marqué y contestó', canal:'llamada' },
+  no_contesto:  { l:'🔕 Le marqué y no contestó', canal:'llamada' },
+  whatsapp:     { l:'💬 Le escribí por WhatsApp', canal:'whatsapp' },
+  interesada:   { l:'👍 Le interesa', canal:'otro' },
+  no_interesada:{ l:'👎 No le interesa', canal:'otro' },
+  nota:         { l:'📝 Nota', canal:'otro' },
+};
+const PLZ_FILTROS = {
+  todas:        { l:'Todas', f:()=>true },
+  sin_contacto: { l:`Sin contactar (${PLZ_DIAS_SIN_CONTACTO} días)`, f:x=>!x.ultimo_contacto || diasEntre(new Date(x.ultimo_contacto).toLocaleDateString('en-CA'), hoyISO()) > PLZ_DIAS_SIN_CONTACTO },
+  interesadas:  { l:'👍 Les interesa', f:x=>x.ultimo_resultado === 'interesada' },
+  no_llego:     { l:'No llegaron a su curso', f:x=>x.ultima_asistencia === 'no_llego' },
+  vip:          { l:'⭐ VIP', f:x=>x.vip },
+  leads:        { l:'Son lead ahora', f:x=>x.es_lead },
+  nunca:        { l:'Nunca se inscribieron', f:x=>!x.cursos_total },
+};
+// Texto del último contacto: resultado (si se registró aquí) o canal (WhatsApp enviado desde el Hub, etc.).
+function plzUltimo(x){
+  if(!x.ultimo_contacto) return '<span class="sub">Sin contacto registrado</span>';
+  const que = PLZ_TIPOS[x.ultimo_resultado]?.l || (x.ultimo_canal === 'whatsapp' ? '💬 WhatsApp enviado' : x.ultimo_canal === 'llamada' ? '📞 Llamada' : '📝 Nota');
+  const quien = x.ultimo_asesor ? (EQUIPO.find(u=>u.id === x.ultimo_asesor)?.nombre || '') : '';
+  const dias = diasEntre(new Date(x.ultimo_contacto).toLocaleDateString('en-CA'), hoyISO());
+  const cuando = dias <= 0 ? 'hoy' : dias === 1 ? 'ayer' : `hace ${dias} días`;
+  return `${escHtml(que)}<div class="sub">${escHtml([cuando, quien].filter(Boolean).join(' · '))}${x.ultima_nota ? ' · ' + escHtml(x.ultima_nota) : ''}</div>`;
+}
+async function cargarPlazaPersonas(ciudadId){
+  const caja = document.getElementById('plazaPersonas');
+  const turno = ++plz.turno;
+  if(plz.ciudad !== ciudadId){ plz.filtro = 'todas'; plz.buscar = ''; plz.limite = 100; }
+  plz.ciudad = ciudadId;
+  caja.innerHTML = '<div class="empty-note">Cargando…</div>';
+  // De 1,000 en 1,000 (la base no regresa más de eso por consulta).
+  const filas = [];
+  for(let desde = 0; ; desde += 1000){
+    const { data, error } = await sb.rpc('plaza_personas', { p_ciudad:ciudadId }).range(desde, desde + 999);
+    if(turno !== plz.turno) return;
+    if(error){ caja.innerHTML = `<div class="empty-note">No se pudo cargar: ${escHtml(error.message)}</div>`; return; }
+    filas.push(...(data || []));
+    if(!data || data.length < 1000) break;
+  }
+  plz.filas = filas;
+  pintarPlazaPersonas();
+}
+function plzVisibles(){
+  const q = normTexto(plz.buscar), dig = plz.buscar.replace(/\D/g, '');
+  return plz.filas.filter(x=> PLZ_FILTROS[plz.filtro].f(x)
+    && (!q || normTexto(x.nombre).includes(q) || (dig.length >= 3 && String(x.telefono || '').includes(dig))));
+}
+function pintarPlazaPersonas(){
+  const caja = document.getElementById('plazaPersonas');
+  if(!plz.filas.length){ caja.innerHTML = '<div class="empty-note">Todavía no hay alumnas registradas en esta ciudad.</div>'; return; }
+  const vis = plzVisibles();
+  const chips = Object.entries(PLZ_FILTROS).map(([k, f])=>
+    `<button type="button" class="nl-chip ${plz.filtro === k ? 'on' : ''}" data-plz-filtro="${k}">${escHtml(f.l)} <b>${plz.filas.filter(f.f).length}</b></button>`).join('');
+  const fila = x=>{
+    const pills = [x.vip ? '<span class="agl-pill conf">⭐ VIP</span>' : '',
+      x.ultima_asistencia === 'llego' ? '<span class="agl-pill prox">Llegó</span>' : x.ultima_asistencia === 'no_llego' ? '<span class="agl-pill atr">No llegó</span>' : '',
+      x.ultimo_liquidado ? '<span class="agl-pill prox">Liquidó</span>' : '',
+      x.es_lead ? '<span class="agl-pill hoy">Lead</span>' : ''].filter(Boolean).join(' ');
+    const curso = x.ultimo_curso
+      ? `${escHtml(x.ultimo_curso)}<div class="sub">${escHtml(x.ultima_fecha ? fechaCorta(x.ultima_fecha) : '')}${x.cursos_total > 1 ? ` · ${x.cursos_total} cursos` : ''}</div>`
+      : '<span class="sub">Fue lead, no se ha inscrito</span>';
+    return `<div class="agl-fila" data-plz-persona="${escapeAttr(x.persona_id)}">
+      <div><button type="button" class="agl-nombre" data-plz-historial="${escapeAttr(x.persona_id)}">${escHtml(tituloCaso(x.nombre || ''))}</button><div class="sub">${escHtml(x.telefono || 'Sin teléfono')}</div></div>
+      <div>${curso}</div>
+      <div>${pills}</div>
+      <div>${plzUltimo(x)}</div>
+      <div class="agl-acc">${x.telefono ? `<button type="button" class="btn-outline small" data-plz-wa="${escapeAttr(x.persona_id)}" aria-label="Mandar WhatsApp" title="WhatsApp">💬</button>` : ''}
+        <button type="button" class="btn-primary small" data-plz-contacto="${escapeAttr(x.persona_id)}">Registrar contacto</button></div>
+    </div>`;
+  };
+  caja.innerHTML = `
+    <div class="agl-filtros">${chips}</div>
+    <div class="agl-filtros"><input type="search" id="plzBuscar" placeholder="Buscar por nombre o teléfono" value="${escapeAttr(plz.buscar)}" aria-label="Buscar alumna de la ciudad">
+      <span class="sub">${vis.length} de ${plz.filas.length}</span></div>
+    ${vis.slice(0, plz.limite).map(fila).join('') || '<div class="empty-note">Nadie con ese filtro.</div>'}
+    ${vis.length > plz.limite ? `<button type="button" class="btn-outline small" id="plzMas" style="width:auto;">Mostrar ${Math.min(100, vis.length - plz.limite)} más</button>` : ''}`;
+}
+document.getElementById('plazaPersonas').addEventListener('input', e=>{
+  if(e.target.id !== 'plzBuscar') return;
+  plz.buscar = e.target.value; plz.limite = 100;
+  const pos = e.target.selectionStart;
+  pintarPlazaPersonas();
+  const i = document.getElementById('plzBuscar'); i.focus(); i.setSelectionRange(pos, pos);
+});
+document.getElementById('plazaPersonas').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const d = b.dataset;
+  if(d.plzFiltro){ plz.filtro = d.plzFiltro; plz.limite = 100; return pintarPlazaPersonas(); }
+  if(b.id === 'plzMas'){ plz.limite += 100; return pintarPlazaPersonas(); }
+  const x = plz.filas.find(y=>y.persona_id === (d.plzWa || d.plzContacto || d.plzHistorial)); if(!x) return;
+  if(d.plzHistorial){
+    // Su historial completo (cursos, pagos y contactos) en Historial cliente.
+    setActiveSection('historial');
+    const q = x.telefono || x.nombre;
+    document.getElementById('historialSearch').value = q;
+    return buscarHistorial(q, { seleccionar:x.persona_id });
+  }
+  if(d.plzWa){
+    const ciudad = CIUDADES.find(c=>c.id === plz.ciudad)?.nombre || '';
+    return abrirEnviarWhatsApp({ telefono:x.telefono, nombre:x.nombre, personaId:x.persona_id, ciudad,
+      alEnviar:()=>{ Object.assign(x, { ultimo_contacto:new Date().toISOString(), ultimo_canal:'whatsapp', ultimo_resultado:null,
+                                        ultima_nota:null, ultimo_asesor:usuarioActual?.id || null }); pintarPlazaPersonas(); } });
+  }
+  if(d.plzContacto) plzAbrirContacto(x);
+});
+function plzAbrirContacto(x){
+  plz.persona = x;
+  document.getElementById('plzContactoTitulo').textContent = 'Registrar contacto · ' + tituloCaso(x.nombre || '');
+  document.getElementById('plzContactoSub').textContent = [x.telefono, x.ultimo_curso && `${x.ultimo_curso}${x.ultima_fecha ? ' · ' + fechaCorta(x.ultima_fecha) : ''}`].filter(Boolean).join(' · ');
+  document.getElementById('plzContactoTipo').innerHTML = Object.entries(PLZ_TIPOS).map(([k, t])=>`<option value="${k}">${escHtml(t.l)}</option>`).join('');
+  document.getElementById('plzContactoNota').value = '';
+  document.getElementById('modalPlzContacto').classList.add('open');
+}
+document.getElementById('closePlzContacto').addEventListener('click', ()=> document.getElementById('modalPlzContacto').classList.remove('open'));
+document.getElementById('plzContactoGuardar').addEventListener('click', async ()=>{
+  const x = plz.persona; if(!x || plz.ocupado) return;
+  const tipo = document.getElementById('plzContactoTipo').value, nota = document.getElementById('plzContactoNota').value.trim();
+  if(tipo === 'nota' && !nota){ toast('Escribe la nota.', true); return; }
+  plz.ocupado = true;
+  try{
+    const fecha = new Date().toISOString();
+    const { error } = await sb.from('interacciones').insert({ persona_id:x.persona_id, asesor_id:usuarioActual?.id || null, fecha,
+      canal:PLZ_TIPOS[tipo].canal, resultado:tipo, nota:nota || null });
+    if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+    const ciudad = CIUDADES.find(c=>c.id === plz.ciudad)?.nombre || '';
+    registrarActividad('plaza_contacto', `${tituloCaso(x.nombre || '')} (${ciudad}) · ${PLZ_TIPOS[tipo].l}${nota ? ' · ' + nota : ''}`);
+    Object.assign(x, { ultimo_contacto:fecha, ultimo_canal:PLZ_TIPOS[tipo].canal, ultimo_resultado:tipo, ultima_nota:nota || null, ultimo_asesor:usuarioActual?.id || null });
+    document.getElementById('modalPlzContacto').classList.remove('open');
+    toast('Contacto guardado.');
+    pintarPlazaPersonas();
+  } finally { plz.ocupado = false; }
+});
+document.getElementById('plzExportar').addEventListener('click', ()=>{
+  if(!plz.filas.length){ toast('Elige una ciudad con alumnas.', true); return; }
+  const ciudad = CIUDADES.find(c=>c.id === plz.ciudad)?.nombre || 'ciudad';
+  const vis = plzVisibles();
+  exportarCSV(`alumnas-${normTexto(ciudad).replace(/\s+/g, '-')}.csv`,
+    ['Nombre', 'Teléfono', 'VIP', 'Último curso', 'Fecha', 'Asistencia', 'Liquidó', 'Cursos', 'Es lead', 'Último contacto', 'Qué pasó', 'Nota'],
+    vis.map(x=>[tituloCaso(x.nombre || ''), x.telefono || '', x.vip ? 'Sí' : '', x.ultimo_curso || '', x.ultima_fecha || '',
+      x.ultima_asistencia === 'llego' ? 'Llegó' : x.ultima_asistencia === 'no_llego' ? 'No llegó' : '', x.ultimo_liquidado ? 'Sí' : '',
+      x.cursos_total || 0, x.es_lead ? 'Sí' : '', x.ultimo_contacto ? new Date(x.ultimo_contacto).toLocaleDateString('es-MX') : '',
+      PLZ_TIPOS[x.ultimo_resultado]?.l.replace(/^\S+\s/, '') || x.ultimo_canal || '', x.ultima_nota || '']));
+  registrarActividad('plaza_exportar', `${ciudad} · ${vis.length} alumnas (${PLZ_FILTROS[plz.filtro].l})`);
+});
 
 /* =========================================================
    STEWARD Y AYUDANTES — por ciudad y, si ya se conoce, por evento

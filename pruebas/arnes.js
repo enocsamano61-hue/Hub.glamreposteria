@@ -116,10 +116,20 @@ function instalarStub({ tablas, usuario, equipo, estatus, permisosAccion }){
   };
   // sb.rpc: la prueba pone window.__rpc = { nombre: args => data }.
   window.__rpc = {};
+  // Acepta .range(desde, hasta) como supabase-js (las funciones que regresan muchas filas se piden por páginas).
   sb.rpc = (fn, args) => {
     window.__ops.push({ tabla:'rpc:' + fn, tipo:'rpc', datos:args });
     const f = window.__rpc[fn];
-    return Promise.resolve(f ? { data:f(args), error:null } : { data:null, error:{ message:'rpc sin simular: ' + fn } });
+    let rango = null;
+    const resultado = () => {
+      if(!f) return { data:null, error:{ message:'rpc sin simular: ' + fn } };
+      let data = f(args);
+      if(rango && Array.isArray(data)) data = data.slice(rango[0], rango[1] + 1);
+      return { data, error:null };
+    };
+    const q = { range(a, b){ rango = [a, b]; window.__ops.push({ tabla:'rpc:' + fn, tipo:'range', datos:[a, b] }); return q; },
+                then(res, rej){ return Promise.resolve(resultado()).then(res, rej); } };
+    return q;
   };
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').classList.add('active');
