@@ -1097,6 +1097,39 @@
 
   /* ---------- COBRANZA ---------- */
   .cob-cabeza{ margin-bottom:14px; }
+  /* Embudo por curso (Cobranza y hoja del día del Calendario) */
+  .emb-barra-sup{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .emb-barra-sup select{ width:auto; }
+  .emb-alertas{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .emb-alerta{ background:var(--card); border:1px solid var(--border); border-left:4px solid var(--danger); border-radius:10px; padding:8px 12px; font-size:12.5px; }
+  .emb-alerta.amb{ border-left-color:var(--ambar); }
+  .emb-dos{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:14px; align-items:start; }
+  .emb-curso{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-bottom:10px; }
+  .emb-cab{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .emb-cab b{ font-size:15px; }
+  .emb-bar{ display:flex; height:14px; border-radius:7px; overflow:hidden; margin:10px 0 8px; background:var(--border); }
+  .emb-bar i{ display:block; }
+  .emb-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .emb-chip{ display:flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:999px; padding:4px 10px; background:var(--card); font-family:inherit; font-size:12px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .emb-chip .p{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .emb-chip.on{ border-color:var(--wine); background:rgba(var(--wine-rgb),.08); }
+  .emb-chip.apagado{ opacity:.6; }
+  .emb-lista{ margin-top:10px; border-top:1px solid var(--border); padding-top:6px; }
+  .emb-titulo{ font-weight:700; color:var(--ink-soft); font-size:11px; letter-spacing:.06em; margin:6px 0; text-transform:uppercase; }
+  .emb-fila{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.5fr) auto; gap:10px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--border); font-size:13px; }
+  .emb-fila .acc{ display:flex; gap:6px; }
+  .emb-fila .acc button{ width:auto; }
+  .emb-rep{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; position:sticky; top:10px; }
+  .emb-rep h3{ margin:0 0 6px; font-size:15px; }
+  .emb-rep label{ display:flex; gap:6px; align-items:center; margin:4px 0; font-size:12.5px; }
+  .emb-rep select{ width:100%; margin:4px 0; }
+  .emb-prev{ background:#EEF6F0; border-radius:10px; padding:10px; font-size:12px; white-space:pre-wrap; margin:8px 0; font-family:ui-monospace,Menlo,monospace; max-height:340px; overflow:auto; }
+  .emb-cal{ margin-top:12px; }
+  @media (max-width:760px){
+    .emb-dos{ grid-template-columns:1fr; }
+    .emb-rep{ position:static; }
+    .emb-fila{ grid-template-columns:1fr 1fr; }
+  }
   .cob-dia .cob-registrar{ width:auto; margin-left:auto; padding:8px 14px; }
   .cob-pc{ margin-bottom:14px; border-color:var(--ambar); background:rgba(198,166,107,.08); }
   .cob-pc > summary{ cursor:pointer; font-size:14px; }
@@ -1904,6 +1937,11 @@
 
     <!-- COBRANZA — a quién cobrarle y cuándo -->
     <div class="view" id="view-cobranza">
+      <div class="subtabs" id="cobTabs">
+        <button class="subtab active" data-cob-tab="cobrar">💳 Por cobrar</button>
+        <button class="subtab" data-cob-tab="embudo">📊 Embudo por curso</button>
+      </div>
+      <div id="cobVistaCobrar">
       <div class="card cob-cabeza">
         <div class="cob-dia">
           <button class="btn-outline small" id="cobDiaAnt" title="Día anterior">‹</button>
@@ -1926,6 +1964,8 @@
       </div>
       <div id="cobPorConfirmar"></div>
       <div id="cobGrupos">Cargando…</div>
+      </div>
+      <div id="cobVistaEmbudo" style="display:none;"></div>
     </div>
 
     <!-- ACTIVIDAD DEL EQUIPO (solo admins / con permiso puntual) -->
@@ -3115,6 +3155,7 @@ const ACCION_LABEL = {
   agl_retirar_acceso: '⛔ Retiró el acceso a las clases (Academia Glam)',
   plaza_contacto: '📞 Registró un contacto con una alumna (Ciudades)',
   plaza_exportar: '📤 Exportó las alumnas de una ciudad',
+  embudo_reporte: '📋 Copió el reporte del embudo por curso',
   pedido_estado: '🎫 Movió un ticket de Glamy',
   pedido_nota: '🎫 Escribió una nota en un ticket de Glamy',
 };
@@ -6042,11 +6083,13 @@ function abrirSheetCalendario(key){
         ${ev.fecha < hoyISO() || ev.noLlegaron ? `<button type="button" class="hoja-fila" data-nollegaron-evt="${idx}"><span>○ No llegaron</span><b>${ev.noLlegaron}</b></button>` : ''}
       </div>
       <div class="tap-hint">Toca una fila para ver a esas alumnas</div>
+      ${ev.fecha >= hoyISO() ? `<div class="emb-cal" data-emb-cal="${escapeAttr(ev.id)}"><div class="sub">Cargando el embudo…</div></div>` : ''}
       <div class="seccion-titulo" style="margin-top:14px;">Steward y ayudantes</div>
       <div id="apoyoEvento_${ev.id}" class="sub">Cargando…</div>
       <button class="btn-outline small" style="margin-top:6px;" data-agregar-apoyo-evento="${ev.id}" data-agregar-apoyo-ciudad="${ev.ciudadId}">+ Agregar steward/ayudante</button>
     </div>`;
   }).join('');
+  eventosDelDia.forEach(ev=>{ if(ev.fecha >= hoyISO()) embPintarCalendario(ev.id); });
   document.getElementById('sheetEventos').querySelectorAll('[data-nollegaron-evt]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const ev = eventosDelDia[Number(btn.dataset.nollegaronEvt)]; if(!ev) return;
@@ -10839,6 +10882,252 @@ document.getElementById('plzExportar').addEventListener('click', ()=>{
       x.cursos_total || 0, x.es_lead ? 'Sí' : '', x.ultimo_contacto ? new Date(x.ultimo_contacto).toLocaleDateString('es-MX') : '',
       PLZ_TIPOS[x.ultimo_resultado]?.l.replace(/^\S+\s/, '') || x.ultimo_canal || '', x.ultima_nota || '']));
   registrarActividad('plaza_exportar', `${ciudad} · ${vis.length} alumnas (${PLZ_FILTROS[plz.filtro].l})`);
+});
+
+/* =========================================================
+   EMBUDO POR CURSO (Cobranza → 📊 y hoja del día del Calendario)
+   Cada alumna de los cursos de la gira activa (de hoy en adelante) en UN grupo:
+   inscritas (liquidada / con anticipo) y leads que todavía no se inscriben
+   (sin confirmar, promesa vigente, promesa vencida, sin respuesta; "no van" aparte).
+   Lo clasifica la base (función embudo_cursos); aquí solo se cuenta y se pinta.
+   ========================================================= */
+const EMB_GRUPOS = [
+  { k:'liquidada',     l:'Liquidadas',      c:'#55745C', e:'✅' },
+  { k:'anticipo',      l:'Con anticipo',    c:'#8FB79A', e:'💵' },
+  { k:'sin_confirmar', l:'Sin confirmar',   c:'#C6A66B', e:'🏦' },
+  { k:'promesa',       l:'Promesa vigente', c:'#E296B0', e:'📅' },
+  { k:'vencida',       l:'Promesa vencida', c:'#B5453A', e:'⚠️' },
+  { k:'sin_respuesta', l:'Sin respuesta',   c:'#D9CED4', e:'🔕' },
+];
+const EMB_NO_VAN = { k:'no_van', l:'No van', c:'#EEE7EA', e:'✖' };
+const emb = { tab:'cobrar', filas:null, vend:'', abierto:'', turno:0, cal:{},
+              rep:{ alcance:'curso', curso:'', porVend:false, numeros:true, nombres:true, tel:false, coment:false } };
+const embVend = id => EQUIPO.find(u=>u.id === id)?.nombre || 'Sin vendedora';
+// Trae el embudo de la gira activa (o de un solo curso) de 1,000 en 1,000.
+async function embTraer(eventoId){
+  const cursoId = await obtenerCursoActivoId();
+  if(!cursoId) return { filas:[] };
+  const filas = [];
+  for(let desde = 0; ; desde += 1000){
+    const { data, error } = await sb.rpc('embudo_cursos', { p_curso:cursoId, p_desde:hoyISO(), p_evento:eventoId || null }).range(desde, desde + 999);
+    if(error) return { error };
+    filas.push(...(data || []));
+    if(!data || data.length < 1000) break;
+  }
+  return { filas };
+}
+// Cursos (en orden de fecha) con sus filas.
+function embCursos(filas){
+  const m = new Map();
+  filas.forEach(f=>{ if(!m.has(f.evento_id)) m.set(f.evento_id, { id:f.evento_id, fecha:f.fecha, ciudad:f.ciudad, filas:[] }); m.get(f.evento_id).filas.push(f); });
+  return [...m.values()].sort((a, b)=>(a.fecha || '').localeCompare(b.fecha || ''));
+}
+const embCuenta = (filas, k) => filas.filter(f=>f.grupo === k).length;
+function embCuando(fecha){
+  const d = diasEntre(hoyISO(), fecha);
+  return d === 0 ? 'hoy' : d === 1 ? 'mañana' : `en ${d} días`;
+}
+// Barra de colores + chips de un curso; "prefijo" distingue Cobranza de la hoja del Calendario.
+function embHtmlCurso(c, abierto, prefijo){
+  const total = c.filas.filter(f=>f.grupo !== 'no_van').length;
+  const noVan = embCuenta(c.filas, 'no_van');
+  const barra = EMB_GRUPOS.map(g=>{ const n = embCuenta(c.filas, g.k); return n ? `<i style="width:${(n / total * 100).toFixed(2)}%;background:${g.c}" title="${escapeAttr(g.l)}: ${n}"></i>` : ''; }).join('');
+  const chip = g => { const n = embCuenta(c.filas, g.k), clave = c.id + '|' + g.k;
+    return `<button type="button" class="emb-chip ${abierto === clave ? 'on' : ''} ${g.k === 'no_van' ? 'apagado' : ''}" data-${prefijo}-abrir="${escapeAttr(clave)}"><i class="p" style="background:${g.c}"></i>${escHtml(g.l)} ${n}</button>`; };
+  const [evAbierto, grupoAbierto] = (abierto || '').split('|');
+  const lista = evAbierto === c.id ? c.filas.filter(f=>f.grupo === grupoAbierto) : null;
+  const g = [...EMB_GRUPOS, EMB_NO_VAN].find(x=>x.k === grupoAbierto);
+  return `<div class="emb-bar">${barra}</div>
+    <div class="emb-chips">${EMB_GRUPOS.map(chip).join('')}${noVan ? chip(EMB_NO_VAN) : ''}</div>
+    ${lista ? `<div class="emb-lista"><div class="emb-titulo">${escHtml(g?.l || '')} · ${lista.length}</div>
+      ${lista.map(embHtmlFila).join('') || '<div class="sub">Nadie en este grupo.</div>'}</div>` : ''}`;
+}
+function embHtmlFila(f){
+  const hoy = hoyISO();
+  let estado = '';
+  if(f.grupo === 'liquidada') estado = `Pagó <b>${fmtMoney(f.monto)}</b>`;
+  else if(f.grupo === 'anticipo') estado = `Pagó ${fmtMoney(f.monto)}<div class="sub">Debe ${fmtMoney(f.debe)}</div>`;
+  else if(f.grupo === 'sin_confirmar') estado = `Reportó <b>${fmtMoney(f.monto)}</b>${f.reportado_en ? `<div class="sub">${escHtml(hace(f.reportado_en))}</div>` : ''}`;
+  else if(f.grupo === 'promesa') estado = `Promete <b>${f.fecha_promesa === hoy ? 'hoy' : escHtml(fechaCorta(f.fecha_promesa))}</b>${f.monto ? `<div class="sub">${fmtMoney(f.monto)}</div>` : ''}`;
+  else if(f.grupo === 'vencida'){ const d = diasEntre(f.fecha_promesa, hoy); estado = `<span class="agl-pill atr">Venció hace ${d} día${d === 1 ? '' : 's'}</span><div class="sub">${escHtml(fechaCorta(f.fecha_promesa))}</div>`; }
+  else if(f.grupo === 'sin_respuesta') estado = '<span class="sub">Sin fecha de anticipo</span>';
+  else estado = '<span class="sub">Dijo que no va</span>';
+  const abrir = f.lead_id ? `data-emb-lead="${escapeAttr(f.lead_id)}"` : `data-emb-insc="${escapeAttr(f.inscripcion_id)}"`;
+  return `<div class="emb-fila">
+    <div><b>${escHtml(tituloCaso(f.nombre || ''))}</b><div class="sub">${escHtml([f.telefono, embVend(f.asesor_id)].filter(Boolean).join(' · '))}</div>
+      ${f.sin_ligar ? '<span class="agl-pill conf">Sin curso ligado</span>' : ''}</div>
+    <div>${estado}</div>
+    <div class="sub">${escHtml(f.comentario || '')}</div>
+    <div class="acc">${f.telefono ? `<button type="button" class="btn-outline small" data-emb-wa="${escapeAttr(f.lead_id || f.inscripcion_id)}" aria-label="Mandar WhatsApp" title="WhatsApp">💬</button>` : ''}
+      <button type="button" class="btn-outline small" ${abrir}>Abrir</button></div>
+  </div>`;
+}
+/* Reporte para WhatsApp: un curso o toda la gira, todas juntas o por vendedora, con lo que se elija. */
+function embReporte(filas){
+  const r = emb.rep;
+  let cursos = embCursos(filas);
+  if(r.alcance === 'curso') cursos = cursos.filter(c=>c.id === r.curso);
+  const bloque = c => {
+    const n = k => embCuenta(c.filas, k);
+    const lineas = [`*${c.ciudad} · ${fechaCorta(c.fecha)}*`];
+    if(r.numeros){
+      lineas.push(`✅ Inscritas: ${n('liquidada') + n('anticipo')} (${n('liquidada')} liquidadas, ${n('anticipo')} con anticipo)`,
+        `🏦 Sin confirmar: ${n('sin_confirmar')}`, `📅 Promesa vigente: ${n('promesa')}`, `⚠️ Promesa vencida: ${n('vencida')}`,
+        `🔕 Sin respuesta: ${n('sin_respuesta')}`, `Total: ${c.filas.length - n('no_van')}${n('no_van') ? ` (${n('no_van')} ya dijeron que no)` : ''}`);
+    }
+    if(r.nombres){
+      const pend = c.filas.filter(f=>['sin_confirmar', 'vencida', 'promesa', 'sin_respuesta'].includes(f.grupo));
+      if(pend.length){
+        lineas.push('', '_Pendientes_');
+        ['sin_confirmar', 'vencida', 'promesa', 'sin_respuesta'].forEach(k=>{
+          const g = EMB_GRUPOS.find(x=>x.k === k);
+          pend.filter(f=>f.grupo === k).forEach(f=>{
+            const extra = [r.porVend ? '' : embVend(f.asesor_id),
+              k === 'vencida' ? 'venció ' + fechaCorta(f.fecha_promesa) : k === 'promesa' ? 'promete ' + fechaCorta(f.fecha_promesa) : '',
+              r.tel ? f.telefono : '', r.coment && f.comentario ? f.comentario : ''].filter(Boolean).join(' · ');
+            lineas.push(`${g.e} ${tituloCaso(f.nombre || '')}${extra ? ' · ' + extra : ''}`);
+          });
+        });
+      }
+    }
+    return lineas.join('\n');
+  };
+  if(!cursos.length) return 'No hay cursos para el reporte.';
+  if(!r.porVend) return cursos.map(bloque).join('\n\n');
+  const vends = [...new Set(cursos.flatMap(c=>c.filas.map(f=>f.asesor_id || '')))].sort((a, b)=>embVend(a).localeCompare(embVend(b)));
+  return vends.map(v=>{
+    const suyos = cursos.map(c=>({ ...c, filas:c.filas.filter(f=>(f.asesor_id || '') === v) })).filter(c=>c.filas.length);
+    return `*— ${embVend(v)} —*\n\n` + suyos.map(bloque).join('\n\n');
+  }).join('\n\n');
+}
+async function embCargar(){
+  const caja = document.getElementById('cobVistaEmbudo');
+  const turno = ++emb.turno;
+  if(emb.filas === null) caja.innerHTML = '<div class="empty-note">Cargando…</div>';
+  const { filas, error } = await embTraer(null);
+  if(turno !== emb.turno) return;
+  if(error){ caja.innerHTML = `<div class="empty-note">No se pudo cargar: ${escHtml(error.message)}</div>`; return; }
+  emb.filas = filas;
+  embPintar();
+}
+function embPintar(){
+  const caja = document.getElementById('cobVistaEmbudo');
+  const filas = (emb.filas || []).filter(f=>!emb.vend || (emb.vend === '__sin' ? !f.asesor_id : f.asesor_id === emb.vend));
+  const cursos = embCursos(filas);
+  if(!emb.rep.curso || !cursos.some(c=>c.id === emb.rep.curso)) emb.rep.curso = cursos[0]?.id || '';
+  const hoy = hoyISO();
+  const viejos = filas.filter(f=>f.grupo === 'sin_confirmar' && f.reportado_en && Date.now() - new Date(f.reportado_en).getTime() > 864e5).length;
+  const vencenHoy = filas.filter(f=>f.grupo === 'promesa' && f.fecha_promesa === hoy).length;
+  const sinLigar = filas.filter(f=>f.sin_ligar && f.grupo !== 'no_van').length;
+  const alertas = [viejos ? `<div class="emb-alerta">🏦 <b>${viejos}</b> anticipo${viejos === 1 ? '' : 's'} sin confirmar desde hace más de 1 día</div>` : '',
+    vencenHoy ? `<div class="emb-alerta amb">📅 <b>${vencenHoy}</b> promesa${vencenHoy === 1 ? '' : 's'} vence${vencenHoy === 1 ? '' : 'n'} hoy</div>` : '',
+    sinLigar ? `<div class="emb-alerta amb">🔗 <b>${sinLigar}</b> lead${sinLigar === 1 ? '' : 's'} sin curso ligado (cuentan en el próximo curso de su ciudad)</div>` : ''].join('');
+  const r = emb.rep;
+  const reporte = embReporte(filas);
+  caja.innerHTML = `
+    <div class="emb-barra-sup">
+      <select class="select" id="embVend" aria-label="Vendedora"><option value="">Todas las vendedoras</option>${VENDEDORES.map(u=>`<option value="${escapeAttr(u.id)}" ${emb.vend === u.id ? 'selected' : ''}>${escHtml(u.nombre)}</option>`).join('')}
+        <option value="__sin" ${emb.vend === '__sin' ? 'selected' : ''}>Sin vendedora</option></select>
+      <span class="sub">Gira activa · cursos de hoy en adelante (${cursos.length})</span>
+      <button type="button" class="btn-outline small" id="embRecargar" style="width:auto;">↻ Actualizar</button>
+    </div>
+    ${alertas ? `<div class="emb-alertas">${alertas}</div>` : ''}
+    <div class="emb-dos">
+      <div>${cursos.map(c=>`<div class="emb-curso">
+          <div class="emb-cab"><b>${escHtml(c.ciudad)} · ${escHtml(fechaCorta(c.fecha))}</b><span class="sub">${escHtml(embCuando(c.fecha))} · ${c.filas.filter(f=>f.grupo !== 'no_van').length} en total</span></div>
+          ${embHtmlCurso(c, emb.abierto, 'emb')}</div>`).join('') || '<div class="empty-note">No hay cursos de la gira activa de hoy en adelante.</div>'}</div>
+      <div class="emb-rep"><h3>📋 Copiar reporte</h3>
+        <div class="emb-titulo">De qué</div>
+        <label><input type="radio" name="embAlcance" value="curso" ${r.alcance === 'curso' ? 'checked' : ''}> Un curso</label>
+        ${r.alcance === 'curso' ? `<select class="select" id="embRepCurso" aria-label="Curso del reporte">${cursos.map(c=>`<option value="${escapeAttr(c.id)}" ${c.id === r.curso ? 'selected' : ''}>${escHtml(c.ciudad)} · ${escHtml(fechaCorta(c.fecha))}</option>`).join('')}</select>` : ''}
+        <label><input type="radio" name="embAlcance" value="gira" ${r.alcance === 'gira' ? 'checked' : ''}> Toda la gira (${cursos.length} cursos)</label>
+        <div class="emb-titulo">Para quién</div>
+        <label><input type="radio" name="embPorVend" value="no" ${r.porVend ? '' : 'checked'}> Todas las vendedoras juntas</label>
+        <label><input type="radio" name="embPorVend" value="si" ${r.porVend ? 'checked' : ''}> Por vendedora (una sección cada una)</label>
+        <div class="emb-titulo">Qué incluye</div>
+        <label><input type="checkbox" data-emb-inc="numeros" ${r.numeros ? 'checked' : ''}> Números por grupo</label>
+        <label><input type="checkbox" data-emb-inc="nombres" ${r.nombres ? 'checked' : ''}> Nombres de las pendientes</label>
+        <label><input type="checkbox" data-emb-inc="tel" ${r.tel ? 'checked' : ''} ${r.nombres ? '' : 'disabled'}> Teléfonos</label>
+        <label><input type="checkbox" data-emb-inc="coment" ${r.coment ? 'checked' : ''} ${r.nombres ? '' : 'disabled'}> Últimos comentarios</label>
+        <div class="emb-prev" id="embPrev">${escHtml(reporte)}</div>
+        <button type="button" class="btn-primary" id="embCopiar">Copiar para WhatsApp</button>
+      </div>
+    </div>`;
+}
+document.getElementById('cobTabs').addEventListener('click', e=>{
+  const b = e.target.closest('[data-cob-tab]'); if(!b) return;
+  emb.tab = b.dataset.cobTab;
+  document.querySelectorAll('#cobTabs [data-cob-tab]').forEach(x=>x.classList.toggle('active', x === b));
+  document.getElementById('cobVistaCobrar').style.display = emb.tab === 'cobrar' ? '' : 'none';
+  document.getElementById('cobVistaEmbudo').style.display = emb.tab === 'embudo' ? '' : 'none';
+  if(emb.tab === 'embudo') embCargar();
+});
+// Abrir el lead o la ficha de la inscrita; al cerrar, el embudo se vuelve a consultar.
+function embAbrir(d){
+  if(d.embLead) abrirModalLead(d.embLead);
+  else if(d.embInsc) abrirModalInscripcion(d.embInsc);
+  else return false;
+  alCerrarTodasLasFichas(()=>{
+    if(emb.tab === 'embudo' && seccionActiva === 'cobranza') embCargar();
+    if(diaCalendarioAbierto && document.getElementById('sheetEventos')) Object.keys(emb.cal).forEach(id=>embPintarCalendario(id));
+  });
+  return true;
+}
+function embWhatsApp(id, filas){
+  const f = filas.find(x=>(x.lead_id || x.inscripcion_id) === id); if(!f) return;
+  abrirEnviarWhatsApp({ telefono:f.telefono, nombre:f.nombre, personaId:f.persona_id, leadId:f.lead_id || null, ciudad:f.ciudad, fecha:f.fecha, debe:f.debe });
+}
+document.getElementById('cobVistaEmbudo').addEventListener('click', async e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const d = b.dataset;
+  if(d.embAbrir){ emb.abierto = emb.abierto === d.embAbrir ? '' : d.embAbrir; return embPintar(); }
+  if(b.id === 'embRecargar') return embCargar();
+  if(d.embWa) return embWhatsApp(d.embWa, emb.filas || []);
+  if(embAbrir(d)) return;
+  if(b.id === 'embCopiar'){
+    const texto = document.getElementById('embPrev').textContent;
+    try{ await navigator.clipboard.writeText(texto); }
+    catch(_){ const t = document.createElement('textarea'); t.value = texto; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+    const r = emb.rep;
+    registrarActividad('embudo_reporte', `${r.alcance === 'gira' ? 'Toda la gira' : (emb.filas || []).find(f=>f.evento_id === r.curso)?.ciudad || 'un curso'}${r.porVend ? ' · por vendedora' : ''}`);
+    toast('Reporte copiado. Pégalo en WhatsApp.');
+  }
+});
+document.getElementById('cobVistaEmbudo').addEventListener('change', e=>{
+  const t = e.target, r = emb.rep;
+  if(t.id === 'embVend'){ emb.vend = t.value; emb.abierto = ''; }
+  else if(t.id === 'embRepCurso') r.curso = t.value;
+  else if(t.name === 'embAlcance') r.alcance = t.value;
+  else if(t.name === 'embPorVend') r.porVend = t.value === 'si';
+  else if(t.dataset.embInc) r[t.dataset.embInc] = t.checked;
+  else return;
+  embPintar();
+});
+/* Hoja del día del Calendario: el mismo embudo para ese curso, con "en camino" (las que todavía no se inscriben). */
+async function embPintarCalendario(eventoId){
+  const caja = document.querySelector(`[data-emb-cal="${CSS.escape(eventoId)}"]`); if(!caja) return;
+  const { filas, error } = await embTraer(eventoId);
+  const actual = document.querySelector(`[data-emb-cal="${CSS.escape(eventoId)}"]`); if(!actual) return;
+  if(error){ actual.innerHTML = `<div class="sub">No se pudo cargar el embudo: ${escHtml(error.message)}</div>`; return; }
+  emb.cal[eventoId] = { filas, abierto:emb.cal[eventoId]?.abierto || '' };
+  embPintarCalLocal(eventoId);
+}
+function embPintarCalLocal(eventoId){
+  const caja = document.querySelector(`[data-emb-cal="${CSS.escape(eventoId)}"]`); const d = emb.cal[eventoId];
+  if(!caja || !d) return;
+  const c = embCursos(d.filas)[0];
+  if(!c){ caja.innerHTML = ''; return; }
+  const enCamino = c.filas.filter(f=>['sin_confirmar', 'promesa', 'vencida', 'sin_respuesta'].includes(f.grupo)).length;
+  caja.innerHTML = `<div class="seccion-titulo">Embudo del curso</div>${embHtmlCurso(c, d.abierto, 'emb-cal')}
+    <div class="sub" style="margin-top:6px;">En camino: <b>${enCamino}</b> que todavía no están inscritas. Toca un grupo para ver la lista.</div>`;
+}
+document.getElementById('sheetEventos').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const caja = b.closest('[data-emb-cal]'); if(!caja) return;
+  const id = caja.dataset.embCal, d = b.dataset;
+  if(d.embCalAbrir){ emb.cal[id].abierto = emb.cal[id].abierto === d.embCalAbrir ? '' : d.embCalAbrir; return embPintarCalLocal(id); }
+  if(d.embWa) return embWhatsApp(d.embWa, emb.cal[id]?.filas || []);
+  embAbrir(d);
 });
 
 /* =========================================================
