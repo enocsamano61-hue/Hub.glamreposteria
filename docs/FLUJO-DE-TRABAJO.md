@@ -8,9 +8,40 @@ el mismo día; donde algo es estimado o no se pudo comprobar, lo dice.
 > los candados contra borrado **no** están en todas las tablas; a Anthropic **sí** puede llegar texto privado
 > si alguien lo escribe; y se agregó Academia Glam. Ver `docs/migraciones/2026-10-20-academia-glam-fase1.md`.
 
+> **Actualizado el 21 oct 2026** con lo de los días siguientes:
+> - Academia Glam 1b y 1c;
+> - la paleta C y la letra nueva del diploma de gira;
+> - la lista de alumnas por ciudad;
+> - el embudo por curso;
+> - el proceso de venta;
+> - cómo trabajan juntos Claude y Codex (sección 0).
+
 > **Regla de oro (léela dos veces):** en este proyecto **nada se construye sin que Enoc diga
 > "permitido generar"**. Leer, hacer SELECT y diagnosticar es libre. Escribir código, migraciones,
 > datos o publicar, no.
+
+---
+
+## 0. Trabajo en equipo: Claude + Codex (desde el 21 oct 2026)
+
+En el Hub trabajan dos agentes. Para no pisarse:
+
+| | Claude | Codex |
+|---|---|---|
+| **Rama** | `claude/…` | `codex/<tema>`, siempre creada desde el `main` más reciente |
+| **Base de datos (Supabase)** | Sí: SQL, migraciones, respaldos, pruebas en transacción | **No.** Si un cambio la necesita, escribe el SQL en el documento de la fase y Enoc se lo pasa a Claude |
+| **Publicar a `main`** | Sí, cuando Enoc lo pide (cherry-pick, ver 3.2) y revisando el sitio vivo | **No.** Entrega por Pull Request |
+| **Publicar Glamy** (`deploy_edge_function`) | Sí, es el único | Solo edita `manual.ts` en su rama; Claude lo publica |
+| **Le conviene** | Fases con base de datos, análisis con datos reales, publicar | Auditorías de solo lectura, pantallas sin base, pruebas, documentación |
+
+Reglas:
+1. **Un agente por fase.** Dos agentes no editan a la vez la misma sección de `hub/index.html`, porque es un solo archivo y chocan.
+2. **El "permitido generar" es por agente y por fase.** El que Enoc le da a uno no vale para el otro.
+3. **Cada uno deja su documento** en `docs/migraciones/`, y el otro lo lee antes de empezar.
+4. **Secretos:** Codex no recibe ninguno (ni `service_role` ni la llave de Anthropic).
+5. **Entorno de Codex:**
+   - Script de preparación: `npm install -g playwright@1.56.1 && npx playwright install --with-deps chromium`.
+   - Pruebas: `NODE_PATH=$(npm root -g) node pruebas/correr_todas.js`. Corren sin internet.
 
 ---
 
@@ -32,7 +63,7 @@ Los sistemas:
 | **Pruebas** | Playwright sobre el Hub real con una base en memoria | `pruebas/` | Quien desarrolla |
 
 No hay framework, ni bundler, ni `package.json` en la raíz: **el Hub es UN archivo HTML**
-(~12,300 líneas con CSS, HTML y JavaScript) que habla directo con Supabase desde el navegador.
+(~13,700 líneas, ~480 funciones, con CSS, HTML y JavaScript) que habla directo con Supabase desde el navegador.
 
 ---
 
@@ -90,8 +121,9 @@ armar maquetas en el scratchpad y proponer.
 
 ### 3.2 Ramas y publicación
 
-- Se trabaja en la rama asignada (en esta sesión: `claude/ecstatic-pasteur-2saaae`) y se hace
-  push ahí.
+- Se trabaja en la rama asignada y se hace push ahí:
+  - Claude: `claude/ecstatic-pasteur-2saaae`;
+  - Codex: `codex/<tema>`, entregando por PR (ver sección 0).
 - **`main` es producción**: un push a `main` se publica solo en hub.glamreposteria.com
   (Cloudflare). **No hay ambiente de pruebas.** Por eso: pruebas en verde antes, y solo con permiso.
 - Procedimiento usado para subir a `main` sin mezclar historias:
@@ -131,14 +163,21 @@ armar maquetas en el scratchpad y proponer.
 - **Reutilizar** lo que ya existe antes de escribir algo nuevo:
   `toast`, `registrarActividad(accion, detalle)` (bitácora; agregar la etiqueta en `ACCION_LABEL`),
   `abrirModalInscripcion(id)`, `abrirModalLead(id)` (necesita `leadsCache`, `cargarLeads()`),
-  `setActiveSection(id)`, `seccionesPermitidas()`, `puede('accion')`, `confirmar(...)` (modal que
-  devuelve promesa), `fetchTodasFilas(...)` (paginación), `normTexto`, `debeDe(insc)`, etc.
+  `setActiveSection(id)`, `seccionesPermitidas()`, `puede('accion')`,
+  `preguntarConfirmacion({titulo, aviso, textoSi, pedirMotivo})` (devuelve `null` si cancelan),
+  `abrirEnviarWhatsApp({telefono, nombre, personaId, leadId, alEnviar})` (deja la interacción),
+  `exportarCSV(archivo, encabezados, filas)`, `alCerrarTodasLasFichas(cb)`,
+  `fetchTodasFilas(...)` (paginación), `hoyISO`, `sumarDias`, `diasEntre`, `fechaCorta`, `fmtMoney`,
+  `tituloCaso`, `normTexto`, `debeDe(insc)`, etc.
+- **Funciones de la base que regresan muchas filas** (`plaza_personas`, `embudo_cursos`): se piden por
+  páginas con `.range(desde, desde + 999)`, porque la API no regresa más de 1,000 por consulta.
 - **Secciones nuevas:** una entrada en `SECCIONES`, un `<div class="view" id="view-ID">`, y su
   `renderX()` llamado desde `setActiveSection`. Si no debe repartirse por rol (como `actividad`,
   `usuarios`, `glamy`), se excluye de `SECCIONES_ASIGNABLES_POR_ROL` y se gobierna en
   `seccionesPermitidas()`.
 - **Tareas del bloc (📝)**: `notas_usuario` con `de_sistema`, `nota_sistema` y `enlace` (jsonb:
-  `{vista, inscripcion|lead|evento|ciudad|cert_evento|pedido, etiqueta}`); `irAEnlaceNota` lo abre.
+  `{vista, inscripcion|lead|evento|ciudad|cert_evento|pedido|agl_susc, etiqueta}`); `irAEnlaceNota` lo abre.
+  **El texto de la tarea se pinta sin escapar**: si lo genera la base, se sanea ahí (ver `agl_revisar_accesos`).
 - **Botones flotantes:** el bloc 📝 abajo a la izquierda, Glamy 🧁 abajo a la derecha; ambos se
   ocultan en Recepción (`body.en-recepcion`).
 - **Paleta C "rosa claro"** (oct 2026, reemplazó a la B fucsia/morado/azul): usar variables CSS
@@ -158,8 +197,12 @@ armar maquetas en el scratchpad y proponer.
 - **Funciones públicas para el portal** (`diploma_*`): `security definer` a propósito, con límite
   de intentos (`diploma_intentos`) y confirmación por teléfono.
 - **Trampas conocidas del MCP de Supabase:**
-  - `apply_migration` **se cuelga (60 s) si el SQL contiene `delete from` dentro de una función**.
-    Solución: partir la migración y evitar DELETE.
+  - `apply_migration` y `execute_sql` **se cuelgan (60 s) sin aplicar nada si el SQL contiene
+    `DROP` o `delete from`**. Solución: en vez de borrar una función, quitarle permisos (`revoke`) y
+    crear una versión nueva (sobrecarga con otro parámetro, o un nombre nuevo como `agl_candidatas_v3`).
+  - **Para probar una migración sin dejar rastro:** un bloque `do $$ … $$` que cambia de usuario
+    (`set_config('request.jwt.claim.sub', …)` y `set local role authenticated`) y termina con
+    `raise exception 'RESULTADO: …'`, que regresa el resultado y deshace todo.
   - Ambigüedad de llaves foráneas en PostgREST (error **PGRST201**): hay que nombrar la relación
     (`pagos!pagos_inscripcion_id_fkey`). Una consulta nueva **se prueba contra la API real**, no
     solo con el stub de pruebas (ver `docs/migraciones/2026-09-23-flujo-de-pago-y-permisos.md`).
@@ -170,10 +213,10 @@ armar maquetas en el scratchpad y proponer.
 
 - **Playwright** con Chromium en `/opt/pw-browsers/chromium`. Si Node no encuentra `playwright`:
   `NODE_PATH=$(npm root -g) node pruebas/prueba_X.js`.
-- **Todo corre con** `NODE_PATH=$(npm root -g) node pruebas/correr_todas.js` (hoy: **17 archivos,
+- **Todo corre con** `NODE_PATH=$(npm root -g) node pruebas/correr_todas.js` (al 21 oct: **23 archivos,
   todos en verde**).
 - `pruebas/arnes.js` abre `hub/index.html` con las librerías locales (`pruebas/vendor/`) y cambia
-  `sb.from` por una **base en memoria**; `window.__rpc = { fn: args => data }` simula RPCs;
+  `sb.from` por una **base en memoria**; `window.__rpc = { fn: args => data }` simula RPCs (acepta `.range()`);
   `h.ops(tabla,'update')` revisa lo que el Hub mandó. Nada sale a Supabase.
 - **Lo que el arnés NO detecta:** llaves foráneas, RLS, caché de esquema de la API, funciones SQL.
   Eso se prueba **a mano contra la API real** (consulta con `curl` + clave pública, o SQL).
@@ -190,7 +233,8 @@ armar maquetas en el scratchpad y proponer.
   - `docs/guia-actualizar-hub-desde-excel.md` y `docs/GUIA_ACTUALIZAR_DESDE_DRIVE.md`: cómo
     sincronizar el Hub con los Excel del Drive **sin perder dinero ni borrar nada**.
   - `pruebas/README.md`: cómo escribir pruebas y qué cubren.
-- **No hay README ni `AGENTS.md`/`CLAUDE.md` en la raíz del repo.** Este reporte propone uno (sección 9).
+  - `docs/proceso-de-venta.md`: el proceso de venta, de lead nuevo a alumna inscrita (lo explica Glamy).
+- **`AGENTS.md`** en la raíz: las reglas cortas que Codex lee solo.
 
 ### 3.8 Cómo comunico los resultados a Enoc
 
@@ -211,14 +255,15 @@ Secciones y su rol visible (las secciones se reparten por rol desde "Usuarios y 
 | Inicio (`inicio`) | Resumen, indicadores y "Tus pendientes" |
 | Alumnos y Leads (`board`) | Tablero kanban de leads por estatus; ficha del lead; reportar pago; inscribir |
 | Historial cliente (`historial`) | Buscar a cualquiera por nombre/teléfono; juntar duplicados |
-| Cursos (`cursos`) · Ciudades/Plazas (`plaza`) | Curso → ciudad → alumnas; vista por ciudad |
+| Cursos (`cursos`) · Ciudades/Plazas (`plaza`) | Curso → ciudad → alumnas. Ciudades trae además **"Todas las alumnas de esta ciudad"** (histórico sin repetir, filtros, WhatsApp, registrar contacto en `interacciones`, CSV; función `plaza_personas`) |
 | Giras (`giras`) · Logística (`logistica`) | Constructor de ruta; sedes, negociaciones, cupo (**no tocar sus tablas**) |
 | Ventas (`ventas`) · Reportes (`reportes`) | Ingresos, asesores, embudo; resumen ejecutivo y CSV |
-| Cobranza (`cobranza`) | A quién cobrar y cuándo; WhatsApp |
+| Cobranza (`cobranza`) | Pestaña **Por cobrar** (a quién cobrar y cuándo; WhatsApp). Pestaña **📊 Embudo por curso**: gira activa de hoy en adelante, cada alumna en un grupo (liquidada, con anticipo, sin confirmar, promesa vigente, promesa vencida, sin respuesta; "no van" aparte), alertas, filtro por vendedora y reporte para WhatsApp (función `embudo_cursos`) |
 | No llegaron (`nollegaron`) | Recuperar o cerrar el caso de quien pagó anticipo y no llegó |
 | Academia (`academia`) | 4 pestañas: Alumnas, Graduación, Kits, Certificados |
+| Academia Glam (`academia_glam`) | Alumnas de la Academia que pagan por mes o liquidan con abonos: Cobros (promesas, seguimiento, dar o retirar acceso), Alumnas (ficha), Planes y Generaciones. **Todavía sin alumnas activadas**: faltan respuestas de Jared (ver sección 8) |
 | Mensajes (`mensajes`) · Precios (`precios`) | Plantillas de WhatsApp con variables; lo que se cobra aparte |
-| Calendario (`calendario`) → **Recepción** | Cursos por fecha; la Recepción es la pantalla del día del curso (cobrar, marcar llegada, VIP, cerrar) |
+| Calendario (`calendario`) → **Recepción** | Cursos por fecha. La hoja del día de los cursos de hoy en adelante trae el **embudo del curso** y "en camino". La Recepción es la pantalla del día del curso (cobrar, marcar llegada, VIP, cerrar) |
 | Actividad del equipo (`actividad`) | Checador y bitácora (solo admins o con permiso) |
 | Usuarios y permisos (`usuarios`) | Solo admins: roles, secciones y acciones |
 | **Glamy** (`glamy`) | Solo quien recibe tickets (Enoc): 📊 Uso y 🎫 Tickets |
@@ -226,18 +271,30 @@ Secciones y su rol visible (las secciones se reparten por rol desde "Usuarios y 
 
 Roles que existen en `permisos_rol`: Academia e Inbox, Cobranza, Coordinadora, Dueña, Gerente,
 Logística, Sistemas, Ventas, Ventas coordinadora. Acciones aparte (`permisos_accion`):
-`confirmar_pagos`, `cobrar_academia`.
+- `confirmar_pagos`: Cobranza, Gerente y **Ventas** (al 21 oct);
+- `cobrar_academia`: Academia e Inbox;
+- `ver_todo_academia_glam`: Cobranza y Academia e Inbox.
 
 **Flujo del dinero** (lo más delicado): lead ⚪ → pago reportado 💜/🏦 *por confirmar* → ✅ confirmado
 (quien tiene `confirmar_pagos`) → inscripción liquidada. `debeDe(insc)` calcula lo que debe;
 "liquidado" exige `debe = 0` **y** ningún pago por confirmar. Los diplomas de la gira solo se
 generan a quien llegó y liquidó con pagos confirmados.
 
+**Qué cuenta como inscrita:** tener una fila en `inscripciones` para ese curso, es decir, salir en el
+Calendario. Se crea al **confirmar el pago** del lead (o con "Inscribir (pago ya confirmado)") o
+desde la carga del Excel.
+- Un lead en "Pago por confirmar" **no** está inscrito.
+- El estatus del lead "Pagó el curso" significa *anticipo confirmado e inscrita*, **no** liquidada.
+- El proceso completo está en `docs/proceso-de-venta.md`.
+
 **Certificados:** `hub/certificados/pdf-certificado.js` arma el PDF **en el navegador** (pdf-lib +
 fontkit) y lo comparte el Hub y el portal. Las fuentes se incrustan **completas** (`subset:false`:
 la licencia de Nickainley prohíbe modificarla y el subconjunto perdía letras). La plantilla vive en
-`certificado_plantillas` (posiciones, tamaños, fondo); el diploma de la gira lleva el nombre en
-3 renglones y el mes, sin folio.
+`certificado_plantillas` (posiciones, tamaños, fondo).
+
+El diploma de la gira lleva el nombre en 3 renglones y el mes, sin folio:
+- desde el 20 oct, el nombre va **en mayúsculas con Barlow Semi Condensed** (licencia OFL; campo `mayusculas: true`);
+- el diploma de Academia sigue con Great Vibes.
 
 ---
 
@@ -254,6 +311,7 @@ la licencia de Nickainley prohíbe modificarla y el subconjunto perdía letras).
 | **Equipo y permisos** | `usuarios`, `sesiones_usuario`, `actividad_usuario`, `permisos_rol`, `permisos_accion`, `notas_usuario` |
 | **Mensajes y precios** | `mensajes_predeterminados`, `precios` |
 | **Academia** | `academia_alumnas`, `academia_datos_privados` (CURP, dirección… solo Academia/admins), `academia_pagos`, `academia_generaciones`, `academia_graduaciones`, `academia_graduacion_asistentes`, `academia_graduacion_pagos`, `academia_kits`, `academia_kit_pagos`, `academia_hotel`, `academia_prospectos`, `academia_contenido`, `academia_excel_archivos`, `academia_excel_celdas` (copia exacta del Excel), `academia_carga_llave` |
+| **Academia Glam** | `academia_glam_planes`, `academia_glam_suscripciones`, `academia_glam_mensualidades`, `academia_glam_abonos`, `academia_glam_seguimientos`, `academia_glam_generaciones`. Todo se escribe por funciones `agl_*` (las tablas son de solo lectura para la API) |
 | **Certificados** | `certificado_plantillas`, `certificados`, `diploma_intentos` |
 | **Glamy** | `hub_pedidos` (= **tickets**), `glamy_uso`, `glamy_prueba_llave` |
 | **Tutorial (ya retirado de la pantalla)** | `tutorial_faq` (**sigue en uso**: Glamy la lee), `tutorial_spotlight`, `tutorial_pasos`, `tutorial_vistas_vistas`, `tutorial_pasos_completados` |
@@ -264,19 +322,35 @@ las de cobranza e histórico. Funciones propias de Glamy: `glamy_secciones`, `gl
 `glamy_curso`, `glamy_proximos_cursos`, `glamy_mis_tareas`, `glamy_debe`, `glamy_sin_acentos`
 (todas `security invoker`, respetan RLS y las secciones del rol).
 
+Funciones de lectura más recientes (`security invoker`):
+- `plaza_personas(ciudad)`: Ciudades → todas las alumnas.
+- `embudo_cursos(curso, desde, evento)`: el embudo por curso.
+
+Academia Glam usa funciones `agl_*` (`security definer`, que revisan el permiso por dentro):
+- `agl_activar`, `agl_activar_abonos`;
+- `agl_registrar_pago`, `agl_registrar_abono`;
+- `agl_seguimiento`;
+- `agl_dar_acceso`, `agl_retirar_acceso`, `agl_revisar_accesos`;
+- `agl_candidatas_v3`, `agl_config_generacion`;
+- entre otras.
+
 Historial: **~100 migraciones** (`list_migrations`), de `corregir_montos_corruptos…` (4 sep) a
 `glamy_06_tickets` (19 oct). Los prefijos cuentan la historia: `fase*` (cargas del Excel de la gira),
 `vendedores_*`, `notas_*`, `ciudades_*`, `flujo_pagos_*`, `cobranza_*`, `ladas_*`, `precios_*`,
 `recepcion_*`, `no_llegaron_*`, `pagos_verificacion_*`, `historico_*`, `excel_20261013_*`,
-`academia_01…15`, `glamy_01…06`.
+`academia_01…15`, `glamy_01…06`, `academia_glam_00…10`, `plaza_personas_seguimiento`,
+`certificados_letra_nombre_gira_barlow` y `embudo_cursos` (21 oct).
 
 ---
 
 ## 6. Glamy (el sistema más nuevo)
 
 - **Función:** `supabase/functions/glamy/index.ts` (+ `manual.ts`, el prompt fijo con la guía del
-  Hub). Desplegada como **versión 3**, `verify_jwt: false` **a propósito**: valida la sesión ella
+  Hub). Desplegada como **versión 9** (21 oct), `verify_jwt: false` **a propósito**: valida la sesión ella
   misma con `auth.getUser` (sin sesión → 401).
+- **Qué sabe además del mapa del Hub:** Academia Glam, la lista de alumnas por ciudad, el embudo por curso
+  y el **proceso de venta** (de lead a inscrita) con cómo leer los números.
+- **Para publicarla** hay que enviar los dos archivos completos (`index.ts` y `manual.ts`).
 - **Modelo:** `claude-haiku-5-5`, `output_config: { effort: "low" }`, prompt cacheado
   (`cache_control: ephemeral`) → ~$0.0002–$0.0013 USD por pregunta. Reglas de la API: sin
   `temperature`, sin prefill; en el ciclo de herramientas se devuelve `r.content` completo.
@@ -320,10 +394,10 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 
 ### 7.2 Deuda técnica y riesgos de mantenimiento
 
-- **Un solo archivo de ~12,300 líneas** (`hub/index.html`, 432 funciones globales). Funciona y es
+- **Un solo archivo de ~13,700 líneas** (`hub/index.html`, ~480 funciones globales). Funciona y es
   fácil de publicar, pero cada cambio toca el mismo archivo y es difícil de revisar. Si Codex va a
   "potenciar" el sistema, la mayor ganancia es **partirlo en módulos** (por sección) sin cambiar el
-  comportamiento, **con las 17 pruebas como red de seguridad**. Plan sugerido: primero extraer lo
+  comportamiento, **con las 23 pruebas como red de seguridad**. Plan sugerido: primero extraer lo
   compartido (conexión, permisos, utilidades), luego una sección a la vez; el Hub debe seguir
   publicándose como estático (los módulos `<script src>` ya se usan: `pdf-certificado.js`).
 - **Pruebas con base falsa:** no ven RLS, llaves foráneas ni SQL. Falta una prueba de integración
@@ -346,7 +420,7 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 
 - Candados contra borrado en las tablas de negocio principales (no en todas; ver arriba) + respaldos con fecha antes de cada migración.
 - Bitácora de actividad (`actividad_usuario`) y checador (`sesiones_usuario`).
-- Documentación por cambio y 17 pruebas automatizadas en verde.
+- Documentación por cambio y 23 pruebas automatizadas en verde.
 - Cargas del Excel **repetibles** (`academia_carga()`, llave temporal, no pisa lo editado en el Hub).
 - Escapado de HTML consistente y pruebas de XSS en lo nuevo.
 
@@ -362,10 +436,23 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 4. Tamar: corregir **2 nombres con números** en los diplomas de la gira.
 5. WhatsApp (Mensajes): crear plantillas que usen `{link}` y `{guia}`.
 
-**De desarrollo:**
-6. Glamy **Fase 2** (asistente personal), aprobada en idea, sin "permitido generar".
-7. Endurecer funciones `security definer` (hallazgos 4 y 6).
-8. Verificar el escapado de `notas_usuario.texto` (tarea `task_3e469f49`).
+**De Jared y Cinthia (para activar Academia Glam):**
+6. Academia 2026: ~650 celdas del Excel con fecha y banco pero sin monto. ¿Dónde está el monto?
+7. ¿"ABONA" en el Excel es la fecha prometida?
+8. Vendedora de cada alumna (el Excel no la trae); plan de cada una (¿todas Chef repostero pago único?).
+9. A quién activar: las ~170 que nunca pagaron y las ~275 de 2025 que van abonando.
+10. 5ª generación: número y fecha de la próxima mensualidad de cada alumna.
+
+**De desarrollo (cada uno pide su "permitido generar"):**
+11. **Seguridad, de la auditoría de Codex:**
+    - escapar `notas_usuario.texto` y quitar la posibilidad de suplantar quién asignó la tarea;
+    - restringir quién edita `tutorial_faq` (entra a las instrucciones de Glamy);
+    - RLS de `pagos` e `inscripciones` por permiso;
+    - validar las inserciones en `glamy_uso`;
+    - endurecer las funciones `security definer` (hallazgos 4 y 6).
+12. Renombrar el estatus "Pagó el curso" a "Inscrita (anticipo confirmado)".
+13. Academia Glam fase 2 (cupones y módulos por bimestre), fase 3 (comisiones) y fase 4 (avisos y herramienta de Glamy).
+14. Glamy **Fase 2** (asistente personal), aprobada en idea.
 
 ---
 
@@ -374,8 +461,8 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 1. **Leer en este orden:** este reporte → `docs/guia-actualizar-hub-desde-excel.md` →
    `pruebas/README.md` → los últimos 5 documentos de `docs/migraciones/`.
 2. **Auditar sin escribir:** recorrer los banners `/* =====` del Hub; correr
-   `NODE_PATH=$(npm root -g) node pruebas/correr_todas.js` (debe dar 17/17); revisar
-   `get_advisors` (seguridad y rendimiento) y `list_tables`.
+   `NODE_PATH=$(npm root -g) node pruebas/correr_todas.js` (debe dar los 23 archivos en verde).
+   Con acceso a Supabase (solo Claude), revisar también `get_advisors` y `list_tables`.
 3. **Pedir "permitido generar" por fase** y no asumir que el anterior sigue vigente.
 4. **Antes de cualquier migración:** respaldo en `respaldo.tabla_AAAAMMDD`; después, migración
    nombrada; después, prueba contra la API real.
@@ -383,7 +470,7 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 6. **Después de publicar:** verificar el sitio vivo.
 7. **Herramientas necesarias:** acceso a Supabase (MCP o CLI) para SQL, migraciones y
    `deploy_edge_function`; Node + Playwright (Chromium); `git` con permiso a la rama de trabajo.
-   Sin acceso a Supabase, Codex no podrá hacer migraciones ni desplegar Glamy: pedirlo a Enoc.
+   **Codex trabaja sin acceso a Supabase a propósito** (sección 0): entrega el SQL y Claude lo aplica.
 
 ### Texto sugerido para `AGENTS.md` (en la raíz del repo, para que Codex lo lea solo)
 
@@ -407,6 +494,6 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 
 - Repo: `enocsamano61-hue/hub.glamreposteria`.
 - Supabase: proyecto `bomlszsnixazhnsegeik` (URL pública en el HTML).
-- Edge Function: `glamy` (v3). Secreto: `ANTHROPIC_API_KEY` (solo en Supabase).
+- Edge Function: `glamy` (v9). Secreto: `ANTHROPIC_API_KEY` (solo en Supabase).
 - Dominios: `hub.glamreposteria.com`, `certificados.glamreposteria.com`.
 - Responsable y quien autoriza: **Enoc**. Administradores del Hub: Enoc, Jared y Perla.
