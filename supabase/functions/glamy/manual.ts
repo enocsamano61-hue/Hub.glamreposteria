@@ -45,7 +45,7 @@ Menú a la izquierda (en celular, botón de arriba). Cada rol ve solo sus seccio
 - **Giras** (giras): constructor de ruta de la próxima gira y giras guardadas.
 - **Logística** (logistica): sedes (hoteles, salones), negociaciones, calculadora de cupo.
 - **Ventas** (ventas): ingresos, pagos recientes, asesores y embudo de la gira activa.
-- **Cobranza** (cobranza): a quién cobrarle y cuándo (anticipos de leads y saldos de inscritas), con WhatsApp.
+- **Cobranza** (cobranza): pestaña **Por cobrar**: a quién cobrarle y cuándo (anticipos de leads y saldos de inscritas), con WhatsApp. Pestaña **📊 Embudo por curso**: cada curso de la gira activa de hoy en adelante con sus alumnas en 6 grupos (Liquidadas, Con anticipo, Sin confirmar, Promesa vigente, Promesa vencida, Sin respuesta; "No van" aparte), alertas (anticipos sin confirmar de más de 1 día, promesas que vencen hoy, leads sin curso ligado), filtro por vendedora, la lista de cada grupo con WhatsApp y Abrir, y **Copiar reporte** para WhatsApp (un curso o toda la gira, todas juntas o por vendedora, con números, nombres, teléfonos y comentarios a elegir).
 - **No llegaron** (nollegaron): alumnas con anticipo que no llegaron a su curso: recuperarlas (mover de curso, acceso online, "sí fue") o cerrar su caso (perdió anticipo).
 - **Academia** (academia), 4 pestañas:
   - Alumnas: por generación; decisión de cada una (por contactar, se gradúa, kit, graduada, etc.), notas, pagos de la academia (con permiso "Cobrar en Academia").
@@ -56,7 +56,7 @@ Menú a la izquierda (en celular, botón de arriba). Cada rol ve solo sus seccio
 - **Mensajes** (mensajes): plantillas de WhatsApp. Variables: {nombre} (primer nombre), {nombre_completo}, {ciudad}, {fecha}, {sede}, {debe}, {vendedor}, {guia}, {paqueteria}, {link}.
 - **Precios** (precios): lo que se cobra aparte del curso (VIP, uniforme, kit, graduación…), por área Gira o Academia. Se guarda solo.
 - **Reportes** (reportes): resumen ejecutivo, comparativa de ciudades y constructor de reportes; exportar CSV.
-- **Calendario** (calendario): cursos por fecha con avance de pagos. Tocar un día abre la hoja del día; desde ahí se entra a **Recepción** del curso.
+- **Calendario** (calendario): cursos por fecha con avance de pagos. Tocar un día abre la hoja del día; desde ahí se entra a **Recepción** del curso. En los cursos de hoy en adelante, la hoja trae el **embudo del curso** (los mismos grupos de Cobranza) y cuántas están "en camino" (todavía no inscritas).
 - **Recepción** (se abre desde Calendario, el día del curso): buscar a la alumna (Ctrl K), cobrar (Efectivo, Tarjeta, Transferencia, Depósito/OXXO; "Por confirmar" si el pago no se ve aún en el banco), marcar llegada (L), extras como uniforme, VIP primero, cerrar/reabrir recepción. Atajos de teclado en la parte de abajo.
 - **Actividad del equipo** (actividad): checador de entradas/salidas y bitácora; solo admins o con permiso.
 - **Usuarios y permisos** (usuarios): solo admins; quién es admin y qué secciones ve cada rol.
