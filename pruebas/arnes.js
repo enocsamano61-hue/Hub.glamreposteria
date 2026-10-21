@@ -37,7 +37,7 @@ const ESTATUS_EJEMPLO = [
   { id:2,  clave:'no_vence_pago',      etiqueta:'Aún no vence su pago' },
   { id:6,  clave:'no_va_al_curso',     etiqueta:'No va a ir al curso', es_final:true },
   { id:11, clave:'anticipo_vigente',   etiqueta:'Fecha de anticipo vigente' },
-  { id:12, clave:'pagado',             etiqueta:'Pagó el curso', es_final:true },
+  { id:12, clave:'pagado',             etiqueta:'Inscrita (anticipo confirmado)', es_final:true },
   { id:14, clave:'no_llego',           etiqueta:'No llegó al curso', es_final:true },
   { id:15, clave:'perdio_anticipo',    etiqueta:'Perdió anticipo', es_final:true },
 ];

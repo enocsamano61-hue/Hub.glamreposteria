@@ -284,7 +284,7 @@ generan a quien llegó y liquidó con pagos confirmados.
 Calendario. Se crea al **confirmar el pago** del lead (o con "Inscribir (pago ya confirmado)") o
 desde la carga del Excel.
 - Un lead en "Pago por confirmar" **no** está inscrito.
-- El estatus del lead "Pagó el curso" significa *anticipo confirmado e inscrita*, **no** liquidada.
+- El estatus del lead "Inscrita (anticipo confirmado)" (antes "Pagó el curso", clave `pagado`, id 12) significa *anticipo confirmado e inscrita*, **no** liquidada.
 - El proceso completo está en `docs/proceso-de-venta.md`.
 
 **Certificados:** `hub/certificados/pdf-certificado.js` arma el PDF **en el navegador** (pdf-lib +
@@ -445,12 +445,12 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
 
 **De desarrollo (cada uno pide su "permitido generar"):**
 11. **Seguridad, de la auditoría de Codex:**
-    - escapar `notas_usuario.texto` y quitar la posibilidad de suplantar quién asignó la tarea;
+    - ~~escapar `notas_usuario.texto`~~ (hecho 21 oct); falta quitar la posibilidad de suplantar quién asignó la tarea;
     - restringir quién edita `tutorial_faq` (entra a las instrucciones de Glamy);
     - RLS de `pagos` e `inscripciones` por permiso;
     - validar las inserciones en `glamy_uso`;
     - endurecer las funciones `security definer` (hallazgos 4 y 6).
-12. Renombrar el estatus "Pagó el curso" a "Inscrita (anticipo confirmado)".
+12. ~~Renombrar el estatus "Pagó el curso" a "Inscrita (anticipo confirmado)"~~ Hecho el 21 oct (ver `docs/migraciones/2026-10-21-fase0-whatsapp-y-texto.md`). Lo que sigue de la Fase 0 de Codex (pasos 2 a 5) está en ese mismo doc.
 13. Academia Glam fase 2 (cupones y módulos por bimestre), fase 3 (comisiones) y fase 4 (avisos y herramienta de Glamy).
 14. Glamy **Fase 2** (asistente personal), aprobada en idea.
 
