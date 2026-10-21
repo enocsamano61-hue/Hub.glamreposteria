@@ -1097,6 +1097,47 @@
 
   /* ---------- COBRANZA ---------- */
   .cob-cabeza{ margin-bottom:14px; }
+  /* Usuarios y permisos */
+  .usr-resumen{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .usr-resumen span{ background:var(--card); border:1px solid var(--border); border-radius:999px; padding:5px 12px; font-size:12.5px; }
+  #usrBuscar{ max-width:420px; margin-bottom:12px; }
+  .usr-persona{ background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:8px; }
+  .usr-persona.abierta{ border-color:var(--wine); }
+  .usr-fila{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1.6fr) auto; gap:10px; align-items:center; padding:10px 14px; }
+  .usr-fila button{ width:auto; }
+  .usr-rol{ display:inline-block; background:rgba(var(--wine-rgb),.1); color:var(--wine-dark); border-radius:8px; padding:3px 9px; font-size:12px; font-weight:600; }
+  .usr-badges{ display:flex; gap:5px; flex-wrap:wrap; }
+  .usr-badge{ font-size:11px; font-weight:700; border-radius:10px; padding:2px 8px; background:var(--border); color:var(--wine-dark); }
+  .usr-badge.admin{ background:var(--wine); color:#fff; }
+  .usr-panel{ display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:4px 14px 14px; border-top:1px solid var(--border); }
+  .usr-col{ padding-top:10px; }
+  .usr-campo{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; color:var(--ink-soft); max-width:300px; }
+  .usr-sw{ display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px dashed var(--border); cursor:pointer; }
+  .usr-sw input{ margin-top:3px; width:16px; height:16px; accent-color:var(--wine); flex-shrink:0; }
+  .usr-sw b{ display:block; font-size:13px; }
+  .usr-sw small{ display:block; color:var(--ink-soft); font-size:11.5px; }
+  .usr-sub-t{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); margin:10px 0 6px; }
+  .usr-chip{ display:inline-block; font-size:12px; border:1px solid var(--border); border-radius:999px; padding:3px 10px; margin:0 5px 5px 0; }
+  .usr-chip.acc{ border-color:var(--wine); color:var(--wine); }
+  .usr-chip.todo{ background:var(--wine); color:#fff; border-color:var(--wine); }
+  .usr-roles{ display:grid; grid-template-columns:240px minmax(0,1fr); gap:14px; align-items:start; }
+  .usr-roles-lista{ display:flex; flex-direction:column; gap:6px; }
+  .usr-rol-btn{ text-align:left; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 12px; cursor:pointer; font-family:inherit; color:var(--ink); }
+  .usr-rol-btn small{ display:block; color:var(--ink-soft); font-size:11.5px; }
+  .usr-rol-btn.on{ border-color:var(--wine); background:rgba(var(--wine-rgb),.08); }
+  .usr-nuevo{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  .usr-nuevo button{ width:auto; }
+  .usr-rol-panel{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; }
+  .usr-area{ margin-top:6px; }
+  .usr-aviso{ background:rgba(198,166,107,.18); color:#6B5420; border-radius:10px; padding:8px 12px; font-size:12.5px; margin-top:10px; }
+  @media (max-width:760px){
+    .usr-fila{ grid-template-columns:1fr auto; }
+    .usr-panel{ grid-template-columns:1fr; }
+    .usr-roles{ grid-template-columns:1fr; }
+    .usr-roles-lista{ flex-direction:row; flex-wrap:wrap; }
+    .usr-rol-btn{ flex:1 1 140px; }
+    .usr-nuevo{ flex:1 1 100%; }
+  }
   /* Embudo por curso (Cobranza y hoja del día del Calendario) */
   .emb-barra-sup{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
   .emb-barra-sup select{ width:auto; }
@@ -1988,21 +2029,12 @@
 
     <!-- USUARIOS Y PERMISOS (solo admins) -->
     <div class="view" id="view-usuarios">
-      <div class="card" style="margin-bottom:16px;">
-        <h3><span class="spark">✦</span> Usuarios y permisos</h3>
-        <div class="sub">Quién es administrador (ve y edita todo, y puede dar permisos) y quién puede ver "Actividad del equipo" sin ser administrador.</div>
-        <div id="listaUsuariosPermisos" style="margin-top:12px;">Cargando…</div>
+      <div class="subtabs" id="usrTabs">
+        <button class="subtab active" data-usr-tab="personas">👥 Personas</button>
+        <button class="subtab" data-usr-tab="roles">🎭 Roles</button>
       </div>
-      <div class="card">
-        <h3>Qué secciones ve cada rol</h3>
-        <div class="sub">Marca o desmarca por rol — cambia al instante para todos los que tengan ese rol. "Inicio" siempre queda marcado para que nadie se quede sin dónde entrar.</div>
-        <div id="matrizPermisosRol" style="margin-top:12px;">Cargando…</div>
-      </div>
-      <div class="card">
-        <h3>Qué puede hacer cada rol</h3>
-        <div class="sub">Acciones delicadas, aparte de las secciones. Los administradores siempre pueden.</div>
-        <div id="matrizAccionesRol" style="margin-top:12px;">Cargando…</div>
-      </div>
+      <div id="usrPersonas"></div>
+      <div id="usrRoles" style="display:none;"></div>
     </div>
 
     <!-- ACADEMIA GLAM: alumnas que pagan por mes (cobros, alumnas y planes) -->
@@ -2816,7 +2848,7 @@ const SECCIONES = [
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
-  { id:'usuarios', label:'Usuarios y permisos', sub:'Quién es admin y quién puede ver la actividad del equipo', soon:false, icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/>' },
+  { id:'usuarios', label:'Usuarios y permisos', sub:'Personas, roles y lo que ve cada quien', soon:false, icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/>' },
   { id:'glamy', label:'Glamy', sub:'Cuánto se usa Glamy y los tickets que levanta el equipo', soon:false, icon:'<path d="M6 13h12l-1.5 8h-9z"/><path d="M5 13c-1.5-3 1.5-5 3.5-4.5 0-3 3.5-4.5 5.5-2.5 2-1.5 5.5 0 5 3 2 .5 2.5 3 .5 4"/><path d="M12 3.5v.01"/>' },
 ];
 function svgIcon(p,c){ return `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`; }
@@ -3083,6 +3115,8 @@ const ACCION_LABEL = {
   pago_confirmado: '✅ Confirmó un pago',
   pago_no_encontrado: '❌ No encontró un pago reportado',
   permiso_cambiado: 'Cambió un permiso de rol',
+  usuario_cambiado: '👤 Cambió el rol o los permisos de una persona',
+  rol_creado: '🎭 Creó un rol nuevo',
   fecha_cobro_movida: '📅 Movió una fecha de cobro',
   contacto_editado: '✏️ Editó datos de contacto',
   whatsapp_enviado: '💬 Mandó un WhatsApp',
@@ -3273,107 +3307,260 @@ async function renderActividad(){
 }
 
 /* ---------- Vista "Usuarios y permisos" (solo admins) ---------- */
+/* =========================================================
+   USUARIOS Y PERMISOS — dos pestañas:
+   👥 Personas: rol, administrador, vendedora, recibe tickets, ve actividad, y "lo que ve".
+   🎭 Roles: por rol, qué secciones ve (agrupadas por área) y qué acciones especiales puede hacer.
+   Solo administradores (lo exige también la base: RLS de usuarios, permisos_rol y permisos_accion).
+   Un rol existe si alguien lo tiene o si tiene permisos guardados; "Rol nuevo" le guarda "Inicio".
+   ========================================================= */
+const usr = { tab:'personas', usuarios:[], permRol:[], permAcc:[], rolSel:'', buscar:'', abierto:null, ocupado:false };
+const USR_AREAS = [
+  { l:'Ventas y cobranza', s:['board', 'historial', 'cobranza', 'nollegaron', 'ventas'] },
+  { l:'Gira',              s:['calendario', 'cursos', 'plaza', 'giras', 'logistica'] },
+  { l:'Academia',          s:['academia', 'academia_glam'] },
+  { l:'Herramientas',      s:['mensajes', 'precios', 'reportes'] },
+];
+// Las secciones asignables que no estén en un área (si se agrega una nueva) caen en "Otras".
+function usrAreas(){
+  const usadas = new Set(['inicio', ...USR_AREAS.flatMap(a=>a.s)]);
+  const otras = SECCIONES_ASIGNABLES_POR_ROL.map(s=>s.id).filter(id=>!usadas.has(id));
+  return otras.length ? [...USR_AREAS, { l:'Otras', s:otras }] : USR_AREAS;
+}
+const usrSeccion = id => SECCIONES.find(s=>s.id === id);
+function usrRoles(){
+  return [...new Set([...usr.usuarios.map(u=>u.rol), ...usr.permRol.map(p=>p.rol), ...usr.permAcc.map(p=>p.rol)].filter(Boolean))]
+    .sort((a, b)=>a.localeCompare(b, 'es'));
+}
+// Secciones guardadas de un rol (null si nunca se ha configurado: ve las de fábrica).
+function usrSeccionesGuardadas(rol){
+  const filas = usr.permRol.filter(p=>p.rol === rol);
+  return filas.length ? new Set(filas.map(p=>p.seccion_id)) : null;
+}
+function usrSeccionesDeRol(rol){
+  return usrSeccionesGuardadas(rol) || new Set(PERMISOS_POR_ROL_DEFAULT[rol] || TODAS_SECCIONES);
+}
+const usrAccionesDeRol = rol => new Set(usr.permAcc.filter(p=>p.rol === rol).map(p=>p.accion));
+const usrSoloAdmins = rol => { const g = usr.usuarios.filter(u=>u.rol === rol); return g.length > 0 && g.every(u=>u.es_admin); };
+
 async function renderUsuariosPermisos(){
-  const cont = document.getElementById('listaUsuariosPermisos');
-  const contMatriz = document.getElementById('matrizPermisosRol');
-  cont.textContent = 'Cargando…';
-  contMatriz.textContent = 'Cargando…';
-  const [{ data: usuarios, error }, { data: permisos, error: errP }] = await Promise.all([
-    sb.from('usuarios').select('id, nombre, rol, email, es_admin, puede_ver_actividad').order('nombre'),
+  const caja = document.getElementById(usr.tab === 'personas' ? 'usrPersonas' : 'usrRoles');
+  if(!usr.usuarios.length) caja.innerHTML = '<div class="empty-note">Cargando…</div>';
+  const [u, r, a] = await Promise.all([
+    sb.from('usuarios').select('id, nombre, rol, email, es_admin, puede_ver_actividad, es_vendedor, recibe_pedidos').order('nombre'),
     sb.from('permisos_rol').select('rol, seccion_id'),
+    sb.from('permisos_accion').select('rol, accion'),
   ]);
-  if(error){ cont.textContent = 'Error: ' + error.message; return; }
-  cont.innerHTML = (usuarios||[]).map(u=>`
-    <div class="dato-row">
-      <span class="l">${u.nombre} <span style="color:var(--ink-soft);">· ${u.rol||'—'} · ${u.email}</span></span>
-      <span style="display:flex; align-items:center; gap:16px;">
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" data-toggle-admin="${u.id}" ${u.es_admin?'checked':''} ${u.id===usuarioActual.id?'disabled title="No puedes quitarte el permiso a ti mismo"':''}> Admin
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" data-toggle-actividad="${u.id}" ${u.puede_ver_actividad?'checked':''} ${u.es_admin?'disabled title="Ya ve todo por ser admin"':''}> Ve actividad del equipo
-        </label>
-      </span>
-    </div>`).join('') || '<div class="empty-note">Sin usuarios todavía.</div>';
-  document.querySelectorAll('[data-toggle-admin]').forEach(chk=>{
-    chk.addEventListener('change', async ()=>{
-      if(chk.checked && !confirm('¿Volver administrador a esta persona? Va a poder ver y editar TODO el Hub, y dar/quitar permisos a los demás.')){ chk.checked = false; return; }
-      const { error } = await sb.from('usuarios').update({ es_admin: chk.checked }).eq('id', chk.dataset.toggleAdmin);
-      if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
-      toast(chk.checked ? 'Ahora es administrador.' : 'Ya no es administrador.');
-      renderUsuariosPermisos();
-    });
-  });
-  document.querySelectorAll('[data-toggle-actividad]').forEach(chk=>{
-    chk.addEventListener('change', async ()=>{
-      const { error } = await sb.from('usuarios').update({ puede_ver_actividad: chk.checked }).eq('id', chk.dataset.toggleActividad);
-      if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
-      toast(chk.checked ? 'Ahora puede ver Actividad del equipo.' : 'Ya no puede ver Actividad del equipo.');
-    });
-  });
+  const err = u.error || r.error || a.error;
+  if(err){ caja.innerHTML = `<div class="empty-note">No se pudo cargar: ${escHtml(err.message)}</div>`; return; }
+  usr.usuarios = u.data || []; usr.permRol = r.data || []; usr.permAcc = a.data || [];
+  usrPintar();
+}
+function usrPintar(){
+  document.querySelectorAll('#usrTabs [data-usr-tab]').forEach(b=>b.classList.toggle('active', b.dataset.usrTab === usr.tab));
+  document.getElementById('usrPersonas').style.display = usr.tab === 'personas' ? '' : 'none';
+  document.getElementById('usrRoles').style.display = usr.tab === 'roles' ? '' : 'none';
+  if(usr.tab === 'personas') usrPintarPersonas(); else usrPintarRoles();
+}
 
-  // --- Matriz de secciones por rol ---
-  if(errP){ contMatriz.textContent = 'Error: ' + errP.message; return; }
-  const permisosPorRol = {};
-  (permisos||[]).forEach(p=>{ (permisosPorRol[p.rol] = permisosPorRol[p.rol] || new Set()).add(p.seccion_id); });
-  const roles = [...new Set((usuarios||[]).map(u=>u.rol).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
-  contMatriz.innerHTML = `<div class="rep-table-wrap"><table class="rep-table perm-matriz">
-    <thead><tr><th>Rol</th>${SECCIONES_ASIGNABLES_POR_ROL.map(s=>`<th style="text-align:center; cursor:default;">${s.label}</th>`).join('')}</tr></thead>
-    <tbody>
-      ${roles.map(rol=>{
-        const set = permisosPorRol[rol] || new Set();
-        return `<tr><td>${rol}</td>${SECCIONES_ASIGNABLES_POR_ROL.map(s=>{
-          const fijo = s.id==='inicio';
-          const marcado = fijo || set.has(s.id);
-          return `<td style="text-align:center;"><input type="checkbox" data-perm-rol="${escapeAttr(rol)}" data-perm-seccion="${s.id}" ${marcado?'checked':''} ${fijo?'disabled title="Todos necesitan al menos Inicio"':''}></td>`;
-        }).join('')}</tr>`;
-      }).join('') || `<tr><td colspan="${SECCIONES_ASIGNABLES_POR_ROL.length+1}" class="empty-note">Sin roles todavía.</td></tr>`}
-    </tbody>
-  </table></div>`;
-  contMatriz.querySelectorAll('[data-perm-rol]').forEach(chk=>{
-    chk.addEventListener('change', async ()=>{
-      const rol = chk.dataset.permRol, seccion = chk.dataset.permSeccion;
-      chk.disabled = true;
-      const { error } = chk.checked
-        ? await sb.from('permisos_rol').insert({ rol, seccion_id: seccion })
+/* ---------- 👥 Personas ---------- */
+function usrLoQueVe(u){
+  if(u.es_admin) return '<span class="usr-chip todo">Todo el Hub (administrador)</span>';
+  const ve = usrSeccionesDeRol(u.rol);
+  const secc = SECCIONES_ASIGNABLES_POR_ROL.filter(s=>ve.has(s.id)).map(s=>s.label);
+  if(u.puede_ver_actividad) secc.push('Actividad del equipo');
+  if(u.recibe_pedidos) secc.push('Glamy (tickets)');
+  const acc = ACCIONES_POR_ROL.filter(a=>usrAccionesDeRol(u.rol).has(a.id)).map(a=>a.label);
+  return `${secc.map(t=>`<span class="usr-chip">${escHtml(t)}</span>`).join('')}
+    ${acc.length ? `<div class="usr-sub-t">Puede además</div>${acc.map(t=>`<span class="usr-chip acc">${escHtml(t)}</span>`).join('')}` : ''}`;
+}
+function usrPintarPersonas(){
+  const caja = document.getElementById('usrPersonas');
+  const q = normTexto(usr.buscar);
+  const lista = usr.usuarios.filter(u=>!q || normTexto(`${u.nombre} ${u.email} ${u.rol}`).includes(q));
+  const porRol = usrRoles().map(r=>[r, usr.usuarios.filter(u=>u.rol === r).length]).filter(([, n])=>n);
+  const roles = usrRoles();
+  const fila = u=>{
+    const badges = [u.es_admin ? '<span class="usr-badge admin">Admin</span>' : '', u.es_vendedor ? '<span class="usr-badge">Vendedora</span>' : '',
+      u.recibe_pedidos ? '<span class="usr-badge">Recibe tickets</span>' : '', !u.es_admin && u.puede_ver_actividad ? '<span class="usr-badge">Ve actividad</span>' : ''].join('');
+    const yo = u.id === usuarioActual?.id, abierto = usr.abierto === u.id;
+    return `<div class="usr-persona ${abierto ? 'abierta' : ''}" data-usr-persona="${escapeAttr(u.id)}">
+      <div class="usr-fila">
+        <div><b>${escHtml(u.nombre || '(sin nombre)')}</b>${yo ? ' <span class="sub">(tú)</span>' : ''}<div class="sub">${escHtml(u.email || '')}</div></div>
+        <div><span class="usr-rol">${escHtml(u.rol || 'Sin rol')}</span></div>
+        <div class="usr-badges">${badges}</div>
+        <div><button type="button" class="btn-outline small" data-usr-editar="${escapeAttr(u.id)}">${abierto ? 'Cerrar' : 'Editar'}</button></div>
+      </div>
+      ${abierto ? `<div class="usr-panel">
+        <div class="usr-col">
+          <label class="usr-campo">Rol<select class="select" data-usr-rol="${escapeAttr(u.id)}">${roles.map(r=>`<option ${r === u.rol ? 'selected' : ''}>${escHtml(r)}</option>`).join('')}</select></label>
+          <div class="sub">¿Falta un rol? Créalo en la pestaña 🎭 Roles.</div>
+          <label class="usr-sw"><input type="checkbox" data-usr-campo="es_admin" ${u.es_admin ? 'checked' : ''} ${yo ? 'disabled' : ''}>
+            <span><b>Administrador</b><small>${yo ? 'No puedes quitártelo a ti mismo.' : 'Ve y edita todo el Hub, y da permisos.'}</small></span></label>
+          <label class="usr-sw"><input type="checkbox" data-usr-campo="es_vendedor" ${u.es_vendedor ? 'checked' : ''}>
+            <span><b>Es vendedora</b><small>Sale en "¿Quién vendió?" y en los filtros por vendedora.</small></span></label>
+          <label class="usr-sw"><input type="checkbox" data-usr-campo="recibe_pedidos" ${u.recibe_pedidos ? 'checked' : ''}>
+            <span><b>Recibe tickets de Glamy</b><small>Le llegan los tickets y ve la sección Glamy.</small></span></label>
+          <label class="usr-sw"><input type="checkbox" data-usr-campo="puede_ver_actividad" ${u.puede_ver_actividad || u.es_admin ? 'checked' : ''} ${u.es_admin ? 'disabled' : ''}>
+            <span><b>Ve actividad del equipo</b><small>${u.es_admin ? 'Ya la ve por ser administrador.' : 'Checador y bitácora, sin ser administrador.'}</small></span></label>
+        </div>
+        <div class="usr-col"><div class="usr-sub-t">Lo que ve</div>${usrLoQueVe(u)}</div>
+      </div>` : ''}
+    </div>`;
+  };
+  caja.innerHTML = `
+    <div class="usr-resumen"><span><b>${usr.usuarios.length}</b> personas</span><span><b>${usr.usuarios.filter(u=>u.es_admin).length}</b> administradores</span>
+      ${porRol.map(([r, n])=>`<span>${escHtml(r)} <b>${n}</b></span>`).join('')}</div>
+    <input type="search" class="search" id="usrBuscar" placeholder="Buscar por nombre, correo o rol" value="${escapeAttr(usr.buscar)}" aria-label="Buscar persona">
+    <div class="usr-lista">${lista.map(fila).join('') || '<div class="empty-note">Nadie con esa búsqueda.</div>'}</div>`;
+}
+async function usrCambiarPersona(u, campo, valor, chk){
+  if(usr.ocupado) return;
+  if(campo === 'es_admin' && valor){
+    const ok = await preguntarConfirmacion({ titulo:'¿Volver administrador?', textoSi:'Sí, hacerlo administrador', fuerte:true,
+      aviso:`<b>${escHtml(u.nombre || '')}</b> va a poder ver y editar <b>todo</b> el Hub, y dar o quitar permisos a los demás.` });
+    if(ok === null){ if(chk) chk.checked = false; return; }
+  }
+  usr.ocupado = true;
+  try{
+    const { error } = await sb.from('usuarios').update({ [campo]:valor }).eq('id', u.id);
+    if(error){ toast('No se pudo guardar: ' + error.message, true); if(chk) chk.checked = !valor; return; }
+    const antes = u[campo];
+    u[campo] = valor;
+    // El directorio del equipo (vendedoras, nombres) se usa en todo el Hub.
+    const e = EQUIPO.find(x=>x.id === u.id);
+    if(e){ e[campo] = valor; VENDEDORES = EQUIPO.filter(x=>x.es_vendedor); }
+    const QUE = { es_admin:'administrador', es_vendedor:'vendedora', recibe_pedidos:'recibe tickets de Glamy', puede_ver_actividad:'ve actividad del equipo' };
+    const texto = campo === 'rol' ? `rol: ${antes || 'sin rol'} → ${valor}` : `${valor ? 'ahora' : 'ya no'} es/ve: ${QUE[campo]}`;
+    registrarActividad('usuario_cambiado', `${u.nombre}: ${texto}`);
+    toast(`${u.nombre}: ${texto}.`);
+    if(u.id === usuarioActual?.id && campo === 'rol'){ usuarioActual.rol = valor; aplicarPermisosNav(); }
+    usrPintarPersonas();
+  } finally { usr.ocupado = false; }
+}
+document.getElementById('usrPersonas').addEventListener('click', e=>{
+  const b = e.target.closest('[data-usr-editar]'); if(!b) return;
+  usr.abierto = usr.abierto === b.dataset.usrEditar ? null : b.dataset.usrEditar;
+  usrPintarPersonas();
+});
+document.getElementById('usrPersonas').addEventListener('input', e=>{
+  if(e.target.id !== 'usrBuscar') return;
+  usr.buscar = e.target.value;
+  const pos = e.target.selectionStart;
+  usrPintarPersonas();
+  const i = document.getElementById('usrBuscar'); i.focus(); i.setSelectionRange(pos, pos);
+});
+document.getElementById('usrPersonas').addEventListener('change', e=>{
+  const caja = e.target.closest('[data-usr-persona]'); if(!caja) return;
+  const u = usr.usuarios.find(x=>x.id === caja.dataset.usrPersona); if(!u) return;
+  if(e.target.matches('[data-usr-rol]')) return usrCambiarPersona(u, 'rol', e.target.value, null);
+  if(e.target.matches('[data-usr-campo]')) usrCambiarPersona(u, e.target.dataset.usrCampo, e.target.checked, e.target);
+});
+
+/* ---------- 🎭 Roles ---------- */
+function usrPintarRoles(){
+  const caja = document.getElementById('usrRoles');
+  const roles = usrRoles();
+  if(!roles.includes(usr.rolSel)) usr.rolSel = roles[0] || '';
+  const rol = usr.rolSel;
+  const gente = usr.usuarios.filter(u=>u.rol === rol);
+  const guardadas = usrSeccionesGuardadas(rol), ve = usrSeccionesDeRol(rol), acc = usrAccionesDeRol(rol);
+  const sw = (attr, id, label, ayuda, marcado, fijo) => `<label class="usr-sw"><input type="checkbox" ${attr}="${escapeAttr(id)}" ${marcado ? 'checked' : ''} ${fijo ? 'disabled' : ''}>
+    <span><b>${escHtml(label)}</b>${ayuda ? `<small>${escHtml(ayuda)}</small>` : ''}</span></label>`;
+  caja.innerHTML = `<div class="usr-roles">
+    <div class="usr-roles-lista">
+      ${roles.map(r=>{ const n = usr.usuarios.filter(u=>u.rol === r).length;
+        return `<button type="button" class="usr-rol-btn ${r === rol ? 'on' : ''}" data-usr-rolsel="${escapeAttr(r)}"><b>${escHtml(r)}</b>
+          <small>${n} persona${n === 1 ? '' : 's'}${usrSoloAdmins(r) ? ' · ven todo (admins)' : ''}</small></button>`; }).join('')}
+      <div class="usr-nuevo"><input type="text" class="search" id="usrRolNuevo" maxlength="40" placeholder="Nombre del rol nuevo" aria-label="Nombre del rol nuevo">
+        <button type="button" class="btn-outline small" id="usrCrearRol">＋ Crear rol</button></div>
+    </div>
+    <div class="usr-rol-panel">${!rol ? '<div class="empty-note">Todavía no hay roles.</div>' : `
+      <h3 style="margin:0;">${escHtml(rol)}</h3>
+      <div class="sub">${gente.length ? 'Lo tienen: ' + gente.map(u=>escHtml(u.nombre)).join(', ') : 'Nadie tiene este rol todavía. Asígnalo en 👥 Personas.'}</div>
+      ${usrSoloAdmins(rol) ? '<div class="usr-aviso">Todas las personas con este rol son administradoras: ven todo, sin importar lo que se marque aquí.</div>' : ''}
+      ${guardadas ? '' : '<div class="usr-aviso">Este rol todavía no se ha configurado: ve las secciones de fábrica (las marcadas). Al cambiar cualquiera, se guardan todas.</div>'}
+      <div class="usr-area"><div class="usr-sub-t">Siempre</div>${sw('data-usr-sec', 'inicio', 'Inicio', 'Todos lo ven, para que nadie se quede sin dónde entrar.', true, true)}</div>
+      ${usrAreas().map(a=>`<div class="usr-area"><div class="usr-sub-t">${escHtml(a.l)}</div>
+        ${a.s.filter(usrSeccion).map(id=>sw('data-usr-sec', id, usrSeccion(id).label, usrSeccion(id).sub, ve.has(id), false)).join('')}</div>`).join('')}
+      <div class="usr-area"><div class="usr-sub-t">Acciones especiales</div>
+        ${ACCIONES_POR_ROL.map(x=>sw('data-usr-acc', x.id, x.label, x.ayuda, acc.has(x.id), false)).join('')}
+        <div class="sub">Los administradores siempre pueden todo.</div></div>`}
+    </div>
+  </div>`;
+}
+async function usrCambiarSeccion(rol, seccion, marcado, chk){
+  usr.ocupado = true;
+  try{
+    // Un rol sin configurar ve las de fábrica: antes del primer cambio se guardan todas, para no quitarle nada sin querer.
+    if(!usrSeccionesGuardadas(rol)){
+      const filas = [...usrSeccionesDeRol(rol)].filter(id=>SECCIONES_ASIGNABLES_POR_ROL.some(s=>s.id === id)).map(id=>({ rol, seccion_id:id }));
+      if(!filas.some(f=>f.seccion_id === 'inicio')) filas.push({ rol, seccion_id:'inicio' });
+      const { error } = await sb.from('permisos_rol').insert(filas);
+      if(error){ toast('No se pudo guardar: ' + error.message, true); chk.checked = !marcado; return; }
+      usr.permRol.push(...filas);
+    }
+    const ya = usr.permRol.some(p=>p.rol === rol && p.seccion_id === seccion);
+    if(marcado !== ya){
+      const { error } = marcado
+        ? await sb.from('permisos_rol').insert({ rol, seccion_id:seccion })
         : await sb.from('permisos_rol').delete().eq('rol', rol).eq('seccion_id', seccion);
-      chk.disabled = false;
-      if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
-      toast(`"${rol}" ${chk.checked?'ahora ve':'ya no ve'} "${SECCIONES.find(s=>s.id===seccion)?.label||seccion}".`);
-      cargarPermisosRol();
-    });
-  });
-  renderMatrizAcciones(roles);
+      if(error){ toast('No se pudo guardar: ' + error.message, true); chk.checked = !marcado; return; }
+      usr.permRol = marcado ? [...usr.permRol, { rol, seccion_id:seccion }] : usr.permRol.filter(p=>!(p.rol === rol && p.seccion_id === seccion));
+    }
+    const etiqueta = usrSeccion(seccion)?.label || seccion;
+    registrarActividad('permiso_cambiado', `${rol}: ${marcado ? '+' : '−'} sección ${etiqueta}`);
+    toast(`"${rol}" ${marcado ? 'ahora ve' : 'ya no ve'} "${etiqueta}".`);
+    await cargarPermisosRol();
+    if(usuarioActual?.rol === rol) aplicarPermisosNav();
+    usrPintarRoles();
+  } finally { usr.ocupado = false; }
 }
-
-async function renderMatrizAcciones(roles){
-  const cont = document.getElementById('matrizAccionesRol');
-  const { data, error } = await sb.from('permisos_accion').select('rol, accion');
-  if(error){ cont.textContent = 'Error: ' + error.message; return; }
-  const por = {};
-  (data||[]).forEach(p=>{ (por[p.rol] = por[p.rol] || new Set()).add(p.accion); });
-  cont.innerHTML = `<div class="rep-table-wrap"><table class="rep-table perm-matriz">
-    <thead><tr><th>Rol</th>${ACCIONES_POR_ROL.map(a=>`<th style="text-align:center; cursor:default;" title="${escapeAttr(a.ayuda)}">${a.label}</th>`).join('')}</tr></thead>
-    <tbody>${roles.map(rol=>`<tr><td>${rol}</td>${ACCIONES_POR_ROL.map(a=>
-      `<td style="text-align:center;"><input type="checkbox" data-acc-rol="${escapeAttr(rol)}" data-acc="${a.id}" ${por[rol]?.has(a.id)?'checked':''}></td>`).join('')}</tr>`).join('')
-      || `<tr><td colspan="${ACCIONES_POR_ROL.length+1}" class="empty-note">Sin roles todavía.</td></tr>`}</tbody>
-  </table></div>`;
-  cont.querySelectorAll('[data-acc-rol]').forEach(chk=>{
-    chk.addEventListener('change', async ()=>{
-      const rol = chk.dataset.accRol, accion = chk.dataset.acc;
-      chk.disabled = true;
-      const { error } = chk.checked
-        ? await sb.from('permisos_accion').insert({ rol, accion })
-        : await sb.from('permisos_accion').delete().eq('rol', rol).eq('accion', accion);
-      chk.disabled = false;
-      if(error){ toast('Error: '+error.message, true); chk.checked = !chk.checked; return; }
-      const etiqueta = ACCIONES_POR_ROL.find(a=>a.id===accion)?.label || accion;
-      toast(`"${rol}" ${chk.checked?'ahora puede':'ya no puede'}: ${etiqueta}.`);
-      registrarActividad('permiso_cambiado', `${rol}: ${chk.checked?'+':'−'} ${etiqueta}`);
-      cargarPermisosAccion();
-    });
-  });
+async function usrCambiarAccion(rol, accion, marcado, chk){
+  usr.ocupado = true;
+  try{
+    const { error } = marcado
+      ? await sb.from('permisos_accion').insert({ rol, accion })
+      : await sb.from('permisos_accion').delete().eq('rol', rol).eq('accion', accion);
+    if(error){ toast('No se pudo guardar: ' + error.message, true); chk.checked = !marcado; return; }
+    usr.permAcc = marcado ? [...usr.permAcc, { rol, accion }] : usr.permAcc.filter(p=>!(p.rol === rol && p.accion === accion));
+    const etiqueta = ACCIONES_POR_ROL.find(a=>a.id === accion)?.label || accion;
+    registrarActividad('permiso_cambiado', `${rol}: ${marcado ? '+' : '−'} ${etiqueta}`);
+    toast(`"${rol}" ${marcado ? 'ahora puede' : 'ya no puede'}: ${etiqueta}.`);
+    await cargarPermisosAccion();
+    usrPintarRoles();
+  } finally { usr.ocupado = false; }
 }
+document.getElementById('usrRoles').addEventListener('click', async e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.usrRolsel){ usr.rolSel = b.dataset.usrRolsel; return usrPintarRoles(); }
+  if(b.id === 'usrCrearRol' && !usr.ocupado){
+    const nombre = document.getElementById('usrRolNuevo').value.replace(/\s+/g, ' ').trim();
+    if(nombre.length < 3){ toast('Escribe el nombre del rol (3 letras o más).', true); return; }
+    if(usrRoles().some(r=>normTexto(r) === normTexto(nombre))){ toast('Ese rol ya existe.', true); return; }
+    usr.ocupado = true;
+    try{
+      // Un rol nuevo empieza solo con Inicio; luego se le marcan sus secciones.
+      const { error } = await sb.from('permisos_rol').insert({ rol:nombre, seccion_id:'inicio' });
+      if(error){ toast('No se pudo crear: ' + error.message, true); return; }
+      usr.permRol.push({ rol:nombre, seccion_id:'inicio' });
+      registrarActividad('rol_creado', nombre);
+      toast(`Rol "${nombre}" creado. Márcale sus secciones.`);
+      usr.rolSel = nombre;
+      await cargarPermisosRol();
+      usrPintarRoles();
+    } finally { usr.ocupado = false; }
+  }
+});
+document.getElementById('usrRoles').addEventListener('change', e=>{
+  const t = e.target; if(usr.ocupado || !usr.rolSel) return;
+  if(t.dataset.usrSec) usrCambiarSeccion(usr.rolSel, t.dataset.usrSec, t.checked, t);
+  if(t.dataset.usrAcc) usrCambiarAccion(usr.rolSel, t.dataset.usrAcc, t.checked, t);
+});
+document.getElementById('usrTabs').addEventListener('click', e=>{
+  const b = e.target.closest('[data-usr-tab]'); if(!b) return;
+  usr.tab = b.dataset.usrTab; usrPintar();
+});
 
 /* =========================================================
    CATÁLOGOS
