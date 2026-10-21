@@ -37,7 +37,7 @@ Acordado con Enoc el 21 oct 2026. Glamy lo explica (manual v8, sección "Proceso
 - **Quiénes pueden (oct 2026):** Cobranza, Gerente y Ventas, es decir, Cinthia, Jared, Ines e Isabel.
 - **Si se ve en el banco:** **"✅ Confirmar pago"**.
   - Se crea la **inscripción** con su anticipo.
-  - El lead se cierra en "Pagó el curso".
+  - El lead se cierra en "Inscrita (anticipo confirmado)" (antes se llamaba "Pagó el curso").
   - Aparece en Calendario, Cursos y Recepción.
 - **Si no se ve:** **"❌ No se encontró"**. Regresa a su estatus anterior con nota, y la vendedora vuelve a hablar con ella.
 - **Regla:** confirmar a más tardar al día siguiente. Lo ideal es que confirme **Cobranza** y no la misma vendedora que reportó (dos personas revisan cada pago).
@@ -59,11 +59,11 @@ Acordado con Enoc el 21 oct 2026. Glamy lo explica (manual v8, sección "Proceso
 | Dónde | Dice | Significa |
 |---|---|---|
 | Alumnos y Leads | Pago por confirmar 💜 | Mandó comprobante; falta verlo en el banco. Aún no está inscrita. |
-| Alumnos y Leads | Pagó el curso | Anticipo confirmado y **ya inscrita**. Puede deber el resto. |
+| Alumnos y Leads | Inscrita (anticipo confirmado) | Anticipo confirmado y **ya inscrita**. Puede deber el resto. |
 | Calendario | Con anticipo (deben) | Inscrita que todavía debe. |
 | Calendario | Liquidadas | Pagó todo. |
 | Calendario | Sin pago | Inscrita sin pago registrado. |
 
 ## Mejoras propuestas (cada una pide su "permitido generar")
-- Cambiarle el nombre al estatus "Pagó el curso" por **"Inscrita (anticipo confirmado)"**.
+- ~~Cambiarle el nombre al estatus "Pagó el curso" por "Inscrita (anticipo confirmado)"~~ Hecho el 21 oct 2026.
 - Que el Calendario muestre, junto a las inscritas, un **"en camino"**: los pagos por confirmar y las promesas de pago de ese curso.

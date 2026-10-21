@@ -1719,7 +1719,7 @@
       <div class="subview" id="ventas-embudo">
         <div class="chart-card">
           <h4>Embudo de conversión</h4>
-          <div class="sub">Curso activo · de contactado a liquidado, todas las ciudades</div>
+          <div class="sub">Curso activo · de registrada en la gira a liquidada, todas las ciudades</div>
           <div class="chart-wrap short"><canvas id="chartEmbudo"></canvas></div>
         </div>
       </div>
@@ -3302,7 +3302,7 @@ async function renderActividad(){
     const u = nombrePorUsuario[a.usuario_id];
     const fecha = new Date(a.creado_en).toLocaleString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
     const etiqueta = ACCION_LABEL[a.accion] || a.accion;
-    return `<div class="dato-row"><span class="l">${u?.nombre||'(desconocido)'} — ${etiqueta}${a.detalle?': '+a.detalle:''}</span><span class="v" style="font-weight:400; color:var(--ink-soft);">${fecha}</span></div>`;
+    return `<div class="dato-row"><span class="l">${escHtml(u?.nombre||'(desconocido)')} — ${escHtml(etiqueta)}${a.detalle?': '+escHtml(a.detalle):''}</span><span class="v" style="font-weight:400; color:var(--ink-soft);">${fecha}</span></div>`;
   }).join('') || '<div class="empty-note">Sin actividad registrada todavía.</div>';
 }
 
@@ -4625,7 +4625,7 @@ async function abrirModalLead(leadId){
   const hist = document.getElementById('modalHistorial');
   if(error){ hist.textContent = 'Error: ' + error.message; return; }
   hist.innerHTML = (data && data.length)
-    ? data.map(i=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(i.fecha).toLocaleString('es-MX')}</div>${i.nota||'(sin nota)'}</div>`).join('')
+    ? data.map(i=>`<div class="interaccion-item"><div class="interaccion-fecha">${new Date(i.fecha).toLocaleString('es-MX')}</div>${i.nota ? escHtml(i.nota) : '(sin nota)'}</div>`).join('')
     : '<div class="empty-note">Sin interacciones registradas todavía.</div>';
 }
 document.getElementById('closeModalLead').addEventListener('click', ()=>document.getElementById('modalLead').classList.remove('open'));
@@ -5819,12 +5819,19 @@ document.getElementById('waOpciones').addEventListener('click', e=>{
   const o = e.target.closest('[data-wa-msj]'); if(o) elegirMensajeWa(o.dataset.waMsj);
 });
 document.getElementById('closeModalWhats').addEventListener('click', ()=>document.getElementById('modalWhats').classList.remove('open'));
-function registrarEnvioWa(conFoto){
+async function registrarEnvioWa(conFoto){
+  // Se copian los datos antes de cualquier espera: si se abre otro WhatsApp mientras tanto,
+  // este registro sigue siendo de la persona original.
   const d = waDatos; if(!d) return;
   const titulo = waElegido?.titulo || 'mensaje escrito a mano';
   registrarActividad('whatsapp_enviado', `${titulo}${conFoto ? ' 📷' : ''} → ${d.nombre || d.telefono}`);
-  if(d.personaId) sb.from('interacciones').insert({ persona_id: d.personaId, lead_id: d.leadId || null, asesor_id: usuarioActual?.id || null,
-    canal:'whatsapp', nota:`WHATSAPP (${titulo}${conFoto ? ', con foto' : ''}) enviado desde el Hub por ${usuarioActual?.nombre || 'alguien'}.` });
+  // Al historial de contacto de la persona. Hay que esperar la respuesta: sin "await" la
+  // biblioteca de Supabase nunca manda la petición (por eso no se había guardado ningún WhatsApp).
+  if(d.personaId){
+    const { error } = await sb.from('interacciones').insert({ persona_id: d.personaId, lead_id: d.leadId || null, asesor_id: usuarioActual?.id || null,
+      canal:'whatsapp', nota:`WHATSAPP (${titulo}${conFoto ? ', con foto' : ''}) enviado desde el Hub por ${usuarioActual?.nombre || 'alguien'}.` });
+    if(error) toast('El WhatsApp se abrió, pero no quedó en su historial: ' + error.message, true);
+  }
   // Quien abrió el WhatsApp puede enterarse de que sí se mandó (p. ej. Certificados lo marca "Enviado").
   if(typeof d.alEnviar === 'function') d.alEnviar();
 }
@@ -9995,7 +10002,7 @@ async function renderVentasPagos(){
     return `<div class="pago-feed-item">
       <div class="pago-feed-monto">${fmtMoney(p.monto)}</div>
       <div class="pago-feed-info">
-        <div class="pago-feed-nombre">${nombre}</div>
+        <div class="pago-feed-nombre">${escHtml(nombre)}</div>
         <div class="pago-feed-meta">${tel}${ciudad?' · '+ciudad:''}${fechaTxt?' · '+fechaTxt:''}${p.banco?' · '+p.banco:''}${p.verificacion === 'por_confirmar' ? ' · 🏦 por confirmar' : p.verificacion === 'no_llego' ? ' · ✗ no llegó al banco' : ''}</div>
       </div>
     </div>`;
@@ -10008,12 +10015,14 @@ async function renderVentasEmbudo(){
   const totalLiq = filas.reduce((a,f)=>a+f.liq,0);
   const totalAnt = filas.reduce((a,f)=>a+f.ant,0);
   const totalPend = filas.reduce((a,f)=>a+f.pend,0);
-  const contactados = totalLiq + totalAnt + totalPend;
+  // Antes decía "Contactados", pero no son contactos comerciales: son todas las alumnas
+  // registradas en la gira (liquidadas + con anticipo + sin pago).
+  const registradas = totalLiq + totalAnt + totalPend;
   pintarChartBarras('chartEmbudo',
-    ['Contactados', 'Con anticipo o más', 'Liquidados'],
-    [contactados, totalLiq+totalAnt, totalLiq],
+    ['Registradas en la gira', 'Con anticipo o más', 'Liquidadas'],
+    [registradas, totalLiq+totalAnt, totalLiq],
     { formatter: v=>fmtNum(v)+' alumnos', colors: ['rgba(178,60,108,.32)','rgba(178,60,108,.62)','#B23C6C'], horizontal:false,
-      vacioTexto: 'Todavía no hay contactos cargados para el curso activo.' });
+      vacioTexto: 'Todavía no hay alumnas registradas en el curso activo.' });
 }
 
 async function renderVentasAsesores(){
@@ -11539,6 +11548,8 @@ document.getElementById('chipSync').addEventListener('click', ()=> refrescarDato
    ========================================================= */
 let NOTAS = [];
 let notaColorActual = 'champagne';
+// Solo estos colores pueden ir en la clase de la tarjeta (el texto de la base no se mete al HTML tal cual).
+const NOTA_COLORES = ['champagne', 'success', 'terracota', 'wine'];
 let canalNotas = null;   // suscripción en vivo, para no perder una tarea recién asignada
 
 /* Trae dos cosas en una sola consulta:
@@ -11588,9 +11599,9 @@ function tarjetaNota(n){
   const ir = n.enlace?.vista
     ? `<button class="nota-ir" title="Te lleva a donde se resuelve">${escHtml(n.enlace.etiqueta || 'Ir')} →</button>` : '';
   return `
-    <div class="nota-card ${tarea ? 'tarea' : (n.color||'champagne')} ${n.completado?'hecha':''} ${meAsignaron(n) && !n.visto_en ? 'nueva':''}" data-nota-id="${n.id}">
+    <div class="nota-card ${tarea ? 'tarea' : (NOTA_COLORES.includes(n.color) ? n.color : 'champagne')} ${n.completado?'hecha':''} ${meAsignaron(n) && !n.visto_en ? 'nueva':''}" data-nota-id="${n.id}">
       ${encabezado}
-      <div class="texto">${n.texto}</div>
+      <div class="texto">${escHtml(n.texto)}</div>
       ${sistema}
       ${ir}
       ${estado}
@@ -11811,7 +11822,7 @@ async function abrirModalAlumnos(ciudadId, cursoId, ciudadNombre, cursoNombre){
     // El comentario original de la hoja (UNIFORME, Asistencia, etc.) vive
     // como texto libre dentro de notas_migracion — se muestra tal cual,
     // no se inventan columnas que la migración no dejó separadas.
-    const comentario = i.notas_migracion ? `<div class="lead-meta" style="margin-top:4px;">${i.notas_migracion}</div>` : '';
+    const comentario = i.notas_migracion ? `<div class="lead-meta" style="margin-top:4px;">${escHtml(i.notas_migracion)}</div>` : '';
     return `<div class="lead-row clicable" data-insc-id="${i.id}" title="Abrir su ficha: pagos y vendedor">
       <div class="avatar">${(p?.nombre||'?').slice(0,2).toUpperCase()}</div>
       <div style="flex:1;">
@@ -12389,7 +12400,7 @@ async function abrirFichaSede(sedeId){
       <div class="tl-item">
         <div class="tl-dot"></div>
         <div class="tl-head"><span class="tl-curso">${h.curso_texto||'(sin curso)'}</span><span class="tl-fecha">${[h.mes,h.anio].filter(Boolean).join(' ')||'—'}</span></div>
-        <div class="tl-meta">${h.estatus?'<b>'+h.estatus+'</b> · ':''}${h.anticipo?'Anticipo '+h.anticipo+' · ':''}${h.observaciones||''}</div>
+        <div class="tl-meta">${h.estatus?'<b>'+h.estatus+'</b> · ':''}${h.anticipo?'Anticipo '+h.anticipo+' · ':''}${escHtml(h.observaciones)}</div>
       </div>`).join('') : '<div class="empty-note">Sin historial de contacto.</div>';
 
     const conHospedaje = (historial||[]).find(h=>h.hospedaje_tiers && Object.values(h.hospedaje_tiers).some(v=>v));
