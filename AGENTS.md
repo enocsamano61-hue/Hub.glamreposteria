@@ -9,3 +9,7 @@
   llama registrarActividad. Variables CSS (paleta C): --wine=frambuesa, --wine-dark=frambuesa oscuro, --champagne=rosa de adorno.
 - Cada cambio: prueba Playwright + capturas 1200/390 px + docs/migraciones/AAAA-MM-DD-tema.md.
 - Lee docs/FLUJO-DE-TRABAJO.md (este reporte) antes de empezar.
+- Dos agentes (Claude y Codex), un agente por fase y nunca la misma sección de hub/index.html a la vez.
+  Codex: ramas `codex/<tema>` desde el main más reciente, entrega por PR, sin acceso a Supabase
+  (escribe el SQL en el doc de la fase); Claude aplica migraciones, publica a main y despliega Glamy.
+  Ver la sección 0 de docs/FLUJO-DE-TRABAJO.md.
