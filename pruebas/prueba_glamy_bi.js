@@ -13,7 +13,7 @@ const META = { cobrado:['Cobrado', 'money'], con_pago:['Inscritas con pago', 'nu
   asistencia:['Asistencia', 'pct'], promesas_vencidas:['Promesas vencidas', 'num'] };
 
 (async () => {
-  const h = await abrirHub({ tablas:{ bi_reportes:[] }, usuario:{ id:'u1', nombre:'Admin Prueba', rol:'Gerente', es_admin:true }, equipo:EQUIPO_EJEMPLO });
+  const h = await abrirHub({ tablas:{ bi_reportes:[], bi_metas:[], notas_usuario:[] }, usuario:{ id:'u1', nombre:'Admin Prueba', rol:'Gerente', es_admin:true }, equipo:EQUIPO_EJEMPLO });
   const { p, check } = h;
   await p.evaluate(([giras, meta]) => {
     CIUDADES = [{ id:'c1', nombre:'Ciudad Uno' }, { id:'c2', nombre:'Ciudad Dos' }];
@@ -33,7 +33,19 @@ const META = { cobrado:['Cobrado', 'money'], con_pago:['Inscritas con pago', 'nu
         : p_spec.por === 'total' ? [{ clave:'total', etiqueta:'Total', valor:1000 }] : semanas;
       return { metrica:p_spec.metrica, nombre, formato, definicion:'Definición de prueba.', desde_confiable:'Desde 2020.', por:p_spec.por || 'total',
         filas, total: formato === 'pct' ? 41.5 : 1000, curso:{ id:'g1', nombre:'GIRA ACTUAL PRUEBA' },
-        comparar: p_spec.comparar ? { curso:{ id:'g0', nombre:'Gira Pasada Prueba' }, filas:semanas.map(f => ({ ...f, valor:f.valor / 2 })), total:800 } : null };
+        comparar: p_spec.comparar ? { curso:{ id:'g0', nombre:'Gira Pasada Prueba' }, filas:semanas.map(f => ({ ...f, valor:f.valor / 2 })), total:800 } : null,
+        meta: p_spec.metrica === 'cobrado' && !p_spec.desde ? { total:2000, filas:null } : null,
+        proyeccion: p_spec.metrica === 'cobrado' && !p_spec.desde ? { valor:3500, ritmo_semanal:100, semanas:25, hasta:'2027-03-23' } : null };
+    };
+    window.__rpc.bi_matriz = ({ p_spec }) => {
+      window.__specs.push({ spec:p_spec, matriz:true });
+      return { tipo:'matriz', por:'ciudad', curso:{ id:'g1', nombre:'GIRA ACTUAL PRUEBA' },
+        columnas:[{ metrica:'inscritas', nombre:'Inscritas', formato:'num', definicion:'Def.', sentido:'mas' },
+                  { metrica:'por_cobrar', nombre:'Deben ($)', formato:'money', definicion:'Def.', sentido:'menos' },
+                  { metrica:'leads_promesa', nombre:'Anticipos prometidos', formato:'num', definicion:'Def.', sentido:'neutro' }],
+        filas:[{ clave:'c1', etiqueta:'Ciudad Uno', valores:{ inscritas:20, por_cobrar:9000, leads_promesa:4 } },
+               { clave:'c2', etiqueta:'<img src=x onerror="window.__xss=1"> Dos', valores:{ inscritas:5, por_cobrar:1000, leads_promesa:9 } }],
+        totales:{ inscritas:25, por_cobrar:10000, leads_promesa:13 }, metas:{ inscritas:{ c1:40 } } };
     };
     window.__llamadas = [];
     window.__glamy = () => ({ data:{ texto:'Hola' }, error:null });
@@ -122,7 +134,85 @@ const META = { cobrado:['Cobrado', 'money'], con_pago:['Inscritas con pago', 'nu
   await p.waitForTimeout(500);
   check((await p.textContent('#biRespuestas .bi-resp')).includes('No pude responder ahora'), 'avisa sin romper la pantalla');
 
-  h.paso('7. Celular');
+  h.paso('7. Fase 2: meta y proyección en los KPI');
+  await p.evaluate(() => { document.getElementById('biPeriodo').value = ''; document.getElementById('biPeriodo').dispatchEvent(new Event('change', { bubbles:true })); });
+  await p.waitForTimeout(400);
+  const kCob = await p.textContent('#biKpis .bi-kpi');
+  check(kCob.includes('Meta $2,000') && kCob.includes('50%') && kCob.includes('Proyección al cierre: $3,500') && kCob.includes('ritmo $100/semana'), 'cobrado con avance contra meta y proyección con su supuesto');
+
+  h.paso('8. Periodo');
+  await p.selectOption('#biPeriodo', 'mes');
+  await p.waitForTimeout(400);
+  const spP = await p.evaluate(() => window.__specs.filter(x => x.spec.grafica === 'kpi').pop().spec);
+  check(spP.desde && spP.desde.endsWith('-01') && spP.hasta >= spP.desde, 'el periodo manda las fechas (' + spP.desde + ' a ' + spP.hasta + ')');
+  check(!(await p.textContent('#biKpis .bi-kpi')).includes('Proyección'), 'con periodo no se muestra proyección (es de toda la gira)');
+  await p.selectOption('#biPeriodo', 'rango');
+  check(await p.isVisible('#biRango'), '"De… a…" pide las dos fechas');
+  await p.selectOption('#biPeriodo', '');
+  await p.waitForTimeout(300);
+
+  h.paso('9. Matriz y preguntas de seguimiento');
+  await p.evaluate(() => {
+    window.__glamy = () => ({ data:{
+      texto:'**Lectura**\n- Ciudad Uno trae más inscritas.\nTomé "anticipos pendientes" como leads que prometieron.\n**Para afinar**\n⟦seguir:¿Quieres ver también las inscritas que deben?⟧\n⟦seguir:¿Lo quieres por vendedora?⟧',
+      bi:[{ spec:{ grafica:'matriz', titulo:'Resumen por ciudad', por:'ciudad', metricas:['inscritas', 'por_cobrar', 'leads_promesa'] }, datos:window.__rpc.bi_matriz({ p_spec:{} }) }],
+    }, error:null });
+  });
+  await p.fill('#biPregunta', 'resumen por ciudad: inscritas, lo que deben y anticipos pendientes');
+  await p.click('#biPreguntar');
+  await p.waitForTimeout(600);
+  const mx = await p.$('#biRespuestas .bi-graf-matriz');
+  check(mx !== null && (await mx.textContent()).includes('Anticipos prometidos') && (await mx.textContent()).includes('Total'), 'una sola tabla con varias columnas y totales');
+  check((await mx.textContent()).includes('50% de 40'), 'la celda con meta dice su avance');
+  check(await p.evaluate(() => document.querySelector('#biRespuestas .bi-matriz tbody td[data-bi-met="por_cobrar"]').getAttribute('style').includes('181,69,58')), '"Deben" en rojo (más es peor)');
+  check(!(await p.evaluate(() => window.__xss)), 'nombres escapados en la tabla');
+  const seg = await p.$$eval('#biRespuestas .bi-seguir button', x => x.map(y => y.textContent));
+  check(seg.length === 2 && seg[0].includes('inscritas que deben') && !(await p.textContent('#biRespuestas .bi-lectura')).includes('⟦'), 'las preguntas de seguimiento salen como botones (y no como texto)');
+  await p.click('#biRespuestas .bi-matriz th[data-bi-col="leads_promesa"]');
+  check((await p.$$eval('#biRespuestas .bi-matriz tbody tr:not(.tot) td:first-child', x => x.map(y => y.textContent)))[0].includes('Dos'), 'tocar un encabezado ordena');
+  await p.click('#biRespuestas .bi-matriz td[data-bi-met="por_cobrar"][data-bi-clave="c1"]');
+  await p.waitForSelector('#modalBIDetalle.open');
+  await p.waitForTimeout(300);
+  const det = await p.evaluate(() => window.__specs.filter(x => x.detalle).pop());
+  check(det && det.detalle === 'c1' && det.spec.metrica === 'por_cobrar' && !det.spec.metricas, 'tocar una celda trae el detalle de esa métrica y esa fila');
+  await p.click('#closeModalBIDetalle');
+  const [csvM] = await Promise.all([p.waitForEvent('download'), p.click('#biRespuestas .bi-graf-matriz [data-bi-csv]')]);
+  check(require('fs').readFileSync(await csvM.path(), 'utf8').includes('Deben ($)'), 'la tabla se exporta');
+  await p.click('#biRespuestas .bi-graf-matriz [data-bi-guardar]');
+  await p.waitForTimeout(500);
+  check((await h.ops('bi_reportes', 'insert')).pop()?.spec?.metricas?.length === 3 && await p.$('#biTablero .bi-graf-matriz') !== null, 'se guarda en el tablero y ahí se vuelve a consultar como tabla');
+  await p.click('#biRespuestas .bi-seguir button');
+  await p.waitForTimeout(400);
+  check((await p.evaluate(() => window.__llamadas)).pop().mensajes.slice(-1)[0].texto.startsWith('¿Quieres ver también las inscritas que deben?'), 'tocar una pregunta de seguimiento se la pregunta a Glamy');
+  await h.captura('glamy-bi-matriz.png');
+
+  h.paso('10. Metas');
+  await p.click('#biMetasBtn');
+  await p.waitForSelector('#modalBIMetas.open');
+  await p.fill('#biMetaValor', '2000000');
+  await p.click('#biMetaGuardar');
+  await p.waitForTimeout(400);
+  const mt = (await h.ops('bi_metas', 'insert'))[0];
+  check(mt && mt.curso_id === 'g1' && mt.metrica === 'cobrado' && mt.ambito === 'total' && mt.clave === null && mt.valor === 2000000, 'guarda la meta de la gira');
+  await p.selectOption('#biMetaAmbito', 'ciudad');
+  check(await p.isVisible('#biMetaClaveCampo'), 'para una ciudad pide cuál');
+  await p.click('#biMetasTabla [data-bi-meta-quitar]');
+  await p.waitForTimeout(300);
+  check((await h.ops('bi_metas', 'update')).some(u => u.activa === false), '"Quitar" la desactiva (no se borra)');
+  await h.captura('glamy-bi-metas.png');
+  await p.click('#closeModalBIMetas');
+
+  h.paso('11. El resumen semanal del bloc abre Glamy BI');
+  await p.evaluate(() => {
+    NOTAS = [{ id:'n1', usuario_id:'u1', texto:'📊 Resumen semanal', de_sistema:true, nota_sistema:'Cobrado de la gira: $1,000', completado:false, orden:0,
+      creado_en:new Date().toISOString(), actualizado_en:new Date().toISOString(), enlace:{ vista:'reportes', tab:'glamybi', etiqueta:'Abrir Glamy BI', bi_resumen:true } }];
+    setActiveSection('inicio');
+    return irAEnlaceNota('n1');
+  });
+  await p.waitForTimeout(500);
+  check(await p.evaluate(() => document.getElementById('reportes-glamybi').classList.contains('active')), '"Ir →" lleva directo a Glamy BI');
+
+  h.paso('12. Celular');
   await p.setViewportSize({ width:390, height:800 });
   await p.waitForTimeout(300);
   check(await p.evaluate(() => document.documentElement.scrollWidth <= 392), 'sin scroll de lado');
