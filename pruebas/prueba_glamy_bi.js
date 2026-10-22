@@ -146,6 +146,10 @@ const META = { cobrado:['Cobrado', 'money'], con_pago:['Inscritas con pago', 'nu
   const spP = await p.evaluate(() => window.__specs.filter(x => x.spec.grafica === 'kpi').pop().spec);
   check(spP.desde && spP.desde.endsWith('-01') && spP.hasta >= spP.desde, 'el periodo manda las fechas (' + spP.desde + ' a ' + spP.hasta + ')');
   check(!(await p.textContent('#biKpis .bi-kpi')).includes('Proyección'), 'con periodo no se muestra proyección (es de toda la gira)');
+  await p.selectOption('#biPeriodo', 'proximos');
+  await p.waitForTimeout(400);
+  const spX = await p.evaluate(() => window.__specs.filter(x => x.spec.grafica === 'kpi').pop().spec);
+  check(spX.proximos === true && !spX.desde && !spX.hasta, '"Cursos que faltan" pide solo cursos que no han pasado, sin fechas');
   await p.selectOption('#biPeriodo', 'rango');
   check(await p.isVisible('#biRango'), '"De… a…" pide las dos fechas');
   await p.selectOption('#biPeriodo', '');
@@ -185,6 +189,36 @@ const META = { cobrado:['Cobrado', 'money'], con_pago:['Inscritas con pago', 'nu
   await p.waitForTimeout(400);
   check((await p.evaluate(() => window.__llamadas)).pop().mensajes.slice(-1)[0].texto.startsWith('¿Quieres ver también las inscritas que deben?'), 'tocar una pregunta de seguimiento se la pregunta a Glamy');
   await h.captura('glamy-bi-matriz.png');
+
+  h.paso('9b. Ciudades que faltan: fecha del curso, orden por fecha y a todo lo ancho');
+  await p.evaluate(() => {
+    const hoy = new Date(), f = n => { const d = new Date(hoy); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); };
+    window.__glamy = () => ({ data:{ texto:'Tomé "fecha de pago pendiente" como las que prometieron pagar y su fecha todavía no llega.',
+      bi:[{ spec:{ grafica:'matriz', titulo:'Ciudades que faltan', por:'ciudad', proximos:true, metricas:['inscritas_deben', 'promesa_vigente', 'no_van'] }, datos:{
+        tipo:'matriz', por:'ciudad', proximos:true, curso:{ id:'g1', nombre:'GIRA ACTUAL PRUEBA' },
+        columnas:[{ metrica:'inscritas_deben', nombre:'Con anticipo (deben)', formato:'num', definicion:'Pagaron una parte y deben el resto.', sentido:'menos' },
+                  { metrica:'promesa_vigente', nombre:'Promesa vigente', formato:'num', definicion:'Prometieron pagar y la fecha no llega.', sentido:'neutro' },
+                  { metrica:'no_van', nombre:'No van', formato:'num', definicion:'Cancelaron o dijeron que no irán.', sentido:'menos' }],
+        filas:[{ clave:'c2', etiqueta:'Ciudad Tarde', fecha:f(40), valores:{ inscritas_deben:25, promesa_vigente:8, no_van:0 } },
+               { clave:'c1', etiqueta:'Ciudad Pronto', fecha:f(10), valores:{ inscritas_deben:14, promesa_vigente:1, no_van:3 } },
+               { clave:'c3', etiqueta:'Ciudad En Ceros', fecha:f(5), valores:{} }],
+        totales:{ inscritas_deben:39, promesa_vigente:9, no_van:3 }, metas:{} } }],
+    }, error:null });
+  });
+  await p.fill('#biPregunta', 'en cada ciudad pendiente, con anticipo, fecha de pago pendiente y no van, en una tabla');
+  await p.click('#biPreguntar');
+  await p.waitForTimeout(600);
+  const mx2 = await p.$('#biRespuestas .bi-resp:first-child .bi-graf-matriz');
+  const filas2 = await p.$$eval('#biRespuestas .bi-resp:first-child .bi-matriz tbody tr:not(.tot) td:first-child', x => x.map(y => y.textContent));
+  check(filas2.join('|') === 'Ciudad En Ceros|Ciudad Pronto|Ciudad Tarde', 'ordenada por la fecha del curso (' + filas2.join('|') + ')');
+  check((await mx2.textContent()).includes('Fecha del curso') && (await mx2.textContent()).includes('Solo cursos que faltan'), 'columna "Fecha del curso" y etiqueta "Solo cursos que faltan"');
+  check((await p.$$eval('#biRespuestas .bi-resp:first-child .bi-matriz tbody tr:first-child td', x => x.map(y => y.textContent))).slice(2).every(t => t === '0'),
+        'la ciudad sin datos sale en ceros');
+  check(await p.evaluate(() => { const g = document.querySelector('#biRespuestas .bi-resp:first-child .bi-graf-matriz'); return g.offsetWidth >= g.parentElement.offsetWidth - 2; }),
+        'la tabla ocupa todo el ancho');
+  await p.click('#biRespuestas .bi-resp:first-child .bi-matriz th[data-bi-col="__fecha"]');
+  check((await p.$$eval('#biRespuestas .bi-resp:first-child .bi-matriz tbody tr:not(.tot) td:first-child', x => x.map(y => y.textContent)))[0] === 'Ciudad Tarde', 'tocar "Fecha del curso" invierte el orden');
+  await h.captura('glamy-bi-pendientes.png');
 
   h.paso('10. Metas');
   await p.click('#biMetasBtn');

@@ -56,6 +56,34 @@ const CASOS = [
     debe:['⟦ir:historial⟧', '⟦ir:board⟧'], noDebe:['⟦ir:calendario⟧'] },
 ];
 
+/* Glamy BI (modo bi): se revisa con qué herramientas y datos contestó (lenguaje sencillo → métricas). */
+// Datos de ejemplo con números para cualquier columna que pida (si vinieran vacíos, Glamy con razón vuelve a preguntar).
+const VALORES_EJ = Object.fromEntries(['inscritas', 'con_pago', 'liquidadas', 'inscritas_deben', 'por_cobrar', 'bajas', 'no_van', 'promesa_vigente', 'promesas_vencidas',
+  'leads_promesa', 'leads_por_confirmar', 'pagos_por_confirmar', 'cobrado'].map((m, i) => [m, 3 + i]));
+const MATRIZ_EJ = { tipo:'matriz', por:'ciudad', proximos:true, columnas:Object.keys(VALORES_EJ).map(m => ({ metrica:m, nombre:m, formato:'num' })),
+  filas:[{ clave:'c1', etiqueta:'Ciudad Uno', fecha:mas(90), valores:VALORES_EJ }, { clave:'c2', etiqueta:'Ciudad Dos', fecha:mas(95), valores:VALORES_EJ }], totales:VALORES_EJ };
+const CONSULTA_EJ = { metrica:'x', nombre:'Ejemplo', formato:'num', por:'ciudad', filas:[{ clave:'c1', etiqueta:'Ciudad Uno', valor:5 }], total:5 };
+const tablas = r => (r.llamadas || []).filter(l => l.nombre === 'bi_tabla');
+const consultas = r => (r.llamadas || []).filter(l => l.nombre === 'bi_consulta');
+const metricasDe = r => [...tablas(r).flatMap(l => l.entrada.metricas || []), ...consultas(r).map(l => l.entrada.metrica)];
+const prox = r => [...tablas(r), ...consultas(r)].length > 0 && [...tablas(r), ...consultas(r)].every(l => l.entrada.proximos === true || l.entrada.proximos === 'true');
+const CASOS_BI = [
+  { nombre:'BI: la pregunta de Enoc (ciudades pendientes, una sola tabla)',
+    pregunta:'quiero saber en cada ciudad pendiente a la que iremos, cuantas alumnas inscritas con anticpio, cuantas con fecha de pago pendiente y cuantas confirmaron que no van a ir, las quiero ver en una sola tabla, que las filas sean las ciudades',
+    revisar: r => tablas(r).length === 1 && prox(r) && ['inscritas_deben', 'promesa_vigente', 'no_van'].every(m => metricasDe(r).includes(m))
+      && !metricasDe(r).includes('bajas') && (tablas(r)[0].entrada.por || 'ciudad') === 'ciudad' },
+  { nombre:'BI: "cuántas cancelaron en las que faltan"', pregunta:'¿cuántas cancelaron o dijeron que ya no van en las ciudades que faltan?',
+    revisar: r => metricasDe(r).includes('no_van') && prox(r) },
+  { nombre:'BI: "prometieron pagar y ya se les pasó"', pregunta:'¿cuántas prometieron pagar y ya se les pasó la fecha? por ciudad',
+    revisar: r => metricasDe(r).includes('promesas_vencidas') && !metricasDe(r).includes('promesa_vigente') },
+  { nombre:'BI: "cuánto nos deben de los cursos que vienen"', pregunta:'¿cuánto nos deben de los cursos que vienen?',
+    revisar: r => metricasDe(r).includes('por_cobrar') && prox(r) },
+  { nombre:'BI: "mandaron comprobante y no se ha confirmado"', pregunta:'¿cuántas mandaron comprobante y todavía no se confirma?',
+    revisar: r => metricasDe(r).some(m => m === 'leads_por_confirmar' || m === 'pagos_por_confirmar') },
+  { nombre:'BI: "ya pagaron todo y las que deben", una tabla', pregunta:'por ciudad, las que ya pagaron todo y las que todavía deben, en una tabla',
+    revisar: r => tablas(r).length === 1 && metricasDe(r).includes('liquidadas') && metricasDe(r).some(m => m === 'inscritas_deben' || m === 'por_cobrar') },
+];
+
 (async () => {
   let ok = 0, mal = 0, costo = 0;
   for(const c of CASOS){
@@ -63,11 +91,21 @@ const CASOS = [
     const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
       body: JSON.stringify({ accion:'prueba', llave:LLAVE, pregunta:c.pregunta, seccion:'inicio', simular }) }).then(x => x.json());
     costo += r.costo_usd || 0;
-    const t = r.texto || '';
+    // Igual que el Hub: una marca mal cerrada (⟦ir:board⟦) también cuenta como botón.
+    const t = String(r.texto || '').replace(/⟦((?:ir|ficha|lead):[^⟧⟦\]\s]{1,60})[⟦\]]/g, '⟦$1⟧');
     const bien = c.debe.some(b => t.includes(b)) && !c.noDebe.some(b => t.includes(b)) && !r.error;
     bien ? ok++ : mal++;
     console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
     if(!bien) console.log('   esperaba alguno de', c.debe.join(' '), c.noDebe.length ? '· sin ' + c.noDebe.join(' ') : '', '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
+  }
+  for(const c of CASOS_BI){
+    const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ accion:'prueba', modo:'bi', llave:LLAVE, pregunta:c.pregunta, simular:{ bi_tabla:MATRIZ_EJ, bi_consulta:CONSULTA_EJ, bi_giras:[] } }) }).then(x => x.json());
+    costo += r.costo_usd || 0;
+    const bien = !r.error && c.revisar(r);
+    bien ? ok++ : mal++;
+    console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
+    if(!bien) console.log('   llamó:', JSON.stringify(r.llamadas || []), '\n   ' + String(r.texto || '').replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
   }
   console.log(`\nexamen_glamy: ${ok}/${ok + mal} · costo US$${costo.toFixed(4)}`);
   process.exitCode = mal ? 1 : 0;

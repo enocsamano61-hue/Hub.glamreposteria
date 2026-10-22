@@ -96,18 +96,21 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
 /* Glamy BI (Reportes → Glamy BI, solo administradores): consulta métricas con definición fija
    (función bi_consulta de la base) y el Hub dibuja la gráfica con lo que regresa. */
 const BI_METRICAS = ["inscritas", "con_pago", "liquidadas", "inscritas_deben", "cobrado", "por_cobrar", "ticket_promedio", "vip", "asistencia",
-  "no_llegaron", "bajas", "pagos", "pagos_por_confirmar", "num_pagos", "leads", "conversion", "leads_abiertos", "leads_promesa", "leads_por_confirmar",
-  "promesas_vencidas", "contactos", "cambio_fecha", "cambio_aceptaron", "regalos_academia"];
+  "no_llegaron", "bajas", "no_van", "pagos", "pagos_por_confirmar", "num_pagos", "leads", "conversion", "leads_abiertos", "leads_promesa", "promesa_vigente",
+  "leads_por_confirmar", "promesas_vencidas", "contactos", "cambio_fecha", "cambio_aceptaron", "regalos_academia"];
 const BI_POR = ["total", "ciudad", "curso", "vendedora", "estado", "paquete", "mes", "semana", "dia", "semana_gira"];
 const BI_GRAFICAS = ["kpi", "barras", "barras_horizontales", "linea", "dona", "tabla"];
 const HERRAMIENTAS_BI: Anthropic.Tool[] = [
   {
     name: "bi_consulta",
     description: "Glamy BI: consulta UNA métrica del Hub con definición fija y la regresa lista para graficar (el Hub dibuja la gráfica). " +
-      "Métricas: inscritas, con_pago, liquidadas, inscritas_deben (inscritas que deben), cobrado (lo pagado por inscripción, por fecha del curso), " +
-      "por_cobrar (lo que deben, $), ticket_promedio, vip, asistencia (%), no_llegaron, bajas, pagos (por fecha de pago), pagos_por_confirmar, num_pagos, " +
-      "leads, conversion (% de leads inscritos), leads_abiertos, leads_promesa (anticipos prometidos sin pagar), leads_por_confirmar (anticipos reportados sin confirmar), " +
-      "promesas_vencidas, contactos (historial de contacto), cambio_fecha (por estado), cambio_aceptaron, regalos_academia. " +
+      "Métricas: inscritas, con_pago (pagaron algo, incluye liquidadas), liquidadas, inscritas_deben (\"Con anticipo (deben)\": pagaron una parte y deben el resto), " +
+      "cobrado (lo pagado por inscripción, por fecha del curso), por_cobrar (lo que deben, $), ticket_promedio, vip, asistencia (%), no_llegaron, " +
+      "bajas (solo inscritas que ya no van), no_van (cancelaron o dijeron que no irán: inscritas que ya no van + leads que dijeron que no van), " +
+      "pagos (por fecha de pago), pagos_por_confirmar ($), num_pagos, leads, conversion (% de leads inscritos), leads_abiertos, " +
+      "promesa_vigente (dijeron que pagan en cierta fecha y la fecha todavía no llega), promesas_vencidas (la fecha ya pasó y no pagan), " +
+      "leads_promesa (todas las promesas: vigentes y vencidas), leads_por_confirmar (mandaron comprobante y falta verlo en el banco), " +
+      "contactos (historial de contacto), cambio_fecha (por estado), cambio_aceptaron, regalos_academia. " +
       "Sin curso ni fechas usa la gira activa. Regresa también la meta (si hay) y, para cobrado, la proyección al cierre. " +
       "Llámala hasta 3 veces por respuesta si necesitas varias vistas.",
     input_schema: {
@@ -121,6 +124,7 @@ const HERRAMIENTAS_BI: Anthropic.Tool[] = [
         vendedora: { type: "string", description: "Nombre de una vendedora (opcional)." },
         desde: { type: "string", description: "AAAA-MM-DD (opcional)." },
         hasta: { type: "string", description: "AAAA-MM-DD (opcional)." },
+        proximos: { type: "boolean", description: "true = solo cursos que todavía no pasan (ciudades pendientes, las que faltan, a las que iremos). Filtra por la fecha del curso, también a los leads." },
         grafica: { type: "string", enum: BI_GRAFICAS, description: "kpi = un número; barras_horizontales para rankings; linea para tendencias; dona solo para partes de un todo (máx. 6)." },
         titulo: { type: "string", description: "Título corto de la gráfica." },
       },
@@ -131,7 +135,7 @@ const HERRAMIENTAS_BI: Anthropic.Tool[] = [
     name: "bi_tabla",
     description: "Glamy BI: tabla resumen (matriz) con VARIAS métricas a la vez, una fila por ciudad, curso, vendedora, estado o mes. " +
       "Úsala cuando pidan un resumen con varios datos por fila (p. ej. 'por ciudad: inscritas, cuántas deben, anticipos pendientes…'). " +
-      "Mismas métricas que bi_consulta (máx. 10). El Hub la dibuja con totales, colores y metas.",
+      "Mismas métricas que bi_consulta (máx. 10). Llámala UNA sola vez por respuesta con TODAS las columnas. El Hub la dibuja con totales, colores y metas.",
     input_schema: {
       type: "object",
       properties: {
@@ -140,6 +144,7 @@ const HERRAMIENTAS_BI: Anthropic.Tool[] = [
         curso: { type: "string", description: "'activo' (por defecto), 'todas' o el nombre de una gira." },
         ciudad: { type: "string" }, vendedora: { type: "string" },
         desde: { type: "string", description: "AAAA-MM-DD (opcional)." }, hasta: { type: "string", description: "AAAA-MM-DD (opcional)." },
+        proximos: { type: "boolean", description: "true = solo cursos que todavía no pasan (ciudades pendientes): salen TODAS esas ciudades con la fecha de su curso, ordenadas por fecha." },
         titulo: { type: "string", description: "Título corto de la tabla." },
       },
       required: ["metricas", "titulo"],
@@ -188,19 +193,24 @@ async function ejecutar(nombre: string, entrada: Record<string, unknown>, sb: Cl
         if (v) spec[k] = v;
       }
       spec.metricas = (Array.isArray(entrada.metricas) ? entrada.metricas : []).map((m) => String(m)).filter((m) => BI_METRICAS.includes(m)).slice(0, 10);
+      if (entrada.proximos === true || entrada.proximos === "true") spec.proximos = true;
       const datos = await rpc("bi_matriz", { p_spec: spec });
+      // Una sola tabla por respuesta: si la vuelve a pedir, la nueva reemplaza a la anterior.
+      const previa = bi.findIndex((x) => (x as { spec: { grafica?: string } }).spec.grafica === "matriz");
+      if (previa >= 0) bi.splice(previa, 1);
       if (bi.length < 4) bi.push({ spec, datos });
       return datos;
     }
     case "bi_consulta": {
       if (!usuario.es_admin) throw new Error("Glamy BI es solo para administradores.");
       // Solo las llaves conocidas, recortadas; la base valida y resuelve nombres.
-      const spec: Record<string, string> = {};
+      const spec: Record<string, string | boolean> = {};
       for (const k of ["metrica", "por", "curso", "comparar", "ciudad", "vendedora", "desde", "hasta", "grafica", "titulo"]) {
         const v = corto(entrada[k], k === "titulo" ? 80 : 60);
         if (v) spec[k] = v;
       }
-      if (!BI_GRAFICAS.includes(spec.grafica)) spec.grafica = "barras";
+      if (entrada.proximos === true || entrada.proximos === "true") spec.proximos = true;
+      if (!BI_GRAFICAS.includes(String(spec.grafica))) spec.grafica = "barras";
       const datos = await rpc("bi_consulta", { p_spec: spec });
       if (bi.length < 4) bi.push({ spec, datos });
       return datos;
@@ -311,9 +321,18 @@ Eres su analista de datos, como un Power BI que platica.
 - 1 a 3 acciones concretas que salgan SOLO de esos datos (a quién llamar primero, qué ciudad reforzar, qué revisar). Si los datos no alcanzan para recomendar, dilo.
 4. Si comparas con periodos viejos, menciona el límite del dato (campo desde_confiable). No inventes cifras.
 5. Si piden algo que el catálogo no tiene, dilo y ofrece levantar un ticket.
-6. Si piden un resumen con varios datos por fila (por ciudad, curso o vendedora), usa bi_tabla (una sola tabla), no varias gráficas sueltas.
+6. Si piden un resumen con varios datos por fila (por ciudad, curso o vendedora), usa bi_tabla UNA sola vez con todas las columnas (nunca dos tablas), no varias gráficas sueltas.
 7. Si hay meta, di el avance (% de la meta). Si hay proyección, dila con su supuesto ("si sigue el ritmo de $X por semana").
-8. Si la pregunta se puede entender de más de una forma (p. ej. "anticipos pendientes" = leads que prometieron y no pagan, o inscritas que todavía deben; "pendientes de pago" = por confirmar o por cobrar), contesta con la interpretación más probable, dilo en una frase, y al final agrega **Para afinar** con 1 o 2 preguntas de seguimiento, cada una en su propio renglón con esta marca exacta: ⟦seguir:la pregunta completa como la escribiría Jared⟧ (el Hub las vuelve botones). No las pongas si la pregunta fue clara.`;
+8. Si la pregunta se puede entender de más de una forma (p. ej. "anticipos pendientes" = leads que prometieron y no pagan, o inscritas que todavía deben; "pendientes de pago" = por confirmar o por cobrar), contesta con la interpretación más probable, dilo en una frase, y al final agrega **Para afinar** con 1 o 2 preguntas de seguimiento, cada una en su propio renglón con esta marca exacta: ⟦seguir:la pregunta completa como la escribiría Jared⟧ (el Hub las vuelve botones). No las pongas si la pregunta fue clara.
+9. Te hablan con palabras sencillas, no con los nombres de las métricas. Tradúcelas así (y en una frase di cómo lo entendiste, p. ej. "Tomé 'fecha de pago pendiente' como las que prometieron pagar y su fecha todavía no llega"):
+- "ciudades pendientes", "las que faltan", "a las que iremos", "próximas", "lo que viene" → proximos: true (solo cursos que no han pasado; con bi_tabla por ciudad salen todas esas ciudades con su fecha).
+- "con anticipo", "dieron anticipo", "apartaron su lugar", "deben el resto" → inscritas_deben. "pagaron algo", "con pago" → con_pago. "ya pagaron todo", "liquidaron" → liquidadas. "inscritas" a secas → inscritas.
+- "fecha de pago pendiente", "prometieron pagar", "dijeron que pagan el…", "promesas" (sin decir vencidas) → promesa_vigente. "ya se les pasó la fecha", "quedaron mal", "promesas vencidas" → promesas_vencidas.
+- "mandaron comprobante", "dicen que ya pagaron", "por confirmar" → leads_por_confirmar (cuántas) o pagos_por_confirmar ($).
+- "cancelaron", "no van", "ya no van", "se bajaron", "dijeron que no irán", "pidieron reembolso" → no_van (incluye leads). Solo si piden únicamente inscritas → bajas.
+- "cuánto nos deben", "saldo", "falta cobrar" → por_cobrar. "cuánto llevamos", "lo cobrado", "ingresos" → cobrado. "pagos de la semana/mes" → pagos (por fecha de pago).
+- "faltaron", "no llegaron" → no_llegaron. "interesadas", "prospectos", "en seguimiento" → leads_abiertos.
+- "en una sola tabla", "que las filas sean las ciudades" → bi_tabla por ciudad.`;
 
 async function huella(texto: string) {
   const b = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto)));
@@ -345,14 +364,20 @@ Deno.serve(async (req) => {
     if (!valida) return responder({ error: "No autorizado" }, 401);
     const historial = [{ role: "user" as const, content: corto(cuerpo.pregunta, 500) || "¿Qué haces?" }];
     const simular = (cuerpo.simular && typeof cuerpo.simular === "object") ? cuerpo.simular as Record<string, unknown> : {};
+    // modo "bi": como Reportes → Glamy BI (administrador). Se regresa con qué datos llamó cada herramienta.
+    const enBI = cuerpo.modo === "bi";
     const sistema: Anthropic.TextBlockParam[] = [
       { type: "text", text: MANUAL + await faq(), cache_control: { type: "ephemeral" } },
       { type: "text", text: "# Quién te escribe\nPrueba técnica del sistema (modo prueba: las herramientas regresan datos de ejemplo). "
-        + `Rol: Cobranza. Está en la sección "${corto(cuerpo.seccion, 30) || "inicio"}". Secciones que puede abrir: inicio, board, historial, cursos, cobranza, nollegaron, calendario, academia, mensajes.` },
+        + (enBI ? `Rol: Dirección, administrador. Está en la sección "reportes".` + INSTRUCCIONES_BI
+                : `Rol: Cobranza. Está en la sección "${corto(cuerpo.seccion, 30) || "inicio"}". Secciones que puede abrir: inicio, board, historial, cursos, cobranza, nollegaron, calendario, academia, mensajes.`) },
     ];
-    const r = await conversar(historial, sistema, async (nombre) =>
-      simular[nombre] ?? { modo_prueba: true, herramienta: nombre, nota: "Sin datos en modo prueba." });
-    return responder({ ...r, costo_usd: Number(costoUSD(r.uso).toFixed(6)) });
+    const llamadas: { nombre: string; entrada: Record<string, unknown> }[] = [];
+    const r = await conversar(historial, sistema, async (nombre, entrada) => {
+      llamadas.push({ nombre, entrada });
+      return simular[nombre] ?? { modo_prueba: true, herramienta: nombre, nota: "Sin datos en modo prueba." };
+    }, enBI ? [...HERRAMIENTAS, ...HERRAMIENTAS_BI] : HERRAMIENTAS, enBI ? "medium" : "low");
+    return responder({ ...r, llamadas, costo_usd: Number(costoUSD(r.uso).toFixed(6)) });
   }
 
   // Sesión de quien pregunta.
