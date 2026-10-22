@@ -693,6 +693,8 @@
   .exi-tel{ color:var(--ink-soft); font-size:12px; }
   .exi-fila{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-soft); }
   .exi-fila.proximo{ color:var(--ink); font-weight:600; }
+  .exi-fila.exi-otro{ border-top:1px dashed var(--border); padding-top:6px; margin-top:4px; }
+  .exi-fila.exi-otro button{ background:var(--wine); color:#fff; }
   .exi-fila button{ border:1px solid var(--wine); background:transparent; color:var(--wine); border-radius:14px; padding:3px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
   .lada-sug button{ border:1px solid var(--wine); background:rgba(var(--wine-rgb),.06); color:var(--wine); border-radius:14px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
   .lada-sug button.usada{ background:var(--wine); color:#fff; }
@@ -2337,8 +2339,9 @@
 <div class="modal-overlay" id="modalRegistrarPago">
   <div class="modal">
     <button class="close" id="closeModalRegistrarPago">✕</button>
-    <h3>💜 Registrar pago</h3>
+    <h3 id="regPagoTitulo">💜 Registrar pago</h3>
     <div class="sub" id="regPagoQuien" style="margin-bottom:10px;">—</div>
+    <div class="vend-hint" id="regPagoAntes" style="display:none; margin-bottom:8px;"></div>
     <div class="aviso-corregir">Queda como <b>pago por confirmar</b>: sigue siendo lead y todavía no aparece en su ciudad. Cuando Cobranza lo encuentre en el banco, la inscribe.</div>
     <div class="modal-field"><label>Curso</label><select id="regPagoEvento"></select></div>
     <div class="modal-field"><label>Paquete</label>
@@ -2350,6 +2353,7 @@
     <div class="modal-field"><label>¿Cuánto pagó?</label><input type="number" id="regPagoMonto" inputmode="decimal" min="0" step="50"></div>
     <div class="modal-field"><label>Fecha del pago</label><input type="date" id="regPagoFecha"></div>
     <div class="modal-field"><label>Banco</label><input id="regPagoBanco" placeholder="HEY BANCO, COPPEL, OXXO..."></div>
+    <div class="modal-field" id="regPagoVendedorCampo" style="display:none;"><label>¿Quién vendió?</label><select id="regPagoVendedor"></select></div>
     <button class="btn-reportar" id="guardarRegistrarPago" style="width:100%;">💜 Registrar pago</button>
   </div>
 </div>
@@ -2419,6 +2423,7 @@
         <div class="sub" id="modalInscTelefono"></div>
         <button type="button" class="btn-outline small" id="btnInscContacto" style="width:auto; padding:4px 10px; font-size:11.5px; margin-top:4px;">✏️ Datos de contacto</button>
         <button type="button" class="btn-wa-mini" id="btnInscWhats" style="margin-top:4px;">💬 WhatsApp</button>
+        <button type="button" class="btn-outline small" id="btnInscOtroCurso" style="width:auto; padding:4px 10px; font-size:11.5px; margin-top:4px;">➕ Otro curso</button>
       </div>
     </div>
     <div class="cf-ficha" id="modalInscCambioFecha"></div>
@@ -4101,7 +4106,7 @@ function escHtml(s){ return String(s??'').replace(/[&<>"]/g, ch=>({'&':'&amp;','
 
 /* Lista desplegable debajo de un campo de texto. La usan el buscador que
    reemplaza a los <select> de ciudad y las sugerencias de texto libre. */
-function listaBuscadora(inp, caja, { items, alElegir, alSalir }){
+function listaBuscadora(inp, caja, { items, alElegir, alSalir, sugeridas }){
   const lista = document.createElement('div');
   lista.className = 'bc-lista';
   caja.appendChild(lista);
@@ -4126,14 +4131,21 @@ function listaBuscadora(inp, caja, { items, alElegir, alSalir }){
     const elegido = todos.find(it=>it.elegido)?.value;
     let html = '';
     if(!q){
-      const conCurso = normales.filter(it=>it.fecha && !it.pasado).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      let conCurso = normales.filter(it=>it.fecha && !it.pasado).sort((a,b)=>a.fecha.localeCompare(b.fecha));
       const demas = normales.filter(it=>!it.fecha && !it.pasado);
       const pasados = normales.filter(it=>it.pasado).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-      visibles = [...(vacio?[vacio]:[]), ...conCurso, ...demas, ...pasados, ...extras];
+      // Con la lada de su teléfono: primero los cursos de su ciudad y luego los de su estado.
+      const sug = sugeridas?.();
+      const porLada = sug ? conCurso.filter(it=>sug.ciudades.has(it.ciudadId)) : [];
+      const mismoEdo = sug ? conCurso.filter(it=>!porLada.includes(it) && sug.estados.has(normTexto(it.estado))) : [];
+      if(sug) conCurso = conCurso.filter(it=>!porLada.includes(it) && !mismoEdo.includes(it));
+      visibles = [...(vacio?[vacio]:[]), ...porLada, ...mismoEdo, ...conCurso, ...demas, ...pasados, ...extras];
       activo = -1;
       let i = 0;
       if(vacio) html += pintarItem(vacio, i++);
-      if(conCurso.length) html += '<div class="bc-grupo">📅 Con curso próximo</div>' + conCurso.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
+      if(porLada.length) html += `<div class="bc-grupo">📍 Por su lada (${escHtml(sug.lada)})</div>` + porLada.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
+      if(mismoEdo.length) html += `<div class="bc-grupo">📍 Mismo estado${sug.estadoTxt ? ' · ' + escHtml(sug.estadoTxt) : ''}</div>` + mismoEdo.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
+      if(conCurso.length) html += `<div class="bc-grupo">📅 ${porLada.length || mismoEdo.length ? 'Otras ciudades de la gira' : 'Con curso próximo'}</div>` + conCurso.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
       if(demas.length) html += `<div class="bc-grupo">${conCurso.length ? 'Todas las demás' : 'Ciudades'}</div>` + demas.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
       if(pasados.length) html += '<div class="bc-grupo">✔ Ya pasaron</div>' + pasados.map(it=>pintarItem(it, i++, it.value===elegido)).join('');
       html += extras.map(it=>pintarItem(it, i++)).join('');
@@ -4232,7 +4244,7 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
       const c = ciudades.get(o.value) || (ev && ciudades.get(ev.ciudad_id));
       const especial = !o.value || o.value.startsWith('__');
       return {
-        value: o.value, especial, elegido: o.value === actual,
+        value: o.value, especial, elegido: o.value === actual, ciudadId: c?.id || ev?.ciudad_id || null,
         nombre: c ? c.nombre : ev ? (ev.ciudades?.nombre || '(ciudad?)') : o.textContent.trim(),
         estado: c?.estado || '', alias: c?.alias || [],
         fecha: ev ? ev.fecha : c ? (fechas.get(c.id) || null) : null,
@@ -4251,6 +4263,7 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
       inp.value = textoDe(nativo.get.call(sel));
       inp.blur();
     },
+    sugeridas: ()=> sel._lada || null,
     alSalir(){ inp.value = textoDe(nativo.get.call(sel)); },
   });
   mostrarElegida();
@@ -4828,6 +4841,7 @@ async function abrirModalLead(leadId){
     .map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
   document.getElementById('modalCiudadSelect').innerHTML = opcionesCiudad(lead.ciudad_interes_id);
   document.getElementById('modalEventoSelect').innerHTML = opcionesEvento(lead.evento_id);
+  sugerirPorLada(['modalEventoSelect', 'regPagoEvento', 'inscribirEvento'], lead.personas?.telefono_principal);
   document.getElementById('modalFechaAnticipo').value = lead.fecha_compromiso_pago || '';
   pintarVendedorLead(lead);
   pintarPagoLead(lead);
@@ -5157,8 +5171,17 @@ function pintarPagoLead(lead){
 }
 
 let regPagoPaquete = 'BASICO';
+// "Inscribir a un curso" sin lead vigente: el lead se crea al guardar (si cancelan, no queda nada).
+let regPagoPersona = null;
+function modoRegistrarPago(persona){
+  regPagoPersona = persona;
+  document.getElementById('regPagoTitulo').textContent = persona ? '➕ Inscribir a un curso' : '💜 Registrar pago';
+  document.getElementById('regPagoVendedorCampo').style.display = persona ? '' : 'none';
+  document.getElementById('regPagoAntes').style.display = 'none';
+}
 function abrirRegistrarPago(){
   const lead = leadAbierto(); if(!lead) return;
+  modoRegistrarPago(null); regPagoAlTerminar = null;
   const rep = pagoReportado(lead);
   document.getElementById('regPagoQuien').textContent = `${lead.personas?.nombre || '(sin nombre)'} · ${lead.personas?.telefono_principal || ''}`;
   // Curso: el que ya tenía; si no, el de su ciudad
@@ -5174,13 +5197,62 @@ function abrirRegistrarPago(){
   document.getElementById('modalRegistrarPago').classList.add('open');
 }
 document.getElementById('btnRegistrarPago').addEventListener('click', abrirRegistrarPago);
-document.getElementById('closeModalRegistrarPago').addEventListener('click', ()=>document.getElementById('modalRegistrarPago').classList.remove('open'));
+
+/* ➕ INSCRIBIR A UN CURSO (Historial cliente, ficha de la alumna y el aviso "ya está en el Hub").
+   Para alguien que ya conocemos: se elige el curso de la gira (arriba los de su lada), paquete y
+   lo que pagó. Siempre queda "Pago por confirmar": Cobranza la inscribe al verlo en el banco.
+   Si alguien ya la está trabajando (lead vigente), se usa ese lead; si no, se crea uno nuevo
+   y sus cursos y leads de antes quedan igual. */
+async function abrirInscribirACurso({ personaId, nombre, telefono, antes = '', alTerminar = null }){
+  if(!personaId) return;
+  ['modalNuevo', 'modalLead'].forEach(id=>document.getElementById(id).classList.remove('open'));
+  if(document.getElementById('modalInscripcion').classList.contains('open')) cerrarModalInscripcion();
+  const vigente = await leadVigenteDe(personaId);
+  if(vigente){
+    if(!leadsCache.some(l=>l.id === vigente.id)) leadsCache.push(vigente);
+    leadAbiertoId = vigente.id; leadAbiertoPersonaId = personaId;
+    abrirRegistrarPago();
+    document.getElementById('regPagoTitulo').textContent = '➕ Inscribir a un curso';
+    const antesTxt = `Ya es lead de ${nombreVendedor(vigente.asesor_id) || 'nadie'} (${vigente.estatus?.etiqueta || 'sin estatus'}): el pago se registra en ese lead.`;
+    document.getElementById('regPagoAntes').textContent = antesTxt;
+    document.getElementById('regPagoAntes').style.display = '';
+    regPagoAlTerminar = alTerminar;
+    return;
+  }
+  modoRegistrarPago({ personaId, nombre, telefono });
+  regPagoAlTerminar = alTerminar;
+  document.getElementById('regPagoQuien').textContent = `${nombre || '(sin nombre)'} · ${telefono || ''}`;
+  if(antes){ document.getElementById('regPagoAntes').textContent = antes; document.getElementById('regPagoAntes').style.display = ''; }
+  const sug = await sugerirPorLada(['regPagoEvento'], telefono);
+  const ev = cursoPorLada(sug);
+  document.getElementById('regPagoEvento').innerHTML = opcionesEvento(ev?.id || '', '— Elige el curso —');
+  document.getElementById('regPagoEvento').value = ev?.id || '';
+  regPagoPaquete = 'BASICO';
+  document.querySelectorAll('#regPagoPaquete button').forEach(b=>b.classList.toggle('active', b.dataset.paq === regPagoPaquete));
+  document.getElementById('regPagoMonto').value = 700;
+  document.getElementById('regPagoFecha').value = hoyISO();
+  document.getElementById('regPagoBanco').value = '';
+  const porDefecto = VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '';
+  const selV = document.getElementById('regPagoVendedor');
+  selV.innerHTML = opcionesVendedor(porDefecto);
+  selV.value = porDefecto;
+  document.getElementById('modalRegistrarPago').classList.add('open');
+}
+let regPagoAlTerminar = null;
+document.getElementById('closeModalRegistrarPago').addEventListener('click', ()=>{
+  document.getElementById('modalRegistrarPago').classList.remove('open');
+  modoRegistrarPago(null); regPagoAlTerminar = null;
+});
 document.querySelectorAll('#regPagoPaquete button').forEach(b=>b.addEventListener('click', ()=>{
   regPagoPaquete = b.dataset.paq;
   document.querySelectorAll('#regPagoPaquete button').forEach(x=>x.classList.toggle('active', x === b));
 }));
 document.getElementById('guardarRegistrarPago').addEventListener('click', async ()=>{
-  const lead = leadAbierto(); if(!lead) return;
+  const per = regPagoPersona;
+  // Sin lead vigente ("Inscribir a un curso"): un lead nuevo que se crea al guardar.
+  const lead = per ? { id:null, personas:{ id:per.personaId, nombre:per.nombre, telefono_principal:per.telefono }, estatus:null, asesor_id:null, ciudad_interes_id:null }
+    : leadAbierto();
+  if(!lead) return;
   const eventoId = document.getElementById('regPagoEvento').value;
   const monto = Number(document.getElementById('regPagoMonto').value);
   const fecha = document.getElementById('regPagoFecha').value;
@@ -5197,7 +5269,8 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
   const quien = usuarioActual?.nombre || 'alguien';
   const nota = `${yaEstaba ? 'PAGO REPORTADO CORREGIDO' : 'PAGO REPORTADO'} ${hoy} por ${quien}: ${fmtMoney(monto)}${banco ? ' ' + banco : ''} (${fecha}) · ${donde} · ${regPagoPaquete === 'VIP' ? 'VIP' : 'Básico'}. Por confirmar.`;
   // Un lead sin dueño queda a nombre de quien reporta, si vende (no le quita la venta a nadie)
-  const asesor = lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : null);
+  const asesor = per ? (document.getElementById('regPagoVendedor').value || null)
+    : lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : null);
 
   // Si ya está inscrita en ese curso, el pago no va en el lead (quedaría atorado en "Pago por
   // confirmar"): se registra en su ficha, como abono.
@@ -5208,27 +5281,55 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
            + 'Cierro este lead y te abro su ficha con el pago escrito para que lo revises.',
       textoSi: 'Abrir su ficha' });
     if(ok === null) return;
+    if(per){
+      // No hay lead que cerrar: se abre su ficha con el pago escrito para revisarlo.
+      document.getElementById('modalRegistrarPago').classList.remove('open');
+      await abrirModalInscripcion(ya.id);
+      if(modalInscId === ya.id){
+        document.getElementById('modalPagoMonto').value = monto;
+        document.getElementById('modalPagoFecha').value = fecha;
+        document.getElementById('modalPagoBanco').value = banco;
+        pintarCobro();
+        toast(`Ya estaba inscrita en ${donde}: el pago de ${fmtMoney(monto)} quedó escrito abajo, revísalo y guárdalo si llegó.`);
+      }
+      return;
+    }
     await cerrarLeadYaInscrita({ ...lead, evento_id: eventoId }, ya.id, { monto, fecha, banco });
     return;
   }
 
   const btn = document.getElementById('guardarRegistrarPago');
   btn.disabled = true; btn.textContent = 'Guardando...';
-  const { error } = await sb.from('leads').update({
+  const cambios = {
     evento_id: eventoId, ciudad_interes_id: ev?.ciudad_id || lead.ciudad_interes_id, paquete: regPagoPaquete,
     pago_reportado_monto: monto, pago_reportado_fecha: fecha, pago_reportado_banco: banco || null,
     pago_reportado_por: usuarioActual?.id || null, pago_reportado_en: new Date().toISOString(),
     // Para regresarlo a donde estaba si Cobranza no lo encuentra
     estatus_antes_de_reporte: yaEstaba ? (lead.estatus_antes_de_reporte ?? null) : (lead.estatus?.id !== porConfirmar ? lead.estatus?.id : null),
     estatus_id: porConfirmar, asesor_id: asesor, comentario: nota, actualizado_en: new Date().toISOString(),
-  }).eq('id', lead.id);
+  };
+  let leadId = lead.id, error;
+  if(per){
+    // Si Cobranza no encuentra el pago, regresa a "Aún no vence su pago".
+    const r = await sb.from('leads').insert({ ...cambios, persona_id: per.personaId,
+      curso_interes_id: ev?.curso_id || await obtenerCursoActivoId(),
+      estatus_antes_de_reporte: ESTATUS.find(e=>e.clave === 'no_vence_pago')?.id ?? null }).select('id').single();
+    error = r.error; leadId = r.data?.id;
+  } else {
+    ({ error } = await sb.from('leads').update(cambios).eq('id', lead.id));
+  }
   btn.disabled = false; btn.textContent = '💜 Registrar pago';
   if(error){ toast('No se pudo registrar el pago: ' + error.message, true); return; }
-  await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: lead.id, asesor_id: usuarioActual?.id || null, nota, canal: 'otro' });
-  registrarActividad('pago_reportado', `${alumno} · ${fmtMoney(monto)} · ${donde}`);
+  await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: leadId, asesor_id: usuarioActual?.id || null, nota, canal: 'otro' });
+  registrarActividad('pago_reportado', `${alumno} · ${fmtMoney(monto)} · ${donde}${per ? ' · inscribir a un curso' : ''}`);
   document.getElementById('modalRegistrarPago').classList.remove('open');
   document.getElementById('modalLead').classList.remove('open');
-  toast(yaEstaba ? 'Pago reportado corregido.' : '💜 Pago registrado — queda por confirmar.');
+  toast(yaEstaba ? 'Pago reportado corregido.'
+    : per || regPagoAlTerminar ? `💜 Listo: ${alumno} queda por confirmar en ${donde}. Cobranza la inscribe en cuanto lo vea en el banco.`
+    : '💜 Pago registrado — queda por confirmar.');
+  modoRegistrarPago(null);
+  const despues = regPagoAlTerminar; regPagoAlTerminar = null;
+  if(typeof despues === 'function') despues();
   const cat = CATEGORIAS.find(c=>c.claves.includes('pago_por_confirmar'));
   if(cat) abiertosDe('estatus').add(cat.id);
   await renderBoard();
@@ -5874,13 +5975,27 @@ async function ciudadesPorLada(tel){
   });
   return { lada, estados: [...new Set(filas.map(f=>f.estado))], ciudades: [...encontradas.values()] };
 }
+/* El selector de curso pone arriba los de la ciudad de su lada y luego los de su estado. */
+async function sugerirPorLada(ids, tel){
+  const r = ladaDe(tel) ? await ciudadesPorLada(tel) : null;
+  const sug = r && (r.ciudades.length || r.estados.length)
+    ? { lada: r.lada, ciudades: new Set(r.ciudades.map(c=>c.id)), estados: new Set(r.estados.map(normTexto)), estadoTxt: r.estados.join(' / ') }
+    : null;
+  ids.forEach(id=>{ const sel = document.getElementById(id); if(sel) sel._lada = sug; });
+  return sug;
+}
+/* El curso que le toca por su lada (el más próximo de su ciudad), si hay. */
+function cursoPorLada(sug){
+  return sug ? (EVENTOS_CAL || []).find(e=>sug.ciudades.has(e.ciudad_id)) || null : null;
+}
 let ladaSugTimer = null;
 function pintarSugerenciaLada(){
   clearTimeout(ladaSugTimer);
   const caja = document.getElementById('nuevoLadaSug');
   const tel = document.getElementById('nuevoTelefono').value;
-  if(!ladaDe(tel)){ caja.innerHTML = ''; return; }
+  if(!ladaDe(tel)){ caja.innerHTML = ''; document.getElementById('nuevoEvento')._lada = null; return; }
   ladaSugTimer = setTimeout(async ()=>{
+    sugerirPorLada(['nuevoEvento'], tel);
     const r = await ciudadesPorLada(tel);
     if(!r || (!r.ciudades.length && !r.estados.length)){ caja.innerHTML = ''; return; }
     const fechas = new Map();
@@ -5917,10 +6032,14 @@ function htmlExistentes(personas, titulo){
         <span>Lead${l.vendedora ? ' de ' + escHtml(l.vendedora) : ''} · ${escHtml(l.estatus || 'sin estatus')}${l.ciudad_interes ? ' · ' + escHtml(l.ciudad_interes) : ''}</span>
         <button type="button" data-exi-lead="${escapeAttr(l.lead_id)}">Abrir lead</button></div>`).join('');
     return `<div class="exi-persona" data-exi-persona="${escapeAttr(p.persona_id)}"><div><b>${escHtml(p.nombre || '(sin nombre)')}</b> <span class="exi-tel">${escHtml(p.telefono || '')}</span>${p.vip ? ' <span class="pill-veces">★ VIP</span>' : ''}</div>`
-      + (cursos || leads || '<div class="exi-fila"><span>Está en el Hub, sin cursos ni leads.</span></div>') + '</div>';
+      + (cursos || leads || '<div class="exi-fila"><span>Está en el Hub, sin cursos ni leads.</span></div>')
+      + `<div class="exi-fila exi-otro"><span>¿Le vendes un curso de esta gira?</span><button type="button" data-exi-curso="${escapeAttr(p.persona_id)}" data-exi-nombre="${escapeAttr(p.nombre || '')}" data-exi-tel="${escapeAttr(p.telefono || '')}">➕ Inscribir a un curso</button></div>`
+      + '</div>';
   }).join('');
 }
 async function abrirExistente(e){
+  const cur = e.target.closest('[data-exi-curso]');
+  if(cur){ abrirInscribirACurso({ personaId: cur.dataset.exiCurso, nombre: cur.dataset.exiNombre, telefono: cur.dataset.exiTel }); return; }
   const insc = e.target.closest('[data-exi-insc]')?.dataset.exiInsc;
   const leadId = e.target.closest('[data-exi-lead]')?.dataset.exiLead;
   if(!insc && !leadId) return;
@@ -6250,6 +6369,7 @@ document.getElementById('btnNuevoLead').addEventListener('click', ()=>{
   document.getElementById('nuevoCorreo').value=''; document.getElementById('nuevoNacimiento').value='';
   document.getElementById('nuevoEdad').textContent = '';
   document.getElementById('nuevoLadaSug').innerHTML = '';
+  document.getElementById('nuevoEvento')._lada = null;
   document.getElementById('nuevoExiste').innerHTML = ''; exi.nuevo = null;
   marcarSegPaquete('nuevoPaquete', 'BASICO');
   document.getElementById('modalNuevo').classList.add('open');
@@ -6266,6 +6386,17 @@ function alternarCamposNuevoLead(){
   document.getElementById('nuevoCursoCampo').style.display  = conCurso ? 'none' : '';
 }
 document.getElementById('nuevoEvento').addEventListener('change', alternarCamposNuevoLead);
+
+/* El lead que alguien está trabajando ahorita: estatus abierto y de esta gira (su curso no ha pasado;
+   sin curso, creado en esta gira). Los cerrados o de cursos pasados no estorban para venderle otro. */
+async function leadVigenteDe(personaId){
+  const { data } = await sb.from('leads').select(LEAD_SELECT).eq('persona_id', personaId)
+    .order('creado_en', { ascending:false }).limit(20);
+  const finales = new Set(ESTATUS.filter(e=>e.es_final).map(e=>e.id));
+  const inicio = await obtenerInicioGira();
+  return (data || []).find(l=>!finales.has(l.estatus?.id)
+    && (l.eventos?.fecha ? l.eventos.fecha >= hoyISO() : String(l.creado_en || '').slice(0, 10) >= inicio)) || null;
+}
 document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>{
   const nombre = document.getElementById('nuevoNombre').value.trim();
   const telefono = document.getElementById('nuevoTelefono').value.replace(/\D/g,'');
@@ -6296,7 +6427,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
 
   const vendedorId = document.getElementById('nuevoVendedor').value || null;
 
-  let personaId;
+  let personaId, yaEstabaEnHub = false;
   let { data: existente } = await sb.from('personas').select('id').eq('telefono_principal', telefono).maybeSingle();
   // El mismo número guardado con otro formato (con 52, espacios) es la misma persona: no se crea otra.
   // (Si solo coincide con el teléfono alterno de alguien, puede ser un familiar: eso lo decide quien vende.)
@@ -6305,11 +6436,10 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
     if(misma) existente = { id: misma.persona_id };
   }
   if(existente){
-    // Un teléfono = una persona = un lead. Si ya tiene lead, NO se crea otro
+    // Si alguien ya la está trabajando (lead abierto de esta gira), NO se crea otro
     // (así quedó duplicada Luz Erika el 22 sep): se ofrece abrir el que existe.
-    const { data: suyos } = await sb.from('leads').select(LEAD_SELECT).eq('persona_id', existente.id)
-      .order('creado_en', { ascending:false }).limit(1);
-    const previo = (suyos || [])[0];
+    // Un lead cerrado o de un curso que ya pasó es historia: se crea uno nuevo y el viejo queda igual.
+    const previo = await leadVigenteDe(existente.id);
     if(previo){
       btn.disabled = false; btn.textContent = 'Crear lead';
       const ciudad = previo.ciudades?.nombre || 'sin ciudad';
@@ -6328,6 +6458,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
       return;
     }
     personaId = existente.id;
+    yaEstabaEnHub = true;
     // Ya existía (alumna de otro curso, sin lead abierto): sólo se agrega lo
     // que se capturó; lo vacío no le borra el correo o la fecha que ya tenía.
     const extra = {};
@@ -6360,7 +6491,8 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   // filtrar y parecerá que "no se guardó" — se avisa aquí mismo en vez de
   // dejar que desaparezca en silencio.
   const fueraDeGira = ciudadId && CIUDADES_GIRA_ACTIVA.length && !CIUDADES_GIRA_ACTIVA.includes(ciudadId);
-  toast(fueraDeGira ? 'Lead creado — pero esa ciudad no es parte de la gira activa, no se verá en el tablero hasta que lo sea.' : 'Lead creado.', fueraDeGira);
+  toast(fueraDeGira ? 'Lead creado — pero esa ciudad no es parte de la gira activa, no se verá en el tablero hasta que lo sea.'
+    : yaEstabaEnHub ? 'Lead creado. Ya estaba en el Hub: sus cursos y leads de antes siguen igual en su historial.' : 'Lead creado.', fueraDeGira);
   registrarActividad('lead_creado', nombre);
   document.getElementById('modalNuevo').classList.remove('open');
   const catNueva = CATEGORIAS.find(c=>c.claves.includes(estatusInicial.clave));
@@ -6932,6 +7064,13 @@ function pintarContactoFicha(p){
     p?.fecha_nacimiento ? `🎂 ${fechaCorta(p.fecha_nacimiento)}${e != null ? ' (' + e + ')' : ''}` : '',
   ].filter(Boolean).join(' · ');
 }
+// Venderle otro curso desde su ficha: la ficha se cierra y se abre "Inscribir a un curso".
+document.getElementById('btnInscOtroCurso').addEventListener('click', ()=>{
+  const per = modalInscDatos?.personas; if(!per) return;
+  const ev = modalInscDatos.eventos;
+  abrirInscribirACurso({ personaId: per.id, nombre: per.nombre, telefono: per.telefono_principal,
+    antes: ev ? `Su curso de esta ficha (${ev.ciudades?.nombre || ''} · ${fechaCorta(ev.fecha)}) queda igual.` : '' });
+});
 document.getElementById('btnInscWhats').addEventListener('click', ()=>{
   const d = modalInscDatos; if(!d) return;
   abrirEnviarWhatsApp({ nombre:d.personas?.nombre, telefono:d.personas?.telefono_principal, personaId:d.personas?.id,
@@ -13055,6 +13194,7 @@ async function pintarPerfilHx(){
       <div class="hx-acc">
         ${p.telefono_principal ? '<button type="button" class="btn-primary small" data-hx-acc="whats">💬 WhatsApp</button>' : ''}
         <button type="button" class="btn-outline small" data-hx-acc="contacto">✏️ Datos de contacto</button>
+        <button type="button" class="btn-primary small" data-hx-acc="inscribir">➕ Inscribir a un curso</button>
         <button type="button" class="btn-outline small" data-hx-acc="lead">➕ Nuevo lead</button>
       </div></div>
     ${otros.length ? `<div class="hx-aviso"><div>🔗 <b>${g.ids.length} registros juntos</b> (mismo teléfono y nombre parecido). Sus cursos se ven aquí juntos.</div>
@@ -13207,6 +13347,7 @@ document.getElementById('historialResultado').addEventListener('click', async e=
   const acc = e.target.closest('[data-hx-acc]')?.dataset.hxAcc; if(!acc) return;
   if(acc === 'whats') abrirEnviarWhatsApp({ nombre:p.nombre, telefono:p.telefono_principal, personaId:p.id });
   if(acc === 'contacto') abrirDatosContacto(p.id, recargar);
+  if(acc === 'inscribir') abrirInscribirACurso({ personaId:p.id, nombre:p.nombre, telefono:p.telefono_principal, alTerminar: recargar });
   if(acc === 'lead'){
     // Nuevo lead con sus datos ya escritos: solo falta elegir el curso.
     document.getElementById('btnNuevoLead').click();
