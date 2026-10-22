@@ -33,3 +33,26 @@ Ticket levantado por Cinthia con Glamy. Permitido por Enoc el 22 oct 2026.
 ## Pruebas
 - Nueva `pruebas/prueba_lead_ya_inscrita.js` (14/14). Suite completa: 26 archivos en verde.
 - Capturas: `lead-ya-inscrita-ficha.png`, `lead-ya-inscrita-aviso.png` (1200) y `lead-ya-inscrita-celular.png` (390).
+
+## Corrección (22 oct, tarde): confirmar el pago de una inscrita ahora registra el abono
+**Problema reportado por Enoc:** al confirmar un pago de $700 de una alumna que ya estaba inscrita
+(la inscripción la había creado la carga del Excel con $0 pagado), el Hub cerraba el lead y abría
+su ficha con los $700 escritos, pero **no los guardaba**: la alumna seguía debiendo $1,400 hasta que
+alguien le daba "Registrar abono". Caso real: Jazmín (Coatzacoalcos, 8 nov).
+
+**Arreglo (`cerrarLeadYaInscrita(..., { registrar:true })`):**
+- Desde "✅ Confirmar e inscribir" (requiere el permiso "Confirmar pagos"), si su ficha no tiene ya un
+  pago de ese monto, se registra el abono **confirmado** (monto, fecha, banco, quién) y se actualizan
+  pagado, lo que debe, liquidado y estatus (`calcularAbono` y `estatusSegunPago`, igual que la ficha).
+  Si falla, el lead **no** se cierra. Aviso: "registré el abono de $700. Debe $700".
+- Si la ficha ya tiene ese pago, no se registra otra vez (igual que antes).
+- "💜 Registrar pago" (reportar, sin confirmar) sigue dejando el pago escrito en la ficha para que
+  Cobranza lo revise.
+
+**Datos:** Jazmín ya tenía su abono: Enoc lo registró a mano a las 13:51. La corrección que preparé
+no se aplicó (se agotó el tiempo y la base la deshizo), así que no hubo duplicado. Quedan 2 leads
+del mismo tipo en "Pago por confirmar" (Tehuacán, $700 y $900): al confirmarlos, el abono ya se
+registra solo.
+
+**Pruebas:** `prueba_lead_ya_inscrita.js` 18/18 (abono confirmado, saldo, actividad, y que reportar
+sin confirmar no registra). Suite: 29 archivos en verde.

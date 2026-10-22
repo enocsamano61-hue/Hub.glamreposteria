@@ -5013,35 +5013,60 @@ function pagoReportado(lead){ return !!lead?.pago_reportado_en && lead?.estatus?
    "Inscrita (anticipo confirmado)" con nota y se abre su ficha. Si su ficha no tiene un pago de ese
    monto, queda escrito en "Registrar pago" para que quien cobra lo revise y lo guarde; si ya lo
    tiene, se avisa que es el mismo y no se escribe nada (así no se duplica dinero). */
-async function cerrarLeadYaInscrita(lead, inscId, pago){
+async function cerrarLeadYaInscrita(lead, inscId, pago, { registrar = false } = {}){
   const alumno = lead.personas?.nombre || 'esta alumna';
   const donde = eventoTexto(lead.evento_id) || 'su curso';
   const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
   const quien = usuarioActual?.nombre || 'alguien';
+  const monto = Number(pago?.monto || 0);
+  // ¿Su ficha ya tiene un pago de ese monto? Entonces es el mismo: no se registra otra vez.
+  const { data: ins, error: errIns } = await sb.from('inscripciones')
+    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, pagos(monto)').eq('id', inscId).maybeSingle();
+  if(errIns || !ins){ toast('No se pudo leer su inscripción: ' + (errIns?.message || 'no existe'), true); return false; }
+  const yaTiene = monto > 0 && (ins.pagos || []).some(p=>Number(p.monto) === monto);
+  // Quien confirma (permiso "Confirmar pagos") ya lo vio en el banco: el abono se registra solo.
+  // Antes solo quedaba escrito en la ficha y, si nadie le daba "Registrar abono", seguía debiendo todo.
+  let abono = null;
+  if(registrar && monto > 0 && !yaTiene){
+    const r = calcularAbono(ins, monto);
+    const forma = FORMAS_PAGO.find(f=>f.toLowerCase() === String(pago.banco || '').toLowerCase()) || null;
+    const { error: errPago } = await sb.from('pagos').insert({ inscripcion_id: inscId, monto, fecha: pago.fecha || hoyISO(), hora: horaActual(),
+      banco: pago.banco || null, forma_pago: forma, confirmado_por: asesorActualId || null, verificacion: 'confirmado' });
+    if(errPago){ toast('No se pudo registrar el abono: ' + errPago.message + '. El lead sigue abierto.', true); return false; }
+    const { error: errUpd } = await sb.from('inscripciones').update({ anticipo: r.nuevoAnticipo, restante: r.nuevoRestante, liquidado: r.liquidado,
+      estatus_id: estatusSegunPago(r.nuevoAnticipo, r.precio, ins.estatus_id) }).eq('id', inscId);
+    if(errUpd){ toast('El abono se guardó, pero no se pudo actualizar su saldo: ' + errUpd.message, true); return false; }
+    abono = r;
+  }
   const cierre = `CERRADO ${hoy} por ${quien}: ya estaba inscrita en ${donde}.`
-    + (pago?.monto ? ` Pago reportado: ${fmtMoney(pago.monto)}${pago.banco ? ' ' + pago.banco : ''}${pago.fecha ? ' (' + pago.fecha + ')' : ''}; se revisa en su ficha.` : '');
+    + (!monto ? '' : abono ? ` Pago confirmado: ${fmtMoney(monto)}${pago.banco ? ' ' + pago.banco : ''}${pago.fecha ? ' (' + pago.fecha + ')' : ''}; quedó registrado como abono en su ficha.`
+      : yaTiene ? ` El pago de ${fmtMoney(monto)} ya estaba en su ficha.`
+      : ` Pago reportado: ${fmtMoney(monto)}${pago.banco ? ' ' + pago.banco : ''}${pago.fecha ? ' (' + pago.fecha + ')' : ''}; se revisa en su ficha.`);
   const estPagado = ESTATUS.find(e=>e.clave === 'pagado')?.id;
   const { error } = await sb.from('leads').update({ estatus_id: estPagado ?? lead.estatus?.id, estatus_antes_de_reporte: null,
     comentario: cierre, actualizado_en: new Date().toISOString() }).eq('id', lead.id);
   if(error){ toast('No se pudo cerrar el lead: ' + error.message, true); return false; }
   await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: lead.id, asesor_id: usuarioActual?.id || null, nota: cierre, canal: 'otro' });
-  registrarActividad('lead_ya_inscrita', `${alumno} → ${donde}${pago?.monto ? ' · reportó ' + fmtMoney(pago.monto) : ''}`);
+  registrarActividad('lead_ya_inscrita', `${alumno} → ${donde}${monto ? ' · reportó ' + fmtMoney(monto) : ''}`);
+  if(abono) registrarActividad('pago_confirmado', `${alumno} · ${fmtMoney(monto)} · reportó ${nombreVendedor(lead.pago_reportado_por) || 'alguien'} (abono a su inscripción)`);
   document.getElementById('modalInscribir').classList.remove('open');
   document.getElementById('modalRegistrarPago').classList.remove('open');
   document.getElementById('modalLead').classList.remove('open');
   await abrirModalInscripcion(inscId);
-  const d = modalInscDatos;
-  const yaTiene = pago?.monto && (d?.pagos || []).some(p=>Number(p.monto) === Number(pago.monto));
-  if(pago?.monto && !yaTiene && modalInscId === inscId){
-    document.getElementById('modalPagoMonto').value = pago.monto;
+  if(abono){
+    toast(`Ya estaba inscrita: registré el abono de ${fmtMoney(monto)}. ${abono.liquidado ? 'Queda liquidada ✅' : 'Debe ' + fmtMoney(abono.nuevoRestante) + '.'}`);
+  } else if(monto && !yaTiene && modalInscId === inscId){
+    // Lo reporta alguien sin permiso de confirmar: queda escrito para que Cobranza lo revise.
+    document.getElementById('modalPagoMonto').value = monto;
     if(pago.fecha) document.getElementById('modalPagoFecha').value = pago.fecha;
     document.getElementById('modalPagoBanco').value = pago.banco || '';
     pintarCobro();
-    toast(`Ya estaba inscrita. Su ficha no tiene un pago de ${fmtMoney(pago.monto)}: quedó escrito abajo, revísalo y guárdalo si llegó.`);
+    toast(`Ya estaba inscrita. Su ficha no tiene un pago de ${fmtMoney(monto)}: quedó escrito abajo, revísalo y guárdalo si llegó.`);
   } else {
-    toast(pago?.monto ? `Ya estaba inscrita y ese pago de ${fmtMoney(pago.monto)} ya está en su ficha. Cerré el lead.` : 'Ya estaba inscrita en ese curso. Cerré el lead.');
+    toast(monto ? `Ya estaba inscrita y ese pago de ${fmtMoney(monto)} ya está en su ficha. Cerré el lead.` : 'Ya estaba inscrita en ese curso. Cerré el lead.');
   }
   renderBoard();
+  if(abono && document.getElementById('view-calendario')?.classList.contains('active')) renderCalendario(true);
   return true;
 }
 function hace(iso){
@@ -5315,7 +5340,8 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   const { data: ya } = await sb.from('inscripciones').select('id').eq('persona_id', personaId).eq('evento_id', eventoId).maybeSingle();
   if(ya){
     listo();
-    await cerrarLeadYaInscrita({ ...lead, evento_id: eventoId }, ya.id, pagado > 0 ? { monto: pagado, fecha, banco } : null);
+    // Quien confirma tiene el permiso "Confirmar pagos" (se revisó arriba): el abono se registra.
+    await cerrarLeadYaInscrita({ ...lead, evento_id: eventoId }, ya.id, pagado > 0 ? { monto: pagado, fecha, banco } : null, { registrar: true });
     return;
   }
 
