@@ -336,6 +336,27 @@
   .bi-kpi .d{ font-size:11.5px; font-weight:700; margin-top:2px; min-height:16px; }
   .bi-kpi .d.sube{ color:var(--success); } .bi-kpi .d.baja{ color:var(--danger); } .bi-kpi .d.igual{ color:var(--ink-soft); }
   .bi-kpi svg{ display:block; width:100%; height:34px; margin-top:6px; }
+  .bi-meta{ margin-top:6px; font-size:11px; color:var(--ink-soft); }
+  .bi-meta .barra{ height:6px; border-radius:4px; background:#F6E4EA; overflow:hidden; margin-top:3px; }
+  .bi-meta .barra i{ display:block; height:100%; background:var(--success); border-radius:4px; }
+  .bi-meta.baja .barra i{ background:var(--ambar); }
+  .bi-proy{ margin-top:5px; font-size:11px; color:var(--wine-dark); font-weight:600; }
+  .bi-rango span{ display:flex; gap:6px; } .bi-rango input{ min-width:0 !important; width:140px; }
+  .bi-metas-btn{ width:auto; align-self:flex-end; background:rgba(255,255,255,.92); }
+  .bi-metas-form{ display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; align-items:end; margin-top:12px; }
+  .bi-metas-form label{ display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:700; color:var(--ink-soft); }
+  .bi-matriz-wrap{ overflow:auto; max-height:460px; margin-top:6px; border:1px solid var(--border); border-radius:10px; }
+  .bi-matriz{ width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
+  .bi-matriz th{ position:sticky; top:0; background:#FBEFF3; color:var(--wine-dark); font-weight:700; padding:7px 8px; text-align:right; cursor:pointer; white-space:nowrap; border-bottom:1px solid var(--border); }
+  .bi-matriz th:first-child, .bi-matriz td:first-child{ text-align:left; position:sticky; left:0; background:#fff; z-index:1; }
+  .bi-matriz th:first-child{ background:#FBEFF3; z-index:2; }
+  .bi-matriz td{ padding:6px 8px; text-align:right; border-bottom:1px solid #F6E4EA; font-variant-numeric:tabular-nums; cursor:pointer; white-space:nowrap; }
+  .bi-matriz td small{ display:block; font-size:10px; color:var(--ink-soft); }
+  .bi-matriz tr.tot td{ font-weight:700; background:#FFF6F9; position:sticky; bottom:0; }
+  .bi-matriz th.orden::after{ content:' ▼'; font-size:9px; } .bi-matriz th.orden.asc::after{ content:' ▲'; }
+  .bi-seguir{ margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .bi-seguir span{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--wine-dark); margin-right:4px; }
+  .bi-seguir button{ border:1px solid var(--wine); background:#FFF6F9; color:var(--wine); border-radius:999px; padding:5px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; text-align:left; }
   .bi-cuerpo{ display:grid; grid-template-columns:300px minmax(0, 1fr); gap:14px; align-items:start; }
   .bi-lado{ display:flex; flex-direction:column; gap:12px; position:sticky; top:12px; }
   .bi-card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; }
@@ -1854,6 +1875,11 @@
             <label>Comparar con<select class="select" id="biComparar"><option value="">Nada</option></select></label>
             <label>Ciudad<select class="select" id="biCiudad"><option value="">Todas</option></select></label>
             <label>Vendedora<select class="select" id="biVend"><option value="">Todas</option></select></label>
+            <label>Periodo<select class="select" id="biPeriodo">
+              <option value="">Toda la gira</option><option value="semana">Últimos 7 días</option><option value="mes">Este mes</option>
+              <option value="mes_ant">Mes pasado</option><option value="rango">De… a…</option></select></label>
+            <label class="bi-rango" id="biRango" style="display:none;">Fechas<span><input type="date" class="select" id="biDesde"><input type="date" class="select" id="biHasta"></span></label>
+            <button type="button" class="btn-outline small bi-metas-btn" id="biMetasBtn">🎯 Metas</button>
           </div>
         </div>
         <div class="bi-kpis" id="biKpis"></div>
@@ -2768,6 +2794,26 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: GLAMY BI — metas de la gira ===================== -->
+<div class="modal-overlay" id="modalBIMetas">
+  <div class="modal" style="max-width:620px;">
+    <button class="close" id="closeModalBIMetas">✕</button>
+    <h3 style="margin-bottom:2px;">🎯 Metas</h3>
+    <div class="sub" id="biMetasSub">—</div>
+    <div class="bi-metas-form">
+      <label>Qué<select class="select" id="biMetaMetrica">
+        <option value="cobrado">Cobrado ($)</option><option value="con_pago">Inscritas con pago</option><option value="inscritas">Inscritas</option>
+        <option value="liquidadas">Liquidadas</option><option value="conversion">Conversión (%)</option><option value="pagos">Pagos recibidos ($)</option>
+        <option value="asistencia">Asistencia (%)</option></select></label>
+      <label>Para<select class="select" id="biMetaAmbito"><option value="total">Toda la gira</option><option value="ciudad">Una ciudad</option><option value="vendedora">Una vendedora</option></select></label>
+      <label id="biMetaClaveCampo" style="display:none;">Cuál<select class="select" id="biMetaClave"></select></label>
+      <label>Meta<input type="number" class="select" id="biMetaValor" min="1" step="any" placeholder="Ej.: 2000000"></label>
+      <button type="button" class="btn-primary small" id="biMetaGuardar">Guardar meta</button>
+    </div>
+    <div class="rep-table-wrap" style="margin-top:12px; max-height:50vh;"><table class="rep-table" id="biMetasTabla"></table></div>
+  </div>
+</div>
+
 <!-- ===================== MODAL: GLAMY BI — quiénes forman un número ===================== -->
 <div class="modal-overlay" id="modalBIDetalle">
   <div class="modal" style="max-width:760px;">
@@ -3276,6 +3322,7 @@ const ACCION_LABEL = {
   pago_no_encontrado: '❌ No encontró un pago reportado',
   bi_pregunta: '🧁 Le preguntó a Glamy BI',
   bi_guardado: '📌 Guardó un reporte en Glamy BI',
+  bi_meta: '🎯 Puso una meta en Glamy BI',
   lead_ya_inscrita: 'Cerró un lead de alguien que ya estaba inscrita',
   curso_fecha_cambiada: '📅 Cambió la fecha de un curso',
   cambio_fecha_respuesta: 'Registró la respuesta a un cambio de fecha',
@@ -10562,7 +10609,17 @@ const BI_KPIS = [
 const BI_SUGERENCIAS = ['¿Cómo va el cobrado de esta gira contra la pasada, por semana?', 'Ranking de vendedoras por conversión',
   '¿Qué ciudades tienen más promesas vencidas?', 'Pagos recibidos por mes este año', 'Asistencia por ciudad', '¿Cómo va el cambio de fecha?',
   'Inscritas por gira desde 2020'];
-const bi = { giras:null, filtros:{ curso:'', comparar:'', ciudad:'', vendedora:'' }, mensajes:[], respuestas:[], enviando:false, graficas:{}, n:0 };
+const bi = { giras:null, filtros:{ curso:'', comparar:'', ciudad:'', vendedora:'', periodo:'', desde:'', hasta:'' }, mensajes:[], respuestas:[], enviando:false, graficas:{}, n:0 };
+// Periodo de la franja → fechas (cada dato se filtra por su propia fecha: cursos por su día, pagos por cuándo se pagaron, leads por su alta)
+function biRangoPeriodo(){
+  const f = bi.filtros, hoy = hoyISO(), d = new Date(hoy + 'T12:00:00');
+  const iso = x => x.toLocaleDateString('en-CA');
+  if(f.periodo === 'semana') return { desde: sumarDias(hoy, -6), hasta: hoy };
+  if(f.periodo === 'mes') return { desde: iso(new Date(d.getFullYear(), d.getMonth(), 1)), hasta: iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)) };
+  if(f.periodo === 'mes_ant') return { desde: iso(new Date(d.getFullYear(), d.getMonth() - 1, 1)), hasta: iso(new Date(d.getFullYear(), d.getMonth(), 0)) };
+  if(f.periodo === 'rango') return { desde: f.desde || '', hasta: f.hasta || '' };
+  return { desde:'', hasta:'' };
+}
 
 function biFmt(v, formato){
   if(v == null || v === '') return '—';
@@ -10584,7 +10641,15 @@ function biSpecFiltros(){
   if(f.comparar) spec.comparar = f.comparar;
   if(f.ciudad) spec.ciudad = f.ciudad;
   if(f.vendedora) spec.vendedora = f.vendedora;
+  const r = biRangoPeriodo();
+  if(r.desde) spec.desde = r.desde;
+  if(r.hasta) spec.hasta = r.hasta;
   return spec;
+}
+async function biMatriz(spec){
+  const { data, error } = await sb.rpc('bi_matriz', { p_spec: spec });
+  if(error) throw new Error(error.message);
+  return data;
 }
 async function biConsulta(spec, detalle){
   const { data, error } = await sb.rpc('bi_consulta', { p_spec: spec, p_detalle: detalle ?? null });
@@ -10636,7 +10701,11 @@ async function biCargarKpis(){
       const cls = Math.abs(dif) < 0.5 ? 'igual' : mejor ? 'sube' : 'baja';
       delta = `<div class="d ${cls}">${dif > 0 ? '▲' : dif < 0 ? '▼' : '='} ${Math.abs(Math.round(dif * 10) / 10).toLocaleString('es-MX')}${r.formato === 'pct' ? ' pts' : '%'} vs ${escHtml(tituloCaso(r.comparar.curso?.nombre || ''))}</div>`;
     } else delta = `<div class="d igual">${escHtml(r.curso ? tituloCaso(r.curso.nombre) : 'Todas las giras')}</div>`;
-    return `<div class="bi-kpi" title="${escapeAttr(r.definicion || '')}"><div class="l">${escHtml(k.l)}</div><div class="v">${biFmt(r.total, r.formato)}</div>${delta}${biSparkline(r.filas)}</div>`;
+    // Avance contra la meta (si se capturó) y, en cobrado, la proyección al cierre con su supuesto
+    const meta = Number(r.meta?.total) || 0, pct = meta ? Math.round(Number(r.total || 0) / meta * 100) : 0;
+    const htmlMeta = meta ? `<div class="bi-meta ${pct < 60 ? 'baja' : ''}">Meta ${biFmt(meta, r.formato)} · <b>${pct}%</b><div class="barra"><i style="width:${Math.min(pct, 100)}%"></i></div></div>` : '';
+    const proy = r.proyeccion ? `<div class="bi-proy" title="Si se mantiene el ritmo de pagos de las últimas 4 semanas hasta el último curso (${escapeAttr(fechaCorta(r.proyeccion.hasta))})">Proyección al cierre: ${fmtMoney(r.proyeccion.valor)}<br><span class="sub">ritmo ${fmtMoney(r.proyeccion.ritmo_semanal)}/semana · ${escHtml(String(r.proyeccion.semanas))} semanas</span></div>` : '';
+    return `<div class="bi-kpi" title="${escapeAttr(r.definicion || '')}"><div class="l">${escHtml(k.l)}</div><div class="v">${biFmt(r.total, r.formato)}</div>${delta}${htmlMeta}${proy}${biSparkline(r.filas)}</div>`;
   }).join('');
 }
 
@@ -10664,9 +10733,48 @@ function biSeries(r){
   return { claves, etiquetas, valores:claves.map(c=>por.has(c) ? Number(por.get(c).valor) : null),
            comp: comp ? claves.map(c=>porC.has(c) ? Number(porC.get(c).valor) : null) : null };
 }
+// Tabla resumen (matriz): una fila por ciudad / curso / vendedora y varias métricas; color por valor y meta por celda.
+function biHtmlMatriz(id, item){
+  const { spec, datos:r } = item;
+  const cols = r.columnas || [];
+  const orden = item.orden || { col: cols[0]?.metrica, asc:false };
+  const tiempo = ['mes', 'semana', 'dia', 'semana_gira'].includes(r.por);
+  const filas = [...(r.filas || [])].sort((a, b)=>{
+    if(tiempo && !item.orden) return String(a.clave).localeCompare(String(b.clave));
+    const va = Number(a.valores?.[orden.col] ?? -Infinity), vb = Number(b.valores?.[orden.col] ?? -Infinity);
+    return orden.asc ? va - vb : vb - va;
+  });
+  // Rango de cada columna para el color (verde = bueno, rojo = malo, según la métrica)
+  const rango = {};
+  cols.forEach(c=>{ const vs = filas.map(f=>Number(f.valores?.[c.metrica])).filter(v=>!isNaN(v)); rango[c.metrica] = [Math.min(...vs), Math.max(...vs)]; });
+  const color = (c, v) => {
+    if(v == null || c.sentido === 'neutro') return '';
+    const [mn, mx] = rango[c.metrica]; if(!(mx > mn)) return '';
+    const t = (Number(v) - mn) / (mx - mn), a = (0.06 + 0.3 * t).toFixed(2);
+    return c.sentido === 'menos' ? `background:rgba(181,69,58,${a})` : `background:rgba(85,116,92,${a})`;
+  };
+  const sub = [r.curso ? tituloCaso(r.curso.nombre) : 'Todas las giras', spec.ciudad, spec.vendedora,
+    spec.desde || spec.hasta ? [spec.desde, spec.hasta].filter(Boolean).map(fechaCorta).join(' – ') : ''].filter(Boolean).join(' · ');
+  return `<div class="bi-graf bi-graf-matriz" data-bi-graf="${escapeAttr(id)}">
+    <div class="bi-graf-cab"><b>${escHtml(spec.titulo || 'Resumen')}</b><span class="sub">${escHtml(sub)} · ${filas.length} ${escHtml((BI_POR_ETIQUETA[r.por] || '').toLowerCase())}${filas.length === 1 ? '' : 's'}</span></div>
+    <div class="bi-matriz-wrap"><table class="bi-matriz"><thead><tr><th>${escHtml(BI_POR_ETIQUETA[r.por] || '')}</th>
+      ${cols.map(c=>`<th class="${orden.col === c.metrica && item.orden ? 'orden' + (orden.asc ? ' asc' : '') : ''}" data-bi-ord="${escapeAttr(id)}" data-bi-col="${escapeAttr(c.metrica)}" title="${escapeAttr(c.definicion || '')}">${escHtml(c.nombre)}</th>`).join('')}</tr></thead>
+      <tbody>${filas.map(f=>`<tr><td>${escHtml(biEtiqueta(f, r.por))}</td>${cols.map(c=>{
+          const v = f.valores?.[c.metrica], meta = r.metas?.[c.metrica]?.[f.clave];
+          return `<td style="${color(c, v)}" data-bi-det="${escapeAttr(id)}" data-bi-clave="${escapeAttr(f.clave ?? '')}" data-bi-met="${escapeAttr(c.metrica)}" data-bi-eti="${escapeAttr(biEtiqueta(f, r.por))}">${biFmt(v ?? 0, c.formato)}${meta ? `<small>${Math.round(Number(v || 0) / meta * 100)}% de ${biFmt(meta, c.formato)}</small>` : ''}</td>`;
+        }).join('')}</tr>`).join('')}
+        <tr class="tot"><td>Total</td>${cols.map(c=>`<td data-bi-det="${escapeAttr(id)}" data-bi-clave="total" data-bi-met="${escapeAttr(c.metrica)}" data-bi-eti="Total">${biFmt(r.totales?.[c.metrica], c.formato)}</td>`).join('')}</tr></tbody></table></div>
+    <div class="bi-def">Toca un encabezado para ordenar y una celda para ver quiénes son. ${escHtml(cols.map(c=>`${c.nombre}: ${c.definicion}`).join(' · '))}</div>
+    <div class="bi-acc">
+      ${item.guardado ? '' : `<button type="button" class="p" data-bi-guardar="${escapeAttr(id)}">📌 Guardar en mi tablero</button>`}
+      <button type="button" data-bi-csv="${escapeAttr(id)}">⬇ CSV</button>
+      ${item.reporteId ? `<button type="button" data-bi-quitar="${escapeAttr(item.reporteId)}">Quitar</button>` : ''}
+    </div></div>`;
+}
 function biHtmlGrafica(id, item){
   const { spec, datos:r } = item;
   if(!r) return '';
+  if(r.tipo === 'matriz') return biHtmlMatriz(id, item);
   const tipo = spec.grafica || 'barras';
   const sub = [r.curso ? tituloCaso(r.curso.nombre) : (r.desde || r.hasta ? [r.desde, r.hasta].filter(Boolean).map(fechaCorta).join(' – ') : 'Todas las giras'),
     r.ciudad, r.vendedora, r.comparar ? 'vs ' + tituloCaso(r.comparar.curso?.nombre || '') : ''].filter(Boolean).join(' · ');
@@ -10697,7 +10805,7 @@ const BI_TIPO_ETIQUETA = { barras:'📊 Barras', barras_horizontales:'📶 Ranki
 const BI_POR_ETIQUETA = { total:'', ciudad:'Ciudad', curso:'Gira', vendedora:'Vendedora', estado:'Estado', paquete:'Paquete', mes:'Mes', semana:'Semana', dia:'Día', semana_gira:'Semana de la gira' };
 function biDibujar(id){
   const item = bi.graficas[id]; const canvas = document.getElementById('biCanvas_' + id);
-  if(!item || !canvas) return;
+  if(!item || !canvas || item.datos?.tipo === 'matriz') return;
   if(chartInstances['biCanvas_' + id]) chartInstances['biCanvas_' + id].destroy();
   const r = item.datos, tipo = item.spec.grafica || 'barras', s = biSeries(r);
   const fmt = v => biFmt(v, r.formato);
@@ -10727,7 +10835,8 @@ function biPintarRespuestas(){
   const caja = document.getElementById('biRespuestas');
   const html = bi.respuestas.map(resp=>`<div class="bi-resp"><div class="bi-preg">${escHtml(resp.pregunta)}</div>
       ${resp.ids.length ? `<div class="bi-graficas">${resp.ids.map(id=>biHtmlGrafica(id, bi.graficas[id])).join('')}</div>` : ''}
-      <div class="bi-lectura${resp.error ? ' sub' : ''}">${glamyFormato(resp.texto || '')}</div></div>`).join('');
+      <div class="bi-lectura${resp.error ? ' sub' : ''}">${glamyFormato(resp.texto || '')}</div>
+      ${resp.seguir?.length ? `<div class="bi-seguir"><span>Para afinar</span>${resp.seguir.map(q=>`<button type="button" data-bi-sug="${escapeAttr(q)}">${escHtml(q)}</button>`).join('')}</div>` : ''}</div>`).join('');
   caja.innerHTML = (bi.enviando ? '<div class="bi-resp"><div class="bi-pensando">🧁 Glamy está analizando los datos…</div></div>' : '') + (html
     || '<div class="bi-vacio">Pregúntale a Glamy lo que necesites ver: ventas, cobrado, conversión, vendedoras, ciudades, giras pasadas… Te contesta con la gráfica, la lectura y qué hacer.</div>');
   bi.respuestas.forEach(resp=>resp.ids.forEach(biDibujar));
@@ -10750,7 +10859,10 @@ async function biPreguntar(texto){
     if(error){ try{ r = await error.context?.json(); }catch(_){ r = null; } if(!r?.texto) throw new Error(r?.error || error.message); }
     if(!r?.texto) throw new Error(r?.error || 'no llegó respuesta');
     bi.mensajes.push({ rol:'assistant', texto:r.texto });
-    resp = { pregunta:texto, texto:r.texto, ids:(r.bi || []).map(item=>biRegistrar({ ...item, lectura:r.texto })) };
+    // ⟦seguir:…⟧ = preguntas de seguimiento de Glamy (máx. 2): se quitan del texto y se vuelven botones
+    const seguir = [...r.texto.matchAll(/⟦seguir:([^⟧]{3,300})⟧/g)].map(m=>m[1].trim()).slice(0, 2);
+    const limpio = r.texto.replace(/⟦seguir:[^⟧]*⟧/g, '').replace(/\n?\s*\**Para afinar:?\**:?\s*$/i, '').trim();
+    resp = { pregunta:texto, texto:limpio, seguir, ids:(r.bi || []).map(item=>biRegistrar({ ...item, lectura:limpio })) };
     registrarActividad('bi_pregunta', texto.slice(0, 140));
   }catch(e){
     bi.mensajes.pop();
@@ -10771,7 +10883,7 @@ async function biCargarTablero(){
   if(error){ caja.innerHTML = `<div class="bi-vacio">No se pudo cargar: ${escHtml(error.message)}</div>`; return; }
   if(!data?.length){ caja.innerHTML = '<div class="bi-vacio">Aquí van los reportes que guardes con 📌. Se ven siempre con los datos de hoy.</div>'; return; }
   const items = await Promise.all(data.map(async rep=>{
-    try{ return { rep, datos: await biConsulta(rep.spec) }; }catch(e){ return { rep, error:e.message }; }
+    try{ return { rep, datos: rep.spec?.metricas ? await biMatriz(rep.spec) : await biConsulta(rep.spec) }; }catch(e){ return { rep, error:e.message }; }
   }));
   const ids = items.map(({ rep, datos, error })=> error ? { rep, error } : biRegistrar({ spec:rep.spec, datos, lectura:rep.lectura, guardado:true, reporteId:rep.id }));
   caja.innerHTML = ids.map(x=>typeof x === 'string' ? biHtmlGrafica(x, bi.graficas[x])
@@ -10792,15 +10904,19 @@ async function biGuardar(id){
 
 // ---------- Detalle y CSV ----------
 let biDetFilas = [], biDetNombre = '';
-async function biDetalle(id, clave, etiqueta){
+async function biDetalle(id, clave, etiqueta, metrica){
   const item = bi.graficas[id]; if(!item) return;
-  const { spec, datos:r } = item;
+  // En la matriz, la celda dice qué métrica (columna) y qué fila
+  const col = metrica && (item.datos?.columnas || []).find(c=>c.metrica === metrica);
+  const spec = metrica ? { ...item.spec, metrica, por:item.datos?.por || item.spec.por, titulo:col?.nombre || item.spec.titulo } : item.spec;
+  const r = col ? { nombre:col.nombre, definicion:col.definicion } : item.datos;
   document.getElementById('biDetTitulo').textContent = `${spec.titulo || r.nombre}${clave && clave !== 'total' ? ' · ' + (etiqueta || clave) : ''}`;
   document.getElementById('biDetSub').textContent = 'Cargando…';
   document.getElementById('biDetTabla').innerHTML = '';
   document.getElementById('modalBIDetalle').classList.add('open');
   try{
-    const res = await biConsulta(spec, clave == null || clave === '' ? 'total' : String(clave));
+    const { metricas, ...specDet } = spec;
+    const res = await biConsulta(specDet, clave == null || clave === '' ? 'total' : String(clave));
     biDetFilas = res.detalle || [];
     biDetNombre = `${spec.titulo || r.nombre}${clave && clave !== 'total' ? '-' + (etiqueta || clave) : ''}`;
     document.getElementById('biDetSub').textContent = `${biDetFilas.length}${biDetFilas.length === 500 ? '+ (se muestran 500)' : ''} renglones · ${r.definicion || ''}`;
@@ -10811,7 +10927,13 @@ async function biDetalle(id, clave, etiqueta){
 }
 function biCSV(id){
   const item = bi.graficas[id]; if(!item) return;
-  const r = item.datos, s = biSeries(r);
+  const r = item.datos;
+  if(r.tipo === 'matriz'){
+    const cols = r.columnas || [];
+    return exportarCSV(`glamy-bi-${normTexto(item.spec.titulo || 'resumen').replace(/\s+/g, '-')}.csv`, [BI_POR_ETIQUETA[r.por] || '', ...cols.map(c=>c.nombre)],
+      [...(r.filas || []).map(f=>[biEtiqueta(f, r.por), ...cols.map(c=>f.valores?.[c.metrica] ?? '')]), ['Total', ...cols.map(c=>r.totales?.[c.metrica] ?? '')]]);
+  }
+  const s = biSeries(r);
   exportarCSV(`glamy-bi-${normTexto(item.spec.titulo || r.nombre).replace(/\s+/g, '-')}.csv`,
     [BI_POR_ETIQUETA[r.por] || 'Total', r.nombre, ...(s.comp ? [tituloCaso(r.comparar.curso?.nombre || 'Comparación')] : [])],
     s.claves.length ? s.claves.map((_, i)=>[s.etiquetas[i], s.valores[i] ?? '', ...(s.comp ? [s.comp[i] ?? ''] : [])]) : [['Total', r.total ?? '']]);
@@ -10827,6 +10949,7 @@ document.getElementById('reportes-glamybi').addEventListener('click', e=>{
   if(d.biIr) return setActiveSection(d.biIr);
   if(d.biGuardar) return biGuardar(d.biGuardar);
   if(d.biDet) return biDetalle(d.biDet, d.biClave, b.textContent.trim());
+  if(b.id === 'biMetasBtn') return biAbrirMetas();
   if(d.biCsv) return biCSV(d.biCsv);
   if(d.biQuitar){
     return (async ()=>{
@@ -10835,6 +10958,19 @@ document.getElementById('reportes-glamybi').addEventListener('click', e=>{
       toast('Se quitó de tu tablero.'); biCargarTablero();
     })();
   }
+});
+// Matriz: celdas (detalle) y encabezados (ordenar) no son botones
+document.getElementById('reportes-glamybi').addEventListener('click', e=>{
+  const th = e.target.closest('[data-bi-ord]');
+  if(th){
+    const item = bi.graficas[th.dataset.biOrd]; if(!item) return;
+    const col = th.dataset.biCol;
+    item.orden = { col, asc: item.orden?.col === col ? !item.orden.asc : false };
+    th.closest('[data-bi-graf]').outerHTML = biHtmlMatriz(th.dataset.biOrd, item);
+    return;
+  }
+  const td = e.target.closest('td[data-bi-det]');
+  if(td) biDetalle(td.dataset.biDet, td.dataset.biClave, td.dataset.biEti, td.dataset.biMet);
 });
 document.getElementById('reportes-glamybi').addEventListener('change', e=>{
   const t = e.target;
@@ -10846,11 +10982,73 @@ document.getElementById('reportes-glamybi').addEventListener('change', e=>{
     biDibujar(t.dataset.biTipo);
     return;
   }
-  const filtro = { biCurso:'curso', biComparar:'comparar', biCiudad:'ciudad', biVend:'vendedora' }[t.id];
-  if(filtro){ bi.filtros[filtro] = t.value; biCargarKpis(); }
+  const filtro = { biCurso:'curso', biComparar:'comparar', biCiudad:'ciudad', biVend:'vendedora', biPeriodo:'periodo', biDesde:'desde', biHasta:'hasta' }[t.id];
+  if(filtro){
+    bi.filtros[filtro] = t.value;
+    document.getElementById('biRango').style.display = bi.filtros.periodo === 'rango' ? '' : 'none';
+    if(bi.filtros.periodo === 'rango' && !(bi.filtros.desde && bi.filtros.hasta)) return;
+    biCargarKpis();
+  }
 });
 document.getElementById('biPregunta').addEventListener('keydown', e=>{
   if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); biPreguntar(e.target.value); }
+});
+// ---------- Metas ----------
+const BI_META_NOMBRE = { cobrado:'Cobrado', con_pago:'Inscritas con pago', inscritas:'Inscritas', liquidadas:'Liquidadas', conversion:'Conversión', pagos:'Pagos recibidos', asistencia:'Asistencia' };
+const BI_META_FORMATO = { cobrado:'money', pagos:'money', conversion:'pct', asistencia:'pct' };
+function biCursoMetas(){ const c = bi.filtros.curso; return c && c !== 'todas' ? c : bi.giras?.find(g=>g.activa)?.id || ''; }
+async function biAbrirMetas(){
+  const curso = biCursoMetas();
+  document.getElementById('biMetasSub').textContent = curso ? 'De ' + (document.querySelector(`#biCurso option[value="${CSS.escape(curso)}"]`)?.textContent || 'la gira') : 'Elige una gira arriba.';
+  biMetaAmbito();
+  document.getElementById('modalBIMetas').classList.add('open');
+  await biPintarMetas();
+}
+function biMetaAmbito(){
+  const amb = document.getElementById('biMetaAmbito').value;
+  document.getElementById('biMetaClaveCampo').style.display = amb === 'total' ? 'none' : '';
+  document.getElementById('biMetaClave').innerHTML = amb === 'ciudad'
+    ? [...(CIUDADES || [])].sort((a, b)=>a.nombre.localeCompare(b.nombre, 'es')).map(c=>`<option value="${escapeAttr(c.id)}">${escHtml(c.nombre)}</option>`).join('')
+    : EQUIPO.filter(u=>u.es_vendedor).map(u=>`<option value="${escapeAttr(u.id)}">${escHtml(u.nombre)}</option>`).join('');
+}
+async function biPintarMetas(){
+  const curso = biCursoMetas(), tabla = document.getElementById('biMetasTabla');
+  if(!curso){ tabla.innerHTML = ''; return; }
+  const { data, error } = await sb.from('bi_metas').select('id, metrica, ambito, clave, valor').eq('curso_id', curso).eq('activa', true);
+  if(error){ tabla.innerHTML = `<tr><td>No se pudieron cargar: ${escHtml(error.message)}</td></tr>`; return; }
+  const nombreClave = m => m.ambito === 'ciudad' ? (CIUDADES || []).find(c=>c.id === m.clave)?.nombre : m.ambito === 'vendedora' ? EQUIPO.find(u=>u.id === m.clave)?.nombre : 'Toda la gira';
+  tabla.innerHTML = (data || []).length ? `<thead><tr><th>Qué</th><th>Para</th><th class="n">Meta</th><th></th></tr></thead><tbody>`
+    + data.map(m=>`<tr><td>${escHtml(BI_META_NOMBRE[m.metrica] || m.metrica)}</td><td>${escHtml(nombreClave(m) || '—')}</td><td class="n">${biFmt(m.valor, BI_META_FORMATO[m.metrica])}</td>
+        <td><button type="button" class="btn-ghost" data-bi-meta-quitar="${escapeAttr(m.id)}">Quitar</button></td></tr>`).join('') + '</tbody>'
+    : '<tr><td class="sub">Todavía no hay metas para esta gira.</td></tr>';
+}
+document.getElementById('biMetaAmbito').addEventListener('change', biMetaAmbito);
+document.getElementById('closeModalBIMetas').addEventListener('click', ()=>document.getElementById('modalBIMetas').classList.remove('open'));
+document.getElementById('biMetaGuardar').addEventListener('click', async ()=>{
+  const curso = biCursoMetas(); if(!curso){ toast('Elige una gira.', true); return; }
+  const metrica = document.getElementById('biMetaMetrica').value, ambito = document.getElementById('biMetaAmbito').value;
+  const clave = ambito === 'total' ? null : document.getElementById('biMetaClave').value || null;
+  const valor = Number(document.getElementById('biMetaValor').value);
+  if(!(valor > 0)){ toast('Escribe la meta.', true); return; }
+  if(ambito !== 'total' && !clave){ toast('Elige la ' + ambito + '.', true); return; }
+  // Una meta por gira + qué + para quién: si ya existe, se actualiza
+  let q = sb.from('bi_metas').select('id').eq('curso_id', curso).eq('metrica', metrica).eq('ambito', ambito);
+  q = clave ? q.eq('clave', clave) : q.is('clave', null);
+  const { data: ya } = await q.maybeSingle();
+  const { error } = ya
+    ? await sb.from('bi_metas').update({ valor, activa:true, actualizado_en:new Date().toISOString() }).eq('id', ya.id)
+    : await sb.from('bi_metas').insert({ curso_id:curso, metrica, ambito, clave, valor, activa:true });
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  registrarActividad('bi_meta', `${BI_META_NOMBRE[metrica]}: ${biFmt(valor, BI_META_FORMATO[metrica])}${ambito !== 'total' ? ' · ' + ambito : ''}`);
+  document.getElementById('biMetaValor').value = '';
+  toast('Meta guardada.');
+  biPintarMetas(); biCargarKpis();
+});
+document.getElementById('biMetasTabla').addEventListener('click', async e=>{
+  const b = e.target.closest('[data-bi-meta-quitar]'); if(!b) return;
+  const { error } = await sb.from('bi_metas').update({ activa:false, actualizado_en:new Date().toISOString() }).eq('id', b.dataset.biMetaQuitar);
+  if(error){ toast('No se pudo quitar: ' + error.message, true); return; }
+  biPintarMetas(); biCargarKpis();
 });
 document.getElementById('closeModalBIDetalle').addEventListener('click', ()=>document.getElementById('modalBIDetalle').classList.remove('open'));
 document.getElementById('biDetCSV').addEventListener('click', ()=>{
@@ -12520,6 +12718,8 @@ async function irAEnlaceNota(id){
     return setActiveSection('glamy');
   }
   if(SECCIONES.some(s=>s.id===e.vista)) setActiveSection(e.vista);
+  // Resumen semanal de Glamy BI: Reportes → Glamy BI
+  if(e.vista === 'reportes' && e.tab === 'glamybi'){ document.getElementById('tabGlamyBI')?.click(); return; }
   // Aviso de Academia Glam ("retirar acceso"): abre la ficha de la alumna.
   if(e.agl_susc) return aglAbrirFicha(e.agl_susc);
   // Diploma con nombre por corregir: Academia → Certificados → ese curso.
