@@ -51,11 +51,17 @@ const lead = (id, personaId, nombre, extra) => ({ id, persona_id:personaId, even
         'queda en el historial y en la actividad');
   await p.evaluate(() => cerrarModalInscripcion());
 
-  h.paso('2. Confirmar: ya inscrita y su ficha NO tiene ese pago');
+  h.paso('2. Confirmar: ya inscrita y su ficha NO tiene ese pago → se registra el abono');
   await confirmar('l2');
   check((await h.ops('leads', 'update')).pop()?.estatus_id === 12, 'cierra el lead');
-  check(await p.inputValue('#modalPagoMonto') === '900' && await p.inputValue('#modalPagoBanco') === 'BBVA', 'el pago reportado queda escrito en "Registrar pago" de su ficha');
-  check((await h.ops('pagos', 'insert')).length === 0 && (await p.textContent('#toast')).includes('revísalo'), 'pero no se guarda solo: lo revisa quien cobra');
+  const pg = (await h.ops('pagos', 'insert'))[0];
+  check(pg && pg.inscripcion_id === 'i2' && pg.monto === 900 && pg.verificacion === 'confirmado' && pg.banco === 'BBVA' && pg.confirmado_por === 'u1',
+        'quien confirma ya lo vio en el banco: el abono queda registrado como confirmado (' + JSON.stringify(pg) + ')');
+  const upI = (await h.ops('inscripciones', 'update')).pop();
+  check(upI && upI.anticipo === 900 && upI.restante === 500 && upI.liquidado === false && upI.estatus_id === 11, 'su saldo baja: pagó $900, debe $500');
+  check((await p.textContent('#toast')).includes('registré el abono de $900') && (await p.textContent('#toast')).includes('Debe $500'), 'avisa cuánto queda debiendo');
+  check(await p.inputValue('#modalPagoMonto') === '', 'no queda nada pendiente de escribir en la ficha');
+  check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'pago_confirmado' && a.detalle.includes('abono a su inscripción')), 'queda en la actividad como pago confirmado');
   await h.captura('lead-ya-inscrita-ficha.png');
   await p.evaluate(() => cerrarModalInscripcion());
 
@@ -71,6 +77,7 @@ const lead = (id, personaId, nombre, extra) => ({ id, persona_id:personaId, even
   await p.click('#confirmarNo');
   await p.waitForTimeout(200);
   check((await h.ops('leads', 'update')).length === 0, 'cancelar no cambia nada');
+  check((await h.ops('pagos', 'insert')).length === 0, 'reportar (sin confirmar) no registra el abono');
   await p.click('#guardarRegistrarPago');
   await p.waitForSelector('#modalConfirmar.open');
   await p.click('#confirmarSi');
