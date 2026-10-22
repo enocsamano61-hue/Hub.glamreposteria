@@ -40,7 +40,7 @@ const corto = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
 const HERRAMIENTAS: Anthropic.Tool[] = [
   {
     name: "buscar_persona",
-    description: "Busca alumnas, leads o cualquier persona por celular (7 o más dígitos, con o sin lada) o por nombre. Regresa sus cursos (ciudad, fecha, estatus, si llegó, pagado, lo que debe, pagos por confirmar, diploma), sus leads y, si el rol lo permite, su información de la Academia. Úsala siempre que peguen un número o pregunten por alguien.",
+    description: "Busca alumnas, leads o cualquier persona por celular (7 o más dígitos, con o sin lada) o por nombre. Regresa sus cursos (ciudad, fecha, estatus, si llegó, pagado, lo que debe, pagos por confirmar, diploma, cambio de fecha), sus leads (estatus, curso ligado, pago reportado, promesa de anticipo, último comentario) y, si el rol lo permite, su información de la Academia. Cada curso y cada lead trae siguiente_paso (qué sigue, quién lo hace y a qué sección mandar): úsalo para decir qué hacer. Úsala siempre que peguen un número o pregunten por alguien.",
     input_schema: { type: "object", properties: { texto: { type: "string", description: "Celular o nombre a buscar" } }, required: ["texto"] },
   },
   {
@@ -335,7 +335,8 @@ Deno.serve(async (req) => {
   }
 
   // Prueba de punta a punta sin sesión del Hub: llave temporal (su huella vive en glamy_prueba_llave y caduca).
-  // Las herramientas no tocan datos de nadie ni crean tickets.
+  // Las herramientas no tocan datos de nadie ni crean tickets. "simular" trae lo que regresaría cada
+  // herramienta (datos de ejemplo del examen de Glamy: pruebas/examen_glamy.js).
   if (cuerpo?.accion === "prueba") {
     const llave = String(cuerpo.llave ?? "");
     const { data: valida } = llave
@@ -343,11 +344,14 @@ Deno.serve(async (req) => {
       : { data: null };
     if (!valida) return responder({ error: "No autorizado" }, 401);
     const historial = [{ role: "user" as const, content: corto(cuerpo.pregunta, 500) || "¿Qué haces?" }];
+    const simular = (cuerpo.simular && typeof cuerpo.simular === "object") ? cuerpo.simular as Record<string, unknown> : {};
     const sistema: Anthropic.TextBlockParam[] = [
       { type: "text", text: MANUAL + await faq(), cache_control: { type: "ephemeral" } },
-      { type: "text", text: "# Quién te escribe\nPrueba técnica del sistema (modo prueba: las herramientas no regresan datos reales)." },
+      { type: "text", text: "# Quién te escribe\nPrueba técnica del sistema (modo prueba: las herramientas regresan datos de ejemplo). "
+        + `Rol: Cobranza. Está en la sección "${corto(cuerpo.seccion, 30) || "inicio"}". Secciones que puede abrir: inicio, board, historial, cursos, cobranza, nollegaron, calendario, academia, mensajes.` },
     ];
-    const r = await conversar(historial, sistema, async (nombre) => ({ modo_prueba: true, herramienta: nombre, nota: "Sin datos en modo prueba." }));
+    const r = await conversar(historial, sistema, async (nombre) =>
+      simular[nombre] ?? { modo_prueba: true, herramienta: nombre, nota: "Sin datos en modo prueba." });
     return responder({ ...r, costo_usd: Number(costoUSD(r.uso).toFixed(6)) });
   }
 

@@ -1413,6 +1413,15 @@
   .glamy-msg.ella ul{ margin:4px 0 6px; padding-left:18px; }
   .glamy-msg.error{ border-color:var(--danger, #C0392B); }
   .glamy-botones{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  /* 👎 "No me sirvió": discreto, debajo de cada respuesta */
+  .glamy-mal{ margin-top:6px; font-size:11.5px; color:var(--ink-soft); }
+  .glamy-mal button{ background:transparent; border:none; color:var(--ink-soft); font-size:11.5px; cursor:pointer; padding:2px 0; font-family:inherit; }
+  .glamy-mal button:hover{ color:var(--wine); }
+  .glamy-mal.abierto{ min-width:min(260px, 64vw); }
+  .glamy-mal.abierto textarea{ width:100%; box-sizing:border-box; margin:4px 0; font:inherit; font-size:12px; border:1px solid var(--border); border-radius:8px; padding:6px 8px; resize:vertical; background:var(--bg); color:var(--ink); }
+  .glamy-mal.abierto div{ display:flex; gap:10px; }
+  .glamy-mal.abierto button[data-g-mal-enviar]{ color:var(--wine); font-weight:700; }
+  .glamy-mal.ok{ color:var(--success, #55745C); }
   .glamy-boton{ background:var(--bg); border:1.5px solid var(--wine); color:var(--wine); border-radius:20px; padding:5px 11px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
   .glamy-pensando{ align-self:flex-start; font-size:12px; color:var(--ink-soft); padding:4px 6px; }
   .glamy-chips{ display:flex; flex-wrap:wrap; gap:6px; }
@@ -3328,6 +3337,7 @@ const ACCION_LABEL = {
   bi_pregunta: '🧁 Le preguntó a Glamy BI',
   bi_guardado: '📌 Guardó un reporte en Glamy BI',
   bi_meta: '🎯 Puso una meta en Glamy BI',
+  glamy_no_sirvio: '👎 Marcó una respuesta de Glamy como "No me sirvió"',
   lead_ya_inscrita: 'Cerró un lead de alguien que ya estaba inscrita',
   curso_fecha_cambiada: '📅 Cambió la fecha de un curso',
   cambio_fecha_respuesta: 'Registró la respuesta a un cambio de fecha',
@@ -10972,10 +10982,11 @@ function biRegistrar(item){ const id = 'g' + (++bi.n); bi.graficas[id] = item; r
 // ---------- Preguntar ----------
 function biPintarRespuestas(){
   const caja = document.getElementById('biRespuestas');
-  const html = bi.respuestas.map(resp=>`<div class="bi-resp"><div class="bi-preg">${escHtml(resp.pregunta)}</div>
+  const html = bi.respuestas.map((resp, i)=>`<div class="bi-resp"><div class="bi-preg">${escHtml(resp.pregunta)}</div>
       ${resp.ids.length ? `<div class="bi-graficas">${resp.ids.map(id=>biHtmlGrafica(id, bi.graficas[id])).join('')}</div>` : ''}
       <div class="bi-lectura${resp.error ? ' sub' : ''}">${glamyFormato(resp.texto || '')}</div>
-      ${resp.seguir?.length ? `<div class="bi-seguir"><span>Para afinar</span>${resp.seguir.map(q=>`<button type="button" data-bi-sug="${escapeAttr(q)}">${escHtml(q)}</button>`).join('')}</div>` : ''}</div>`).join('');
+      ${resp.seguir?.length ? `<div class="bi-seguir"><span>Para afinar</span>${resp.seguir.map(q=>`<button type="button" data-bi-sug="${escapeAttr(q)}">${escHtml(q)}</button>`).join('')}</div>` : ''}
+      ${resp.error ? '' : htmlNoSirvio(resp.mal, 'b' + i)}</div>`).join('');
   caja.innerHTML = (bi.enviando ? '<div class="bi-resp"><div class="bi-pensando">🧁 Glamy está analizando los datos…</div></div>' : '') + (html
     || '<div class="bi-vacio">Pregúntale a Glamy lo que necesites ver: ventas, cobrado, conversión, vendedoras, ciudades, giras pasadas… Te contesta con la gráfica, la lectura y qué hacer.</div>');
   bi.respuestas.forEach(resp=>resp.ids.forEach(biDibujar));
@@ -11001,7 +11012,7 @@ async function biPreguntar(texto){
     // ⟦seguir:…⟧ = preguntas de seguimiento de Glamy (máx. 2): se quitan del texto y se vuelven botones
     const seguir = [...r.texto.matchAll(/⟦seguir:([^⟧]{3,300})⟧/g)].map(m=>m[1].trim()).slice(0, 2);
     const limpio = r.texto.replace(/⟦seguir:[^⟧]*⟧/g, '').replace(/\n?\s*\**Para afinar:?\**:?\s*$/i, '').trim();
-    resp = { pregunta:texto, texto:limpio, seguir, ids:(r.bi || []).map(item=>biRegistrar({ ...item, lectura:limpio })) };
+    resp = { pregunta:texto, texto:limpio, seguir, herramientas: r.herramientas || [], ids:(r.bi || []).map(item=>biRegistrar({ ...item, lectura:limpio })) };
     registrarActividad('bi_pregunta', texto.slice(0, 140));
   }catch(e){
     bi.mensajes.pop();
@@ -11079,9 +11090,14 @@ function biCSV(id){
 }
 
 // ---------- Eventos ----------
-document.getElementById('reportes-glamybi').addEventListener('click', e=>{
+document.getElementById('reportes-glamybi').addEventListener('click', async e=>{
   const b = e.target.closest('button'); if(!b) return;
   const d = b.dataset;
+  const obtener = clave=>{
+    const resp = bi.respuestas[Number(clave.slice(1))];
+    return resp ? { obj:resp, pregunta:resp.pregunta, respuesta:resp.texto, herramientas:resp.herramientas, seccion:'reportes' } : null;
+  };
+  if(await clicNoSirvio(e, obtener, 'bi', biPintarRespuestas)) return;
   if(b.id === 'biPreguntar') return biPreguntar(document.getElementById('biPregunta').value);
   if(b.id === 'biRecargarTablero') return biCargarTablero();
   if(d.biSug){ document.getElementById('biPregunta').value = d.biSug; return biPreguntar(d.biSug); }
@@ -14831,6 +14847,35 @@ function glamyFormato(texto){
   cerrar();
   return html;
 }
+/* 👎 "No me sirvió": guarda la pregunta, la respuesta y las herramientas en glamy_comentarios
+   (solo Enoc las ve; no van al bloc) para ir afinando a Glamy. */
+async function glamyReportar({ pregunta, respuesta, herramientas, seccion, modo, nota }){
+  const { error } = await sb.from('glamy_comentarios').insert({
+    pregunta: String(pregunta || '(sin pregunta)').slice(0, 4000), respuesta: String(respuesta || '').slice(0, 8000),
+    herramientas: herramientas || [], seccion: seccion || null, modo, nota: nota ? nota.slice(0, 1000) : null });
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return false; }
+  registrarActividad('glamy_no_sirvio', `${modo === 'bi' ? 'Glamy BI' : 'Chat de Glamy'}${seccion ? ' · ' + seccion : ''}`);
+  return true;
+}
+function htmlNoSirvio(estado, clave){
+  if(estado === 'guardado') return '<div class="glamy-mal ok">Gracias: se guardó para mejorar a Glamy.</div>';
+  if(estado === 'abierto') return `<div class="glamy-mal abierto"><textarea data-g-mal-nota="${clave}" rows="2" maxlength="1000" placeholder="¿Qué esperabas? (opcional) Ej.: me mandó a Recepción y era Cobranza"></textarea>`
+    + `<div><button type="button" data-g-mal-enviar="${clave}">Enviar</button><button type="button" data-g-mal-cancelar="${clave}">Cancelar</button></div></div>`;
+  return `<div class="glamy-mal"><button type="button" data-g-mal="${clave}">👎 No me sirvió</button></div>`;
+}
+// Maneja los botones del 👎 en una lista de respuestas: obtener(clave) da { obj, pregunta, respuesta, herramientas, seccion }.
+async function clicNoSirvio(ev, obtener, modo, repintar){
+  const el = ev.target.closest('[data-g-mal],[data-g-mal-enviar],[data-g-mal-cancelar]'); if(!el) return false;
+  const clave = el.dataset.gMal || el.dataset.gMalEnviar || el.dataset.gMalCancelar;
+  const r = obtener(clave); if(!r) return true;
+  if(el.dataset.gMal){ r.obj.mal = 'abierto'; repintar(); document.querySelector(`[data-g-mal-nota="${clave}"]`)?.focus(); return true; }
+  if(el.dataset.gMalCancelar){ r.obj.mal = null; repintar(); return true; }
+  el.disabled = true;
+  const nota = document.querySelector(`[data-g-mal-nota="${clave}"]`)?.value.trim() || '';
+  if(await glamyReportar({ ...r, modo, nota })){ r.obj.mal = 'guardado'; repintar(); }
+  else el.disabled = false;
+  return true;
+}
 function pintarGlamy(){
   const caja = document.getElementById('glamyMsgs');
   if(!glamy.mensajes.length){
@@ -14839,10 +14884,11 @@ function pintarGlamy(){
       <p>Te ayudo a encontrar cosas en el Hub, a buscar a una alumna (pega su celular o su nombre) y a ver cómo va un curso. Si algo no existe en el Hub o falla, le levanto un ticket a Enoc.</p></div>
       <div class="glamy-chips">${GLAMY_SUGERENCIAS.map(s=>`<button class="glamy-chip" data-sugerencia="${escHtml(s)}">${escHtml(s)}</button>`).join('')}</div>`;
   } else {
-    caja.innerHTML = glamy.mensajes.map(m=>{
+    caja.innerHTML = glamy.mensajes.map((m, i)=>{
       if(m.rol === 'user') return `<div class="glamy-msg yo">${escHtml(m.texto)}</div>`;
       const { limpio, botones } = glamyBotones(m.texto);
-      return `<div class="glamy-msg ella${m.error ? ' error' : ''}">${glamyFormato(limpio)}${botones.length ? `<div class="glamy-botones">${botones.map(b=>`<button class="glamy-boton" data-g-tipo="${b.tipo}" data-g-id="${escHtml(b.id)}">${escHtml(b.label)}</button>`).join('')}</div>` : ''}</div>`;
+      return `<div class="glamy-msg ella${m.error ? ' error' : ''}">${glamyFormato(limpio)}${botones.length ? `<div class="glamy-botones">${botones.map(b=>`<button class="glamy-boton" data-g-tipo="${b.tipo}" data-g-id="${escHtml(b.id)}">${escHtml(b.label)}</button>`).join('')}</div>` : ''}`
+        + (m.error ? '' : htmlNoSirvio(m.mal, 'c' + i)) + '</div>';
     }).join('') + (glamy.enviando ? '<div class="glamy-pensando">Glamy está escribiendo…</div>' : '');
   }
   document.getElementById('glamyEnviar').disabled = glamy.enviando;
@@ -14881,7 +14927,7 @@ async function glamyPreguntar(texto){
       if(!r?.texto) throw new Error(r?.error || error.message);
     }
     if(!r?.texto) throw new Error(r?.error || 'no llegó respuesta');
-    glamy.mensajes.push({ rol:'assistant', texto: r.texto });
+    glamy.mensajes.push({ rol:'assistant', texto: r.texto, herramientas: r.herramientas || [], seccion: seccionActiva || 'inicio' });
   }catch(e){
     glamy.mensajes.push({ rol:'assistant', texto: `No pude responder ahora 😔 (${e.message}). Intenta de nuevo en un momento.`, error:true });
   }finally{
@@ -14909,7 +14955,14 @@ document.getElementById('glamyNueva').addEventListener('click', ()=>{
   if(glamy.enviando) return;
   glamy.mensajes = []; glamyGuardar(); pintarGlamy();
 });
-document.getElementById('glamyMsgs').addEventListener('click', ev=>{
+document.getElementById('glamyMsgs').addEventListener('click', async ev=>{
+  const obtener = clave=>{
+    const i = Number(clave.slice(1)), m = glamy.mensajes[i];
+    if(!m || m.rol !== 'assistant') return null;
+    const preg = glamy.mensajes.slice(0, i).reverse().find(x=>x.rol === 'user');
+    return { obj:m, pregunta: preg?.texto, respuesta: m.texto, herramientas: m.herramientas, seccion: m.seccion || seccionActiva };
+  };
+  if(await clicNoSirvio(ev, obtener, 'chat', ()=>{ glamyGuardar(); const y = document.getElementById('glamyMsgs').scrollTop; pintarGlamy(); document.getElementById('glamyMsgs').scrollTop = y; })) return;
   const sug = ev.target.closest('[data-sugerencia]');
   if(sug) return glamyPreguntar(sug.dataset.sugerencia);
   const b = ev.target.closest('[data-g-tipo]');
