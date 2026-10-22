@@ -1156,6 +1156,29 @@
   .emb-alerta{ background:var(--card); border:1px solid var(--border); border-left:4px solid var(--danger); border-radius:10px; padding:8px 12px; font-size:12.5px; }
   .emb-alerta.amb{ border-left-color:var(--ambar); }
   .emb-dos{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:14px; align-items:start; }
+  /* Cambio de fecha de un curso (Cobranza → Embudo, hoja del día del Calendario y ficha) */
+  .cf-caja{ margin-top:12px; border:1px solid #F0D9A8; background:#FFFBF3; border-radius:12px; padding:10px 12px; }
+  .cf-caja:empty{ display:none; }
+  .cf-cab{ display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; align-items:baseline; }
+  .cf-cab b{ font-size:13.5px; } .cf-cab .sub{ font-size:11.5px; }
+  .cf-bar{ display:flex; height:8px; border-radius:6px; overflow:hidden; margin:8px 0 6px; background:#EEE7EA; } .cf-bar i{ display:block; height:100%; }
+  .cf-chips{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .cf-chip{ border:1px solid var(--border); background:var(--card); border-radius:999px; padding:3px 10px; font-size:12px; }
+  .cf-ver{ border:none; background:none; color:var(--wine); font-weight:700; font-size:12px; cursor:pointer; font-family:inherit; padding:3px 4px; }
+  .cf-grupo{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--wine-dark); margin:10px 0 2px; }
+  .cf-fila{ display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 0; border-top:1px dashed var(--border); font-size:13px; }
+  .cf-fila .sub{ font-size:12px; }
+  .cf-acc{ display:flex; gap:6px; flex-wrap:wrap; }
+  .cf-acc button{ border:1px solid var(--wine); background:var(--card); color:var(--wine); border-radius:14px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .cf-acc button.ok{ border-color:var(--success); color:var(--success); } .cf-acc button.no{ border-color:var(--danger); color:var(--danger); }
+  .cf-acc button.lleno{ background:var(--wine); color:#fff; } .cf-acc button.min{ border-color:var(--border); color:var(--ink-soft); }
+  .cf-tag{ font-size:10.5px; font-weight:700; border-radius:10px; padding:2px 8px; margin-left:4px; white-space:nowrap; }
+  .cf-tag.sin_avisar{ background:#FBF1DC; color:#6B5320; } .cf-tag.avisada{ background:#EEE7EA; color:#6B5866; }
+  .cf-tag.acepto{ background:#E7F0E9; color:#2F4A38; } .cf-tag.reembolso, .cf-tag.reembolsada, .cf-tag.no_va{ background:#F7E1DE; color:#8A2F25; }
+  .cf-regalo{ color:var(--success); font-size:12px; }
+  .cf-ficha{ font-size:12.5px; background:#FFFBF3; border:1px solid #F0D9A8; border-radius:10px; padding:8px 10px; margin-bottom:12px; }
+  .cf-ficha:empty{ display:none; }
+  .btn-cambiar-fecha{ margin-top:8px; width:auto; }
   .emb-curso{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-bottom:10px; }
   .emb-cab{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
   .emb-cab b{ font-size:15px; }
@@ -2275,6 +2298,7 @@
         <button type="button" class="btn-wa-mini" id="btnInscWhats" style="margin-top:4px;">💬 WhatsApp</button>
       </div>
     </div>
+    <div class="cf-ficha" id="modalInscCambioFecha"></div>
     <!-- Cobro: lo primero que se ve. Lo que debe en grande y un solo botón. -->
     <div class="ficha-cobro" id="panelInscPago">
       <div id="fichaPorConfirmar"></div>
@@ -2628,6 +2652,22 @@
     <div class="modal-field"><label>Correo</label><input id="contactoCorreo" type="email" inputmode="email" placeholder="Opcional"></div>
     <div class="modal-field"><label>Fecha de nacimiento</label><input id="contactoNacimiento" type="date"><div class="vend-hint" id="contactoEdad"></div></div>
     <button class="btn-primary" id="guardarContacto">Guardar</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CAMBIAR LA FECHA DE UN CURSO (solo administradores) ===================== -->
+<div class="modal-overlay" id="modalCambiarFecha">
+  <div class="modal" style="max-width:440px;">
+    <button class="close" id="closeModalCambiarFecha">✕</button>
+    <h3 style="margin-bottom:2px;">Cambiar fecha del curso</h3>
+    <div class="sub" id="cfCurso" style="margin-bottom:12px;">—</div>
+    <div class="modal-field"><label for="cfFecha">Nueva fecha</label><input type="date" id="cfFecha"></div>
+    <div class="modal-field"><label for="cfMotivo">Motivo (lo verán en el historial)</label><input id="cfMotivo" maxlength="300" placeholder="Ej.: se recorrió la gira"></div>
+    <div class="aviso" id="cfPrev"></div>
+    <div class="confirm-acciones">
+      <button class="btn-ghost" id="cfCancelar">Cancelar</button>
+      <button class="btn-primary small" id="cfGuardar">Cambiar fecha</button>
+    </div>
   </div>
 </div>
 
@@ -3127,6 +3167,10 @@ const ACCION_LABEL = {
   pago_confirmado: '✅ Confirmó un pago',
   pago_no_encontrado: '❌ No encontró un pago reportado',
   lead_ya_inscrita: 'Cerró un lead de alguien que ya estaba inscrita',
+  curso_fecha_cambiada: '📅 Cambió la fecha de un curso',
+  cambio_fecha_respuesta: 'Registró la respuesta a un cambio de fecha',
+  cambio_fecha_regalo: '🎁 Registró el regalo de Academia por cambio de fecha',
+  cambio_fecha_reembolso: 'Cerró un reembolso por cambio de fecha',
   permiso_cambiado: 'Cambió un permiso de rol',
   usuario_cambiado: '👤 Cambió el rol o los permisos de una persona',
   rol_creado: '🎭 Creó un rol nuevo',
@@ -5765,6 +5809,7 @@ const VARIABLES_MENSAJE = [
   { v:'{nombre_completo}', ayuda:'nombre completo' },
   { v:'{ciudad}',          ayuda:'ciudad del curso' },
   { v:'{fecha}',           ayuda:'fecha del curso' },
+  { v:'{fecha_anterior}',  ayuda:'fecha que tenía el curso (cambio de fecha)' },
   { v:'{sede}',            ayuda:'lugar del curso' },
   { v:'{debe}',            ayuda:'lo que le falta pagar' },
   { v:'{vendedor}',        ayuda:'tu nombre' },
@@ -5780,18 +5825,19 @@ async function cargarMensajes(){
   return MENSAJES;
 }
 function tituloCaso(s){ return String(s || '').toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b)=>a + b.toUpperCase()); }
+function fechaLargaDe(f){ return f ? new Date(f + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' }).replace(',', '') : ''; }
 function rellenarMensaje(texto, d){
   const primer = tituloCaso(String(d.nombre || '').trim().split(/\s+/)[0] || '');
-  const fechaLarga = d.fecha ? new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' }).replace(',', '') : '';
+  const fechaLarga = fechaLargaDe(d.fecha);
   const valores = {
     '{nombre}': primer, '{nombre_completo}': tituloCaso(d.nombre || ''), '{ciudad}': d.ciudad || '',
-    '{fecha}': fechaLarga, '{sede}': d.sede || '', '{debe}': d.debe != null && d.debe !== '' ? fmtMoney(d.debe) : '',
+    '{fecha}': fechaLarga, '{fecha_anterior}': fechaLargaDe(d.fecha_anterior), '{sede}': d.sede || '', '{debe}': d.debe != null && d.debe !== '' ? fmtMoney(d.debe) : '',
     '{vendedor}': usuarioActual?.nombre || '', '{guia}': d.guia || '', '{paqueteria}': d.paqueteria || '', '{link}': d.link || '',
   };
-  return String(texto || '').replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor|guia|paqueteria|link)\}/g, m=>valores[m] ?? m);
+  return String(texto || '').replace(/\{(nombre_completo|nombre|ciudad|fecha_anterior|fecha|sede|debe|vendedor|guia|paqueteria|link)\}/g, m=>valores[m] ?? m);
 }
 function pintarVariables(texto){
-  return escHtml(texto).replace(/\{(nombre_completo|nombre|ciudad|fecha|sede|debe|vendedor|guia|paqueteria|link)\}/g, '<span class="msj-var">{$1}</span>');
+  return escHtml(texto).replace(/\{(nombre_completo|nombre|ciudad|fecha_anterior|fecha|sede|debe|vendedor|guia|paqueteria|link)\}/g, '<span class="msj-var">{$1}</span>');
 }
 function puedeEditarMensaje(m){ return m && (m.usuario_id === usuarioActual?.id || usuarioActual?.es_admin); }
 
@@ -5928,7 +5974,10 @@ async function abrirEnviarWhatsApp(datos){
       `<div class="wa-opcion" data-wa-msj="${m.id}"><span>${escHtml(m.titulo)}</span><span>${m.foto_url ? '📷' : ''}${equipo.includes(m) ? ' <span class="msj-pill">equipo</span>' : ''}</span></div>`).join('')
     + `<div class="wa-opcion" data-wa-msj=""><span>✍️ Escribir uno nuevo…</span></div>`
     + (opciones.length ? '' : '<div class="vend-hint">Aún no hay mensajes guardados: créalos en la sección Mensajes.</div>');
-  elegirMensajeWa(opciones[0]?.id || '');
+  // Quien abre puede pedir una plantilla por su título (p. ej. "Cambio de fecha"); si no existe, la primera.
+  const preferida = datos.plantilla && opciones.find(m=>m.titulo === datos.plantilla);
+  elegirMensajeWa(preferida?.id || opciones[0]?.id || '');
+  if(datos.plantilla && !preferida && datos.textoSinPlantilla) document.getElementById('waTexto').value = rellenarMensaje(datos.textoSinPlantilla, waDatos);
   document.getElementById('modalWhats').classList.add('open');
 }
 function elegirMensajeWa(id){
@@ -6433,12 +6482,17 @@ function abrirSheetCalendario(key){
       </div>
       <div class="tap-hint">Toca una fila para ver a esas alumnas</div>
       ${ev.fecha >= hoyISO() ? `<div class="emb-cal" data-emb-cal="${escapeAttr(ev.id)}"><div class="sub">Cargando el embudo…</div></div>` : ''}
+      ${ev.fecha >= hoyISO() ? `<div class="cf-caja" data-cf-ev="${escapeAttr(ev.id)}"></div>` : ''}
+      ${usuarioActual?.es_admin && ev.fecha >= hoyISO() ? `<button type="button" class="btn-outline small btn-cambiar-fecha" data-cf-cambiar="${idx}">📅 Cambiar fecha</button>` : ''}
       <div class="seccion-titulo" style="margin-top:14px;">Steward y ayudantes</div>
       <div id="apoyoEvento_${ev.id}" class="sub">Cargando…</div>
       <button class="btn-outline small" style="margin-top:6px;" data-agregar-apoyo-evento="${ev.id}" data-agregar-apoyo-ciudad="${ev.ciudadId}">+ Agregar steward/ayudante</button>
     </div>`;
   }).join('');
-  eventosDelDia.forEach(ev=>{ if(ev.fecha >= hoyISO()) embPintarCalendario(ev.id); });
+  eventosDelDia.forEach(ev=>{ if(ev.fecha >= hoyISO()){ embPintarCalendario(ev.id); cfCargar(ev.id); } });
+  document.getElementById('sheetEventos').querySelectorAll('[data-cf-cambiar]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ const ev = eventosDelDia[Number(btn.dataset.cfCambiar)]; if(ev) abrirCambiarFecha(ev); });
+  });
   document.getElementById('sheetEventos').querySelectorAll('[data-nollegaron-evt]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const ev = eventosDelDia[Number(btn.dataset.nollegaronEvt)]; if(!ev) return;
@@ -6597,7 +6651,8 @@ document.getElementById('sheetCalendarioBackdrop').addEventListener('click', cer
    si confirman — para que quien llama distinga "canceló" de "confirmó sin
    escribir motivo".
    ========================================================= */
-function preguntarConfirmacion({ titulo, aviso, fuerte=false, pedirMotivo=false, textoSi='Sí, confirmar' }){
+function preguntarConfirmacion({ titulo, aviso, fuerte=false, pedirMotivo=false, textoSi='Sí, confirmar',
+                                etiquetaMotivo='Motivo (opcional)', ejemploMotivo='Ej.: yo la contacté y le cerré la venta' }){
   return new Promise(resolve=>{
     const ov = document.getElementById('modalConfirmar');
     document.getElementById('confirmarTitulo').textContent = titulo;
@@ -6607,6 +6662,8 @@ function preguntarConfirmacion({ titulo, aviso, fuerte=false, pedirMotivo=false,
     document.getElementById('confirmarMotivoCampo').style.display = pedirMotivo ? '' : 'none';
     const inpMotivo = document.getElementById('confirmarMotivo');
     inpMotivo.value = '';
+    inpMotivo.placeholder = ejemploMotivo;
+    document.querySelector('#confirmarMotivoCampo label').textContent = etiquetaMotivo;
     document.getElementById('confirmarSi').textContent = textoSi;
     ov.classList.add('open');
     if(pedirMotivo) setTimeout(()=>inpMotivo.focus(), 50);
@@ -6682,6 +6739,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   actualizarPreviewCorreccion();
   pintarVendedorFicha();
   pintarProximoPagoFicha();
+  pintarCambioFechaFicha(inscId);
 }
 
 function pintarContactoFicha(p){
@@ -11355,7 +11413,7 @@ async function embCargar(){
   const caja = document.getElementById('cobVistaEmbudo');
   const turno = ++emb.turno;
   if(emb.filas === null) caja.innerHTML = '<div class="empty-note">Cargando…</div>';
-  const { filas, error } = await embTraer(null);
+  const [{ filas, error }] = await Promise.all([embTraer(null), cfCargar(null, false)]);
   if(turno !== emb.turno) return;
   if(error){ caja.innerHTML = `<div class="empty-note">No se pudo cargar: ${escHtml(error.message)}</div>`; return; }
   emb.filas = filas;
@@ -11386,7 +11444,7 @@ function embPintar(){
     <div class="emb-dos">
       <div>${cursos.map(c=>`<div class="emb-curso">
           <div class="emb-cab"><b>${escHtml(c.ciudad)} · ${escHtml(fechaCorta(c.fecha))}</b><span class="sub">${escHtml(embCuando(c.fecha))} · ${c.filas.filter(f=>f.grupo !== 'no_van').length} en total</span></div>
-          ${embHtmlCurso(c, emb.abierto, 'emb')}</div>`).join('') || '<div class="empty-note">No hay cursos de la gira activa de hoy en adelante.</div>'}</div>
+          ${embHtmlCurso(c, emb.abierto, 'emb')}<div class="cf-caja" data-cf-ev="${escapeAttr(c.id)}">${cfHtml(c.id)}</div></div>`).join('') || '<div class="empty-note">No hay cursos de la gira activa de hoy en adelante.</div>'}</div>
       <div class="emb-rep"><h3>📋 Copiar reporte</h3>
         <div class="emb-titulo">De qué</div>
         <label><input type="radio" name="embAlcance" value="curso" ${r.alcance === 'curso' ? 'checked' : ''}> Un curso</label>
@@ -11479,6 +11537,198 @@ document.getElementById('sheetEventos').addEventListener('click', e=>{
   if(d.embCalAbrir){ emb.cal[id].abierto = emb.cal[id].abierto === d.embCalAbrir ? '' : d.embCalAbrir; return embPintarCalLocal(id); }
   if(d.embWa) return embWhatsApp(d.embWa, emb.cal[id]?.filas || []);
   embAbrir(d);
+});
+
+/* =========================================================
+   CAMBIO DE FECHA DE UN CURSO (oct 2026, se recorrió la gira)
+   - Calendario → hoja del día → "📅 Cambiar fecha" (solo administradores): función
+     cambiar_fecha_evento. Guarda la fecha anterior y pone en la lista a todas las inscritas
+     (y los leads abiertos) de ese curso.
+   - La lista se ve igual en Cobranza → Embudo y en la hoja del día: quién ya sabe, quién aceptó,
+     quién pidió reembolso y a quién ya se le dio el regalo de la Academia (solo registro).
+   - WhatsApp con la plantilla "Cambio de fecha" (editable en Mensajes): al mandarlo queda "Avisada".
+   - Reembolso: tarea a Cobranza y Gerencia; Cobranza cierra el lugar con "Reembolso hecho".
+   Todo lo escribe la base (cambio_fecha_marcar / _regalo / _cerrar_reembolso) y deja historial.
+   ========================================================= */
+const CF_ESTADOS = {
+  sin_avisar:  { l:'Sin avisar',   c:'#D9CDD3' },
+  avisada:     { l:'Avisada',      c:'#C6A66B' },
+  acepto:      { l:'Aceptó',       c:'#55745C' },
+  reembolso:   { l:'Pidió reembolso', c:'#B5453A' },
+  reembolsada: { l:'Reembolsada',  c:'#8A2F25' },
+  no_va:       { l:'Ya no va',     c:'#B56F55' },
+};
+// Texto si alguien borra la plantilla de Mensajes (la de Mensajes manda).
+const CF_TEXTO = 'Hola {nombre}, te escribe Glam Repostería 💕\nTu curso en {ciudad} cambió del {fecha_anterior} al {fecha}, en {sede}.\n'
+  + 'Tu lugar y tu pago siguen igual. Por la molestia te regalamos un curso de la Academia.\n¿Nos confirmas que te queda bien la nueva fecha?';
+const cf = { porEvento:{}, abiertos:new Set() };
+const cfPuedeCerrar = () => !!(usuarioActual?.es_admin || ['Cobranza', 'Gerente'].includes(usuarioActual?.rol));
+
+// Trae la lista (de un curso o de toda la gira de hoy en adelante) y la guarda por curso.
+async function cfCargar(eventoId, pintar = true){
+  const { data, error } = await sb.rpc('cambio_fecha_lista', { p_evento: eventoId || null });
+  if(error){ console.warn('cambio_fecha_lista:', error.message); return; }
+  if(!eventoId) cf.porEvento = {};
+  else delete cf.porEvento[eventoId];
+  (data || []).forEach(f=>{ (cf.porEvento[f.evento_id] = cf.porEvento[f.evento_id] || []).push(f); });
+  if(pintar) cfPintarCajas(eventoId);
+}
+function cfPintarCajas(eventoId){
+  document.querySelectorAll(eventoId ? `.cf-caja[data-cf-ev="${CSS.escape(eventoId)}"]` : '.cf-caja[data-cf-ev]')
+    .forEach(caja=>{ caja.innerHTML = cfHtml(caja.dataset.cfEv); });
+}
+function cfHtml(eventoId){
+  const filas = cf.porEvento[eventoId]; if(!filas?.length) return '';
+  const c = filas[0];
+  const n = k => filas.filter(f=>f.estado === k).length;
+  const regalos = filas.filter(f=>f.regalo_curso).length;
+  const barra = ['acepto', 'avisada', 'reembolso', 'reembolsada', 'no_va'].map(k=>n(k) ? `<i style="width:${(n(k) / filas.length * 100).toFixed(2)}%;background:${CF_ESTADOS[k].c}" title="${escapeAttr(CF_ESTADOS[k].l)}: ${n(k)}"></i>` : '').join('');
+  const chips = [['Aceptaron', n('acepto')], ['Avisadas sin respuesta', n('avisada')], ['Reembolso', n('reembolso') + n('reembolsada')],
+    ['Ya no van', n('no_va')], ['Sin avisar', n('sin_avisar')], ['🎁 Regalo dado', regalos]].filter(([, v])=>v)
+    .map(([l, v])=>`<span class="cf-chip">${l} <b>${v}</b></span>`).join('');
+  const abierto = cf.abiertos.has(eventoId);
+  const grupos = [['Ya pagaron', filas.filter(f=>f.inscripcion_id && f.pago)], ['Inscritas sin pago', filas.filter(f=>f.inscripcion_id && !f.pago)],
+    ['Leads (todavía no pagan)', filas.filter(f=>f.lead_id)]];
+  const quien = EQUIPO.find(u=>u.id === c.cambiado_por)?.nombre;
+  return `<div class="cf-cab"><b>📅 Cambio de fecha · ${escHtml(fechaCorta(c.fecha_anterior))} → ${escHtml(fechaCorta(c.fecha_nueva))}</b>
+      <span class="sub">cambió el ${escHtml(fechaCorta(String(c.cambiado_en).slice(0, 10)))}${quien ? ' · ' + escHtml(quien) : ''}${c.motivo ? ' · ' + escHtml(c.motivo) : ''}</span></div>
+    <div class="cf-bar">${barra}</div>
+    <div class="cf-chips">${chips}<button type="button" class="cf-ver" data-cf-ver="${escapeAttr(eventoId)}">${abierto ? 'Ocultar lista' : `Ver lista (${filas.length})`}</button></div>
+    ${abierto ? grupos.filter(([, fs])=>fs.length).map(([t, fs])=>`<div class="cf-grupo">${t} · ${fs.length}</div>${fs.map(cfHtmlFila).join('')}`).join('') : ''}`;
+}
+function cfHtmlFila(f){
+  const e = CF_ESTADOS[f.estado] || CF_ESTADOS.sin_avisar;
+  const dato = f.inscripcion_id
+    ? (f.pago ? `Inscrita · pagó ${fmtMoney(f.monto)}${f.debe > 0 ? ' · debe ' + fmtMoney(f.debe) : ' · liquidada'}` : 'Inscrita sin pago')
+    : 'Lead (todavía no paga)';
+  const id = escapeAttr(f.aviso_id), ev = escapeAttr(f.evento_id);
+  const b = (acc, txt, cls='') => `<button type="button" class="${cls}" data-cf-acc="${acc}" data-cf-aviso="${id}" data-cf-ev="${ev}">${txt}</button>`;
+  let acc = '';
+  if(['sin_avisar', 'avisada'].includes(f.estado)){
+    acc = (f.telefono ? b('wa', '💬 WhatsApp') : '') + b('acepto', 'Aceptó', 'ok') + (f.inscripcion_id ? b('reembolso', 'Reembolso', 'no') : b('no_va', 'Ya no va', 'no'));
+  } else if(f.estado === 'acepto'){
+    acc = (f.inscripcion_id && !f.regalo_curso ? b('regalo', '🎁 Regalo dado', 'lleno') : '') + b('sin_avisar', '↩', 'min');
+  } else if(f.estado === 'reembolso'){
+    acc = (cfPuedeCerrar() ? b('cerrar', 'Reembolso hecho · cerrar lugar', 'lleno') : '') + b('sin_avisar', '↩', 'min');
+  }
+  return `<div class="cf-fila"><div><b>${escHtml(tituloCaso(f.nombre || ''))}</b><span class="cf-tag ${escapeAttr(f.estado)}">${escHtml(e.l)}${f.estado_en && f.estado !== 'sin_avisar' ? ' · ' + escHtml(fechaCorta(String(f.estado_en).slice(0, 10))) : ''}</span>
+      <div class="sub">${escHtml([dato, embVend(f.asesor_id)].join(' · '))}</div>
+      ${f.regalo_curso ? `<div class="cf-regalo">🎁 Regalo: ${escHtml(f.regalo_curso)}</div>` : ''}
+      ${f.nota ? `<div class="sub">${escHtml(f.nota)}</div>` : ''}</div>
+    <div class="cf-acc">${acc}</div></div>`;
+}
+// Después de cualquier cambio: la lista, el embudo y la ficha que esté abierta.
+async function cfDespues(eventoId){
+  await cfCargar(eventoId);
+  if(emb.tab === 'embudo' && seccionActiva === 'cobranza') embCargar();
+  if(document.querySelector(`[data-emb-cal="${CSS.escape(eventoId)}"]`)) embPintarCalendario(eventoId);
+}
+async function cfAccion(btn){
+  const { cfAcc:acc, cfAviso:avisoId, cfEv:eventoId } = btn.dataset;
+  const f = (cf.porEvento[eventoId] || []).find(x=>x.aviso_id === avisoId); if(!f) return;
+  const nombre = tituloCaso(f.nombre || '');
+  if(acc === 'wa'){
+    return abrirEnviarWhatsApp({ telefono:f.telefono, nombre:f.nombre, personaId:f.persona_id, leadId:f.lead_id || null, ciudad:f.ciudad, sede:f.sede,
+      fecha:f.fecha_nueva, fecha_anterior:f.fecha_anterior, debe:f.debe, plantilla:'Cambio de fecha', textoSinPlantilla:CF_TEXTO,
+      alEnviar: async ()=>{
+        if(f.estado !== 'sin_avisar') return;
+        const { error } = await sb.rpc('cambio_fecha_marcar', { p_aviso:avisoId, p_estado:'avisada', p_nota:null });
+        if(error) toast('El WhatsApp se abrió, pero no quedó como avisada: ' + error.message, true);
+        else cfDespues(eventoId);
+      } });
+  }
+  if(acc === 'regalo'){
+    const curso = await preguntarConfirmacion({ titulo:'Regalo de la Academia', aviso:`Se anota en las notas de <b>${escHtml(nombre)}</b> qué curso se le regala por el cambio de fecha.`,
+      pedirMotivo:true, etiquetaMotivo:'¿Qué curso de la Academia?', ejemploMotivo:'Ej.: Galletas decoradas', textoSi:'Guardar' });
+    if(curso === null) return;
+    if(!curso){ toast('Escribe qué curso se le regala.', true); return; }
+    const { error } = await sb.rpc('cambio_fecha_regalo', { p_aviso:avisoId, p_curso:curso });
+    if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+    registrarActividad('cambio_fecha_regalo', `${nombre}: ${curso}`);
+    toast('Regalo anotado.');
+    return cfDespues(eventoId);
+  }
+  if(acc === 'cerrar'){
+    const nota = await preguntarConfirmacion({ titulo:'¿Ya se le devolvió su pago?', fuerte:true,
+      aviso:`Se cierra el lugar de <b>${escHtml(nombre)}</b> en este curso ("No va a ir al curso", motivo: reembolso por cambio de fecha) y se marca la tarea como hecha.`,
+      pedirMotivo:true, etiquetaMotivo:'Cómo se devolvió (opcional)', ejemploMotivo:'Ej.: transferencia del 24 oct', textoSi:'Sí, cerrar lugar' });
+    if(nota === null) return;
+    const { error } = await sb.rpc('cambio_fecha_cerrar_reembolso', { p_aviso:avisoId, p_nota:nota || null });
+    if(error){ toast('No se pudo cerrar: ' + error.message, true); return; }
+    registrarActividad('cambio_fecha_reembolso', `${nombre} · ${f.ciudad || ''}`);
+    toast('Lugar cerrado. Ya no cuenta en el curso.');
+    renderCalendario(true);
+    return cfDespues(eventoId);
+  }
+  let nota = null;
+  if(acc === 'reembolso' || acc === 'no_va'){
+    nota = await preguntarConfirmacion({ titulo: acc === 'reembolso' ? '¿Pidió reembolso?' : '¿Ya no va?',
+      aviso: acc === 'reembolso'
+        ? `<b>${escHtml(nombre)}</b> no puede en la nueva fecha. Le llega una tarea a Cobranza y a Gerencia para devolverle su pago; Cobranza cierra su lugar.`
+        : `El lead de <b>${escHtml(nombre)}</b> pasa a "No va a ir al curso".`,
+      pedirMotivo:true, etiquetaMotivo:'Comentario (opcional)', ejemploMotivo:'Ej.: ese día trabaja', textoSi:'Sí, guardar' });
+    if(nota === null) return;
+  }
+  const { error } = await sb.rpc('cambio_fecha_marcar', { p_aviso:avisoId, p_estado:acc, p_nota:nota || null });
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  registrarActividad('cambio_fecha_respuesta', `${nombre}: ${CF_ESTADOS[acc]?.l || acc} · ${f.ciudad || ''}`);
+  if(acc === 'reembolso') toast('Anotado. Cobranza y Gerencia ya tienen la tarea.');
+  cfDespues(eventoId);
+}
+document.addEventListener('click', e=>{
+  const ver = e.target.closest('[data-cf-ver]');
+  if(ver){ const id = ver.dataset.cfVer; cf.abiertos.has(id) ? cf.abiertos.delete(id) : cf.abiertos.add(id); cfPintarCajas(id); return; }
+  const b = e.target.closest('[data-cf-acc]'); if(b) cfAccion(b);
+});
+
+// En la ficha de la inscrita: cómo va su cambio de fecha (el último).
+async function pintarCambioFechaFicha(inscId){
+  const caja = document.getElementById('modalInscCambioFecha');
+  caja.innerHTML = '';
+  const { data } = await sb.from('cambio_fecha_avisos').select('estado, estado_en, regalo_curso, nota, cambios_fecha(fecha_anterior, fecha_nueva)')
+    .eq('inscripcion_id', inscId).order('creado_en', { ascending:false }).limit(1);
+  const a = (data || [])[0];
+  if(!a || modalInscId !== inscId) return;
+  const e = CF_ESTADOS[a.estado] || CF_ESTADOS.sin_avisar;
+  caja.innerHTML = `📅 Cambio de fecha ${escHtml(fechaCorta(a.cambios_fecha?.fecha_anterior))} → ${escHtml(fechaCorta(a.cambios_fecha?.fecha_nueva))}: `
+    + `<b>${escHtml(e.l)}</b>${a.regalo_curso ? ` · 🎁 ${escHtml(a.regalo_curso)}` : ''}${a.nota ? ` · ${escHtml(a.nota)}` : ''}`;
+}
+
+// Calendario → "📅 Cambiar fecha" (solo administradores)
+let cfEvento = null;
+function abrirCambiarFecha(ev){
+  if(!usuarioActual?.es_admin) return;
+  cfEvento = ev;
+  document.getElementById('cfCurso').textContent = `${ev.ciudad} · hoy está el ${fechaCorta(ev.fecha)}`;
+  document.getElementById('cfFecha').value = '';
+  document.getElementById('cfMotivo').value = '';
+  pintarPrevCambiarFecha();
+  document.getElementById('modalCambiarFecha').classList.add('open');
+}
+function pintarPrevCambiarFecha(){
+  const ev = cfEvento, nueva = document.getElementById('cfFecha').value;
+  const pagaron = (ev.liq || 0) + (ev.ant || 0), total = pagaron + (ev.pend || 0);
+  document.getElementById('cfPrev').innerHTML = `Se mueven <b>${total} inscrita${total === 1 ? '' : 's'}</b> (${pagaron} con pago) y los leads de este curso`
+    + (nueva ? ` al <b>${escHtml(fechaCorta(nueva))}</b>` : '') + '. A todas se les abre la lista de "Cambio de fecha" para avisarles.';
+}
+document.getElementById('cfFecha').addEventListener('input', pintarPrevCambiarFecha);
+['closeModalCambiarFecha', 'cfCancelar'].forEach(id=>document.getElementById(id).addEventListener('click', ()=>document.getElementById('modalCambiarFecha').classList.remove('open')));
+document.getElementById('cfGuardar').addEventListener('click', async ()=>{
+  const ev = cfEvento; if(!ev) return;
+  const nueva = document.getElementById('cfFecha').value, motivo = document.getElementById('cfMotivo').value.trim();
+  if(!nueva){ toast('Elige la nueva fecha.', true); return; }
+  if(nueva === ev.fecha){ toast('Es la misma fecha que ya tiene.', true); return; }
+  const btn = document.getElementById('cfGuardar'); btn.disabled = true; btn.textContent = 'Cambiando…';
+  const { data, error } = await sb.rpc('cambiar_fecha_evento', { p_evento:ev.id, p_fecha:nueva, p_motivo:motivo || null });
+  btn.disabled = false; btn.textContent = 'Cambiar fecha';
+  if(error){ toast('No se pudo cambiar: ' + error.message, true); return; }
+  registrarActividad('curso_fecha_cambiada', `${ev.ciudad}: ${fechaCorta(ev.fecha)} → ${fechaCorta(nueva)}${motivo ? ' · ' + motivo : ''}`);
+  document.getElementById('modalCambiarFecha').classList.remove('open');
+  toast(`Listo: ${ev.ciudad} pasó al ${fechaCorta(nueva)}. ${data?.inscritas ?? 0} inscritas y ${data?.leads ?? 0} leads quedaron en la lista para avisarles.`);
+  cf.abiertos.add(ev.id);
+  cerrarSheetCalendario();
+  await renderCalendario(true);
+  if(calendarioDias[nueva]) abrirSheetCalendario(nueva);
 });
 
 /* =========================================================
