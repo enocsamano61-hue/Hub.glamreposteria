@@ -72,7 +72,7 @@ Menú a la izquierda (en celular, botón de arriba). Cada rol ve solo sus seccio
 - **Usuarios y permisos** (usuarios): solo admins; quién es admin y qué secciones ve cada rol.
 - **Glamy** (glamy): solo Enoc; cuánto se usa Glamy y el tablero de tickets.
 - **Bloc 📝** (botón redondo abajo a la izquierda): notas personales y tareas asignadas; las tareas del sistema traen botón "Ir →".
-- **Ficha de la inscrita** (desde Cursos, Calendario, Recepción o una búsqueda): cobro primero, guardado automático, datos de contacto, pagos, estatus.
+- **Ficha de la inscrita** (desde Cursos, Calendario, Recepción o una búsqueda): cobro primero (forma de pago con botones y el **banco en su propia casilla**), guardado automático, datos de contacto, estatus. **"Pagos registrados"** muestra sus pagos; con el permiso "Confirmar pagos" (o administradores) se usa **"✏️ Corregir"** para arreglar la fecha, la forma o el banco de un pago (el monto se corrige en "Más información → corregir montos").
 - **Pagos 🏦 por confirmar**: un pago reportado que aún no se ve en el banco; se confirma ("ya llegó") o se marca "no llegó" en la ficha de la inscrita (o en Recepción, solo el día del curso). El de un lead se confirma en su lead.
 - **Glamy 🧁** (el cupcake abajo a la derecha): tú misma.
 

@@ -1317,6 +1317,17 @@
   .cobro-resumen .cobro-grande{ font-size:36px; font-weight:700; line-height:1.1; letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:#8A6D2F; }
   .cobro-resumen .cobro-grande.ok{ color:var(--success); font-size:26px; }
   .cobro-resumen .cobro-det{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  /* Pagos registrados en la ficha (con "Corregir" fecha, forma y banco) */
+  .ficha-pagos details{ border:1px solid var(--border); border-radius:10px; padding:6px 10px; margin:8px 0; background:var(--card); }
+  .ficha-pagos summary{ cursor:pointer; font-size:12.5px; font-weight:700; color:var(--wine-dark); }
+  .fp-fila{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:12.5px; padding:6px 0; border-top:1px dashed var(--border); }
+  .fp-fila:first-of-type{ border-top:none; }
+  .fp-fila .tag{ font-size:11px; color:var(--ink-soft); }
+  .fp-fila button{ border:1px solid var(--wine); background:transparent; color:var(--wine); border-radius:14px; padding:2px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .fp-edit{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; width:100%; }
+  .fp-edit input, .fp-edit select{ width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
+  .fp-edit .acc{ grid-column:1 / -1; display:flex; gap:8px; }
+  @media (max-width:520px){ .fp-edit{ grid-template-columns:1fr; } }
   .cobro-formas{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; }
   .cobro-formas button{ flex:1 1 0; min-width:0; padding:9px 4px; border:1px solid var(--border); border-radius:10px; background:var(--card); font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; }
   .cobro-formas button.activo{ border-color:var(--wine); background:rgba(var(--wine-rgb),.07); color:var(--wine); box-shadow:inset 0 0 0 1px var(--wine); }
@@ -2427,6 +2438,10 @@
 </div>
 
 <!-- ===================== MODAL: ALUMNO DE UN EVENTO (inscripción) — marcar estatus / agregar pago ===================== -->
+<!-- Bancos más usados (sugerencias; se puede escribir otro) -->
+<datalist id="bancosLista"><option value="BanCoppel"><option value="Mercado Pago"><option value="Hey Banco"><option value="Banregio">
+  <option value="BBVA"><option value="Banorte"><option value="Santander"><option value="Banamex"><option value="HSBC"><option value="Banco Azteca">
+  <option value="Nu"><option value="Spin by OXXO"><option value="Scotiabank"><option value="Inbursa"></datalist>
 <div class="modal-overlay" id="modalInscripcion">
   <div class="modal">
     <button class="close" id="closeModalInscripcion">✕</button>
@@ -2446,6 +2461,7 @@
       <div id="fichaPorConfirmar"></div>
       <div class="cobro-resumen" id="cobroResumen">—</div>
       <div class="cobro-vip" id="cobroVipCaja"></div>
+      <div class="ficha-pagos" id="fichaPagos"></div>
       <div class="modal-field"><label>Monto (vacío = liquida todo)</label>
         <div class="vend-row"><input type="number" id="modalPagoMonto" placeholder="Lo que debe" inputmode="decimal" min="0" step="50">
         <button type="button" class="btn-outline small" id="cobroLiquida">Liquida todo</button></div></div>
@@ -2456,8 +2472,9 @@
           <button type="button" data-forma="Transferencia">Transferencia</button>
           <button type="button" data-forma="Depósito / OXXO">Depósito / OXXO</button>
         </div>
-        <input id="modalPagoBanco" placeholder="Banco u otra forma (opcional)" style="margin-top:6px;">
         <button type="button" class="cobro-pc" id="cobroPorConfirmar" aria-pressed="false">🏦 Por confirmar · revisarlo en el banco después</button></div>
+      <div class="modal-field"><label>Banco <span class="sub" style="font-weight:400;">(opcional)</span></label>
+        <input id="modalPagoBanco" list="bancosLista" autocomplete="off" placeholder="BanCoppel, Mercado Pago, Hey Banco…"></div>
       <div class="modal-field"><label>Fecha</label><input type="date" id="modalPagoFecha"></div>
       <div class="corr-preview" id="cobroPreview">—</div>
       <div class="modal-field" id="cobroProximoCaja"><label>Próximo pago (lo que le quede)</label>
@@ -3334,6 +3351,7 @@ const ACCION_LABEL = {
   lead_actualizado: 'Actualizó un lead',
   inscripcion_estatus: 'Cambió el estatus de una inscripción',
   pago_registrado: 'Registró un pago',
+  pago_corregido: '✏️ Corrigió la fecha, forma o banco de un pago',
   pago_corregido: 'Corrigió montos de una inscripción',
   inscripcion_creada: 'Inscribió a una alumna desde el Hub',
   pago_reportado: '💜 Reportó un pago (por confirmar)',
@@ -7055,8 +7073,11 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   document.getElementById('modalPagoMonto').value = '';
   document.getElementById('modalPagoFecha').value = hoyISO();
   document.getElementById('modalPagoBanco').value = '';
+  cobroForma = ''; fpEditando = null;
+  document.getElementById('fichaPagos').innerHTML = '';   // cada ficha abre con la lista de pagos cerrada
   document.getElementById('cobroProximo').value = data.fecha_proximo_pago || '';
   data.pagos = (data.pagos || []).sort((a,b)=>`${a.fecha}${a.hora || ''}`.localeCompare(`${b.fecha}${b.hora || ''}`));
+  pintarPagosFicha();
   marcarPCFicha(false);
   pintarPorConfirmarFicha();
   pintarVipFicha();
@@ -7410,10 +7431,9 @@ function pintarCobro(){
       : `Con este abono queda debiendo <b>${fmtMoney(r.nuevoRestante)}</b>`;
     if(!btn.disabled) btn.textContent = r.liquidado && r.sobra === 0 ? `Liquida ${fmtMoney(monto)}` : `Registrar abono de ${fmtMoney(monto)}`;
   }
-  // La forma de pago marcada es la que diga el campo de banco.
-  const banco = document.getElementById('modalPagoBanco').value.trim().toLowerCase();
+  // La forma de pago va aparte del banco (antes compartían la casilla y no se podía poner el banco).
   document.querySelectorAll('#cobroFormas [data-forma]').forEach(b=>
-    b.classList.toggle('activo', b.dataset.forma.toLowerCase() === banco));
+    b.classList.toggle('activo', b.dataset.forma === cobroForma));
   // La fecha del próximo pago sólo tiene sentido si le va a quedar saldo
   document.getElementById('cobroProximoCaja').style.display = quedaDebiendo ? '' : 'none';
   const fp = document.getElementById('cobroProximo').value;
@@ -7423,10 +7443,10 @@ function pintarCobro(){
 }
 document.getElementById('modalPagoMonto').addEventListener('input', pintarCobro);
 document.getElementById('modalPagoBanco').addEventListener('input', pintarCobro);
+let cobroForma = '';
 document.getElementById('cobroFormas').addEventListener('click', e=>{
   const b = e.target.closest('[data-forma]'); if(!b) return;
-  const inp = document.getElementById('modalPagoBanco');
-  inp.value = b.classList.contains('activo') ? '' : b.dataset.forma;
+  cobroForma = cobroForma === b.dataset.forma ? '' : b.dataset.forma;
   pintarCobro();
 });
 document.getElementById('cobroProximo').addEventListener('input', pintarCobro);
@@ -7525,9 +7545,11 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
 
   const btn = document.getElementById('guardarInscPago'); btn.disabled = true; btn.textContent = 'Guardando...';
 
-  const forma = FORMAS_PAGO.find(f=>f.toLowerCase() === banco.toLowerCase()) || null;
+  // Forma (botones) y banco (su casilla) van aparte; si escribieron la forma en la casilla, cuenta como forma.
+  const formaEscrita = FORMAS_PAGO.find(f=>f.toLowerCase() === banco.toLowerCase()) || null;
+  const forma = cobroForma || formaEscrita;
   const { error: errPago } = await sb.from('pagos').insert({
-    inscripcion_id: modalInscId, monto, fecha, hora: horaActual(), banco: banco || null, forma_pago: forma, confirmado_por: asesorActualId || null,
+    inscripcion_id: modalInscId, monto, fecha, hora: horaActual(), banco: (formaEscrita ? '' : banco) || null, forma_pago: forma, confirmado_por: asesorActualId || null,
     verificacion: document.getElementById('cobroPorConfirmar').classList.contains('activo') ? 'por_confirmar' : 'confirmado',
   });
   if(errPago){ btn.disabled = false; pintarCobro(); toast('Error al registrar el pago: ' + errPago.message, true); return; }
@@ -7571,7 +7593,7 @@ function horaActual(){ return new Date().toLocaleTimeString('en-GB', { hour12:fa
 function pagosPorConfirmar(i){ return (i?.pagos || []).filter(p=>p.verificacion === 'por_confirmar'); }
 function pagosValidos(i){ return (i?.pagos || []).filter(p=>p.verificacion !== 'no_llego'); }
 function descripcionPago(p){
-  return [fmtMoney(Number(p.monto || 0)), p.concepto && p.concepto !== 'curso' ? p.concepto : '', p.forma_pago || p.banco || '',
+  return [fmtMoney(Number(p.monto || 0)), p.concepto && p.concepto !== 'curso' ? p.concepto : '', formaYBanco(p),
     p.hora ? p.hora.slice(0, 5) : '', p.fecha && p.fecha !== hoyISO() ? fechaCorta(p.fecha) : ''].filter(Boolean).join(' · ');
 }
 /* El recuadro con los pagos pendientes de una alumna y sus dos botones. */
@@ -7647,6 +7669,63 @@ function pagoDeHoyMarcable(i){
 }
 
 const FORMAS_PAGO = ['Efectivo', 'Tarjeta', 'Transferencia', 'Depósito / OXXO'];
+// "Transferencia · BanCoppel" (sin repetir si el banco es la misma palabra que la forma)
+function formaYBanco(p){
+  const f = p.forma_pago || '', b = p.banco || '';
+  return [f, b && b.toLowerCase() !== f.toLowerCase() ? b : ''].filter(Boolean).join(' · ');
+}
+
+/* PAGOS REGISTRADOS EN LA FICHA: la lista de sus pagos y "✏️ Corregir" la fecha, la forma y el banco
+   (el monto se corrige con "Corregir montos" porque mueve el saldo). Solo administradores o quien tiene
+   "Confirmar pagos". Cada corrección queda en la actividad con el antes y el después. */
+let fpEditando = null;
+function puedeCorregirPagos(){ return !!usuarioActual?.es_admin || puede('confirmar_pagos'); }
+function pintarPagosFicha(){
+  const d = modalInscDatos, cont = document.getElementById('fichaPagos');
+  const pagos = d?.pagos || [];
+  if(!pagos.length){ cont.innerHTML = ''; return; }
+  const abierto = !!fpEditando || cont.querySelector('details')?.open;
+  const corrige = puedeCorregirPagos();
+  const estado = p => p.verificacion === 'por_confirmar' ? '🏦 por confirmar' : p.verificacion === 'no_llego' ? '✖ no llegó (anulado)' : '';
+  cont.innerHTML = `<details ${abierto ? 'open' : ''}><summary>Pagos registrados (${pagos.length})${corrige ? ' · ver o corregir' : ''}</summary>`
+    + pagos.map(p=> p.id === fpEditando ? `<div class="fp-fila"><div class="fp-edit">
+        <label class="sub">Fecha<input type="date" data-fp-fecha value="${escapeAttr(p.fecha || '')}"></label>
+        <label class="sub">Forma<select data-fp-forma><option value="">—</option>${FORMAS_PAGO.map(f=>`<option ${f === p.forma_pago ? 'selected' : ''}>${escHtml(f)}</option>`).join('')}</select></label>
+        <label class="sub">Banco<input data-fp-banco list="bancosLista" autocomplete="off" value="${escapeAttr(p.banco && p.banco !== p.forma_pago ? p.banco : '')}"></label>
+        <div class="acc"><button type="button" data-fp-guardar="${escapeAttr(p.id)}">Guardar</button><button type="button" data-fp-cancelar>Cancelar</button></div></div></div>`
+      : `<div class="fp-fila"><span>${escHtml(fechaCorta(p.fecha))} · <b>${fmtMoney(Number(p.monto || 0))}</b>${formaYBanco(p) ? ' · ' + escHtml(formaYBanco(p)) : ''}
+          ${estado(p) ? `<span class="tag">${estado(p)}</span>` : ''}</span>
+          ${corrige ? `<button type="button" data-fp-editar="${escapeAttr(p.id)}">✏️ Corregir</button>` : ''}</div>`).join('')
+    + '</details>';
+}
+document.getElementById('fichaPagos').addEventListener('click', async e=>{
+  const ed = e.target.closest('[data-fp-editar]'), ca = e.target.closest('[data-fp-cancelar]'), gu = e.target.closest('[data-fp-guardar]');
+  if(ed){ fpEditando = ed.dataset.fpEditar; pintarPagosFicha(); return; }
+  if(ca){ fpEditando = null; pintarPagosFicha(); return; }
+  if(!gu) return;
+  const d = modalInscDatos, p = d?.pagos?.find(x=>x.id === gu.dataset.fpGuardar); if(!p) return;
+  if(!puedeCorregirPagos()){ toast('Corregir pagos es para administradores o quien tiene "Confirmar pagos".', true); return; }
+  const fila = gu.closest('.fp-fila');
+  const fecha = fila.querySelector('[data-fp-fecha]').value;
+  const forma = fila.querySelector('[data-fp-forma]').value || null;
+  const banco = fila.querySelector('[data-fp-banco]').value.trim() || null;
+  if(!fecha){ toast('Pon la fecha del pago.', true); return; }
+  if(fecha > hoyISO()){ toast('La fecha del pago no puede ser después de hoy.', true); return; }
+  const antes = { fecha: p.fecha, forma: p.forma_pago || null, banco: p.banco || null };
+  const cambios = [];
+  if(fecha !== antes.fecha) cambios.push(`fecha ${fechaCorta(antes.fecha)} → ${fechaCorta(fecha)}`);
+  if(forma !== antes.forma) cambios.push(`forma ${antes.forma || '—'} → ${forma || '—'}`);
+  if(banco !== antes.banco) cambios.push(`banco ${antes.banco || '—'} → ${banco || '—'}`);
+  if(!cambios.length){ fpEditando = null; pintarPagosFicha(); toast('Sin cambios.'); return; }
+  gu.disabled = true;
+  const { error } = await sb.from('pagos').update({ fecha, forma_pago: forma, banco }).eq('id', p.id);
+  if(error){ gu.disabled = false; toast('No se pudo corregir el pago: ' + error.message, true); return; }
+  Object.assign(p, { fecha, forma_pago: forma, banco });
+  fpEditando = null;
+  pintarPagosFicha(); pintarPorConfirmarFicha();
+  registrarActividad('pago_corregido', `${d.personas?.nombre || 'inscrita'} · ${fmtMoney(Number(p.monto || 0))}: ${cambios.join(', ')}`);
+  toast('Pago corregido.');
+});
 // Estatus que ya no se esperan en la puerta: se ven en "Todas" pero no cuentan.
 const CLAVES_FUERA_DE_RECEPCION = ['no_va_al_curso', 'perdio_anticipo'];
 let rec = null;   // estado de la pantalla abierta (null = cerrada)
