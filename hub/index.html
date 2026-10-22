@@ -3114,6 +3114,7 @@ const ACCION_LABEL = {
   pago_reportado: '💜 Reportó un pago (por confirmar)',
   pago_confirmado: '✅ Confirmó un pago',
   pago_no_encontrado: '❌ No encontró un pago reportado',
+  lead_ya_inscrita: 'Cerró un lead de alguien que ya estaba inscrita',
   permiso_cambiado: 'Cambió un permiso de rol',
   usuario_cambiado: '👤 Cambió el rol o los permisos de una persona',
   rol_creado: '🎭 Creó un rol nuevo',
@@ -4838,6 +4839,43 @@ document.getElementById('guardarContacto').addEventListener('click', async ()=>{
    ========================================================= */
 const ESTATUS_POR_CONFIRMAR = ()=> ESTATUS.find(e=>e.clave==='pago_por_confirmar')?.id ?? 1;
 function pagoReportado(lead){ return !!lead?.pago_reportado_en && lead?.estatus?.id === ESTATUS_POR_CONFIRMAR(); }
+
+/* La alumna del lead YA está inscrita en ese curso (p. ej. la inscribió la carga del Excel o alguien
+   le creó un lead nuevo después). El pago no se confirma en el lead: el lead se cierra en
+   "Inscrita (anticipo confirmado)" con nota y se abre su ficha. Si su ficha no tiene un pago de ese
+   monto, queda escrito en "Registrar pago" para que quien cobra lo revise y lo guarde; si ya lo
+   tiene, se avisa que es el mismo y no se escribe nada (así no se duplica dinero). */
+async function cerrarLeadYaInscrita(lead, inscId, pago){
+  const alumno = lead.personas?.nombre || 'esta alumna';
+  const donde = eventoTexto(lead.evento_id) || 'su curso';
+  const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+  const quien = usuarioActual?.nombre || 'alguien';
+  const cierre = `CERRADO ${hoy} por ${quien}: ya estaba inscrita en ${donde}.`
+    + (pago?.monto ? ` Pago reportado: ${fmtMoney(pago.monto)}${pago.banco ? ' ' + pago.banco : ''}${pago.fecha ? ' (' + pago.fecha + ')' : ''}; se revisa en su ficha.` : '');
+  const estPagado = ESTATUS.find(e=>e.clave === 'pagado')?.id;
+  const { error } = await sb.from('leads').update({ estatus_id: estPagado ?? lead.estatus?.id, estatus_antes_de_reporte: null,
+    comentario: cierre, actualizado_en: new Date().toISOString() }).eq('id', lead.id);
+  if(error){ toast('No se pudo cerrar el lead: ' + error.message, true); return false; }
+  await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: lead.id, asesor_id: usuarioActual?.id || null, nota: cierre, canal: 'otro' });
+  registrarActividad('lead_ya_inscrita', `${alumno} → ${donde}${pago?.monto ? ' · reportó ' + fmtMoney(pago.monto) : ''}`);
+  document.getElementById('modalInscribir').classList.remove('open');
+  document.getElementById('modalRegistrarPago').classList.remove('open');
+  document.getElementById('modalLead').classList.remove('open');
+  await abrirModalInscripcion(inscId);
+  const d = modalInscDatos;
+  const yaTiene = pago?.monto && (d?.pagos || []).some(p=>Number(p.monto) === Number(pago.monto));
+  if(pago?.monto && !yaTiene && modalInscId === inscId){
+    document.getElementById('modalPagoMonto').value = pago.monto;
+    if(pago.fecha) document.getElementById('modalPagoFecha').value = pago.fecha;
+    document.getElementById('modalPagoBanco').value = pago.banco || '';
+    pintarCobro();
+    toast(`Ya estaba inscrita. Su ficha no tiene un pago de ${fmtMoney(pago.monto)}: quedó escrito abajo, revísalo y guárdalo si llegó.`);
+  } else {
+    toast(pago?.monto ? `Ya estaba inscrita y ese pago de ${fmtMoney(pago.monto)} ya está en su ficha. Cerré el lead.` : 'Ya estaba inscrita en ese curso. Cerré el lead.');
+  }
+  renderBoard();
+  return true;
+}
 function hace(iso){
   const min = Math.round((Date.now() - new Date(iso).getTime())/60000);
   if(min < 60) return `hace ${Math.max(min,1)} min`;
@@ -4920,6 +4958,19 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
   const nota = `${yaEstaba ? 'PAGO REPORTADO CORREGIDO' : 'PAGO REPORTADO'} ${hoy} por ${quien}: ${fmtMoney(monto)}${banco ? ' ' + banco : ''} (${fecha}) · ${donde} · ${regPagoPaquete === 'VIP' ? 'VIP' : 'Básico'}. Por confirmar.`;
   // Un lead sin dueño queda a nombre de quien reporta, si vende (no le quita la venta a nadie)
   const asesor = lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : null);
+
+  // Si ya está inscrita en ese curso, el pago no va en el lead (quedaría atorado en "Pago por
+  // confirmar"): se registra en su ficha, como abono.
+  const { data: ya } = await sb.from('inscripciones').select('id').eq('persona_id', lead.personas?.id).eq('evento_id', eventoId).maybeSingle();
+  if(ya){
+    const ok = await preguntarConfirmacion({ titulo: 'Ya está inscrita en ese curso',
+      aviso: `<b>${escHtml(alumno)}</b> ya tiene su inscripción en ${escHtml(donde)}. Su pago se registra en su ficha, no en el lead. `
+           + 'Cierro este lead y te abro su ficha con el pago escrito para que lo revises.',
+      textoSi: 'Abrir su ficha' });
+    if(ok === null) return;
+    await cerrarLeadYaInscrita({ ...lead, evento_id: eventoId }, ya.id, { monto, fecha, banco });
+    return;
+  }
 
   const btn = document.getElementById('guardarRegistrarPago');
   btn.disabled = true; btn.textContent = 'Guardando...';
@@ -5091,14 +5142,12 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   btn.disabled = true; btn.textContent = 'Inscribiendo...';
   const listo = ()=>{ btn.disabled = false; btn.textContent = textoBtn; };
 
-  // Ya inscrita en ese curso → no se duplica: se abre su ficha.
+  // Ya inscrita en ese curso → no se duplica: se cierra el lead y el pago se revisa en su ficha.
+  // (Antes solo abría la ficha y el lead se quedaba para siempre en "Pago por confirmar".)
   const { data: ya } = await sb.from('inscripciones').select('id').eq('persona_id', personaId).eq('evento_id', eventoId).maybeSingle();
   if(ya){
     listo();
-    toast('Ya estaba inscrita en ese curso — te abro su ficha.');
-    document.getElementById('modalInscribir').classList.remove('open');
-    document.getElementById('modalLead').classList.remove('open');
-    abrirModalInscripcion(ya.id);
+    await cerrarLeadYaInscrita({ ...lead, evento_id: eventoId }, ya.id, pagado > 0 ? { monto: pagado, fecha, banco } : null);
     return;
   }
 
