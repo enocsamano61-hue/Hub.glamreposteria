@@ -318,6 +318,71 @@
   .subview{ display:none; }
   .subview.active{ display:block; }
 
+  /* ===== Glamy BI ===== */
+  .subtab-bi{ border-color:var(--wine); color:var(--wine); }
+  .subtab-bi.active{ background:var(--wine); color:#fff; }
+  .bi-hero{ background:linear-gradient(120deg, #FBE6EC 0%, #F1BEC7 55%, #E296B0 100%); border-radius:18px; padding:18px 20px; margin-bottom:14px;
+    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:flex-end; color:var(--sobre-barra); }
+  .bi-marca{ font:700 24px/1.1 Georgia, 'Times New Roman', serif; letter-spacing:-.01em; }
+  .bi-hero-sub{ font-size:13px; margin-top:4px; max-width:420px; opacity:.85; }
+  .bi-filtros{ display:flex; gap:10px; flex-wrap:wrap; }
+  .bi-filtros label{ display:flex; flex-direction:column; gap:3px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  .bi-filtros .select{ min-width:150px; max-width:220px; background:rgba(255,255,255,.92); }
+  .bi-kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; margin-bottom:14px; }
+  .bi-kpi{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px 16px 10px; position:relative; overflow:hidden; }
+  .bi-kpi::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--wine); }
+  .bi-kpi .l{ font-size:11.5px; color:var(--ink-soft); font-weight:600; }
+  .bi-kpi .v{ font:700 25px/1.15 Georgia, serif; margin-top:4px; }
+  .bi-kpi .d{ font-size:11.5px; font-weight:700; margin-top:2px; min-height:16px; }
+  .bi-kpi .d.sube{ color:var(--success); } .bi-kpi .d.baja{ color:var(--danger); } .bi-kpi .d.igual{ color:var(--ink-soft); }
+  .bi-kpi svg{ display:block; width:100%; height:34px; margin-top:6px; }
+  .bi-cuerpo{ display:grid; grid-template-columns:300px minmax(0, 1fr); gap:14px; align-items:start; }
+  .bi-lado{ display:flex; flex-direction:column; gap:12px; position:sticky; top:12px; }
+  .bi-card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; }
+  .bi-et{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--wine-dark); margin-bottom:8px; }
+  .bi-preguntar textarea{ width:100%; border:1.5px solid var(--wine); border-radius:12px; padding:10px 12px; font:inherit; font-size:13px; resize:vertical; background:#fff; color:var(--ink); }
+  .bi-preguntar .btn-primary{ margin-top:8px; width:100%; }
+  .bi-sugerencias{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .bi-sugerencias button{ border:1px solid var(--border); background:var(--bg); color:var(--ink); border-radius:999px; padding:4px 10px; font-size:11.5px; cursor:pointer; font-family:inherit; text-align:left; }
+  .bi-sugerencias button:hover{ border-color:var(--wine); color:var(--wine); }
+  .bi-alerta{ display:flex; gap:10px; padding:8px 0; border-top:1px dashed var(--border); align-items:flex-start; }
+  .bi-alerta:first-child{ border-top:none; padding-top:0; }
+  .bi-alerta i{ width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none; background:var(--ambar); }
+  .bi-alerta.alto i{ background:var(--danger); } .bi-alerta.bajo i{ background:#C9BCC3; }
+  .bi-alerta b{ font-size:12.5px; display:block; } .bi-alerta .sub{ font-size:11.5px; }
+  .bi-alerta button{ margin-left:auto; border:none; background:none; color:var(--wine); font-weight:700; font-size:12px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .bi-resp{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:16px; margin-bottom:14px; box-shadow:0 6px 24px rgba(142,47,87,.06); }
+  .bi-preg{ background:#F6E4EA; border-radius:14px 14px 4px 14px; padding:8px 12px; margin:0 0 12px auto; max-width:80%; width:fit-content; font-size:13px; }
+  .bi-graficas{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px; }
+  .bi-graf{ border:1px solid var(--border); border-radius:14px; padding:12px; background:#FFFDFE; min-width:0; }
+  .bi-graf-cab{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .bi-graf-cab b{ font:700 14.5px Georgia, serif; } .bi-graf-cab .sub{ font-size:11.5px; }
+  .bi-graf-total{ font:700 22px Georgia, serif; color:var(--wine-dark); margin:4px 0 2px; }
+  .bi-graf-total small{ font:600 11.5px system-ui, sans-serif; color:var(--ink-soft); margin-left:6px; }
+  .bi-canvas{ position:relative; height:240px; margin-top:6px; }
+  .bi-canvas.alto{ height:320px; }
+  .bi-def{ font-size:11px; color:var(--ink-soft); margin-top:6px; }
+  .bi-acc{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center; }
+  .bi-acc button, .bi-acc select{ border:1px solid var(--border); background:#fff; color:var(--wine); border-radius:14px; padding:4px 10px; font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .bi-acc button.p{ background:var(--wine); color:#fff; border-color:var(--wine); }
+  .bi-lectura{ margin-top:12px; font-size:13px; line-height:1.55; }
+  .bi-lectura p{ margin:6px 0; } .bi-lectura ul{ margin:4px 0 8px; padding-left:18px; }
+  .bi-lectura strong{ color:var(--wine-dark); }
+  .bi-tabla{ width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px; }
+  .bi-tabla td, .bi-tabla th{ padding:5px 6px; border-bottom:1px solid var(--border); text-align:left; }
+  .bi-tabla td.n, .bi-tabla th.n{ text-align:right; font-variant-numeric:tabular-nums; }
+  .bi-tabla .link-btn{ border:none; background:none; color:var(--ink); padding:0; cursor:pointer; font:inherit; text-align:left; }
+  .bi-tabla .link-btn:hover{ color:var(--wine); text-decoration:underline; }
+  .bi-kpi-solo{ font:700 40px Georgia, serif; color:var(--wine-dark); margin:16px 0 4px; }
+  .bi-seccion{ display:flex; justify-content:space-between; align-items:center; margin:6px 0 10px; font:700 16px Georgia, serif; }
+  .bi-tablero{ display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:12px; }
+  .bi-vacio{ border:1.5px dashed var(--border); border-radius:14px; padding:18px; text-align:center; color:var(--ink-soft); font-size:12.5px; }
+  .bi-pensando{ color:var(--ink-soft); font-size:13px; padding:10px 2px; }
+  @media (max-width:900px){
+    .bi-cuerpo{ grid-template-columns:1fr; } .bi-lado{ position:static; }
+    .bi-filtros .select{ min-width:0; max-width:none; width:100%; } .bi-filtros{ width:100%; display:grid; grid-template-columns:1fr 1fr; }
+    .bi-graficas{ grid-template-columns:1fr; } .bi-tablero{ grid-template-columns:1fr; }
+  }
   .chart-card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:16px; }
   .chart-card h4{ font-family:'Newsreader',serif; font-size:16px; font-weight:600; margin-bottom:2px; }
   .chart-card .sub{ margin-bottom:14px; }
@@ -1776,6 +1841,38 @@
         <button class="subtab active" data-tab="resumen">Resumen ejecutivo</button>
         <button class="subtab" data-tab="comparativa">Comparativa de ciudades</button>
         <button class="subtab" data-tab="constructor">Constructor de reportes</button>
+        <button class="subtab subtab-bi" data-tab="glamybi" id="tabGlamyBI" style="display:none;">🧁 Glamy BI</button>
+      </div>
+
+      <!-- Glamy BI: solo administradores. Glamy elige la métrica del catálogo (bi_consulta) y aquí se dibuja. -->
+      <div class="subview" id="reportes-glamybi">
+        <div class="bi-hero">
+          <div class="bi-hero-txt"><div class="bi-marca">🧁 Glamy BI</div>
+            <div class="bi-hero-sub">Tu analista de datos: pregunta en tus palabras y sale la gráfica, la lectura y qué hacer.</div></div>
+          <div class="bi-filtros">
+            <label>Gira<select class="select" id="biCurso"></select></label>
+            <label>Comparar con<select class="select" id="biComparar"><option value="">Nada</option></select></label>
+            <label>Ciudad<select class="select" id="biCiudad"><option value="">Todas</option></select></label>
+            <label>Vendedora<select class="select" id="biVend"><option value="">Todas</option></select></label>
+          </div>
+        </div>
+        <div class="bi-kpis" id="biKpis"></div>
+        <div class="bi-cuerpo">
+          <aside class="bi-lado">
+            <div class="bi-card bi-preguntar">
+              <div class="bi-et">Pregúntale a Glamy</div>
+              <textarea id="biPregunta" rows="3" maxlength="600" placeholder="Ej.: ¿Cómo va el cobrado de esta gira contra la pasada, por semana?"></textarea>
+              <button type="button" class="btn-primary" id="biPreguntar">Preguntar</button>
+              <div class="bi-sugerencias" id="biSugerencias"></div>
+            </div>
+            <div class="bi-card"><div class="bi-et">Hoy atender</div><div id="biAlertas" class="sub">Cargando…</div></div>
+          </aside>
+          <div class="bi-principal">
+            <div id="biRespuestas"></div>
+            <div class="bi-seccion"><span>📌 Mi tablero</span><button type="button" class="btn-outline small" id="biRecargarTablero" style="width:auto;">↻ Actualizar</button></div>
+            <div class="bi-tablero" id="biTablero"></div>
+          </div>
+        </div>
       </div>
 
       <div class="subview active" id="reportes-resumen">
@@ -2671,6 +2768,17 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: GLAMY BI — quiénes forman un número ===================== -->
+<div class="modal-overlay" id="modalBIDetalle">
+  <div class="modal" style="max-width:760px;">
+    <button class="close" id="closeModalBIDetalle">✕</button>
+    <h3 id="biDetTitulo" style="margin-bottom:2px;">Detalle</h3>
+    <div class="sub" id="biDetSub"></div>
+    <div class="rep-table-wrap" style="margin-top:12px; max-height:60vh;"><table class="rep-table" id="biDetTabla"></table></div>
+    <div class="confirm-acciones"><button class="btn-outline small" id="biDetCSV" style="width:auto;">⬇ CSV</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalConfirmar">
   <div class="modal confirm-box">
     <h3 id="confirmarTitulo" style="margin-bottom:12px;">—</h3>
@@ -3166,6 +3274,8 @@ const ACCION_LABEL = {
   pago_reportado: '💜 Reportó un pago (por confirmar)',
   pago_confirmado: '✅ Confirmó un pago',
   pago_no_encontrado: '❌ No encontró un pago reportado',
+  bi_pregunta: '🧁 Le preguntó a Glamy BI',
+  bi_guardado: '📌 Guardó un reporte en Glamy BI',
   lead_ya_inscrita: 'Cerró un lead de alguien que ya estaba inscrita',
   curso_fecha_cambiada: '📅 Cambió la fecha de un curso',
   cambio_fecha_respuesta: 'Registró la respuesta a un cambio de fecha',
@@ -10395,6 +10505,9 @@ async function renderReportesConstructor(){
 }
 
 async function cargarReportesTab(tab){
+  // Glamy BI solo para administradores
+  document.getElementById('tabGlamyBI').style.display = usuarioActual?.es_admin ? '' : 'none';
+  if(tab === 'glamybi'){ if(usuarioActual?.es_admin) await biAbrir(); return; }
   if(tab==='resumen' && !reportesCargado.resumen){ reportesCargado.resumen=true; await renderReportesResumen(); }
   else if(tab==='comparativa' && !reportesCargado.comparativa){ reportesCargado.comparativa=true; await renderReportesComparativa(); }
   else if(tab==='constructor' && !reportesCargado.constructor){ reportesCargado.constructor=true; await renderReportesConstructor(); }
@@ -10408,6 +10521,317 @@ document.querySelectorAll('#reportesSubtabs .subtab').forEach(btn=>{
     cargarReportesTab(tab);
   });
 });
+/* =========================================================
+   GLAMY BI (Reportes → 🧁 Glamy BI, solo administradores)
+   Jared pregunta en sus palabras; Glamy (modo "bi") elige una métrica del catálogo de la base
+   (bi_consulta: definición fija, solo lectura) y aquí se dibuja la gráfica con la lectura y las
+   recomendaciones. "Mi tablero" guarda la pregunta (spec), no los números: siempre se ve al día.
+   Arriba: KPI de la gira (con mini tendencia por semana) y "Hoy atender" (reglas fijas, bi_alertas).
+   ========================================================= */
+const BI_PALETA = ['#B23C6C', '#E296B0', '#55745C', '#C6A66B', '#8E2F57', '#B56F55', '#7A6470', '#D9A3B8'];
+const BI_KPIS = [
+  { m:'cobrado', l:'Cobrado' }, { m:'con_pago', l:'Inscritas con pago' }, { m:'por_cobrar', l:'Por cobrar', alReves:true },
+  { m:'conversion', l:'Conversión lead → inscrita' }, { m:'asistencia', l:'Asistencia' },
+];
+const BI_SUGERENCIAS = ['¿Cómo va el cobrado de esta gira contra la pasada, por semana?', 'Ranking de vendedoras por conversión',
+  '¿Qué ciudades tienen más promesas vencidas?', 'Pagos recibidos por mes este año', 'Asistencia por ciudad', '¿Cómo va el cambio de fecha?',
+  'Inscritas por gira desde 2020'];
+const bi = { giras:null, filtros:{ curso:'', comparar:'', ciudad:'', vendedora:'' }, mensajes:[], respuestas:[], enviando:false, graficas:{}, n:0 };
+
+function biFmt(v, formato){
+  if(v == null || v === '') return '—';
+  const n = Number(v);
+  if(formato === 'money') return fmtMoney(n);
+  if(formato === 'pct') return (Math.round(n * 10) / 10).toLocaleString('es-MX') + '%';
+  return fmtNum(n);
+}
+// Etiquetas de tiempo legibles: 2026-10 → oct 2026; 2026-10-05 → 5 oct
+function biEtiqueta(f, por){
+  if(por === 'mes' && /^\d{4}-\d{2}$/.test(f.clave || '')) return new Date(f.clave + '-15T12:00:00').toLocaleDateString('es-MX', { month:'short', year:'numeric' });
+  if((por === 'semana' || por === 'dia') && /^\d{4}-\d{2}-\d{2}$/.test(f.clave || '')) return fechaCorta(f.clave);
+  return f.etiqueta ?? f.clave ?? '—';
+}
+// Filtros de la pantalla → spec base (Glamy puede cambiarlos en su consulta)
+function biSpecFiltros(){
+  const f = bi.filtros, spec = {};
+  if(f.curso) spec.curso = f.curso;
+  if(f.comparar) spec.comparar = f.comparar;
+  if(f.ciudad) spec.ciudad = f.ciudad;
+  if(f.vendedora) spec.vendedora = f.vendedora;
+  return spec;
+}
+async function biConsulta(spec, detalle){
+  const { data, error } = await sb.rpc('bi_consulta', { p_spec: spec, p_detalle: detalle ?? null });
+  if(error) throw new Error(error.message);
+  return data;
+}
+
+async function biAbrir(){
+  if(!bi.giras){
+    const { data } = await sb.rpc('bi_giras');
+    bi.giras = data || [];
+    const activa = bi.giras.find(g=>g.activa);
+    const opt = g => `<option value="${escapeAttr(g.id)}">${escHtml(tituloCaso(g.nombre))}${g.desde ? ' · ' + escHtml(String(g.desde).slice(0, 4)) : ''}</option>`;
+    document.getElementById('biCurso').innerHTML = (activa ? opt(activa) : '') + '<option value="todas">Todas las giras</option>'
+      + bi.giras.filter(g=>!g.activa).map(opt).join('');
+    document.getElementById('biComparar').innerHTML = '<option value="">Nada</option>' + bi.giras.filter(g=>!g.activa).map(opt).join('');
+    document.getElementById('biCiudad').innerHTML = '<option value="">Todas</option>'
+      + [...(CIUDADES || [])].sort((a, b)=>a.nombre.localeCompare(b.nombre, 'es')).map(c=>`<option value="${escapeAttr(c.id)}">${escHtml(c.nombre)}</option>`).join('');
+    document.getElementById('biVend').innerHTML = '<option value="">Todas</option>'
+      + EQUIPO.filter(u=>u.es_vendedor).map(u=>`<option value="${escapeAttr(u.id)}">${escHtml(u.nombre)}</option>`).join('');
+    bi.filtros.curso = activa?.id || '';
+    document.getElementById('biSugerencias').innerHTML = BI_SUGERENCIAS.map(t=>`<button type="button" data-bi-sug="${escapeAttr(t)}">${escHtml(t)}</button>`).join('');
+  }
+  biPintarRespuestas();
+  await Promise.all([biCargarKpis(), biCargarAlertas(), biCargarTablero()]);
+}
+
+// ---------- KPI con mini tendencia ----------
+function biSparkline(filas){
+  const vals = (filas || []).map(f=>Number(f.valor) || 0);
+  if(vals.length < 2) return '<svg viewBox="0 0 100 30"></svg>';
+  const max = Math.max(...vals), min = Math.min(...vals), rango = max - min || 1;
+  const pts = vals.map((v, i)=>`${(i / (vals.length - 1) * 100).toFixed(1)},${(28 - (v - min) / rango * 24).toFixed(1)}`).join(' ');
+  return `<svg viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#E296B0" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+async function biCargarKpis(){
+  const caja = document.getElementById('biKpis');
+  caja.innerHTML = BI_KPIS.map(k=>`<div class="bi-kpi"><div class="l">${escHtml(k.l)}</div><div class="v">…</div></div>`).join('');
+  const base = biSpecFiltros();
+  const res = await Promise.all(BI_KPIS.map(k=>biConsulta({ ...base, metrica:k.m, por:'semana_gira', grafica:'kpi', titulo:k.l }).catch(e=>({ error:e.message }))));
+  caja.innerHTML = res.map((r, i)=>{
+    const k = BI_KPIS[i];
+    if(r.error) return `<div class="bi-kpi"><div class="l">${escHtml(k.l)}</div><div class="v">—</div><div class="d igual">${escHtml(r.error)}</div></div>`;
+    let delta = '';
+    if(r.comparar && r.comparar.total != null && r.total != null){
+      const a = Number(r.total), b = Number(r.comparar.total);
+      const dif = r.formato === 'pct' ? a - b : (b ? (a - b) / Math.abs(b) * 100 : 0);
+      const mejor = k.alReves ? dif < 0 : dif > 0;
+      const cls = Math.abs(dif) < 0.5 ? 'igual' : mejor ? 'sube' : 'baja';
+      delta = `<div class="d ${cls}">${dif > 0 ? '▲' : dif < 0 ? '▼' : '='} ${Math.abs(Math.round(dif * 10) / 10).toLocaleString('es-MX')}${r.formato === 'pct' ? ' pts' : '%'} vs ${escHtml(tituloCaso(r.comparar.curso?.nombre || ''))}</div>`;
+    } else delta = `<div class="d igual">${escHtml(r.curso ? tituloCaso(r.curso.nombre) : 'Todas las giras')}</div>`;
+    return `<div class="bi-kpi" title="${escapeAttr(r.definicion || '')}"><div class="l">${escHtml(k.l)}</div><div class="v">${biFmt(r.total, r.formato)}</div>${delta}${biSparkline(r.filas)}</div>`;
+  }).join('');
+}
+
+// ---------- Hoy atender ----------
+async function biCargarAlertas(){
+  const caja = document.getElementById('biAlertas');
+  const { data, error } = await sb.rpc('bi_alertas');
+  if(error){ caja.textContent = 'No se pudo cargar: ' + error.message; return; }
+  caja.innerHTML = (data || []).map(a=>`<div class="bi-alerta ${escapeAttr(a.nivel)}"><i></i><div><b>${escHtml(a.titulo)}</b><div class="sub">${escHtml(a.detalle || '')}</div></div>
+      ${a.vista && seccionesPermitidas().includes(a.vista) ? `<button type="button" data-bi-ir="${escapeAttr(a.vista)}">Ir →</button>` : ''}</div>`).join('')
+    || '<div class="sub">Nada urgente por hoy. 🎉</div>';
+}
+
+// ---------- Gráficas ----------
+// Une las filas del periodo con las de la comparación por su clave (semana de gira, ciudad, vendedora…)
+function biSeries(r){
+  const filas = r.filas || [];
+  const comp = r.comparar?.filas || null;
+  const claves = filas.map(f=>f.clave);
+  if(comp) comp.forEach(f=>{ if(!claves.includes(f.clave)) claves.push(f.clave); });
+  const tiempo = ['mes', 'semana', 'dia', 'semana_gira'].includes(r.por);
+  if(tiempo) claves.sort((a, b)=>String(a).localeCompare(String(b)));
+  const por = new Map(filas.map(f=>[f.clave, f])), porC = new Map((comp || []).map(f=>[f.clave, f]));
+  const etiquetas = claves.map(c=>biEtiqueta(por.get(c) || porC.get(c) || { clave:c }, r.por));
+  return { claves, etiquetas, valores:claves.map(c=>por.has(c) ? Number(por.get(c).valor) : null),
+           comp: comp ? claves.map(c=>porC.has(c) ? Number(porC.get(c).valor) : null) : null };
+}
+function biHtmlGrafica(id, item){
+  const { spec, datos:r } = item;
+  if(!r) return '';
+  const tipo = spec.grafica || 'barras';
+  const sub = [r.curso ? tituloCaso(r.curso.nombre) : (r.desde || r.hasta ? [r.desde, r.hasta].filter(Boolean).map(fechaCorta).join(' – ') : 'Todas las giras'),
+    r.ciudad, r.vendedora, r.comparar ? 'vs ' + tituloCaso(r.comparar.curso?.nombre || '') : ''].filter(Boolean).join(' · ');
+  const comp = r.comparar && r.comparar.total != null ? `<small>vs ${biFmt(r.comparar.total, r.formato)}</small>` : '';
+  const muchos = (r.filas || []).length > 10 && tipo === 'barras_horizontales';
+  let cuerpo;
+  if(tipo === 'kpi') cuerpo = `<div class="bi-kpi-solo">${biFmt(r.total, r.formato)}${comp}</div>`;
+  else if(tipo === 'tabla' || !(r.filas || []).length){
+    const s = biSeries(r);
+    cuerpo = s.claves.length ? `<div style="max-height:320px; overflow:auto;"><table class="bi-tabla"><thead><tr><th>${escHtml(BI_POR_ETIQUETA[r.por] || '')}</th><th class="n">${escHtml(r.nombre)}</th>${s.comp ? `<th class="n">${escHtml(tituloCaso(r.comparar.curso?.nombre || 'Comparación'))}</th>` : ''}</tr></thead>
+      <tbody>${s.claves.map((c, i)=>`<tr><td><button type="button" class="link-btn" data-bi-det="${escapeAttr(id)}" data-bi-clave="${escapeAttr(c ?? '')}">${escHtml(s.etiquetas[i])}</button></td><td class="n">${biFmt(s.valores[i], r.formato)}</td>${s.comp ? `<td class="n">${biFmt(s.comp[i], r.formato)}</td>` : ''}</tr>`).join('')}</tbody></table></div>`
+      : '<div class="bi-vacio">Sin datos con estos filtros.</div>';
+  } else cuerpo = `<div class="bi-canvas ${muchos ? 'alto' : ''}"><canvas id="biCanvas_${escapeAttr(id)}"></canvas></div>`;
+  return `<div class="bi-graf" data-bi-graf="${escapeAttr(id)}">
+    <div class="bi-graf-cab"><b>${escHtml(spec.titulo || r.nombre)}</b><span class="sub">${escHtml(sub)}</span></div>
+    ${tipo !== 'kpi' ? `<div class="bi-graf-total">${biFmt(r.total, r.formato)}${comp}</div>` : ''}
+    ${cuerpo}
+    <div class="bi-def">${escHtml(r.nombre)}: ${escHtml(r.definicion || '')} ${escHtml(r.desde_confiable || '')}</div>
+    <div class="bi-acc">
+      ${item.guardado ? '' : `<button type="button" class="p" data-bi-guardar="${escapeAttr(id)}">📌 Guardar en mi tablero</button>`}
+      <button type="button" data-bi-det="${escapeAttr(id)}" data-bi-clave="total">🔍 Ver detalle</button>
+      <button type="button" data-bi-csv="${escapeAttr(id)}">⬇ CSV</button>
+      <select data-bi-tipo="${escapeAttr(id)}" aria-label="Tipo de gráfica">${['barras', 'barras_horizontales', 'linea', 'dona', 'tabla', 'kpi'].map(t=>`<option value="${t}" ${t === tipo ? 'selected' : ''}>${BI_TIPO_ETIQUETA[t]}</option>`).join('')}</select>
+      ${item.reporteId ? `<button type="button" data-bi-quitar="${escapeAttr(item.reporteId)}">Quitar</button>` : ''}
+    </div></div>`;
+}
+const BI_TIPO_ETIQUETA = { barras:'📊 Barras', barras_horizontales:'📶 Ranking', linea:'📈 Línea', dona:'🍩 Dona', tabla:'📋 Tabla', kpi:'🔢 Número' };
+const BI_POR_ETIQUETA = { total:'', ciudad:'Ciudad', curso:'Gira', vendedora:'Vendedora', estado:'Estado', paquete:'Paquete', mes:'Mes', semana:'Semana', dia:'Día', semana_gira:'Semana de la gira' };
+function biDibujar(id){
+  const item = bi.graficas[id]; const canvas = document.getElementById('biCanvas_' + id);
+  if(!item || !canvas) return;
+  if(chartInstances['biCanvas_' + id]) chartInstances['biCanvas_' + id].destroy();
+  const r = item.datos, tipo = item.spec.grafica || 'barras', s = biSeries(r);
+  const fmt = v => biFmt(v, r.formato);
+  const nombre = r.curso ? tituloCaso(r.curso.nombre) : r.nombre;
+  const dona = tipo === 'dona', linea = tipo === 'linea', horiz = tipo === 'barras_horizontales';
+  const datasets = [{ label:nombre, data:s.valores, backgroundColor: dona ? s.valores.map((_, i)=>BI_PALETA[i % BI_PALETA.length]) : linea ? 'rgba(178,60,108,.12)' : '#B23C6C',
+    borderColor: dona ? '#fff' : '#B23C6C', borderWidth: dona ? 2 : linea ? 3 : 0, borderRadius: dona ? 0 : 6, tension:.35, fill:linea, pointRadius: linea ? 2.5 : 0, spanGaps:true }];
+  if(s.comp && !dona) datasets.push({ label:tituloCaso(r.comparar.curso?.nombre || 'Comparación'), data:s.comp, backgroundColor: linea ? 'transparent' : '#E296B0',
+    borderColor:'#E296B0', borderWidth: linea ? 2.5 : 0, borderDash: linea ? [6, 4] : undefined, borderRadius:6, tension:.35, pointRadius:0, spanGaps:true });
+  chartInstances['biCanvas_' + id] = new Chart(canvas.getContext('2d'), {
+    type: dona ? 'doughnut' : linea ? 'line' : 'bar',
+    data:{ labels:s.etiquetas, datasets },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis: horiz ? 'y' : 'x', cutout: dona ? '62%' : undefined,
+      plugins:{ legend:{ display: dona || datasets.length > 1, position:'bottom', labels:{ boxWidth:10, font:{ size:11 } } },
+        tooltip:{ callbacks:{ label: c=>`${c.dataset.label}: ${fmt(c.raw)}` } } },
+      // El eje de valores lleva el formato ($, %); el de etiquetas se deja con el de Chart.js (si no, salen 0, 1, 2…).
+      scales: dona ? {} : {
+        x:{ grid:{ display:horiz, color:'#F6E4EA' }, beginAtZero:horiz, ticks: horiz ? { font:{ size:10.5 }, callback:v=>fmt(v) } : { font:{ size:10.5 }, maxRotation:0, autoSkip:true } },
+        y:{ grid:{ display:!horiz, color:'#F6E4EA' }, beginAtZero:!horiz, ticks: horiz ? { font:{ size:10.5 } } : { font:{ size:10.5 }, callback:v=>fmt(v) } } },
+      onClick:(_, el)=>{ if(el.length) biDetalle(id, s.claves[el[0].index], s.etiquetas[el[0].index]); } },
+  });
+}
+function biRegistrar(item){ const id = 'g' + (++bi.n); bi.graficas[id] = item; return id; }
+
+// ---------- Preguntar ----------
+function biPintarRespuestas(){
+  const caja = document.getElementById('biRespuestas');
+  const html = bi.respuestas.map(resp=>`<div class="bi-resp"><div class="bi-preg">${escHtml(resp.pregunta)}</div>
+      ${resp.ids.length ? `<div class="bi-graficas">${resp.ids.map(id=>biHtmlGrafica(id, bi.graficas[id])).join('')}</div>` : ''}
+      <div class="bi-lectura${resp.error ? ' sub' : ''}">${glamyFormato(resp.texto || '')}</div></div>`).join('');
+  caja.innerHTML = (bi.enviando ? '<div class="bi-resp"><div class="bi-pensando">🧁 Glamy está analizando los datos…</div></div>' : '') + (html
+    || '<div class="bi-vacio">Pregúntale a Glamy lo que necesites ver: ventas, cobrado, conversión, vendedoras, ciudades, giras pasadas… Te contesta con la gráfica, la lectura y qué hacer.</div>');
+  bi.respuestas.forEach(resp=>resp.ids.forEach(biDibujar));
+}
+async function biPreguntar(texto){
+  texto = String(texto || '').trim();
+  if(!texto || bi.enviando) return;
+  bi.enviando = true; biPintarRespuestas();
+  document.getElementById('biPreguntar').disabled = true;
+  // Los filtros de la pantalla van como contexto (Glamy los usa si la pregunta no dice otra cosa).
+  const f = bi.filtros, nombreDe = (sel, v) => v ? document.querySelector(`#${sel} option[value="${CSS.escape(v)}"]`)?.textContent : '';
+  const ctx = [f.curso && `gira: ${f.curso === 'todas' ? 'todas' : nombreDe('biCurso', f.curso)}`, f.comparar && `comparar con: ${nombreDe('biComparar', f.comparar)}`,
+    f.ciudad && `ciudad: ${nombreDe('biCiudad', f.ciudad)}`, f.vendedora && `vendedora: ${nombreDe('biVend', f.vendedora)}`].filter(Boolean).join(', ');
+  bi.mensajes.push({ rol:'user', texto });
+  const historial = bi.mensajes.slice(-8).map((m, i, arr)=>({ rol:m.rol, texto: i === arr.length - 1 && ctx ? `${m.texto}\n(Filtros en pantalla: ${ctx})` : m.texto }));
+  let resp;
+  try{
+    const { data, error } = await sb.functions.invoke('glamy', { body:{ mensajes:historial, seccion:'reportes', modo:'bi' } });
+    let r = data;
+    if(error){ try{ r = await error.context?.json(); }catch(_){ r = null; } if(!r?.texto) throw new Error(r?.error || error.message); }
+    if(!r?.texto) throw new Error(r?.error || 'no llegó respuesta');
+    bi.mensajes.push({ rol:'assistant', texto:r.texto });
+    resp = { pregunta:texto, texto:r.texto, ids:(r.bi || []).map(item=>biRegistrar({ ...item, lectura:r.texto })) };
+    registrarActividad('bi_pregunta', texto.slice(0, 140));
+  }catch(e){
+    bi.mensajes.pop();
+    resp = { pregunta:texto, texto:`No pude responder ahora (${e.message}). Intenta de nuevo en un momento.`, ids:[], error:true };
+  }
+  bi.respuestas.unshift(resp);
+  bi.respuestas = bi.respuestas.slice(0, 6);
+  bi.enviando = false;
+  document.getElementById('biPreguntar').disabled = false;
+  document.getElementById('biPregunta').value = '';
+  biPintarRespuestas();
+}
+
+// ---------- Mi tablero ----------
+async function biCargarTablero(){
+  const caja = document.getElementById('biTablero');
+  const { data, error } = await sb.from('bi_reportes').select('id, titulo, spec, lectura, orden, creado_en').eq('archivado', false).order('orden').order('creado_en');
+  if(error){ caja.innerHTML = `<div class="bi-vacio">No se pudo cargar: ${escHtml(error.message)}</div>`; return; }
+  if(!data?.length){ caja.innerHTML = '<div class="bi-vacio">Aquí van los reportes que guardes con 📌. Se ven siempre con los datos de hoy.</div>'; return; }
+  const items = await Promise.all(data.map(async rep=>{
+    try{ return { rep, datos: await biConsulta(rep.spec) }; }catch(e){ return { rep, error:e.message }; }
+  }));
+  const ids = items.map(({ rep, datos, error })=> error ? { rep, error } : biRegistrar({ spec:rep.spec, datos, lectura:rep.lectura, guardado:true, reporteId:rep.id }));
+  caja.innerHTML = ids.map(x=>typeof x === 'string' ? biHtmlGrafica(x, bi.graficas[x])
+    : `<div class="bi-graf"><b>${escHtml(x.rep.titulo)}</b><div class="sub">No se pudo actualizar: ${escHtml(x.error)}</div></div>`).join('');
+  ids.forEach(x=>{ if(typeof x === 'string') biDibujar(x); });
+}
+async function biGuardar(id){
+  const item = bi.graficas[id]; if(!item) return;
+  const titulo = String(item.spec.titulo || item.datos?.nombre || 'Reporte').slice(0, 120);
+  const { error } = await sb.from('bi_reportes').insert({ titulo, spec:item.spec, lectura:item.lectura || null, archivado:false, orden:0 });
+  if(error){ toast('No se pudo guardar: ' + error.message, true); return; }
+  item.guardado = true;
+  registrarActividad('bi_guardado', titulo);
+  toast('Guardado en tu tablero.');
+  biPintarRespuestas();
+  biCargarTablero();
+}
+
+// ---------- Detalle y CSV ----------
+let biDetFilas = [], biDetNombre = '';
+async function biDetalle(id, clave, etiqueta){
+  const item = bi.graficas[id]; if(!item) return;
+  const { spec, datos:r } = item;
+  document.getElementById('biDetTitulo').textContent = `${spec.titulo || r.nombre}${clave && clave !== 'total' ? ' · ' + (etiqueta || clave) : ''}`;
+  document.getElementById('biDetSub').textContent = 'Cargando…';
+  document.getElementById('biDetTabla').innerHTML = '';
+  document.getElementById('modalBIDetalle').classList.add('open');
+  try{
+    const res = await biConsulta(spec, clave == null || clave === '' ? 'total' : String(clave));
+    biDetFilas = res.detalle || [];
+    biDetNombre = `${spec.titulo || r.nombre}${clave && clave !== 'total' ? '-' + (etiqueta || clave) : ''}`;
+    document.getElementById('biDetSub').textContent = `${biDetFilas.length}${biDetFilas.length === 500 ? '+ (se muestran 500)' : ''} renglones · ${r.definicion || ''}`;
+    document.getElementById('biDetTabla').innerHTML = `<thead><tr><th>Nombre</th><th>Teléfono</th><th>Ciudad</th><th>Fecha</th><th>Estado</th><th class="n">Monto</th><th>Vendedora</th></tr></thead><tbody>`
+      + biDetFilas.map(x=>`<tr><td>${escHtml(tituloCaso(x.nombre || ''))}</td><td>${escHtml(x.telefono || '')}</td><td>${escHtml(x.ciudad || '')}</td>
+        <td>${x.fecha ? escHtml(fechaCorta(x.fecha)) : ''}</td><td>${escHtml(x.estado || '')}</td><td class="n">${x.monto != null ? fmtMoney(x.monto) : ''}</td><td>${escHtml(x.vendedora || '')}</td></tr>`).join('') + '</tbody>';
+  }catch(e){ document.getElementById('biDetSub').textContent = 'No se pudo cargar: ' + e.message; }
+}
+function biCSV(id){
+  const item = bi.graficas[id]; if(!item) return;
+  const r = item.datos, s = biSeries(r);
+  exportarCSV(`glamy-bi-${normTexto(item.spec.titulo || r.nombre).replace(/\s+/g, '-')}.csv`,
+    [BI_POR_ETIQUETA[r.por] || 'Total', r.nombre, ...(s.comp ? [tituloCaso(r.comparar.curso?.nombre || 'Comparación')] : [])],
+    s.claves.length ? s.claves.map((_, i)=>[s.etiquetas[i], s.valores[i] ?? '', ...(s.comp ? [s.comp[i] ?? ''] : [])]) : [['Total', r.total ?? '']]);
+}
+
+// ---------- Eventos ----------
+document.getElementById('reportes-glamybi').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const d = b.dataset;
+  if(b.id === 'biPreguntar') return biPreguntar(document.getElementById('biPregunta').value);
+  if(b.id === 'biRecargarTablero') return biCargarTablero();
+  if(d.biSug){ document.getElementById('biPregunta').value = d.biSug; return biPreguntar(d.biSug); }
+  if(d.biIr) return setActiveSection(d.biIr);
+  if(d.biGuardar) return biGuardar(d.biGuardar);
+  if(d.biDet) return biDetalle(d.biDet, d.biClave, b.textContent.trim());
+  if(d.biCsv) return biCSV(d.biCsv);
+  if(d.biQuitar){
+    return (async ()=>{
+      const { error } = await sb.from('bi_reportes').update({ archivado:true, actualizado_en:new Date().toISOString() }).eq('id', d.biQuitar);
+      if(error){ toast('No se pudo quitar: ' + error.message, true); return; }
+      toast('Se quitó de tu tablero.'); biCargarTablero();
+    })();
+  }
+});
+document.getElementById('reportes-glamybi').addEventListener('change', e=>{
+  const t = e.target;
+  if(t.dataset.biTipo){
+    const item = bi.graficas[t.dataset.biTipo]; if(!item) return;
+    item.spec = { ...item.spec, grafica:t.value };
+    const caja = t.closest('[data-bi-graf]');
+    caja.outerHTML = biHtmlGrafica(t.dataset.biTipo, item);
+    biDibujar(t.dataset.biTipo);
+    return;
+  }
+  const filtro = { biCurso:'curso', biComparar:'comparar', biCiudad:'ciudad', biVend:'vendedora' }[t.id];
+  if(filtro){ bi.filtros[filtro] = t.value; biCargarKpis(); }
+});
+document.getElementById('biPregunta').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); biPreguntar(e.target.value); }
+});
+document.getElementById('closeModalBIDetalle').addEventListener('click', ()=>document.getElementById('modalBIDetalle').classList.remove('open'));
+document.getElementById('biDetCSV').addEventListener('click', ()=>{
+  exportarCSV(`glamy-bi-detalle-${normTexto(biDetNombre).replace(/\s+/g, '-')}.csv`, ['Nombre', 'Teléfono', 'Ciudad', 'Fecha', 'Estado', 'Monto', 'Vendedora'],
+    biDetFilas.map(x=>[tituloCaso(x.nombre || ''), x.telefono || '', x.ciudad || '', x.fecha || '', x.estado || '', x.monto ?? '', x.vendedora || '']));
+});
+
 /** Constructor de reportes: chips en vez de menús — cada clic dispara la
  *  gráfica al instante, y al cambiar la dimensión se sugiere sola el tipo
  *  de gráfica que mejor le queda (dona para estatus, línea para semana,

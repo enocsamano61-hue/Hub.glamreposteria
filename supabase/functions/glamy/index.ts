@@ -93,11 +93,50 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
   },
 ];
 
+/* Glamy BI (Reportes → Glamy BI, solo administradores): consulta métricas con definición fija
+   (función bi_consulta de la base) y el Hub dibuja la gráfica con lo que regresa. */
+const BI_METRICAS = ["inscritas", "con_pago", "liquidadas", "cobrado", "por_cobrar", "ticket_promedio", "vip", "asistencia", "no_llegaron", "bajas",
+  "pagos", "pagos_por_confirmar", "num_pagos", "leads", "conversion", "leads_abiertos", "promesas_vencidas", "contactos", "cambio_fecha",
+  "cambio_aceptaron", "regalos_academia"];
+const BI_POR = ["total", "ciudad", "curso", "vendedora", "estado", "paquete", "mes", "semana", "dia", "semana_gira"];
+const BI_GRAFICAS = ["kpi", "barras", "barras_horizontales", "linea", "dona", "tabla"];
+const HERRAMIENTAS_BI: Anthropic.Tool[] = [
+  {
+    name: "bi_consulta",
+    description: "Glamy BI: consulta UNA métrica del Hub con definición fija y la regresa lista para graficar (el Hub dibuja la gráfica). " +
+      "Métricas: inscritas, con_pago, liquidadas, cobrado (lo pagado por inscripción, por fecha del curso), por_cobrar, ticket_promedio, vip, asistencia (%), " +
+      "no_llegaron, bajas, pagos (por fecha de pago), pagos_por_confirmar, num_pagos, leads, conversion (% de leads inscritos), leads_abiertos, " +
+      "promesas_vencidas, contactos (historial de contacto), cambio_fecha (por estado), cambio_aceptaron, regalos_academia. " +
+      "Sin curso ni fechas usa la gira activa. Llámala hasta 3 veces por respuesta si necesitas varias vistas.",
+    input_schema: {
+      type: "object",
+      properties: {
+        metrica: { type: "string", enum: BI_METRICAS },
+        por: { type: "string", enum: BI_POR, description: "Cómo agrupar. semana_gira = semana 1, 2, 3… de la gira (sirve para comparar giras)." },
+        curso: { type: "string", description: "'activo' (la gira actual, por defecto), 'todas', o el nombre de una gira/curso." },
+        comparar: { type: "string", description: "Nombre de otra gira para comparar (opcional). Para tendencias usa por=semana_gira." },
+        ciudad: { type: "string", description: "Nombre de una ciudad (opcional)." },
+        vendedora: { type: "string", description: "Nombre de una vendedora (opcional)." },
+        desde: { type: "string", description: "AAAA-MM-DD (opcional)." },
+        hasta: { type: "string", description: "AAAA-MM-DD (opcional)." },
+        grafica: { type: "string", enum: BI_GRAFICAS, description: "kpi = un número; barras_horizontales para rankings; linea para tendencias; dona solo para partes de un todo (máx. 6)." },
+        titulo: { type: "string", description: "Título corto de la gráfica." },
+      },
+      required: ["metrica", "grafica", "titulo"],
+    },
+  },
+  {
+    name: "bi_giras",
+    description: "Lista las giras (cursos) con sus fechas e inscritas, para saber cuál es la activa y cuál fue la pasada.",
+    input_schema: { type: "object", properties: {} },
+  },
+];
+
 type Usuario = { id: string; nombre: string; rol: string; es_admin: boolean; recibe_pedidos: boolean };
 // Lo único que se usa del cliente con la sesión del usuario: llamar funciones glamy_*.
 type ClienteRpc = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }> };
 
-async function ejecutar(nombre: string, entrada: Record<string, unknown>, sb: ClienteRpc, usuario: Usuario, seccion: string) {
+async function ejecutar(nombre: string, entrada: Record<string, unknown>, sb: ClienteRpc, usuario: Usuario, seccion: string, bi: unknown[]) {
   const rpc = async (fn: string, args: Record<string, unknown>) => {
     const { data, error } = await sb.rpc(fn, args);
     if (error) throw new Error(error.message);
@@ -118,6 +157,22 @@ async function ejecutar(nombre: string, entrada: Record<string, unknown>, sb: Cl
       return rpc("glamy_proximos_cursos", { p_limite: Number(entrada.limite) || 8 });
     case "mis_tareas":
       return rpc("glamy_mis_tareas", {});
+    case "bi_giras":
+      if (!usuario.es_admin) throw new Error("Glamy BI es solo para administradores.");
+      return rpc("bi_giras", {});
+    case "bi_consulta": {
+      if (!usuario.es_admin) throw new Error("Glamy BI es solo para administradores.");
+      // Solo las llaves conocidas, recortadas; la base valida y resuelve nombres.
+      const spec: Record<string, string> = {};
+      for (const k of ["metrica", "por", "curso", "comparar", "ciudad", "vendedora", "desde", "hasta", "grafica", "titulo"]) {
+        const v = corto(entrada[k], k === "titulo" ? 80 : 60);
+        if (v) spec[k] = v;
+      }
+      if (!BI_GRAFICAS.includes(spec.grafica)) spec.grafica = "barras";
+      const datos = await rpc("bi_consulta", { p_spec: spec });
+      if (bi.length < 4) bi.push({ spec, datos });
+      return datos;
+    }
     case "mis_tickets": {
       const { data, error } = await servicio.from("hub_pedidos").select("numero, titulo, estado, nota_admin, creado_en")
         .eq("creado_por", usuario.id).order("creado_en", { ascending: false }).limit(15);
@@ -161,7 +216,8 @@ async function faq() {
 /* Conversación con el modelo: vuelve a llamarlo mientras pida herramientas (máx. MAX_VUELTAS). */
 type Uso = { entrada: number; salida: number; cacheLectura: number; cacheEscritura: number };
 async function conversar(historial: Anthropic.MessageParam[], sistema: Anthropic.TextBlockParam[],
-                         usarHerramienta: (nombre: string, entrada: Record<string, unknown>) => Promise<unknown>) {
+                         usarHerramienta: (nombre: string, entrada: Record<string, unknown>) => Promise<unknown>,
+                         herramientas: Anthropic.Tool[] = HERRAMIENTAS, esfuerzo: "low" | "medium" = "low") {
   const uso: Uso = { entrada: 0, salida: 0, cacheLectura: 0, cacheEscritura: 0 };
   const usadas: string[] = [];
   let texto = "", error: string | null = null;
@@ -169,8 +225,8 @@ async function conversar(historial: Anthropic.MessageParam[], sistema: Anthropic
   try {
     for (let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++) {
       const r = await anthropic.messages.create({
-        model: MODELO, max_tokens: 2048, output_config: { effort: "low" },
-        system: sistema, tools: HERRAMIENTAS, messages: mensajes,
+        model: MODELO, max_tokens: 2048, output_config: { effort: esfuerzo },
+        system: sistema, tools: herramientas, messages: mensajes,
       });
       uso.entrada += r.usage.input_tokens; uso.salida += r.usage.output_tokens;
       uso.cacheLectura += r.usage.cache_read_input_tokens ?? 0; uso.cacheEscritura += r.usage.cache_creation_input_tokens ?? 0;
@@ -209,6 +265,20 @@ async function conversar(historial: Anthropic.MessageParam[], sistema: Anthropic
 }
 const costoUSD = (u: Uso) => (u.entrada * PRECIO.entrada + u.salida * PRECIO.salida + u.cacheLectura * PRECIO.cacheLectura
   + u.cacheEscritura * PRECIO.cacheEscritura) / 1e6;
+
+const INSTRUCCIONES_BI = `
+
+# Modo Glamy BI (te escribe desde Reportes → Glamy BI)
+Eres su analista de datos, como un Power BI que platica.
+1. Para cualquier pregunta de números usa bi_consulta (y bi_giras si necesitas saber cuál fue la gira pasada). Elige la métrica, cómo agrupar y la gráfica que mejor respondan: tendencias → linea por semana, mes o semana_gira (con comparar si compara giras); rankings → barras_horizontales por ciudad o vendedora; partes de un todo → dona (máx. 6 partes); un solo número → kpi.
+2. El Hub dibuja la gráfica con lo que regresa la herramienta: NO repitas la tabla ni todos los números.
+3. Responde así, corto:
+**Lectura**
+- 2 o 3 renglones con lo importante: cifras concretas, contra qué se compara, quién destaca y quién se queda atrás.
+**Recomendaciones**
+- 1 a 3 acciones concretas que salgan SOLO de esos datos (a quién llamar primero, qué ciudad reforzar, qué revisar). Si los datos no alcanzan para recomendar, dilo.
+4. Si comparas con periodos viejos, menciona el límite del dato (campo desde_confiable). No inventes cifras.
+5. Si piden algo que el catálogo no tiene, dilo y ofrece levantar un ticket.`;
 
 async function huella(texto: string) {
   const b = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto)));
@@ -275,13 +345,17 @@ ${usuario.nombre} (rol: ${usuario.rol}${usuario.es_admin ? ", administrador" : "
 Secciones que puede abrir: ${(secciones ?? []).join(", ")}${usuario.recibe_pedidos ? ", glamy (el uso de Glamy y los tickets; los recibe él)" : ""}.
 Solo pon botones ⟦ir:…⟧ de secciones que puede abrir.`;
 
+  // Glamy BI: solo administradores y solo desde Reportes → Glamy BI (ahí se dibujan las gráficas).
+  const modoBI = cuerpo.modo === "bi" && usuario.es_admin;
   const sistema: Anthropic.TextBlockParam[] = [
     { type: "text", text: MANUAL + await faq(), cache_control: { type: "ephemeral" } },
-    { type: "text", text: contexto },
+    { type: "text", text: contexto + (modoBI ? INSTRUCCIONES_BI : "") },
   ];
 
+  const bi: unknown[] = [];
   const { texto, uso, usadas, error } = await conversar(historial, sistema,
-    (nombre, entrada) => ejecutar(nombre, entrada, sbUsuario as unknown as ClienteRpc, usuario, seccion));
+    (nombre, entrada) => ejecutar(nombre, entrada, sbUsuario as unknown as ClienteRpc, usuario, seccion, bi),
+    modoBI ? [...HERRAMIENTAS, ...HERRAMIENTAS_BI] : HERRAMIENTAS, modoBI ? "medium" : "low");
 
   const costo = costoUSD(uso);
   await servicio.from("glamy_uso").insert({
@@ -289,5 +363,5 @@ Solo pon botones ⟦ir:…⟧ de secciones que puede abrir.`;
     tokens_cache_lectura: uso.cacheLectura, tokens_cache_escritura: uso.cacheEscritura,
     costo_usd: Number(costo.toFixed(6)), herramientas: usadas, error,
   });
-  return responder({ texto, herramientas: usadas });
+  return responder({ texto, herramientas: usadas, ...(modoBI ? { bi } : {}) });
 });
