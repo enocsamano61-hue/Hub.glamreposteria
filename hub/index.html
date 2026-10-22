@@ -347,7 +347,12 @@
   .bi-metas-form label{ display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:700; color:var(--ink-soft); }
   .bi-matriz-wrap{ overflow:auto; max-height:460px; margin-top:6px; border:1px solid var(--border); border-radius:10px; }
   .bi-matriz{ width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
-  .bi-matriz th{ position:sticky; top:0; background:#FBEFF3; color:var(--wine-dark); font-weight:700; padding:7px 8px; text-align:right; cursor:pointer; white-space:nowrap; border-bottom:1px solid var(--border); }
+  .bi-matriz th{ position:sticky; top:0; background:#FBEFF3; color:var(--wine-dark); font-weight:700; padding:7px 8px; text-align:right; cursor:pointer; border-bottom:1px solid var(--border);
+    white-space:normal; min-width:64px; max-width:130px; line-height:1.25; vertical-align:bottom; }
+  /* La tabla resumen ocupa todo el ancho de la respuesta */
+  .bi-graf-matriz{ grid-column:1 / -1; }
+  .bi-matriz td.fecha{ text-align:left; color:var(--ink-soft); cursor:default; }
+  .bi-prox{ display:inline-block; margin-left:6px; padding:1px 8px; border-radius:10px; background:rgba(var(--wine-rgb),.1); color:var(--wine); font-size:11px; font-weight:700; }
   .bi-matriz th:first-child, .bi-matriz td:first-child{ text-align:left; position:sticky; left:0; background:#fff; z-index:1; }
   .bi-matriz th:first-child{ background:#FBEFF3; z-index:2; }
   .bi-matriz td{ padding:6px 8px; text-align:right; border-bottom:1px solid #F6E4EA; font-variant-numeric:tabular-nums; cursor:pointer; white-space:nowrap; }
@@ -1888,7 +1893,7 @@
             <label>Vendedora<select class="select" id="biVend"><option value="">Todas</option></select></label>
             <label>Periodo<select class="select" id="biPeriodo">
               <option value="">Toda la gira</option><option value="semana">Últimos 7 días</option><option value="mes">Este mes</option>
-              <option value="mes_ant">Mes pasado</option><option value="rango">De… a…</option></select></label>
+              <option value="mes_ant">Mes pasado</option><option value="proximos">Cursos que faltan</option><option value="rango">De… a…</option></select></label>
             <label class="bi-rango" id="biRango" style="display:none;">Fechas<span><input type="date" class="select" id="biDesde"><input type="date" class="select" id="biHasta"></span></label>
             <button type="button" class="btn-outline small bi-metas-btn" id="biMetasBtn">🎯 Metas</button>
           </div>
@@ -10755,7 +10760,7 @@ const BI_KPIS = [
   { m:'cobrado', l:'Cobrado' }, { m:'con_pago', l:'Inscritas con pago' }, { m:'por_cobrar', l:'Por cobrar', alReves:true },
   { m:'conversion', l:'Conversión lead → inscrita' }, { m:'asistencia', l:'Asistencia' },
 ];
-const BI_SUGERENCIAS = ['¿Cómo va el cobrado de esta gira contra la pasada, por semana?', 'Ranking de vendedoras por conversión',
+const BI_SUGERENCIAS = ['Ciudades que faltan: con anticipo, prometieron pagar y no van', '¿Cómo va el cobrado de esta gira contra la pasada, por semana?', 'Ranking de vendedoras por conversión',
   '¿Qué ciudades tienen más promesas vencidas?', 'Pagos recibidos por mes este año', 'Asistencia por ciudad', '¿Cómo va el cambio de fecha?',
   'Inscritas por gira desde 2020'];
 const bi = { giras:null, filtros:{ curso:'', comparar:'', ciudad:'', vendedora:'', periodo:'', desde:'', hasta:'' }, mensajes:[], respuestas:[], enviando:false, graficas:{}, n:0 };
@@ -10790,6 +10795,8 @@ function biSpecFiltros(){
   if(f.comparar) spec.comparar = f.comparar;
   if(f.ciudad) spec.ciudad = f.ciudad;
   if(f.vendedora) spec.vendedora = f.vendedora;
+  // "Cursos que faltan": solo lo de cursos que todavía no pasan (por la fecha del curso, también los leads)
+  if(f.periodo === 'proximos') spec.proximos = true;
   const r = biRangoPeriodo();
   if(r.desde) spec.desde = r.desde;
   if(r.hasta) spec.hasta = r.hasta;
@@ -10886,10 +10893,15 @@ function biSeries(r){
 function biHtmlMatriz(id, item){
   const { spec, datos:r } = item;
   const cols = r.columnas || [];
-  const orden = item.orden || { col: cols[0]?.metrica, asc:false };
+  const prox = !!(r.proximos || spec.proximos);
+  const conFecha = (r.filas || []).some(f=>f.fecha);
+  // Con "cursos que faltan" se ordena por la fecha del curso; si no, por la primera columna
+  const orden = item.orden || (prox && conFecha ? { col:'__fecha', asc:true } : { col: cols[0]?.metrica, asc:false });
+  item.ordenActual = orden;   // para que el primer toque en un encabezado invierta el orden que se ve
   const tiempo = ['mes', 'semana', 'dia', 'semana_gira'].includes(r.por);
   const filas = [...(r.filas || [])].sort((a, b)=>{
     if(tiempo && !item.orden) return String(a.clave).localeCompare(String(b.clave));
+    if(orden.col === '__fecha'){ const x = String(a.fecha || '9999'), y = String(b.fecha || '9999'); return orden.asc ? x.localeCompare(y) : y.localeCompare(x); }
     const va = Number(a.valores?.[orden.col] ?? -Infinity), vb = Number(b.valores?.[orden.col] ?? -Infinity);
     return orden.asc ? va - vb : vb - va;
   });
@@ -10905,14 +10917,15 @@ function biHtmlMatriz(id, item){
   const sub = [r.curso ? tituloCaso(r.curso.nombre) : 'Todas las giras', spec.ciudad, spec.vendedora,
     spec.desde || spec.hasta ? [spec.desde, spec.hasta].filter(Boolean).map(fechaCorta).join(' – ') : ''].filter(Boolean).join(' · ');
   return `<div class="bi-graf bi-graf-matriz" data-bi-graf="${escapeAttr(id)}">
-    <div class="bi-graf-cab"><b>${escHtml(spec.titulo || 'Resumen')}</b><span class="sub">${escHtml(sub)} · ${filas.length} ${escHtml((BI_POR_ETIQUETA[r.por] || '').toLowerCase())}${filas.length === 1 ? '' : 's'}</span></div>
+    <div class="bi-graf-cab"><b>${escHtml(spec.titulo || 'Resumen')}</b><span class="sub">${escHtml(sub)} · ${filas.length} ${escHtml((BI_POR_ETIQUETA[r.por] || '').toLowerCase())}${filas.length === 1 ? '' : 's'}${prox ? '<span class="bi-prox">Solo cursos que faltan</span>' : ''}</span></div>
     <div class="bi-matriz-wrap"><table class="bi-matriz"><thead><tr><th>${escHtml(BI_POR_ETIQUETA[r.por] || '')}</th>
+      ${conFecha ? `<th class="${orden.col === '__fecha' ? 'orden' + (orden.asc ? ' asc' : '') : ''}" style="text-align:left" data-bi-ord="${escapeAttr(id)}" data-bi-col="__fecha">Fecha del curso</th>` : ''}
       ${cols.map(c=>`<th class="${orden.col === c.metrica && item.orden ? 'orden' + (orden.asc ? ' asc' : '') : ''}" data-bi-ord="${escapeAttr(id)}" data-bi-col="${escapeAttr(c.metrica)}" title="${escapeAttr(c.definicion || '')}">${escHtml(c.nombre)}</th>`).join('')}</tr></thead>
-      <tbody>${filas.map(f=>`<tr><td>${escHtml(biEtiqueta(f, r.por))}</td>${cols.map(c=>{
+      <tbody>${filas.map(f=>`<tr><td>${escHtml(biEtiqueta(f, r.por))}</td>${conFecha ? `<td class="fecha">${f.fecha ? fechaCorta(f.fecha) : '—'}</td>` : ''}${cols.map(c=>{
           const v = f.valores?.[c.metrica], meta = r.metas?.[c.metrica]?.[f.clave];
           return `<td style="${color(c, v)}" data-bi-det="${escapeAttr(id)}" data-bi-clave="${escapeAttr(f.clave ?? '')}" data-bi-met="${escapeAttr(c.metrica)}" data-bi-eti="${escapeAttr(biEtiqueta(f, r.por))}">${biFmt(v ?? 0, c.formato)}${meta ? `<small>${Math.round(Number(v || 0) / meta * 100)}% de ${biFmt(meta, c.formato)}</small>` : ''}</td>`;
         }).join('')}</tr>`).join('')}
-        <tr class="tot"><td>Total</td>${cols.map(c=>`<td data-bi-det="${escapeAttr(id)}" data-bi-clave="total" data-bi-met="${escapeAttr(c.metrica)}" data-bi-eti="Total">${biFmt(r.totales?.[c.metrica], c.formato)}</td>`).join('')}</tr></tbody></table></div>
+        <tr class="tot"><td>Total</td>${conFecha ? '<td class="fecha"></td>' : ''}${cols.map(c=>`<td data-bi-det="${escapeAttr(id)}" data-bi-clave="total" data-bi-met="${escapeAttr(c.metrica)}" data-bi-eti="Total">${biFmt(r.totales?.[c.metrica], c.formato)}</td>`).join('')}</tr></tbody></table></div>
     <div class="bi-def">Toca un encabezado para ordenar y una celda para ver quiénes son. ${escHtml(cols.map(c=>`${c.nombre}: ${c.definicion}`).join(' · '))}</div>
     <div class="bi-acc">
       ${item.guardado ? '' : `<button type="button" class="p" data-bi-guardar="${escapeAttr(id)}">📌 Guardar en mi tablero</button>`}
@@ -11079,9 +11092,11 @@ function biCSV(id){
   const item = bi.graficas[id]; if(!item) return;
   const r = item.datos;
   if(r.tipo === 'matriz'){
-    const cols = r.columnas || [];
-    return exportarCSV(`glamy-bi-${normTexto(item.spec.titulo || 'resumen').replace(/\s+/g, '-')}.csv`, [BI_POR_ETIQUETA[r.por] || '', ...cols.map(c=>c.nombre)],
-      [...(r.filas || []).map(f=>[biEtiqueta(f, r.por), ...cols.map(c=>f.valores?.[c.metrica] ?? '')]), ['Total', ...cols.map(c=>r.totales?.[c.metrica] ?? '')]]);
+    const cols = r.columnas || [], conFecha = (r.filas || []).some(f=>f.fecha);
+    return exportarCSV(`glamy-bi-${normTexto(item.spec.titulo || 'resumen').replace(/\s+/g, '-')}.csv`,
+      [BI_POR_ETIQUETA[r.por] || '', ...(conFecha ? ['Fecha del curso'] : []), ...cols.map(c=>c.nombre)],
+      [...(r.filas || []).map(f=>[biEtiqueta(f, r.por), ...(conFecha ? [f.fecha || ''] : []), ...cols.map(c=>f.valores?.[c.metrica] ?? 0)]),
+       ['Total', ...(conFecha ? [''] : []), ...cols.map(c=>r.totales?.[c.metrica] ?? '')]]);
   }
   const s = biSeries(r);
   exportarCSV(`glamy-bi-${normTexto(item.spec.titulo || r.nombre).replace(/\s+/g, '-')}.csv`,
@@ -11120,7 +11135,9 @@ document.getElementById('reportes-glamybi').addEventListener('click', e=>{
   if(th){
     const item = bi.graficas[th.dataset.biOrd]; if(!item) return;
     const col = th.dataset.biCol;
-    item.orden = { col, asc: item.orden?.col === col ? !item.orden.asc : false };
+    // La fecha empieza de la más próxima a la más lejana; los números, de mayor a menor
+    const actual = item.orden || item.ordenActual;
+    item.orden = { col, asc: actual?.col === col ? !actual.asc : col === '__fecha' };
     th.closest('[data-bi-graf]').outerHTML = biHtmlMatriz(th.dataset.biOrd, item);
     return;
   }
@@ -14813,7 +14830,8 @@ function glamyBotones(texto){
   const botones = [], vistos = new Set();
   const permitidas = new Set(seccionesPermitidas());
   // ⟦pedidos⟧ es como se llamaba ⟦tickets⟧ antes (pláticas viejas de la pestaña).
-  const limpio = String(texto||'').replace(/⟦(ir|ficha|lead):([^⟧\s]{1,60})⟧|⟦(?:tickets|pedidos)⟧/g, (m, tipo, id)=>{
+  // Tolera que Glamy cierre mal la marca (⟦ir:board⟦ o ⟦ir:board]): igual se vuelve botón.
+  const limpio = String(texto||'').replace(/⟦(ir|ficha|lead):([^⟧⟦\]\s]{1,60})[⟧⟦\]]|⟦(?:tickets|pedidos)[⟧⟦\]]/g, (m, tipo, id)=>{
     tipo = tipo || 'tickets';
     const llave = tipo + ':' + (id||'');
     if(vistos.has(llave) || botones.length >= 6) return '';

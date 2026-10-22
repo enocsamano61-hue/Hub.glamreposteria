@@ -85,7 +85,11 @@ const { abrirHub } = require('./arnes');
         'guarda la respuesta de Glamy BI (' + JSON.stringify(b) + ')');
   check((await p.textContent('#biRespuestas')).includes('se guardó para mejorar'), 'da las gracias');
 
-  h.paso('6. Celular');
+  h.paso('6. Una marca mal cerrada (⟦ir:calendario⟦) igual se vuelve botón');
+  check(await p.evaluate(() => { const r = glamyBotones('Ve aquí\n⟦ir:calendario⟦\n⟦ficha:00000000-0000-4000-8000-000000000010]');
+    return r.botones.length === 2 && !r.limpio.includes('⟦'); }), 'se vuelve botón y no queda la marca en el texto');
+
+  h.paso('7. Celular');
   await p.setViewportSize({ width:390, height:800 });
   await p.evaluate(() => { abrirGlamy(); glamy.mensajes = [{ rol:'user', texto:'¿Dónde cobro?' }, { rol:'assistant', texto:'En **Cobranza**.\n⟦ir:cobranza⟧', mal:'abierto' }]; pintarGlamy(); });
   await p.waitForTimeout(200);
