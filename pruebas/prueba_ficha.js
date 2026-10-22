@@ -61,23 +61,22 @@ const INSC = {
   await h.fallar(null);
   await cerrar();
 
-  h.paso('5. Forma de pago con un toque');
+  h.paso('5. Forma de pago con un toque y el banco aparte');
   await abrir();
   await p.click('#cobroFormas [data-forma="Efectivo"]');
-  check(await p.inputValue('#modalPagoBanco') === 'Efectivo', 'banco = Efectivo');
+  check(await p.inputValue('#modalPagoBanco') === '', 'la forma ya no llena la casilla del banco');
   check(await p.getAttribute('#cobroFormas [data-forma="Efectivo"]', 'class') === 'activo', 'chip activo');
   await p.click('#cobroFormas [data-forma="Efectivo"]');
-  check(await p.inputValue('#modalPagoBanco') === '', 'segundo toque la quita');
-  await p.fill('#modalPagoBanco', 'transferencia');
-  check(await p.getAttribute('#cobroFormas [data-forma="Transferencia"]', 'class') === 'activo', 'escrito a mano también marca el chip');
+  check(await p.getAttribute('#cobroFormas [data-forma="Efectivo"]', 'class') !== 'activo', 'segundo toque la quita');
   await p.click('#cobroFormas [data-forma="Tarjeta"]');
-  check(await p.inputValue('#modalPagoBanco') === 'Tarjeta', 'cambia a Tarjeta');
+  await p.fill('#modalPagoBanco', 'BanCoppel');
+  check(await p.getAttribute('#cobroFormas [data-forma="Tarjeta"]', 'class') === 'activo', 'escribir el banco no quita la forma');
 
   h.paso('6. Liquida con un clic (monto vacío)');
   await p.click('#guardarInscPago');
   await p.waitForTimeout(200);
   const pg = await h.ops('pagos', 'insert');
-  check(pg.length === 1 && pg[0].monto === 500 && pg[0].banco === 'Tarjeta' && pg[0].forma_pago === 'Tarjeta' && pg[0].confirmado_por === 'u1', 'pago de $500 en tarjeta: ' + JSON.stringify(pg));
+  check(pg.length === 1 && pg[0].monto === 500 && pg[0].banco === 'BanCoppel' && pg[0].forma_pago === 'Tarjeta' && pg[0].confirmado_por === 'u1', 'pago de $500 en tarjeta, BanCoppel: ' + JSON.stringify(pg));
   ups = await updates();
   check(ups.some(u => u.anticipo === 1900 && u.restante === 0 && u.liquidado === true && u.estatus_id === 12), 'queda liquidada y en Pagó el curso');
   check(!(await p.evaluate(() => document.getElementById('modalInscripcion').classList.contains('open'))), 'la ficha se cierra');
