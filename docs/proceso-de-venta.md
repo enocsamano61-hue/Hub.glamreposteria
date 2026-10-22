@@ -8,7 +8,7 @@ Acordado con Enoc el 21 oct 2026. Glamy lo explica (manual v8, sección "Proceso
 - El curso tiene que existir en el **Calendario** (ciudad y fecha). Sin eso no se le pueden ligar leads.
 
 ## Paso 1. Alta del lead (vendedora)
-1. Buscarla primero en **Historial cliente** por teléfono, para no duplicarla.
+1. En **"+ Nuevo lead"** escribir primero el **teléfono**: si ya está en el Hub (inscrita, lead de alguien o alumna de antes) aparece arriba con botón para abrir su ficha o su lead. Si ya está inscrita en un curso que no ha pasado, al guardar avisa y deja decidir. El buscador del tablero también encuentra a quien está fuera del tablero (otras ciudades o ya inscritas).
 2. **Alumnos y Leads → "+ Nuevo lead"** y llenar:
    - **Nombre** completo.
    - **Teléfono** a 10 dígitos (revisar la lada sugerida).
