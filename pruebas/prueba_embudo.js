@@ -47,7 +47,7 @@ const FILAS = [
   const cabs = await p.$$eval('.emb-curso .emb-cab b', x => x.map(y => y.textContent));
   check(cabs.length === 2 && cabs[0].startsWith('Ciudad Uno') && cabs[1].startsWith('Ciudad Dos'), 'una tarjeta por curso, en orden de fecha');
   const chips = await p.$$eval('.emb-curso:first-child .emb-chip', x => x.map(y => y.textContent.trim()));
-  check(chips.join('|') === 'Liquidadas 1|Con anticipo 3|Sin confirmar 2|Promesa vigente 2|Promesa vencida 1|Sin respuesta 1|No van 1', 'los 6 grupos y "no van" aparte (' + chips.join('|') + ')');
+  check(chips.join('|') === 'Liquidadas 1|Con anticipo 3|Pago por confirmar 2|Promesa vigente 2|Promesa vencida 1|Sin respuesta 1|No van 1', 'los 6 grupos y "no van" aparte (' + chips.join('|') + ')');
   check((await p.textContent('.emb-curso:first-child .emb-cab')).includes('10 en total') && (await p.textContent('.emb-curso:first-child .emb-cab')).includes('en 5 días'), 'el total no cuenta a las que no van');
   check(await p.$$eval('.emb-curso:first-child .emb-bar i', x => x.length) === 6, 'barra de colores con cada grupo');
 
@@ -82,13 +82,13 @@ const FILAS = [
   h.paso('5. Filtro por vendedora');
   await p.selectOption('#embVend', 'u1');
   const chipsU1 = await p.$$eval('.emb-curso .emb-chip', x => x.map(y => y.textContent.trim()));
-  check(await p.$$eval('.emb-curso', x => x.length) === 1 && chipsU1.includes('Sin confirmar 1') && chipsU1.includes('Promesa vigente 1'), 'solo lo de esa vendedora');
+  check(await p.$$eval('.emb-curso', x => x.length) === 1 && chipsU1.includes('Pago por confirmar 1') && chipsU1.includes('Promesa vigente 1'), 'solo lo de esa vendedora');
   await p.selectOption('#embVend', '');
 
   h.paso('6. Copiar reporte');
   const prev = () => p.textContent('#embPrev');
   let t = await prev();
-  check(t.startsWith('*Ciudad Uno') && t.includes('✅ Inscritas: 4 (1 liquidadas, 3 con anticipo)') && t.includes('🏦 Sin confirmar: 2') && t.includes('Total: 10 (1 ya dijeron que no)'), 'reporte de un curso con números');
+  check(t.startsWith('*Ciudad Uno') && t.includes('✅ Inscritas: 4 (1 liquidadas, 3 con anticipo)') && t.includes('🏦 Pagos de leads sin confirmar: 2') && t.includes('Total: 10 (1 ya dijeron que no)'), 'reporte de un curso con números');
   check(t.includes('_Pendientes_') && t.includes('⚠️ Alumna Ejemplo') === false && t.includes('Rara · Vendedora Prueba · venció'), 'pendientes con vendedora y fecha vencida');
   check(!t.includes('2299'), 'sin teléfonos si no se piden');
   await p.check('[data-emb-inc="tel"]');
@@ -119,7 +119,7 @@ const FILAS = [
   const pedido = await p.evaluate(() => window.__ops.filter(o => o.tabla === 'rpc:embudo_cursos' && o.tipo === 'rpc').map(o => o.datos).pop());
   check(pedido.p_evento === 'e1', 'pide solo ese curso');
   await p.click('[data-emb-cal-abrir="e1|sin_confirmar"]');
-  check((await p.textContent('[data-emb-cal="e1"] .emb-lista')).includes('Sin confirmar · 2'), 'tocar un grupo muestra la lista');
+  check((await p.textContent('[data-emb-cal="e1"] .emb-lista')).includes('Pago por confirmar · 2'), 'tocar un grupo muestra la lista');
   await h.captura('embudo-calendario.png');
 
   h.paso('8. Celular');

@@ -59,7 +59,7 @@ const CASOS = [
 /* Glamy BI (modo bi): se revisa con qué herramientas y datos contestó (lenguaje sencillo → métricas). */
 // Datos de ejemplo con números para cualquier columna que pida (si vinieran vacíos, Glamy con razón vuelve a preguntar).
 const VALORES_EJ = Object.fromEntries(['inscritas', 'con_pago', 'liquidadas', 'inscritas_deben', 'por_cobrar', 'bajas', 'no_van', 'promesa_vigente', 'promesas_vencidas',
-  'leads_promesa', 'leads_por_confirmar', 'pagos_por_confirmar', 'cobrado'].map((m, i) => [m, 3 + i]));
+  'leads_promesa', 'leads_por_confirmar', 'pagos_por_confirmar', 'cobrado', 'inscritas_sin_pago', 'inscritas_por_confirmar'].map((m, i) => [m, 3 + i]));
 const MATRIZ_EJ = { tipo:'matriz', por:'ciudad', proximos:true, columnas:Object.keys(VALORES_EJ).map(m => ({ metrica:m, nombre:m, formato:'num' })),
   filas:[{ clave:'c1', etiqueta:'Ciudad Uno', fecha:mas(90), valores:VALORES_EJ }, { clave:'c2', etiqueta:'Ciudad Dos', fecha:mas(95), valores:VALORES_EJ }], totales:VALORES_EJ };
 const CONSULTA_EJ = { metrica:'x', nombre:'Ejemplo', formato:'num', por:'ciudad', filas:[{ clave:'c1', etiqueta:'Ciudad Uno', valor:5 }], total:5 };
@@ -82,6 +82,8 @@ const CASOS_BI = [
     revisar: r => metricasDe(r).some(m => m === 'leads_por_confirmar' || m === 'pagos_por_confirmar') },
   { nombre:'BI: "ya pagaron todo y las que deben", una tabla', pregunta:'por ciudad, las que ya pagaron todo y las que todavía deben, en una tabla',
     revisar: r => tablas(r).length === 1 && metricasDe(r).includes('liquidadas') && metricasDe(r).some(m => m === 'inscritas_deben' || m === 'por_cobrar') },
+  { nombre:'BI: "inscritas que no han dado nada" (misma regla que el Embudo)', pregunta:'¿cuántas inscritas de los cursos que vienen no han dado nada de anticipo?',
+    revisar: r => metricasDe(r).includes('inscritas_sin_pago') && prox(r) },
 ];
 
 (async () => {
