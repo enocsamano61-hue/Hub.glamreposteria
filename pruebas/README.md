@@ -27,6 +27,7 @@ NODE_PATH=$(npm root -g) node pruebas/prueba_ficha.js      # una sola
 | `prueba_cursos_historial.js` | Cursos (curso → ciudad → alumnas) e Historial cliente (buscar, juntar por mismo teléfono y nombre parecido, separar). |
 | `prueba_ficha.js` | Ficha de la inscrita: cobro primero, guardado automático, modo Cobranza. |
 | `prueba_ficha_pagos.js` | 💳 Ficha: forma de pago y banco por separado (sugerencias de bancos; si escriben la forma en el banco, cuenta como forma), lista "Pagos registrados" y "✏️ Corregir" fecha/forma/banco (sin tocar monto ni saldo, sin fecha futura, actividad con antes→después), sin permiso no se corrige, celular. |
+| `prueba_ficha_unica.js` | 🪪 Ficha única (fase 1): el lead y la inscrita con el mismo encabezado (avatar, Datos de contacto, WhatsApp, Otro curso, VIP / lista negra) y pestañas Lead · Inscripción · Contactos; cambiar de pestaña abre la otra ficha de la misma persona; Contactos con canal y quién (escapado); sin lead abierto la pestaña se deshabilita; en "solo cobro" no salen; celular. |
 | `prueba_vip.js` | ⭐ VIP: paquete en el lead (nuevo y ficha), tablero, VIP primero en Recepción, Cambiar a VIP. |
 | `prueba_por_confirmar.js` | 🏦 Pagos por confirmar: marcar al cobrar o después, confirmar / no llegó en Recepción y ficha, Cobranza y Calendario. |
 | `prueba_precios.js` | Sección Precios. |
