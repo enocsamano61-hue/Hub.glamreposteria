@@ -1403,6 +1403,7 @@
   .cob-tipo{ display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; margin-left:6px; vertical-align:middle; }
   .cob-tipo.lead{ background:rgba(169,74,107,.12); color:#A94A6B; }
   .cob-tipo.insc{ background:rgba(63,131,84,.12); color:var(--success); }
+  .cob-meta.cob-pagado{ color:var(--success); font-weight:600; }
   .cob-meta{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
   .cob-nota{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cob-lado{ text-align:right; flex-shrink:0; }
@@ -5735,8 +5736,10 @@ let cobDia = null;            // 'YYYY-MM-DD'
 let cobQuien = 'todos';       // todos | leads | inscritas
 let cobDatos = { leads:[], inscritas:[] };
 const cobAbiertos = new Set(['confirmar','vencidos','hoy','semana']);
-const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','despues','sinfecha'];
-const COB_ICONO = { confirmar:'🟣', vencidos:'🔴', hoy:'🟠', semana:'🟡', despues:'⚪', sinfecha:'⚫' };
+// "curso": inscritas con anticipo sin fecha de pago, que se cobran el día de su curso (antes caían en
+// "Más adelante" con un círculo blanco y parecía que no tenían estatus).
+const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','curso','despues','sinfecha'];
+const COB_ICONO = { confirmar:'🟣', vencidos:'🔴', hoy:'🟠', semana:'🟡', curso:'💵', despues:'🔵', sinfecha:'⚫' };
 /* "Hoy" con la hora de quien usa el Hub (México). new Date().toISOString() da
    la fecha de Londres (UTC): desde las 5–6 pm ya es "mañana", los días del
    Calendario desaparecían en pleno curso y los abonos salían con fecha de mañana. */
@@ -5751,7 +5754,8 @@ function etiquetaGrupoCob(id){
     vencidos:  ['Vencidos', esHoy ? 'ya pasó su fecha' : `antes del ${dia}`],
     hoy:       [esHoy ? 'Hoy' : `El ${dia}`, ''],
     semana:    [esHoy ? 'Esta semana' : 'Los 7 días siguientes', 'los próximos 7 días'],
-    despues:   ['Más adelante', ''],
+    curso:     ['Con anticipo · se cobra en el curso', 'pagaron una parte; lo que falta se cobra el día de su curso'],
+    despues:   ['Más adelante', 'con fecha de pago después de 7 días'],
     sinfecha:  ['Sin fecha', 'leads sin fecha de anticipo'],
   }[id];
 }
@@ -5809,6 +5813,7 @@ function itemsCobranza(){
       donde: `${i.eventos?.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(i.eventos?.fecha)}`,
       fecha: i.fecha_proximo_pago || i.eventos?.fecha || null, fechaEsCurso: !i.fecha_proximo_pago,
       monto: Number(i.restante) || 0, queEs:'debe', nota:'', raw:i,
+      pagado: Number(i.anticipo) || 0, precio: precioDeInsc(i),
     });
   });
   return items.filter(it=>{
@@ -5824,6 +5829,7 @@ function grupoCobranza(it){
   if(it.fecha < cobDia) return 'vencidos';
   if(it.fecha === cobDia) return 'hoy';
   if(it.fecha <= sumarDias(cobDia, 7)) return 'semana';
+  if(it.tipo === 'insc' && it.fechaEsCurso && it.pagado > 0) return 'curso';
   return 'despues';
 }
 function filaCobranza(it, grupo){
@@ -5839,8 +5845,9 @@ function filaCobranza(it, grupo){
   const tel = it.tel.replace(/\D/g, '');
   return `<div class="cob-fila" data-cob-tipo="${it.tipo}" data-cob-id="${it.id}">
     <div class="cob-main">
-      <div class="cob-nombre">${escHtml(it.nombre)}<span class="cob-tipo ${it.tipo}">${it.tipo === 'lead' ? 'Lead' : 'Inscrita'}</span></div>
+      <div class="cob-nombre">${escHtml(it.nombre)}<span class="cob-tipo ${it.tipo}">${it.tipo === 'lead' ? 'Lead' : it.pagado > 0 ? 'Inscrita · con anticipo' : 'Inscrita · sin pago'}</span></div>
       <div class="cob-meta">📍 ${escHtml(it.donde)}${vend ? ' · ' + escHtml(vend) : ' · <span style="color:var(--danger);">sin vendedor</span>'}</div>
+      ${it.tipo === 'insc' ? `<div class="cob-meta ${it.pagado > 0 ? 'cob-pagado' : ''}">${it.pagado > 0 ? `Pagó ${fmtMoney(it.pagado)}${it.precio ? ' de ' + fmtMoney(it.precio) : ''}` : 'Sin pago'} · debe ${fmtMoney(it.monto)}</div>` : ''}
       ${it.nota ? `<div class="cob-nota" title="${escapeAttr(it.nota)}">${escHtml(it.nota)}</div>` : ''}
     </div>
     <div class="cob-lado">
@@ -5860,7 +5867,7 @@ function pintarCobranza(){
   const por = Object.fromEntries(COB_GRUPOS.map(g=>[g, []]));
   items.forEach(it=> por[grupoCobranza(it)].push(it));
   por.confirmar.sort((a,b)=> (a.reportadoEn || '').localeCompare(b.reportadoEn || '') || a.nombre.localeCompare(b.nombre, 'es'));
-  ['vencidos','hoy','semana','despues'].forEach(g=> por[g].sort((a,b)=> a.fecha.localeCompare(b.fecha) || a.nombre.localeCompare(b.nombre, 'es')));
+  ['vencidos','hoy','semana','curso','despues'].forEach(g=> por[g].sort((a,b)=> a.fecha.localeCompare(b.fecha) || a.nombre.localeCompare(b.nombre, 'es')));
   por.sinfecha.sort((a,b)=> a.nombre.localeCompare(b.nombre, 'es'));
   const suma = g => por[g].reduce((t,it)=> t + (Number(it.monto) || 0), 0);
 
