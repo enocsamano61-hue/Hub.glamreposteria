@@ -88,6 +88,30 @@ const INSC = {
   await p.waitForTimeout(200);
   check((await h.ops('pagos', 'update')).length === 0, 'sin cambios no guarda nada');
 
+  h.paso('4b. Estado: confirmado ↔ por confirmar, sin mover el saldo');
+  await p.click('#fichaPagos [data-fp-editar="pg1"]');
+  check(await p.inputValue('#fichaPagos [data-fp-estado]') === 'confirmado', 'el pago confirmado sale como Confirmado');
+  await p.selectOption('#fichaPagos [data-fp-estado]', 'por_confirmar');
+  await h.limpiarOps();
+  await p.click('#fichaPagos [data-fp-guardar="pg1"]');
+  await p.waitForTimeout(300);
+  const upE = (await h.ops('pagos', 'update'))[0];
+  check(upE && upE.verificacion === 'por_confirmar' && upE.verificado_en === null, 'pasa a por confirmar (' + JSON.stringify(upE) + ')');
+  check((await h.ops('inscripciones', 'update')).length === 0, 'el saldo no se mueve');
+  check((await p.textContent('#fichaPorConfirmar')).includes('$700') && (await p.textContent('#fichaPagos')).includes('🏦 por confirmar'), 'aparece arriba en "por confirmar" para "Ya llegó / No llegó"');
+  check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'pago_corregido' && a.detalle.includes('estado confirmado → por confirmar')), 'queda en la actividad');
+  await h.captura('ficha-pagos-estado.png');
+  await p.click('#fichaPagos [data-fp-editar="pg1"]');
+  await p.selectOption('#fichaPagos [data-fp-estado]', 'confirmado');
+  await h.limpiarOps();
+  await p.click('#fichaPagos [data-fp-guardar="pg1"]');
+  await p.waitForTimeout(300);
+  const upC = (await h.ops('pagos', 'update'))[0];
+  check(upC && upC.verificacion === 'confirmado' && upC.verificado_por === 'u1', 'y de regreso a confirmado, con quién lo confirmó');
+  await p.click('#fichaPagos [data-fp-editar="pg2"]');
+  check(!(await p.$('#fichaPagos [data-fp-estado]')) && (await p.textContent('#fichaPagos')).includes('no llegó (anulado)'), 'el anulado no se cambia desde aquí');
+  await p.click('#fichaPagos [data-fp-cancelar]');
+
   h.paso('5. Sin permiso no hay "Corregir"');
   await abrir(null);
   check((await p.textContent('#fichaPagos')).includes('Pagos registrados (2)') && (await p.$$('#fichaPagos [data-fp-editar]')).length === 0, 've sus pagos pero no puede corregirlos');

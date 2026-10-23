@@ -1325,7 +1325,7 @@
   .fp-fila:first-of-type{ border-top:none; }
   .fp-fila .tag{ font-size:11px; color:var(--ink-soft); }
   .fp-fila button{ border:1px solid var(--wine); background:transparent; color:var(--wine); border-radius:14px; padding:2px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
-  .fp-edit{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; width:100%; }
+  .fp-edit{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; width:100%; }
   .fp-edit input, .fp-edit select{ width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
   .fp-edit .acc{ grid-column:1 / -1; display:flex; gap:8px; }
   @media (max-width:520px){ .fp-edit{ grid-template-columns:1fr; } }
@@ -7908,6 +7908,10 @@ function pintarPagosFicha(){
         <label class="sub">Fecha<input type="date" data-fp-fecha value="${escapeAttr(p.fecha || '')}"></label>
         <label class="sub">Forma<select data-fp-forma><option value="">—</option>${FORMAS_PAGO.map(f=>`<option ${f === p.forma_pago ? 'selected' : ''}>${escHtml(f)}</option>`).join('')}</select></label>
         <label class="sub">Banco<input data-fp-banco list="bancosLista" autocomplete="off" value="${escapeAttr(p.banco && p.banco !== p.forma_pago ? p.banco : '')}"></label>
+        ${p.verificacion === 'no_llego' ? '<span class="sub">Estado: ✖ no llegó (anulado)</span>'
+          : `<label class="sub">Estado<select data-fp-estado>
+              <option value="confirmado" ${p.verificacion !== 'por_confirmar' ? 'selected' : ''}>✅ Confirmado</option>
+              <option value="por_confirmar" ${p.verificacion === 'por_confirmar' ? 'selected' : ''}>🏦 Por confirmar</option></select></label>`}
         <div class="acc"><button type="button" data-fp-guardar="${escapeAttr(p.id)}">Guardar</button><button type="button" data-fp-cancelar>Cancelar</button></div></div></div>`
       : `<div class="fp-fila"><span>${escHtml(fechaCorta(p.fecha))} · <b>${fmtMoney(Number(p.monto || 0))}</b>${formaYBanco(p) ? ' · ' + escHtml(formaYBanco(p)) : ''}
           ${estado(p) ? `<span class="tag">${estado(p)}</span>` : ''}</span>
@@ -7925,6 +7929,10 @@ document.getElementById('fichaPagos').addEventListener('click', async e=>{
   const fecha = fila.querySelector('[data-fp-fecha]').value;
   const forma = fila.querySelector('[data-fp-forma]').value || null;
   const banco = fila.querySelector('[data-fp-banco]').value.trim() || null;
+  // Estado: confirmado ↔ por confirmar (no mueve el saldo; "no llegó" sigue con sus propios botones)
+  const estadoSel = fila.querySelector('[data-fp-estado]');
+  const estadoAntes = p.verificacion === 'por_confirmar' ? 'por_confirmar' : 'confirmado';
+  const estado = estadoSel ? estadoSel.value : null;
   if(!fecha){ toast('Pon la fecha del pago.', true); return; }
   if(fecha > hoyISO()){ toast('La fecha del pago no puede ser después de hoy.', true); return; }
   const antes = { fecha: p.fecha, forma: p.forma_pago || null, banco: p.banco || null };
@@ -7932,11 +7940,22 @@ document.getElementById('fichaPagos').addEventListener('click', async e=>{
   if(fecha !== antes.fecha) cambios.push(`fecha ${fechaCorta(antes.fecha)} → ${fechaCorta(fecha)}`);
   if(forma !== antes.forma) cambios.push(`forma ${antes.forma || '—'} → ${forma || '—'}`);
   if(banco !== antes.banco) cambios.push(`banco ${antes.banco || '—'} → ${banco || '—'}`);
+  const ESTADO_TXT = { confirmado:'confirmado', por_confirmar:'por confirmar' };
+  const cambiaEstado = estado && estado !== estadoAntes && p.verificacion !== 'no_llego';
+  if(cambiaEstado) cambios.push(`estado ${ESTADO_TXT[estadoAntes]} → ${ESTADO_TXT[estado]}`);
   if(!cambios.length){ fpEditando = null; pintarPagosFicha(); toast('Sin cambios.'); return; }
   gu.disabled = true;
-  const { error } = await sb.from('pagos').update({ fecha, forma_pago: forma, banco }).eq('id', p.id);
+  const datos = { fecha, forma_pago: forma, banco };
+  if(cambiaEstado) Object.assign(datos, estado === 'confirmado'
+    ? { verificacion:'confirmado', verificado_en:new Date().toISOString(), verificado_por:usuarioActual?.id || null }
+    : { verificacion:'por_confirmar', verificado_en:null, verificado_por:null });
+  const { error } = await sb.from('pagos').update(datos).eq('id', p.id);
   if(error){ gu.disabled = false; toast('No se pudo corregir el pago: ' + error.message, true); return; }
-  Object.assign(p, { fecha, forma_pago: forma, banco });
+  Object.assign(p, datos);
+  if(cambiaEstado){
+    pintarCobro();
+    if(document.getElementById('view-cobranza')?.classList.contains('active')) renderCobranza();
+  }
   fpEditando = null;
   pintarPagosFicha(); pintarPorConfirmarFicha();
   registrarActividad('pago_corregido', `${d.personas?.nombre || 'inscrita'} · ${fmtMoney(Number(p.monto || 0))}: ${cambios.join(', ')}`);
