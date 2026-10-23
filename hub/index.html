@@ -1304,6 +1304,14 @@
   .cob-pc-fila{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--border); }
   .cob-pc-fila:first-of-type{ margin-top:10px; }
   .cob-pc-fila .btn-outline{ width:auto; }
+  .cob-bandeja{ margin-top:16px; border-style:dashed; }
+  .cob-bandeja > summary{ cursor:pointer; font-size:14px; }
+  .cob-bandeja .cob-bj-tipo{ margin-top:10px; border-top:1px solid var(--border); padding-top:8px; }
+  .cob-bandeja .cob-bj-tipo > summary{ cursor:pointer; font-weight:700; font-size:13px; color:var(--wine-dark); }
+  .cob-bj-fila{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--border); }
+  .cob-bj-fila .btn-outline{ width:auto; flex:none; }
+  .cob-bj-fila .sub{ margin:0; }
+  .cob-bj-dinero{ color:var(--wine); font-weight:700; }
   .cob-acciones button[data-cob-cobrar]{ background:var(--wine); border-color:var(--wine); color:#fff; font-weight:600; }
   /* Cobro directo: la ficha de la inscrita sólo con el abono */
   #modalInscripcion.solo-cobro .modal-notas,
@@ -1404,6 +1412,7 @@
   .cob-tipo.lead{ background:rgba(169,74,107,.12); color:#A94A6B; }
   .cob-tipo.insc{ background:rgba(63,131,84,.12); color:var(--success); }
   .cob-meta.cob-pagado{ color:var(--success); font-weight:600; }
+  .cob-meta.cob-verificar{ color:#B26A00; font-weight:700; }
   .cob-meta{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
   .cob-nota{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cob-lado{ text-align:right; flex-shrink:0; }
@@ -2217,6 +2226,7 @@
       </div>
       <div id="cobPorConfirmar"></div>
       <div id="cobGrupos">Cargando…</div>
+      <div id="cobBandeja"></div>
       </div>
       <div id="cobVistaEmbudo" style="display:none;"></div>
     </div>
@@ -3403,6 +3413,7 @@ async function registrarActividad(accion, detalle){
 /* ---------- Vista "Actividad del equipo" (admin, o con puede_ver_actividad) ---------- */
 const ACCION_LABEL = {
   lead_creado: 'Creó un lead',
+  pago_doble_evitado: 'Evitó registrar un pago dos veces',
   lead_actualizado: 'Actualizó un lead',
   inscripcion_estatus: 'Cambió el estatus de una inscripción',
   pago_registrado: 'Registró un pago',
@@ -3931,14 +3942,25 @@ function opcionesVendedor(actualId){
    ========================================================= */
 async function renderDashboard(){
   const box = document.getElementById('dashKpis');
-  const [{count:totalLeads}, {count:cursosProx}] = await Promise.all([
-    sb.from('leads').select('*', {count:'exact', head:true}),
-    sb.from('eventos').select('*', {count:'exact', head:true}).gte('fecha', hoyISO()),
-  ]);
+  // Solo la gira que viene (la misma regla que Cobranza y el Embudo). Antes "Leads totales" contaba
+  // todos los leads de la historia y "Cursos próximos" los de cualquier curso.
+  const cursoId = await obtenerCursoActivoId();
+  if(CIUDADES_GIRA_ACTIVA === null) await cargarCiudadesGiraActiva();
+  const finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
+  const noVan = ESTATUS.filter(e=>['no_va_al_curso', 'perdio_anticipo'].includes(e.clave)).map(e=>e.id);
+  let qL = sb.from('leads').select('id, evento_id, ciudad_interes_id, eventos ( fecha )');
+  if(finales.length) qL = qL.not('estatus_id', 'in', `(${finales.join(',')})`);
+  let qI = sb.from('inscripciones').select('id, eventos!inner ( curso_id, fecha )', {count:'exact', head:true})
+    .eq('eventos.curso_id', cursoId).gte('eventos.fecha', hoyISO());
+  if(noVan.length) qI = qI.not('estatus_id', 'in', `(${noVan.join(',')})`);
+  const [rL, {count:inscritas}, {count:cursosProx}] = cursoId ? await Promise.all([
+    qL, qI, sb.from('eventos').select('*', {count:'exact', head:true}).eq('curso_id', cursoId).gte('fecha', hoyISO()),
+  ]) : [{ data:[] }, { count:0 }, { count:0 }];
+  const leadsGira = (rL.data || []).filter(l=>leadEnPuerta(l) && (l.eventos || l.ciudad_interes_id)).length;
   box.innerHTML = [
-    {v: totalLeads ?? 0, l:'Leads totales'},
-    {v: cursosProx ?? 0, l:'Cursos próximos'},
-    {v: CIUDADES.length, l:'Plazas cargadas'},
+    {v: leadsGira, l:'Leads abiertos de la gira'},
+    {v: inscritas ?? 0, l:'Inscritas de la gira'},
+    {v: cursosProx ?? 0, l:'Cursos de la gira'},
   ].map(k=>`<div class="kpi"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
 
   const { data, error } = await sb.from('leads').select('id, creado_en, personas(nombre, telefono_principal), estatus!leads_estatus_id_fkey(etiqueta)')
@@ -4440,11 +4462,21 @@ async function obtenerInicioGira(){
   return inicioGiraCache;
 }
 let CIUDADES_GIRA_ACTIVA = null; // null = no cargadas todavía; array (posiblemente vacío) ya cargado
+/* Lo que está "en puerta": las ciudades con un curso del curso activo de HOY EN ADELANTE (la misma regla
+   que ciudades_en_puerta() en la base). Antes eran las ciudades de TODOS sus cursos (120 en 2026) y se
+   colaban leads de ciudades que ya no se visitan. */
 async function cargarCiudadesGiraActiva(){
   const cursoId = await obtenerCursoActivoId();
   if(!cursoId){ CIUDADES_GIRA_ACTIVA = []; return; }
-  const { data: eventos } = await sb.from('eventos').select('ciudad_id').eq('curso_id', cursoId);
+  const { data: eventos } = await sb.from('eventos').select('ciudad_id').eq('curso_id', cursoId).gte('fecha', hoyISO());
   CIUDADES_GIRA_ACTIVA = [...new Set((eventos||[]).map(e=>e.ciudad_id).filter(Boolean))];
+}
+// ¿Este lead es de la gira que viene? Ligado a un curso que no ha pasado, o sin curso pero de una ciudad
+// que se visita. Los de cursos pasados o ciudades que no se visitan van a la 🧹 Bandeja de limpieza.
+function leadEnPuerta(l){
+  if(l.eventos) return (l.eventos.fecha || '') >= hoyISO();
+  if(l.evento_id) return false;
+  return !l.ciudad_interes_id || (CIUDADES_GIRA_ACTIVA || []).includes(l.ciudad_interes_id);
 }
 
 // Qué trae cada lead. Vive en un solo lugar: si el tablero y "abrir el lead que
@@ -4479,7 +4511,8 @@ async function cargarLeads(){
   }
   const { data, error } = await query;
   if(error){ toast('Error cargando leads: ' + error.message, true); return []; }
-  return data || [];
+  // Fuera los ligados a un curso que ya pasó: no son de la gira que viene (los abiertos van a la bandeja).
+  return (data || []).filter(l=>!CIUDADES_GIRA_ACTIVA.length || leadEnPuerta(l));
 }
 async function renderBoard(){
   await Promise.all([cargarEventosProximos(), cargarEventosCalendario()]);
@@ -5072,6 +5105,13 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   const antes = leadAbierto()?.personas || {};
   const problema = problemaContacto({ tel1: telNuevo, tel2: telAltNuevo, correo: correoNuevo, nacimiento: nacimientoNuevo }, antes);
   if(problema){ toast(problema, true); return; }
+  // Candado: "Pago por confirmar" solo con los datos del pago (💜 Registrar pago). Sin monto, banco ni
+  // fecha, Cobranza no tiene qué confirmar y el lead se queda ahí para siempre (había 5 así).
+  const leadAntes = leadAbierto();
+  if(nuevoEstatusId === ESTATUS_POR_CONFIRMAR() && leadAntes?.estatus?.id !== ESTATUS_POR_CONFIRMAR() && !leadAntes?.pago_reportado_en){
+    toast('Para ponerla en "Pago por confirmar" usa 💜 Registrar pago (monto, banco y fecha). Sin esos datos Cobranza no tiene qué confirmar.', true);
+    return;
+  }
 
   const btn = document.getElementById('guardarLead'); btn.disabled = true; btn.textContent = 'Guardando...';
 
@@ -5738,8 +5778,10 @@ let cobDatos = { leads:[], inscritas:[] };
 const cobAbiertos = new Set(['confirmar','vencidos','hoy','semana']);
 // "curso": inscritas con anticipo sin fecha de pago, que se cobran el día de su curso (antes caían en
 // "Más adelante" con un círculo blanco y parecía que no tenían estatus).
-const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','curso','despues','sinfecha'];
-const COB_ICONO = { confirmar:'🟣', vencidos:'🔴', hoy:'🟠', semana:'🟡', curso:'💵', despues:'🔵', sinfecha:'⚫' };
+// "pasado": inscritas cuyo curso ya fue y siguen debiendo; aparte para que no hagan ruido con la gira
+// que viene, pero sin perder ese dinero.
+const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','curso','despues','sinfecha','pasado'];
+const COB_ICONO = { confirmar:'🟣', vencidos:'🔴', hoy:'🟠', semana:'🟡', curso:'💵', despues:'🔵', sinfecha:'⚫', pasado:'⏳' };
 /* "Hoy" con la hora de quien usa el Hub (México). new Date().toISOString() da
    la fecha de Londres (UTC): desde las 5–6 pm ya es "mañana", los días del
    Calendario desaparecían en pleno curso y los abonos salían con fecha de mañana. */
@@ -5750,42 +5792,66 @@ function etiquetaGrupoCob(id){
   const esHoy = cobDia === hoyISO();
   const dia = new Date(cobDia + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'short', day:'numeric', month:'short' });
   return {
-    confirmar: ['Por confirmar', 'pagos que reportaron los vendedores'],
+    confirmar: ['Por confirmar', 'pagos reportados o por confirmar en el banco'],
     vencidos:  ['Vencidos', esHoy ? 'ya pasó su fecha' : `antes del ${dia}`],
     hoy:       [esHoy ? 'Hoy' : `El ${dia}`, ''],
     semana:    [esHoy ? 'Esta semana' : 'Los 7 días siguientes', 'los próximos 7 días'],
     curso:     ['Con anticipo · se cobra en el curso', 'pagaron una parte; lo que falta se cobra el día de su curso'],
     despues:   ['Más adelante', 'con fecha de pago después de 7 días'],
     sinfecha:  ['Sin fecha', 'leads sin fecha de anticipo'],
+    pasado:    ['Curso ya pasó · debe', 'su curso ya fue y no terminó de pagar'],
   }[id];
 }
 
 async function cargarCobranza(){
   const cursoId = await obtenerCursoActivoId();
-  // Inscritas de cursos de la gira activa, incluyendo los de las últimas 2
-  // semanas: si el curso ya pasó y sigue debiendo, es un vencido.
+  if(CIUDADES_GIRA_ACTIVA === null) await cargarCiudadesGiraActiva();
+  // Inscritas de cursos de la gira activa, incluyendo los de las últimas 2 semanas: si el curso ya pasó
+  // y sigue debiendo, va a "Curso ya pasó · debe".
   const desde = sumarDias(hoyISO(), -14);
   const finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
-  let qL = sb.from('leads').select(LEAD_SELECT + ', monto_anticipo');
+  let qL = sb.from('leads').select(LEAD_SELECT + ', monto_anticipo, estatus_id, persona_id');
   if(finales.length) qL = qL.not('estatus_id', 'in', `(${finales.join(',')})`);
-  // Mismos leads que el tablero: los de ciudades de la gira activa (o sin ciudad)
-  if(CIUDADES_GIRA_ACTIVA?.length) qL = qL.or(`ciudad_interes_id.in.(${CIUDADES_GIRA_ACTIVA.join(',')}),ciudad_interes_id.is.null`);
+  // Se traen todos los abiertos y aquí se deja solo la gira que viene (leadEnPuerta): ligado a un curso
+  // que viene, o sin curso pero de una ciudad que se visita. Es la misma regla que el Embudo.
   const [rl, ri] = await Promise.all([
     qL,
     cursoId ? sb.from('inscripciones').select(`
-        id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago,
+        id, persona_id, evento_id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago, asistencia, estatus_id,
         personas ( id, nombre, telefono_principal ),
         estatus ( id, clave, etiqueta ),
+        pagos ( monto, verificacion ),
         eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )`)
       .eq('eventos.curso_id', cursoId).gte('eventos.fecha', desde)
-      .eq('liquidado', false).gt('restante', 0)
       : Promise.resolve({ data:[], error:null }),
   ]);
   if(rl.error || ri.error){ toast('Error cargando Cobranza: ' + (rl.error || ri.error).message, true); return false; }
-  cobDatos = {
-    leads: rl.data || [],
-    inscritas: (ri.data || []).filter(i=>!['no_va_al_curso','no_llego','perdio_anticipo'].includes(i.estatus?.clave)),
-  };
+  const todas = ri.data || [];
+  // Lo que se cobra: debe algo (o tiene un pago por confirmar, aunque ya no deba) y sí va al curso.
+  const inscritas = todas.filter(i=>{
+    const sit = situacionPagoInsc(i);
+    if(sit === 'no_va' || sit === 'no_llego') return false;
+    return sit === 'por_confirmar' || (!i.liquidado && Number(i.restante) > 0);
+  });
+  // Leads: solo los de la gira que viene. Uno de alguien que ya está inscrita en ese curso no cuenta
+  // doble, salvo que traiga un pago por confirmar (ese dinero todavía no está en su ficha).
+  // Es la misma regla que el Embudo (embudo_cursos), para que los dos cuadren.
+  let leads = (rl.data || []).filter(l=>leadEnPuerta(l) && (l.eventos || l.ciudad_interes_id));
+  const personas = [...new Set(leads.map(l=>l.persona_id || l.personas?.id).filter(Boolean))];
+  let yaInsc = [];
+  if(personas.length){
+    const { data } = await sb.from('inscripciones').select('persona_id, evento_id, eventos!inner ( fecha, ciudad_id )')
+      .in('persona_id', personas).gte('eventos.fecha', hoyISO());
+    yaInsc = data || [];
+  }
+  leads = leads.filter(l=>{
+    const pid = l.persona_id || l.personas?.id;
+    const suya = yaInsc.find(x=>x.persona_id === pid && (l.evento_id ? x.evento_id === l.evento_id : x.eventos?.ciudad_id === l.ciudad_interes_id));
+    if(!suya) return true;
+    l._yaInscrita = suya.evento_id;
+    return (l.estatus?.id ?? l.estatus_id) === ESTATUS_POR_CONFIRMAR();
+  });
+  cobDatos = { leads, inscritas };
   return true;
 }
 
@@ -5802,18 +5868,23 @@ function itemsCobranza(){
       donde: l.eventos ? `${l.eventos.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(l.eventos.fecha)}` : (l.ciudades?.nombre || 'sin ciudad'),
       fecha: l.fecha_compromiso_pago || null,
       monto: conf ? (l.pago_reportado_monto ?? null) : (l.monto_anticipo ?? null),
-      queEs: conf ? 'reportado' : 'anticipo',
+      queEs: conf ? 'reportado' : 'anticipo', yaInscrita: !!l._yaInscrita,
       nota: l.comentario || '', raw:l,
     });
   });
   if(cobQuien !== 'leads') cobDatos.inscritas.forEach(i=>{
+    const sit = situacionPagoInsc(i);
+    // Con un pago por confirmar: va a 🟣 con lo que falta confirmar (caso Estefani: el pago se pasó a
+    // "por confirmar" en su ficha y aquí seguía como si nada).
+    const porConf = (i.pagos || []).filter(p=>p.verificacion === 'por_confirmar').reduce((t, p)=>t + Number(p.monto || 0), 0);
     items.push({
       tipo:'insc', id:i.id, nombre:i.personas?.nombre || '(sin nombre)', tel:i.personas?.telefono_principal || '',
-      vendedor:i.asesor_id || '',
+      vendedor:i.asesor_id || '', situacion:sit, porConfirmar: sit === 'por_confirmar',
       donde: `${i.eventos?.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(i.eventos?.fecha)}`,
       fecha: i.fecha_proximo_pago || i.eventos?.fecha || null, fechaEsCurso: !i.fecha_proximo_pago,
-      monto: Number(i.restante) || 0, queEs:'debe', nota:'', raw:i,
-      pagado: Number(i.anticipo) || 0, precio: precioDeInsc(i),
+      cursoPasado: (i.eventos?.fecha || '') < hoyISO(),
+      monto: sit === 'por_confirmar' ? porConf : Number(i.restante) || 0, queEs: sit === 'por_confirmar' ? 'por confirmar' : 'debe', nota:'', raw:i,
+      debe: Number(i.restante) || 0, pagado: Number(i.anticipo) || 0, precio: precioDeInsc(i),
     });
   });
   return items.filter(it=>{
@@ -5824,7 +5895,8 @@ function itemsCobranza(){
   });
 }
 function grupoCobranza(it){
-  if(it.tipo === 'lead' && it.porConfirmar) return 'confirmar';
+  if(it.porConfirmar) return 'confirmar';
+  if(it.tipo === 'insc' && it.cursoPasado) return 'pasado';
   if(!it.fecha) return 'sinfecha';
   if(it.fecha < cobDia) return 'vencidos';
   if(it.fecha === cobDia) return 'hoy';
@@ -5832,9 +5904,13 @@ function grupoCobranza(it){
   if(it.tipo === 'insc' && it.fechaEsCurso && it.pagado > 0) return 'curso';
   return 'despues';
 }
+function etiquetaCobInsc(it){
+  return it.porConfirmar ? 'Inscrita · pago por confirmar' : it.situacion === 'verificar' ? 'Inscrita · verificar'
+       : it.pagado > 0 ? 'Inscrita · con anticipo' : 'Inscrita · sin pago';
+}
 function filaCobranza(it, grupo){
   let cuando = '';
-  if(grupo === 'confirmar') cuando = it.reportadoEn ? hace(it.reportadoEn) : 'sin datos del pago';
+  if(grupo === 'confirmar') cuando = it.tipo === 'insc' ? 'confírmalo en su ficha' : it.reportadoEn ? hace(it.reportadoEn) : 'sin datos del pago';
   else if(!it.fecha) cuando = 'sin fecha';
   else if(grupo === 'vencidos'){ const n = diasEntre(it.fecha, cobDia); cuando = `venció ${fechaCorta(it.fecha)} · ${n === 1 ? 'hace 1 día' : 'hace ' + n + ' días'}`; }
   else if(grupo === 'hoy') cuando = cobDia === hoyISO() ? 'hoy' : fechaCorta(it.fecha);
@@ -5845,9 +5921,11 @@ function filaCobranza(it, grupo){
   const tel = it.tel.replace(/\D/g, '');
   return `<div class="cob-fila" data-cob-tipo="${it.tipo}" data-cob-id="${it.id}">
     <div class="cob-main">
-      <div class="cob-nombre">${escHtml(it.nombre)}<span class="cob-tipo ${it.tipo}">${it.tipo === 'lead' ? 'Lead' : it.pagado > 0 ? 'Inscrita · con anticipo' : 'Inscrita · sin pago'}</span></div>
+      <div class="cob-nombre">${escHtml(it.nombre)}<span class="cob-tipo ${it.tipo}">${it.tipo === 'lead' ? (it.yaInscrita ? 'Lead · ya inscrita' : 'Lead') : etiquetaCobInsc(it)}</span></div>
       <div class="cob-meta">📍 ${escHtml(it.donde)}${vend ? ' · ' + escHtml(vend) : ' · <span style="color:var(--danger);">sin vendedor</span>'}</div>
-      ${it.tipo === 'insc' ? `<div class="cob-meta ${it.pagado > 0 ? 'cob-pagado' : ''}">${it.pagado > 0 ? `Pagó ${fmtMoney(it.pagado)}${it.precio ? ' de ' + fmtMoney(it.precio) : ''}` : 'Sin pago'} · debe ${fmtMoney(it.monto)}</div>` : ''}
+      ${it.tipo === 'insc' ? `<div class="cob-meta ${it.pagado > 0 ? 'cob-pagado' : ''}">${it.pagado > 0 ? `Pagó ${fmtMoney(it.pagado)}${it.precio ? ' de ' + fmtMoney(it.precio) : ''}` : 'Sin pago'} · debe ${fmtMoney(it.debe)}${it.porConfirmar ? ` · 🏦 ${fmtMoney(it.monto)} por confirmar` : ''}</div>` : ''}
+      ${it.situacion === 'verificar' ? '<div class="cob-meta cob-verificar">⚠ Verificar antes de cobrar</div>' : ''}
+      ${it.yaInscrita ? '<div class="cob-meta">Ya está inscrita en ese curso: al confirmar, el pago pasa a su ficha y el lead se cierra.</div>' : ''}
       ${it.nota ? `<div class="cob-nota" title="${escapeAttr(it.nota)}">${escHtml(it.nota)}</div>` : ''}
     </div>
     <div class="cob-lado">
@@ -5867,7 +5945,7 @@ function pintarCobranza(){
   const por = Object.fromEntries(COB_GRUPOS.map(g=>[g, []]));
   items.forEach(it=> por[grupoCobranza(it)].push(it));
   por.confirmar.sort((a,b)=> (a.reportadoEn || '').localeCompare(b.reportadoEn || '') || a.nombre.localeCompare(b.nombre, 'es'));
-  ['vencidos','hoy','semana','curso','despues'].forEach(g=> por[g].sort((a,b)=> a.fecha.localeCompare(b.fecha) || a.nombre.localeCompare(b.nombre, 'es')));
+  ['vencidos','hoy','semana','curso','despues','pasado'].forEach(g=> por[g].sort((a,b)=> (a.fecha || '').localeCompare(b.fecha || '') || a.nombre.localeCompare(b.nombre, 'es')));
   por.sinfecha.sort((a,b)=> a.nombre.localeCompare(b.nombre, 'es'));
   const suma = g => por[g].reduce((t,it)=> t + (Number(it.monto) || 0), 0);
 
@@ -5920,9 +5998,90 @@ document.getElementById('cobPorConfirmar').addEventListener('click', e=>{
   abrirModalInscripcion(b.dataset.cobPc);
 });
 
+/* 🧹 BANDEJA DE LIMPIEZA: lo que NO es de la gira que viene o no cuadra (leads de ciudades que no se
+   visitan, de cursos pasados, sin ciudad, duplicados, pagos dobles...). Va fuera de los números de arriba
+   para que no hagan ruido, pero a la vista: lo que trae dinero de por medio va primero. La arma la base
+   (bandeja_limpieza), la misma que cuenta "Hoy atender". */
+const BANDEJA_TIPOS = [
+  { k:'pc_sin_datos',   l:'En "Pago por confirmar" sin los datos del pago', dinero:true,
+    ayuda:'Ábrelo y usa 💜 Registrar pago con monto, banco y fecha; si no pagó, regrésalo a su estatus.' },
+  { k:'pago_doble',     l:'Pago capturado dos veces', dinero:true, ayuda:'Revisa sus pagos en la ficha: si es el mismo, corrígelo.' },
+  { k:'pago_no_cuadra', l:'Lo pagado no cuadra con sus pagos', dinero:true, ayuda:'Revisa sus pagos en la ficha.' },
+  { k:'ya_inscrita',    l:'Lead abierto de alguien que ya está inscrita', ayuda:'Si reportó un pago, confírmalo en 🟣 Por confirmar (pasa a su ficha y el lead se cierra).' },
+  { k:'ciudad_fuera',   l:'Su ciudad no está en la gira que viene', ayuda:'Cámbiale la ciudad a una de la gira o ciérralo.' },
+  { k:'curso_pasado',   l:'Su curso ya pasó', ayuda:'Ligarlo a un curso que viene o cerrarlo.' },
+  { k:'sin_ciudad',     l:'Sin ciudad ni curso', ayuda:'Ponerle su ciudad (por su lada) para que entre a la gira.' },
+  { k:'sin_vendedora',  l:'Inscritas sin vendedora', ayuda:'Su venta no le cuenta a nadie: asígnale vendedora en su ficha.' },
+];
+let cobBandeja = [];
+async function cargarBandejaCobranza(){
+  const cont = document.getElementById('cobBandeja');
+  const { data, error } = await sb.rpc('bandeja_limpieza');
+  if(error){ cont.innerHTML = ''; console.warn('Bandeja de limpieza:', error.message); return; }
+  const filas = data || [];
+  // ¿Trae dinero? Leads con un pago reportado o que dicen que ya dieron anticipo.
+  const ids = [...new Set(filas.map(f=>f.lead_id).filter(Boolean))];
+  const leads = new Map();
+  if(ids.length){
+    const { data: ls } = await sb.from('leads').select('id, estatus_id, pago_reportado_monto, monto_anticipo').in('id', ids);
+    (ls || []).forEach(l=>leads.set(l.id, l));
+  }
+  filas.forEach(f=>{
+    const l = f.lead_id ? leads.get(f.lead_id) : null;
+    const clave = l ? claveEstatus(l.estatus_id) : '';
+    f.estatus = l ? (ESTATUS.find(e=>e.id === l.estatus_id)?.etiqueta || '') : '';
+    f.dinero = BANDEJA_TIPOS.find(t=>t.k === f.tipo)?.dinero || !!(l && (Number(l.pago_reportado_monto) > 0 || ['pago_por_confirmar', 'anticipo_vigente'].includes(clave)));
+  });
+  cobBandeja = filas;
+  pintarBandejaCobranza();
+}
+function pintarBandejaCobranza(){
+  const cont = document.getElementById('cobBandeja');
+  const filas = cobBandeja;
+  if(!filas.length){ cont.innerHTML = ''; return; }
+  const abierta = cont.querySelector('.cob-bandeja')?.open || false;
+  const conDinero = filas.filter(f=>f.dinero).length;
+  cont.innerHTML = `<details class="card cob-bandeja" ${abierta ? 'open' : ''}>
+    <summary>🧹 <b>Bandeja de limpieza</b> · ${filas.length} por revisar${conDinero ? ` · <span class="cob-bj-dinero">💰 ${conDinero} con dinero de por medio</span>` : ''}
+      <span class="sub" style="margin:0;">— no son de la gira que viene o no cuadran; no cuentan arriba</span></summary>
+    ${BANDEJA_TIPOS.map(t=>{
+      const fs = filas.filter(f=>f.tipo === t.k).sort((a, b)=>(b.dinero - a.dinero) || (a.nombre || '').localeCompare(b.nombre || '', 'es'));
+      if(!fs.length) return '';
+      const nd = fs.filter(f=>f.dinero).length;
+      return `<details class="cob-bj-tipo" data-bj-tipo="${t.k}" ${t.dinero || nd ? 'open' : ''}>
+        <summary>${escHtml(t.l)} · ${fs.length}${nd && !t.dinero ? ` <span class="cob-bj-dinero">· 💰 ${nd}</span>` : ''}</summary>
+        <div class="sub" style="margin:4px 0;">${escHtml(t.ayuda)}</div>
+        ${fs.map(f=>`<div class="cob-bj-fila">
+          <div><b>${f.dinero ? '💰 ' : ''}${escHtml(tituloCaso(f.nombre || '(sin nombre)'))}</b>
+            <div class="sub">${escHtml([f.telefono, f.estatus, nombreVendedor(f.asesor_id)].filter(Boolean).join(' · '))}</div>
+            <div class="sub">${escHtml(f.detalle || '')}</div></div>
+          <button type="button" class="btn-outline small" ${f.lead_id ? `data-bj-lead="${escapeAttr(f.lead_id)}"` : `data-bj-insc="${escapeAttr(f.inscripcion_id)}"`}>Abrir</button>
+        </div>`).join('')}
+      </details>`;
+    }).join('')}
+  </details>`;
+}
+document.getElementById('cobBandeja').addEventListener('click', async e=>{
+  const bL = e.target.closest('[data-bj-lead]'), bI = e.target.closest('[data-bj-insc]');
+  if(!bL && !bI) return;
+  if(bI){
+    alCerrarFichaInscripcion = null;
+    await abrirModalInscripcion(bI.dataset.bjInsc);
+  } else {
+    bL.disabled = true;
+    const { data, error } = await sb.from('leads').select(LEAD_SELECT).eq('id', bL.dataset.bjLead).single();
+    bL.disabled = false;
+    if(error || !data){ toast('No se pudo abrir el lead: ' + (error?.message || 'no existe'), true); return; }
+    if(!leadsCache.some(x=>x.id === data.id)) leadsCache.push(data);
+    await abrirModalLead(data.id);
+  }
+  alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza') renderCobranza(); });
+});
+
 async function renderCobranza(){
   if(!cobDia) cobDia = hoyISO();
   cargarPorConfirmarCobranza();
+  cargarBandejaCobranza();
   document.getElementById('cobDia').value = cobDia;
   const selV = document.getElementById('cobVendedor');
   const vActual = selV.value;
@@ -6007,7 +6166,7 @@ cobGrupos.addEventListener('click', async e=>{
     const evCal = ev && eventoPorId(ev.id);
     abrirEnviarWhatsApp({ nombre: it.nombre, telefono: it.tel, personaId: r.personas?.id, leadId: tipo === 'lead' ? id : null,
       ciudad: ev?.ciudades?.nombre || (tipo === 'lead' ? r.ciudades?.nombre : '') || '', fecha: ev?.fecha || '', sede: evCal?.sede || '',
-      debe: tipo === 'insc' ? it.monto : null });
+      debe: tipo === 'insc' ? it.debe : null });
     return;
   }
   if(e.target.closest('[data-cob-cobrar]')){
@@ -6726,7 +6885,7 @@ async function renderCalendario(preservarMes){
   // LIQUIDO de la hoja de Excel.
   const eventoIds = eventos.map(e=>e.id);
   const { data: inscripcionesData } = await sb.from('inscripciones')
-    .select('evento_id, liquidado, anticipo, restante, precio_pactado, estatus_id, asistencia').in('evento_id', eventoIds);
+    .select('evento_id, liquidado, anticipo, restante, precio_pactado, estatus_id, asistencia, pagos ( verificacion )').in('evento_id', eventoIds);
   const liquidadoPorEvento = {}, anticipoPorEvento = {}, sinPagoPorEvento = {};
   const eventosConInscripcion = new Set();
   // Resumen para la tarjeta del día: quién llegó, quién debe y cuánto se ha cobrado.
@@ -6745,8 +6904,12 @@ async function renderCalendario(preservarMes){
       if(debe === 0) r.liquidadas++;
       else if(claveEstatus(i.estatus_id) !== 'no_llego'){ r.deben++; r.pendiente += debe; if(i.asistencia === 'llego') r.debenLlegaron += debe; }
     }
-    if(i.liquidado) liquidadoPorEvento[i.evento_id] = (liquidadoPorEvento[i.evento_id]||0)+1;
-    else if(i.anticipo && i.anticipo > 0) anticipoPorEvento[i.evento_id] = (anticipoPorEvento[i.evento_id]||0)+1;
+    // Misma clasificación que el Embudo (situacionPagoInsc): las que no van no cuentan, y una liquidada
+    // con un pago por confirmar no se ve liquidada hasta que se confirme.
+    const sit = situacionPagoInsc(i);
+    if(sit === 'no_va') return;
+    if(sit === 'liquidada') liquidadoPorEvento[i.evento_id] = (liquidadoPorEvento[i.evento_id]||0)+1;
+    else if(Number(i.anticipo) > 0) anticipoPorEvento[i.evento_id] = (anticipoPorEvento[i.evento_id]||0)+1;
     else sinPagoPorEvento[i.evento_id] = (sinPagoPorEvento[i.evento_id]||0)+1;
   });
 
@@ -6755,42 +6918,16 @@ async function renderCalendario(preservarMes){
     .select('id, inscripciones!pagos_inscripcion_id_fkey!inner ( evento_id )').eq('verificacion', 'por_confirmar');
   (pcData || []).forEach(p=>{ const r = resumenPorEvento[p.inscripciones?.evento_id]; if(r) r.porConfirmar++; });
 
-  // Fallback: un evento de la gira ACTIVA todavía no tiene ninguna fila en
-  // "inscripciones" — hoy nada en el Hub convierte un lead pagado en una
-  // inscripción real, así que para esos eventos el dato de pago de verdad
-  // vive en "leads" de esa ciudad. Se calcula solo para los eventos que
-  // no tienen ninguna inscripción, para no mezclar las dos fuentes.
-  const ciudadesSinInscripcion = [...new Set(eventos.filter(e => !eventosConInscripcion.has(e.id)).map(e => e.ciudad_id))];
-  const resumenLeadsPorCiudad = {};
-  if(ciudadesSinInscripcion.length){
-    const { data: leadsData } = await sb.from('leads')
-      .select('ciudad_interes_id, estatus!leads_estatus_id_fkey(clave)')
-      .in('ciudad_interes_id', ciudadesSinInscripcion);
-    (leadsData||[]).forEach(l=>{
-      const cid = l.ciudad_interes_id;
-      if(!cid) return;
-      if(!resumenLeadsPorCiudad[cid]) resumenLeadsPorCiudad[cid] = { liquidado: 0, anticipo: 0, sinPago: 0 };
-      const clave = l.estatus?.clave;
-      if(clave === 'pagado') resumenLeadsPorCiudad[cid].liquidado++;
-      else if(clave === 'anticipo_vigente') resumenLeadsPorCiudad[cid].anticipo++;
-      else if(clave !== 'no_va_al_curso') resumenLeadsPorCiudad[cid].sinPago++;
-      // 'no_va_al_curso' no cuenta en ningún cubo — no es alguien a quien cobrar.
-    });
-  }
+  // Ya no hay "fallback" con leads de la ciudad: contaba leads de cualquier época (un curso sin
+  // inscritas salía con "con anticipo" de otro curso). Un curso sin inscritas sale en ceros.
 
   // Agrupa por fecha (puede haber más de un evento el mismo día) para
   // poder pintar un calendario mensual real en vez de una lista plana.
   calendarioDias = {};
   eventos.forEach(e=>{
-    let liquidados, conAnticipo, sinPago;
-    if(eventosConInscripcion.has(e.id)){
-      liquidados = liquidadoPorEvento[e.id] || 0;
-      conAnticipo = anticipoPorEvento[e.id] || 0;
-      sinPago = sinPagoPorEvento[e.id] || 0;
-    } else {
-      const r = resumenLeadsPorCiudad[e.ciudad_id] || { liquidado: 0, anticipo: 0, sinPago: 0 };
-      liquidados = r.liquidado; conAnticipo = r.anticipo; sinPago = r.sinPago;
-    }
+    const liquidados = liquidadoPorEvento[e.id] || 0;
+    const conAnticipo = anticipoPorEvento[e.id] || 0;
+    const sinPago = sinPagoPorEvento[e.id] || 0;
     if(!calendarioDias[e.fecha]) calendarioDias[e.fecha] = [];
     const res = resumenPorEvento[e.id] || { total: liquidados + conAnticipo + sinPago, llegaron:0, liquidadas: liquidados, deben: conAnticipo + sinPago, noLlegaron:0, cobrado:0, pendiente:0, debenLlegaron:0, porConfirmar:0 };
     calendarioDias[e.fecha].push({
@@ -7407,6 +7544,19 @@ function etiquetaInscSegunPagos(d){
   return id === estatusPorClave('pagado')?.id ? 'Liquidada' : id === estatusPorClave('anticipo_vigente')?.id ? 'Con anticipo (deben)' : 'Sin pago';
 }
 function estatusInscEsManual(id){ return CLAVES_INSC_MANUALES.includes(claveEstatus(id)); }
+/* Situación de pago de UNA inscrita: la misma regla que la función situacion_pago de la base (Embudo,
+   Hoy atender, Glamy). Si se cambia aquí, se cambia allá. "i" trae anticipo, precio_pactado, liquidado,
+   asistencia, su estatus (clave o id) y pagos(verificacion). */
+function situacionPagoInsc(i){
+  const clave = i.estatus?.clave || claveEstatus(i.estatus_id);
+  if(clave === 'no_va_al_curso' || clave === 'perdio_anticipo') return 'no_va';
+  if(clave === 'no_llego' || i.asistencia === 'no_llego') return 'no_llego';
+  if(clave === 'algo_esta_mal') return 'verificar';
+  if((i.pagos || []).some(p=>p.verificacion === 'por_confirmar')) return 'por_confirmar';
+  const pagado = Number(i.anticipo || 0), precio = Number(i.precio_pactado || 0);
+  if(i.liquidado || (precio > 0 && pagado >= precio)) return 'liquidada';
+  return pagado > 0 ? 'anticipo' : 'sin_pago';
+}
 function estatusSegunPago(pagado, precio, actual){
   if(precio != null && pagado >= precio) return ESTATUS.find(e=>e.clave==='pagado')?.id ?? actual;
   if(pagado > 0)                         return ESTATUS.find(e=>e.clave==='anticipo_vigente')?.id ?? actual;
@@ -7744,6 +7894,19 @@ document.getElementById('cobroFichaCompleta').addEventListener('click', ()=>{
   document.getElementById('modalInscripcion').classList.remove('solo-cobro');
 });
 
+/* Candado de pago doble: si la inscrita ya tiene un pago del mismo monto y la misma fecha, pregunta antes
+   de guardar otro. Devuelve true para seguir, false si se arrepiente. */
+async function confirmarSiPagoRepetido(inscId, monto, fecha, nombre){
+  const { data } = await sb.from('pagos').select('monto, fecha, hora, verificacion').eq('inscripcion_id', inscId);
+  const igual = (data || []).find(p=>Number(p.monto) === Number(monto) && p.fecha === fecha && p.verificacion !== 'no_llego');
+  if(!igual) return true;
+  const ok = await preguntarConfirmacion({ titulo:'¿Es otro pago?',
+    aviso:`${escHtml(nombre || 'La alumna')} ya tiene un pago de <b>${fmtMoney(monto)}</b> del <b>${escHtml(fechaCorta(fecha))}</b>${igual.hora ? ' a las ' + escHtml(String(igual.hora).slice(0, 5)) : ''}. `
+      + 'Si es el mismo, no lo vuelvas a registrar.',
+    textoSi:'Sí, es otro pago' });
+  if(ok === null){ registrarActividad('pago_doble_evitado', `${nombre || 'inscrita'} · ${fmtMoney(monto)} del ${fechaCorta(fecha)}`); return false; }
+  return true;
+}
 document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   if(!modalInscId || !modalInscDatos) return;
   const d = modalInscDatos;
@@ -7760,6 +7923,9 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
       textoSi:'Sí, registrar' });
     if(ok === null) return;
   }
+  // Candado: ¿ya hay un pago igual (mismo monto y misma fecha)? Así se capturó dos veces un pago de
+  // $1,200 con 2 minutos de diferencia. Se pregunta en la base (otra persona pudo haberlo registrado).
+  if(!(await confirmarSiPagoRepetido(modalInscId, monto, fecha, d.personas?.nombre))) return;
 
   const btn = document.getElementById('guardarInscPago'); btn.disabled = true; btn.textContent = 'Guardando...';
 
@@ -12430,14 +12596,17 @@ document.getElementById('plzExportar').addEventListener('click', ()=>{
 /* =========================================================
    EMBUDO POR CURSO (Cobranza → 📊 y hoja del día del Calendario)
    Cada alumna de los cursos de la gira activa (de hoy en adelante) en UN grupo:
-   inscritas (liquidada / con anticipo) y leads que todavía no se inscriben
-   (sin confirmar, promesa vigente, promesa vencida, sin respuesta; "no van" aparte).
-   Lo clasifica la base (función embudo_cursos); aquí solo se cuenta y se pinta.
+   inscritas (liquidada / con anticipo / pago por confirmar / verificar / sin pago) y leads que todavía no
+   se inscriben (sin confirmar, promesa vigente, promesa vencida, sin respuesta; "no van" aparte).
+   Lo clasifica la base (embudo_cursos con situacion_pago): la MISMA regla que Cobranza → Por cobrar,
+   así los dos cuadran. Aquí solo se cuenta y se pinta.
    ========================================================= */
 const EMB_GRUPOS = [
   { k:'liquidada',     l:'Liquidadas',      c:'#55745C', e:'✅' },
   { k:'anticipo',      l:'Con anticipo',    c:'#8FB79A', e:'💵' },
-  { k:'sin_confirmar', l:'Sin confirmar',   c:'#C6A66B', e:'🏦' },
+  { k:'sin_confirmar', l:'Pago por confirmar', c:'#C6A66B', e:'🏦' },
+  { k:'verificar',     l:'Verificar',       c:'#D98E04', e:'⚠' },
+  { k:'sin_pago',      l:'Inscrita sin pago', c:'#9DB4D3', e:'⚪' },
   { k:'promesa',       l:'Promesa vigente', c:'#E296B0', e:'📅' },
   { k:'vencida',       l:'Promesa vencida', c:'#B5453A', e:'⚠️' },
   { k:'sin_respuesta', l:'Sin respuesta',   c:'#D9CED4', e:'🔕' },
@@ -12481,7 +12650,7 @@ function embHtmlCurso(c, abierto, prefijo){
   const lista = evAbierto === c.id ? c.filas.filter(f=>f.grupo === grupoAbierto) : null;
   const g = [...EMB_GRUPOS, EMB_NO_VAN].find(x=>x.k === grupoAbierto);
   return `<div class="emb-bar">${barra}</div>
-    <div class="emb-chips">${EMB_GRUPOS.map(chip).join('')}${noVan ? chip(EMB_NO_VAN) : ''}</div>
+    <div class="emb-chips">${EMB_GRUPOS.filter(g=>!['verificar', 'sin_pago'].includes(g.k) || embCuenta(c.filas, g.k)).map(chip).join('')}${noVan ? chip(EMB_NO_VAN) : ''}</div>
     ${lista ? `<div class="emb-lista"><div class="emb-titulo">${escHtml(g?.l || '')} · ${lista.length}</div>
       ${lista.map(embHtmlFila).join('') || '<div class="sub">Nadie en este grupo.</div>'}</div>` : ''}`;
 }
@@ -12490,7 +12659,10 @@ function embHtmlFila(f){
   let estado = '';
   if(f.grupo === 'liquidada') estado = `Pagó <b>${fmtMoney(f.monto)}</b>`;
   else if(f.grupo === 'anticipo') estado = `Pagó ${fmtMoney(f.monto)}<div class="sub">Debe ${fmtMoney(f.debe)}</div>`;
+  else if(f.grupo === 'sin_confirmar' && f.inscripcion_id) estado = `Inscrita · pagó ${fmtMoney(f.monto)}<div class="sub">🏦 tiene un pago por confirmar · debe ${fmtMoney(f.debe)}</div>`;
   else if(f.grupo === 'sin_confirmar') estado = `Reportó <b>${fmtMoney(f.monto)}</b>${f.reportado_en ? `<div class="sub">${escHtml(hace(f.reportado_en))}</div>` : ''}`;
+  else if(f.grupo === 'verificar') estado = `<span class="agl-pill atr">Verificar antes de cobrar</span><div class="sub">Pagó ${fmtMoney(f.monto)} · debe ${fmtMoney(f.debe)}</div>`;
+  else if(f.grupo === 'sin_pago') estado = `Inscrita sin pago<div class="sub">Debe ${fmtMoney(f.debe)}</div>`;
   else if(f.grupo === 'promesa') estado = `Promete <b>${f.fecha_promesa === hoy ? 'hoy' : escHtml(fechaCorta(f.fecha_promesa))}</b>${f.monto ? `<div class="sub">${fmtMoney(f.monto)}</div>` : ''}`;
   else if(f.grupo === 'vencida'){ const d = diasEntre(f.fecha_promesa, hoy); estado = `<span class="agl-pill atr">Venció hace ${d} día${d === 1 ? '' : 's'}</span><div class="sub">${escHtml(fechaCorta(f.fecha_promesa))}</div>`; }
   else if(f.grupo === 'sin_respuesta') estado = '<span class="sub">Sin fecha de anticipo</span>';
@@ -12514,15 +12686,20 @@ function embReporte(filas){
     const n = k => embCuenta(c.filas, k);
     const lineas = [`*${c.ciudad} · ${fechaCorta(c.fecha)}*`];
     if(r.numeros){
-      lineas.push(`✅ Inscritas: ${n('liquidada') + n('anticipo')} (${n('liquidada')} liquidadas, ${n('anticipo')} con anticipo)`,
-        `🏦 Sin confirmar: ${n('sin_confirmar')}`, `📅 Promesa vigente: ${n('promesa')}`, `⚠️ Promesa vencida: ${n('vencida')}`,
+      // Inscritas = todas las que tienen inscripción (menos las que no van), pagaran o no.
+      const insc = c.filas.filter(f=>f.inscripcion_id && f.grupo !== 'no_van');
+      const ni = k => insc.filter(f=>f.grupo === k).length;
+      lineas.push(`✅ Inscritas: ${insc.length} (${[[ni('liquidada'), 'liquidadas'], [ni('anticipo'), 'con anticipo'], [ni('sin_confirmar'), 'con pago por confirmar'],
+          [ni('verificar'), 'por verificar'], [ni('sin_pago'), 'sin pago']].filter(([x])=>x).map(([x, t])=>x + ' ' + t).join(', ') || 'ninguna'})`,
+        `🏦 Pagos de leads sin confirmar: ${c.filas.filter(f=>f.lead_id && f.grupo === 'sin_confirmar').length}`, `📅 Promesa vigente: ${n('promesa')}`, `⚠️ Promesa vencida: ${n('vencida')}`,
         `🔕 Sin respuesta: ${n('sin_respuesta')}`, `Total: ${c.filas.length - n('no_van')}${n('no_van') ? ` (${n('no_van')} ya dijeron que no)` : ''}`);
     }
     if(r.nombres){
-      const pend = c.filas.filter(f=>['sin_confirmar', 'vencida', 'promesa', 'sin_respuesta'].includes(f.grupo));
+      const PEND = ['sin_confirmar', 'verificar', 'sin_pago', 'vencida', 'promesa', 'sin_respuesta'];
+      const pend = c.filas.filter(f=>PEND.includes(f.grupo));
       if(pend.length){
         lineas.push('', '_Pendientes_');
-        ['sin_confirmar', 'vencida', 'promesa', 'sin_respuesta'].forEach(k=>{
+        PEND.forEach(k=>{
           const g = EMB_GRUPOS.find(x=>x.k === k);
           pend.filter(f=>f.grupo === k).forEach(f=>{
             const extra = [r.porVend ? '' : embVend(f.asesor_id),
@@ -12660,7 +12837,7 @@ function embPintarCalLocal(eventoId){
   if(!caja || !d) return;
   const c = embCursos(d.filas)[0];
   if(!c){ caja.innerHTML = ''; return; }
-  const enCamino = c.filas.filter(f=>['sin_confirmar', 'promesa', 'vencida', 'sin_respuesta'].includes(f.grupo)).length;
+  const enCamino = c.filas.filter(f=>f.lead_id && ['sin_confirmar', 'promesa', 'vencida', 'sin_respuesta'].includes(f.grupo)).length;
   caja.innerHTML = `<div class="seccion-titulo">Embudo del curso</div>${embHtmlCurso(c, d.abierto, 'emb-cal')}
     <div class="sub" style="margin-top:6px;">En camino: <b>${enCamino}</b> que todavía no están inscritas. Toca un grupo para ver la lista.</div>`;
 }

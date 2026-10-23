@@ -95,7 +95,7 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
 
 /* Glamy BI (Reportes → Glamy BI, solo administradores): consulta métricas con definición fija
    (función bi_consulta de la base) y el Hub dibuja la gráfica con lo que regresa. */
-const BI_METRICAS = ["inscritas", "con_pago", "liquidadas", "inscritas_deben", "cobrado", "por_cobrar", "ticket_promedio", "vip", "asistencia",
+const BI_METRICAS = ["inscritas", "con_pago", "liquidadas", "inscritas_deben", "inscritas_sin_pago", "inscritas_por_confirmar", "cobrado", "por_cobrar", "ticket_promedio", "vip", "asistencia",
   "no_llegaron", "bajas", "no_van", "pagos", "pagos_por_confirmar", "num_pagos", "leads", "conversion", "leads_abiertos", "leads_promesa", "promesa_vigente",
   "leads_por_confirmar", "promesas_vencidas", "contactos", "cambio_fecha", "cambio_aceptaron", "regalos_academia"];
 const BI_POR = ["total", "ciudad", "curso", "vendedora", "estado", "paquete", "mes", "semana", "dia", "semana_gira"];
@@ -105,6 +105,7 @@ const HERRAMIENTAS_BI: Anthropic.Tool[] = [
     name: "bi_consulta",
     description: "Glamy BI: consulta UNA métrica del Hub con definición fija y la regresa lista para graficar (el Hub dibuja la gráfica). " +
       "Métricas: inscritas, con_pago (pagaron algo, incluye liquidadas), liquidadas, inscritas_deben (\"Con anticipo (deben)\": pagaron una parte y deben el resto), " +
+      "inscritas_sin_pago (inscritas que no han pagado nada), inscritas_por_confirmar (inscritas con un pago que falta ver en el banco), " +
       "cobrado (lo pagado por inscripción, por fecha del curso), por_cobrar (lo que deben, $), ticket_promedio, vip, asistencia (%), no_llegaron, " +
       "bajas (solo inscritas que ya no van), no_van (cancelaron o dijeron que no irán: inscritas que ya no van + leads que dijeron que no van), " +
       "pagos (por fecha de pago), pagos_por_confirmar ($), num_pagos, leads, conversion (% de leads inscritos), leads_abiertos, " +
@@ -328,7 +329,8 @@ Eres su analista de datos, como un Power BI que platica.
 - "ciudades pendientes", "las que faltan", "a las que iremos", "próximas", "lo que viene" → proximos: true (solo cursos que no han pasado; con bi_tabla por ciudad salen todas esas ciudades con su fecha).
 - "con anticipo", "dieron anticipo", "apartaron su lugar", "deben el resto" → inscritas_deben. "pagaron algo", "con pago" → con_pago. "ya pagaron todo", "liquidaron" → liquidadas. "inscritas" a secas → inscritas.
 - "fecha de pago pendiente", "prometieron pagar", "dijeron que pagan el…", "promesas" (sin decir vencidas) → promesa_vigente. "ya se les pasó la fecha", "quedaron mal", "promesas vencidas" → promesas_vencidas.
-- "mandaron comprobante", "dicen que ya pagaron", "por confirmar" → leads_por_confirmar (cuántas) o pagos_por_confirmar ($).
+- "mandaron comprobante", "dicen que ya pagaron", "por confirmar" → leads_por_confirmar (cuántas) o pagos_por_confirmar ($); si preguntan por inscritas → inscritas_por_confirmar.
+- "inscritas sin pago", "no han dado nada", "apartaron sin pagar" → inscritas_sin_pago.
 - "cancelaron", "no van", "ya no van", "se bajaron", "dijeron que no irán", "pidieron reembolso" → no_van (incluye leads). Solo si piden únicamente inscritas → bajas.
 - "cuánto nos deben", "saldo", "falta cobrar" → por_cobrar. "cuánto llevamos", "lo cobrado", "ingresos" → cobrado. "pagos de la semana/mes" → pagos (por fecha de pago).
 - "faltaron", "no llegaron" → no_llegaron. "interesadas", "prospectos", "en seguimiento" → leads_abiertos.
