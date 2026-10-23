@@ -92,7 +92,7 @@ const INSC = {
   await p.click('#guardarInscPago');
   await p.waitForTimeout(200);
   check((await h.ops('pagos', 'insert'))[0]?.monto === 200, 'pago de $200');
-  check((await updates()).some(u => u.anticipo === 1600 && u.restante === 300 && u.liquidado === false && !('estatus_id' in u)), 'debe $300, estatus sin cambio');
+  check((await updates()).some(u => u.anticipo === 1600 && u.restante === 300 && u.liquidado === false && u.estatus_id === 11), 'debe $300; el estatus sigue a los pagos: con anticipo');
 
   h.paso('8. Pagar de más sigue preguntando');
   await abrir();

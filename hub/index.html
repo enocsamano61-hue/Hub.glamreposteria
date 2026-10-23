@@ -1350,6 +1350,12 @@
   .ficha-tabs button.activa{ color:var(--wine); border-bottom-color:var(--wine); }
   .ficha-tabs button:disabled{ opacity:.45; cursor:default; }
   .ficha-contactos{ display:none; }
+  .ficha-curso{ border:1px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:10px; background:var(--card); font-size:12.5px; }
+  .ficha-curso .fc-fila{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .ficha-curso .fc-fila + .fc-fila, .ficha-curso .fc-mover{ margin-top:6px; }
+  .ficha-curso .btn-outline.small, .ficha-curso .btn-primary.small{ width:auto; padding:4px 10px; font-size:11.5px; }
+  .ficha-curso input[type=date]{ padding:4px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
+  .ficha-curso label{ font-weight:600; color:var(--ink-soft); }
   /* Pestaña Contactos: se esconde el resto del cuerpo de la ficha */
   .modal.ver-contactos > :not(.close):not(.ficha-cabeza):not(.ficha-tabs):not(.ficha-contactos){ display:none !important; }
   .modal.ver-contactos > .ficha-contactos{ display:block; }
@@ -2493,6 +2499,22 @@
     </div>
     <div class="ficha-tabs" id="ftabsInsc"></div>
     <div class="ficha-contactos" id="fcontInsc"></div>
+    <!-- Su curso (se puede cambiar) y la fecha en que pagará lo que le falta -->
+    <div class="ficha-curso" id="fichaCurso">
+      <div class="fc-fila"><span>📅 Curso: <b id="fichaCursoTxt">—</b></span>
+        <button type="button" class="btn-outline small" id="btnCambiarCurso">Cambiar de curso</button></div>
+      <div class="fc-mover" id="fichaCursoMover" hidden>
+        <select id="fichaCursoSelect"></select>
+        <div class="fc-fila"><button type="button" class="btn-outline small" id="fichaCursoCancelar">Cancelar</button>
+          <button type="button" class="btn-primary small" id="fichaCursoOk">Mover a este curso</button></div>
+        <div class="vend-hint">Conserva lo que pagó y su vendedora; queda escrito en sus notas y en la actividad.</div>
+      </div>
+      <div class="fc-fila" id="inscProximoPagoCaja">
+        <label for="inscProximoPago">💸 Fecha de pago (lo que le falta) <span class="guardado-estado" id="inscProximoPagoEstado"></span></label>
+        <input type="date" id="inscProximoPago">
+      </div>
+      <div class="vend-hint" id="inscProximoPagoHint"></div>
+    </div>
     <div class="cf-ficha" id="modalInscCambioFecha"></div>
     <!-- Cobro: lo primero que se ve. Lo que debe en grande y un solo botón. -->
     <div class="ficha-cobro" id="panelInscPago">
@@ -2537,13 +2559,6 @@
         </div>
         <div class="vend-hint" id="inscVendedorHint"></div>
       </div>
-      <div class="modal-vendedor" id="inscProximoPagoCaja">
-        <div class="modal-notas-titulo">Próximo pago <span class="guardado-estado" id="inscProximoPagoEstado"></span></div>
-        <div class="vend-row">
-          <input type="date" id="inscProximoPago">
-        </div>
-        <div class="vend-hint" id="inscProximoPagoHint"></div>
-      </div>
       <div class="modal-tabs">
         <button class="modal-tab active" id="tabInscEstatus">Marcar estatus</button>
         <button class="modal-tab" id="tabInscCorregir">Corregir montos</button>
@@ -2553,7 +2568,8 @@
         <div class="dato-row"><span class="l">Precio pactado</span><span class="v" id="modalInscPrecio">—</span></div>
         <div class="dato-row"><span class="l">Anticipo registrado</span><span class="v" id="modalInscAnticipo">—</span></div>
         <div class="dato-row"><span class="l">Restante</span><span class="v" id="modalInscRestante">—</span></div>
-        <div class="modal-field"><label>Nuevo estatus</label><select id="modalInscEstatusSelect"></select></div>
+        <div class="modal-field"><label>Estatus</label><select id="modalInscEstatusSelect"></select>
+          <div class="vend-hint">El estatus de una inscrita sale de sus pagos (sin pago, con anticipo o liquidada). A mano solo se marca si hay algo que verificar, si ya no va, si perdió el anticipo o si no llegó.</div></div>
         <button class="btn-primary" id="guardarInscEstatus">Guardar estatus</button>
       </div>
 
@@ -7188,7 +7204,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, sede, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
+    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, sede, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -7201,7 +7217,11 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   document.getElementById('modalInscRestante').textContent = data.liquidado ? 'Liquidado' : '$'+Number(data.restante||0).toFixed(0);
   document.getElementById('modalInscNotasEdit').value = (data.notas_migracion || '').split(' | ').join('\n');
   const sel = document.getElementById('modalInscEstatusSelect');
-  sel.innerHTML = ESTATUS.map(e=>`<option value="${e.id}" ${e.id===data.estatus_id?'selected':''}>${e.etiqueta}</option>`).join('');
+  const manual = estatusInscEsManual(data.estatus_id);
+  sel.innerHTML = `<option value="auto" ${manual ? '' : 'selected'}>Activa · según sus pagos: ${escHtml(etiquetaInscSegunPagos(data))}</option>`
+    + CLAVES_INSC_MANUALES.map(c=>estatusPorClave(c)).filter(Boolean)
+        .map(e=>`<option value="${e.id}" ${e.id === data.estatus_id ? 'selected' : ''}>${escHtml(ETIQUETA_INSC_MANUAL[e.clave])}</option>`).join('');
+  pintarCursoFicha();
   document.getElementById('modalPagoMonto').value = '';
   document.getElementById('modalPagoFecha').value = hoyISO();
   document.getElementById('modalPagoBanco').value = '';
@@ -7255,6 +7275,48 @@ document.getElementById('btnInscContacto').addEventListener('click', ()=>{
     document.getElementById('modalInscAvatar').textContent = iniciales(cambios.nombre);
     pintarContactoFicha(modalInscDatos.personas);
   });
+});
+
+/* Curso de la inscrita y "Cambiar de curso" (el mismo movimiento que en No llegaron). */
+function pintarCursoFicha(){
+  const d = modalInscDatos; if(!d) return;
+  const ev = d.eventos;
+  document.getElementById('fichaCursoTxt').textContent = ev ? `${ev.ciudades?.nombre || '(ciudad?)'} · ${ev.fecha ? fechaLarga(ev.fecha) : 'sin fecha'}` : 'sin curso';
+  document.getElementById('fichaCursoMover').hidden = true;
+}
+document.getElementById('btnCambiarCurso').addEventListener('click', async ()=>{
+  const d = modalInscDatos; if(!d) return;
+  const sel = document.getElementById('fichaCursoSelect');
+  sel.innerHTML = opcionesEvento('', '— Elige el curso —');
+  [...sel.options].forEach(o=>{ if(o.value && o.value === d.evento_id) o.remove(); });
+  buscadorDeCiudad(sel, { placeholder:'Busca la ciudad del curso…' });
+  await sugerirPorLada(['fichaCursoSelect'], d.personas?.telefono_principal);
+  sel.value = '';
+  document.getElementById('fichaCursoMover').hidden = false;
+  document.getElementById('fichaCursoSelectBuscar')?.focus();
+});
+document.getElementById('fichaCursoCancelar').addEventListener('click', ()=>{ document.getElementById('fichaCursoMover').hidden = true; });
+document.getElementById('fichaCursoOk').addEventListener('click', async ()=>{
+  const d = modalInscDatos; if(!d) return;
+  const nuevo = document.getElementById('fichaCursoSelect').value;
+  const ev = eventoPorId(nuevo);
+  if(!nuevo || !ev){ toast('Elige el curso al que se mueve.', true); return; }
+  const nombre = d.personas?.nombre || 'la alumna';
+  // Si ya tiene inscripción en ese curso, no se duplica
+  const { data: ya } = await sb.from('inscripciones').select('id').eq('persona_id', d.personas?.id).eq('evento_id', nuevo).maybeSingle();
+  if(ya && ya.id !== d.id){ toast(`${nombre} ya está inscrita en ese curso.`, true); return; }
+  const antes = `${d.eventos?.ciudades?.nombre || ''} ${d.eventos?.fecha ? fechaCorta(d.eventos.fecha) : ''}`.trim();
+  const despues = `${ev.ciudades?.nombre || ''} ${fechaCorta(ev.fecha)}`;
+  const ok = await preguntarConfirmacion({ titulo:'¿Cambiar de curso?', textoSi:'Sí, cambiarla',
+    aviso:`${escHtml(nombre)}: <b>${escHtml(antes)}</b> → <b>${escHtml(despues)}</b>.<br>Conserva lo que pagó, su paquete y su vendedora.` });
+  if(ok === null) return;
+  const cambios = { evento_id: nuevo, notas_migracion: notaConRastro(d, `CAMBIÓ DE CURSO de ${antes} a ${despues}`) };
+  const { error } = await sb.from('inscripciones').update(cambios).eq('id', d.id);
+  if(error){ toast('No se pudo cambiar de curso: ' + error.message, true); return; }
+  registrarActividad('inscripcion_movida', `${nombre}: ${antes} → ${despues}`);
+  toast(`📅 ${nombre} ahora va a ${despues}.`);
+  await abrirModalInscripcion(d.id);
+  if(document.getElementById('view-calendario')?.classList.contains('active')) renderCalendario(true);
 });
 
 /* Próximo pago: la fecha con la que Cobranza la acomoda. Vacía = día del curso. */
@@ -7324,6 +7386,20 @@ document.getElementById('tabInscCorregir').addEventListener('click', ()=>cambiar
 
 /* Qué estatus le toca segun lo que lleva pagado. Misma regla que usa
    "Agregar pago", para que corregir y abonar no dejen datos distintos. */
+/* Estatus de una INSCRITA: sale de sus pagos. A mano solo los que no dependen del dinero. */
+const CLAVES_INSC_MANUALES = ['algo_esta_mal', 'no_va_al_curso', 'perdio_anticipo', 'no_llego'];
+const ETIQUETA_INSC_MANUAL = { algo_esta_mal:'Verificar antes de cobrar (algo está mal)', no_va_al_curso:'No va a ir al curso', perdio_anticipo:'Perdió anticipo', no_llego:'No llegó al curso' };
+function estatusInscSegunPagos(d){
+  const pagado = Number(d.anticipo || 0), precio = d.precio_pactado != null ? Number(d.precio_pactado) : null;
+  if(d.liquidado || (precio > 0 && pagado >= precio)) return estatusPorClave('pagado')?.id;
+  if(pagado > 0) return estatusPorClave('anticipo_vigente')?.id;
+  return estatusPorClave('no_vence_pago')?.id;
+}
+function etiquetaInscSegunPagos(d){
+  const id = estatusInscSegunPagos(d);
+  return id === estatusPorClave('pagado')?.id ? 'Liquidada' : id === estatusPorClave('anticipo_vigente')?.id ? 'Con anticipo (deben)' : 'Sin pago';
+}
+function estatusInscEsManual(id){ return CLAVES_INSC_MANUALES.includes(claveEstatus(id)); }
 function estatusSegunPago(pagado, precio, actual){
   if(precio != null && pagado >= precio) return ESTATUS.find(e=>e.clave==='pagado')?.id ?? actual;
   if(pagado > 0)                         return ESTATUS.find(e=>e.clave==='anticipo_vigente')?.id ?? actual;
@@ -7466,13 +7542,14 @@ document.getElementById('modalInscNotasEdit').addEventListener('blur', ()=>{ if(
 
 document.getElementById('guardarInscEstatus').addEventListener('click', async ()=>{
   if(!modalInscId) return;
-  const nuevoEstatusId = Number(document.getElementById('modalInscEstatusSelect').value);
+  const val = document.getElementById('modalInscEstatusSelect').value;
+  const nuevoEstatusId = val === 'auto' ? estatusInscSegunPagos(modalInscDatos || {}) : Number(val);
   const btn = document.getElementById('guardarInscEstatus'); btn.disabled = true; btn.textContent = 'Guardando...';
   const { error } = await sb.from('inscripciones').update({ estatus_id: nuevoEstatusId }).eq('id', modalInscId);
   btn.disabled = false; btn.textContent = 'Guardar estatus';
   if(error){ toast('Error al guardar: ' + error.message, true); return; }
   toast('Estatus actualizado.');
-  const etiquetaNueva = ESTATUS.find(e=>e.id===nuevoEstatusId)?.etiqueta || '';
+  const etiquetaNueva = val === 'auto' ? etiquetaInscSegunPagos(modalInscDatos || {}) : (ETIQUETA_INSC_MANUAL[claveEstatus(nuevoEstatusId)] || '');
   registrarActividad('inscripcion_estatus', `${modalInscDatos?.personas?.nombre||''} → ${etiquetaNueva}`);
   cerrarModalInscripcion();
   await renderCalendario(true);
@@ -7689,10 +7766,8 @@ document.getElementById('guardarInscPago').addEventListener('click', async ()=>{
   if(errPago){ btn.disabled = false; pintarCobro(); toast('Error al registrar el pago: ' + errPago.message, true); return; }
 
   const update = { anticipo: r.nuevoAnticipo, restante: r.nuevoRestante, liquidado: r.liquidado };
-  if(r.liquidado){
-    const estatusPagado = ESTATUS.find(e=>e.clave==='pagado');
-    if(estatusPagado) update.estatus_id = estatusPagado.id;
-  }
+  // El estatus sigue a los pagos (salvo que esté marcada a mano: verificar, no va, perdió anticipo, no llegó)
+  if(!estatusInscEsManual(d.estatus_id)) update.estatus_id = estatusInscSegunPagos({ ...d, anticipo: r.nuevoAnticipo, liquidado: r.liquidado });
   const proximo = document.getElementById('cobroProximo').value || null;
   const fechaMovida = !r.liquidado && proximo !== (d.fecha_proximo_pago || null);
   if(fechaMovida) update.fecha_proximo_pago = proximo;
