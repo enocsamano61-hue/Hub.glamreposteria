@@ -45,13 +45,17 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
   },
   {
     name: "curso",
-    description: "Cómo va un curso de la gira: inscritas, llegaron, liquidadas, quién debe y cuánto, pagos por confirmar y diplomas entregados. Con 'filtro' regresa además la lista (hasta 40) de ese grupo. Sin fecha toma el curso de esa ciudad más cercano a hoy; sin ciudad ni fecha, el curso más cercano a hoy.",
+    description: "Cómo va un curso de la gira: inscritas, llegaron, liquidadas, quién debe y cuánto, pagos por confirmar, diplomas entregados y, si el curso cambió de fecha, " +
+      "cómo van los avisos del cambio (cambio_de_fecha: cuántas aceptaron, avisadas, sin avisar, reembolso o ya no van, inscritas y leads por separado, y las que se inscribieron " +
+      "después del cambio y no necesitan aviso). Con 'filtro' regresa además la lista de ese grupo: cambio_faltan = a quién falta avisar o no ha contestado; cambio_aceptaron = quién aceptó. " +
+      "Sin fecha toma el curso de esa ciudad más cercano a hoy; sin ciudad ni fecha, el curso más cercano a hoy.",
     input_schema: {
       type: "object",
       properties: {
         ciudad: { type: "string", description: "Nombre de la ciudad (puede ir sin acentos)" },
         fecha: { type: "string", description: "Fecha del curso AAAA-MM-DD, si la saben" },
-        filtro: { type: "string", enum: ["deben", "por_confirmar", "llegaron", "no_llegaron", "sin_marcar", "sin_diploma", "liquidadas", "todas"], description: "Grupo a listar" },
+        filtro: { type: "string", enum: ["deben", "por_confirmar", "llegaron", "no_llegaron", "sin_marcar", "sin_diploma", "liquidadas", "todas", "cambio_faltan", "cambio_aceptaron"],
+          description: "Grupo a listar. por_confirmar = PAGOS por confirmar; cambio_faltan / cambio_aceptaron = avisos del cambio de fecha." },
       },
     },
   },
@@ -173,7 +177,7 @@ async function ejecutar(nombre: string, entrada: Record<string, unknown>, sb: Cl
       return rpc("glamy_buscar_persona", { p_texto: corto(entrada.texto, 80) });
     case "curso": {
       const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(entrada.fecha ?? "")) ? String(entrada.fecha) : null;
-      const filtros = ["deben", "por_confirmar", "llegaron", "no_llegaron", "sin_marcar", "sin_diploma", "liquidadas", "todas"];
+      const filtros = ["deben", "por_confirmar", "llegaron", "no_llegaron", "sin_marcar", "sin_diploma", "liquidadas", "todas", "cambio_faltan", "cambio_aceptaron"];
       return rpc("glamy_curso", {
         p_ciudad: corto(entrada.ciudad, 60) || null, p_fecha: fecha,
         p_filtro: filtros.includes(String(entrada.filtro)) ? String(entrada.filtro) : null,

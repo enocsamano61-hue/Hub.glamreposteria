@@ -56,6 +56,25 @@ const CASOS = [
     debe:['⟦ir:historial⟧', '⟦ir:board⟧'], noDebe:['⟦ir:calendario⟧'] },
 ];
 
+/* Cambio de fecha de un curso (preguntas de Jared, 24 oct): "confirmados" = aceptaron la nueva fecha, no pagos.
+   La herramienta curso regresa siempre el mismo ejemplo (17 inscritas: 10 aceptaron, 4 sin avisar, 3 después del cambio). */
+const CURSO_CF = { encontrado:true, curso:{ evento_id:ID(30), fecha:mas(90), ciudad:'Ciudad Ejemplo', curso:'LOS PASTELES MAS SABROSOS DE LA CHEF', sede:'Salón' },
+  numeros:{ inscritas:17, liquidadas:1, deben:16, total_que_deben:11350, cobrado:12600, pagos_por_confirmar:0, llegaron:0, no_llegaron:0, sin_marcar_llegada:17, diplomas_entregados:0 },
+  cambio_de_fecha:{ fecha_anterior:mas(-2), fecha_nueva:mas(90), inscritas:{ acepto:10, sin_avisar:4 }, inscritas_despues_del_cambio:3,
+    nota_despues_del_cambio:'Se inscribieron cuando el curso ya tenía la fecha nueva: no necesitan aviso.', leads:{ sin_avisar:13 },
+    significado:'Estados del aviso del cambio de fecha (NO son pagos): acepto = aceptó la nueva fecha; avisada = ya se le mandó el WhatsApp y no ha contestado; sin_avisar = falta avisarle; reembolso = pidió reembolso; reembolsada = ya se le devolvió; no_va = ya no va.' },
+  lista:Array.from({ length:10 }, (_, i) => ({ tipo:'inscrita', inscripcion_id:ID(40 + i), nombre:'Alumna Ejemplo ' + (i + 1), telefono:'55000001' + String(i).padStart(2, '0'), estado_cambio:'acepto' })) };
+const usoCurso = r => (r.llamadas || []).some(l => l.nombre === 'curso');
+const hablaDePagos = t => /pagos? por confirmar/i.test(t) && !/\b10\b/.test(t);
+const CASOS_CF = [
+  { nombre:'Cambio de fecha: ¿cuáles aceptaron? (Jared)', pregunta:'de los 17 de ciudad ejemplo cuales son los que aceptaron el cambio de fecha?',
+    revisar: (r, t) => usoCurso(r) && (r.llamadas || []).some(l => l.nombre === 'curso' && l.entrada.filtro === 'cambio_aceptaron') && /Alumna Ejemplo/.test(t) },
+  { nombre:'Cambio de fecha: ¿cuántos faltan? (Jared)', pregunta:'hay un boton que dice cuando ya saben del cambio de fecha, para que esten confirmados de la fecha anterior y de esta, ya sabes cuantos de los 17 de ciudad ejemplo faltan?',
+    revisar: (r, t) => usoCurso(r) && /\b4\b/.test(t) && !hablaDePagos(t) },
+  { nombre:'Cambio de fecha: confirmados y por confirmar (Jared)', pregunta:'en ciudad ejemplo de los que ya tienen pago para esta fecha dime cuantos estan confirmados y cuantos me faltan por confirmar del cambio',
+    revisar: (r, t) => usoCurso(r) && /\b10\b/.test(t) && /\b4\b/.test(t) && !hablaDePagos(t) },
+];
+
 /* Glamy BI (modo bi): se revisa con qué herramientas y datos contestó (lenguaje sencillo → métricas). */
 // Datos de ejemplo con números para cualquier columna que pida (si vinieran vacíos, Glamy con razón vuelve a preguntar).
 const VALORES_EJ = Object.fromEntries(['inscritas', 'con_pago', 'liquidadas', 'inscritas_deben', 'por_cobrar', 'bajas', 'no_van', 'promesa_vigente', 'promesas_vencidas',
@@ -99,6 +118,16 @@ const CASOS_BI = [
     bien ? ok++ : mal++;
     console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
     if(!bien) console.log('   esperaba alguno de', c.debe.join(' '), c.noDebe.length ? '· sin ' + c.noDebe.join(' ') : '', '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
+  }
+  for(const c of CASOS_CF){
+    const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ accion:'prueba', llave:LLAVE, pregunta:c.pregunta, seccion:'calendario', simular:{ curso:CURSO_CF } }) }).then(x => x.json());
+    costo += r.costo_usd || 0;
+    const t = String(r.texto || '');
+    const bien = !r.error && c.revisar(r, t);
+    bien ? ok++ : mal++;
+    console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
+    if(!bien) console.log('   llamó:', JSON.stringify(r.llamadas || []), '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
   }
   for(const c of CASOS_BI){
     const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
