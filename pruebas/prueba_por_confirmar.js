@@ -1,4 +1,4 @@
-/* 🏦 Pagos por confirmar: marcar al cobrar o después, revisar en Recepción
+/* Pagos por confirmar: marcar al cobrar o después, revisar en Recepción
    o en la ficha, "no llegó" regresa la deuda, aviso al cerrar, Cobranza y
    Calendario. Datos inventados. */
 const { abrirHub } = require('./arnes');
@@ -26,14 +26,14 @@ const base = () => ({
   const fuera = () => p.evaluate(() => document.activeElement.blur());
   const insc = id => p.evaluate(x => rec.inscritas.find(i => i.id === x), id);
 
-  h.paso('1. Recepción: Transferencia + 🏦 al cobrar');
+  h.paso('1. Recepción: Transferencia + al cobrar');
   await p.evaluate(ev => abrirRecepcion(ev), EV);
   await p.waitForTimeout(200);
-  check(!(await p.isVisible('#recKpiPC')), 'sin pendientes no se ve el contador 🏦');
+  check(!(await p.isVisible('#recKpiPC')), 'sin pendientes no se ve el contador ');
   await p.evaluate(() => seleccionarRecepcion('i:a'));
   await fuera();
   await tecla('3');
-  check(await p.isVisible('#recMarcarPC') && !(await p.getAttribute('#recMarcarPC', 'class')).includes(' on'), 'la etiqueta 🏦 existe y no viene marcada');
+  check(await p.isVisible('#recMarcarPC') && !(await p.getAttribute('#recMarcarPC', 'class')).includes(' on'), 'la etiqueta existe y no viene marcada');
   await tecla('b');
   check((await p.getAttribute('#recMarcarPC', 'class')).includes('on'), 'B la marca');
   await h.limpiarOps();
@@ -42,9 +42,9 @@ const base = () => ({
   const ins1 = (await h.ops('pagos', 'insert'))[0]?.[0];
   check(ins1 && ins1.verificacion === 'por_confirmar' && ins1.forma_pago === 'Transferencia' && /^\d\d:\d\d:\d\d$/.test(ins1.hora), 'pago por confirmar, con forma y hora: ' + JSON.stringify(ins1));
   check((await h.ops('inscripciones', 'update')).some(u => u.liquidado === true && u.asistencia === 'llego'), 'la alumna pasa y queda liquidada');
-  check(await p.isVisible('#recKpiPC') && (await txt('#recKpiPC')).includes('1') && (await txt('#recKpiPC')).includes('$500'), 'contador 🏦 1 ($500): ' + await txt('#recKpiPC'));
+  check(await p.isVisible('#recKpiPC') && (await txt('#recKpiPC')).includes('1') && (await txt('#recKpiPC')).includes('$500'), 'contador 1 ($500): ' + await txt('#recKpiPC'));
   check(await p.evaluate(() => rec.marcarPC) === false, 'la etiqueta se apaga para la siguiente');
-  check((await h.ops('actividad_usuario', 'insert')).some(a => a.detalle.includes('🏦 por confirmar')), 'Actividad lo dice');
+  check((await h.ops('actividad_usuario', 'insert')).some(a => a.detalle.includes('por confirmar')), 'Actividad lo dice');
 
   h.paso('2. Sin la etiqueta, el pago queda confirmado');
   await p.waitForTimeout(900);
@@ -55,7 +55,7 @@ const base = () => ({
   await p.waitForTimeout(200);
   check((await h.ops('pagos', 'insert'))[0]?.[0]?.verificacion === 'confirmado', 'confirmado (la forma de pago se quedó en Transferencia)');
 
-  h.paso('3. Filtro 🏦 y lista resaltada');
+  h.paso('3. Filtro y lista resaltada');
   await p.waitForTimeout(900);
   await p.click('#recKpiPC');
   await p.waitForTimeout(100);
@@ -126,7 +126,7 @@ const base = () => ({
   check(upU && !('anticipo' in upU) && upU.notas_migracion.includes('cobrarlo de nuevo'), 'solo queda anotado para cobrarlo: ' + JSON.stringify(upU));
   await p.evaluate(() => cerrarModalInscripcion());
 
-  h.paso('9. Ficha: cobrar con 🏦 y Depósito / OXXO');
+  h.paso('9. Ficha: cobrar con y Depósito / OXXO');
   await p.evaluate(() => { const i = window.__tablas.inscripciones[0]; Object.assign(i, { anticipo:1400, restante:500, liquidado:false, estatus_id:11, pagos:[] }); window.__ops = []; return abrirModalInscripcion('f1'); });
   await p.waitForTimeout(200);
   check(!(await p.getAttribute('#cobroPorConfirmar', 'class')).includes('activo'), 'la etiqueta empieza apagada');
@@ -148,13 +148,13 @@ const base = () => ({
   });
   await p.waitForTimeout(400);
   const bloque = await txt('#cobPorConfirmar');
-  check(bloque.includes('2') && bloque.includes('$800') && bloque.includes('Gina Dos Prueba') && !bloque.includes('No Sale'), 'bloque 🏦 con 2 pagos y $800: ' + bloque.replace(/\s+/g, ' ').slice(0, 160));
+  check(bloque.includes('2') && bloque.includes('$800') && bloque.includes('Gina Dos Prueba') && !bloque.includes('No Sale'), 'bloque con 2 pagos y $800: ' + bloque.replace(/\s+/g, ' ').slice(0, 160));
   await p.click('[data-cob-pc="f1"]');
   await p.waitForTimeout(200);
   check(await p.evaluate(() => document.getElementById('modalInscripcion').classList.contains('open')), 'Revisar abre la ficha');
   await p.evaluate(() => cerrarModalInscripcion());
 
-  h.paso('11. Calendario marca 🏦 en el curso');
+  h.paso('11. Calendario marca en el curso');
   await p.evaluate(async hoy => {
     window.__tablas.cursos = [{ id:'cur1', nombre:CURSO_ACTIVO_NOMBRE }];
     window.__tablas.eventos = [{ id:'ev1', fecha:hoy, ciudad_id:'c1', curso_id:'cur1', sede:'S', recepcion_cerrada_en:null, ciudades:{ nombre:'Ciudad Prueba' }, cursos:{ nombre:'x' } }];
@@ -165,7 +165,7 @@ const base = () => ({
   }, HOY);
   await p.waitForTimeout(200);
   const tarjeta = (await p.innerText(`.cal-tarjeta[data-key="${HOY}"]`)).replace(/\s+/g, ' ');
-  check(tarjeta.includes('🏦 1'), 'la tarjeta muestra 🏦 1: ' + tarjeta);
+  check(tarjeta.includes('1'), 'la tarjeta muestra 1: ' + tarjeta);
   await p.click(`.cal-tarjeta[data-key="${HOY}"]`);
   await p.waitForTimeout(200);
   check((await txt('#sheetEventos')).includes('por confirmar'), 'la hoja del día también');

@@ -2,7 +2,7 @@
    - "+ Nuevo lead": si su lead de antes está cerrado o es de un curso que ya pasó, se crea uno nuevo
      (el viejo queda igual). Solo se detiene si alguien la está trabajando (lead abierto de esta gira).
    - El selector de curso pone arriba los de la ciudad de su lada y luego los de su estado.
-   - "➕ Inscribir a un curso" en el aviso "ya está en el Hub", en Historial cliente y en su ficha:
+   - "Inscribir a un curso" en el aviso "ya está en el Hub", en Historial cliente y en su ficha:
      elige curso, paquete y pago, y queda SIEMPRE "Pago por confirmar" para Cobranza.
    Datos de ejemplo, sin personas reales. */
 const { abrirHub } = require('./arnes');
@@ -113,7 +113,7 @@ const PERSONAS_RPC = {
   await p.click('#nuevoExiste [data-exi-curso="pV"]');
   await p.waitForSelector('#modalRegistrarPago.open');
   check(!(await p.evaluate(() => document.getElementById('modalNuevo').classList.contains('open'))), 'cierra el formulario de nuevo lead');
-  check(await p.textContent('#regPagoTitulo') === '➕ Inscribir a un curso' && await p.isVisible('#regPagoVendedorCampo'), 'título y "¿Quién vendió?"');
+  check(await p.textContent('#regPagoTitulo') === 'Inscribir a un curso' && await p.isVisible('#regPagoVendedorCampo'), 'título y "¿Quién vendió?"');
   check(await p.inputValue('#regPagoEvento') === 'evTux', 'ya trae el curso de su lada (Tuxpan)');
   await h.captura('otro-curso-inscribir.png');
   await p.fill('#regPagoMonto', '700');
@@ -135,7 +135,7 @@ const PERSONAS_RPC = {
   await p.waitForSelector('#modalRegistrarPago.open');
   await h.limpiarOps();
   await p.click('#closeModalRegistrarPago');
-  check((await h.ops('leads', 'insert')).length === 0 && await p.textContent('#regPagoTitulo') === '💜 Registrar pago', 'cancelar no crea nada y el modal vuelve a ser "Registrar pago"');
+  check((await h.ops('leads', 'insert')).length === 0 && await p.textContent('#regPagoTitulo') === 'Registrar pago', 'cancelar no crea nada y el modal vuelve a ser "Registrar pago"');
   await p.evaluate(() => abrirInscribirACurso({ personaId:'pO', nombre:'Lead Abierto Prueba', telefono:'2221000002' }));
   await p.waitForSelector('#modalRegistrarPago.open');
   check((await p.textContent('#regPagoAntes')).includes('Ya es lead de Vendedora Prueba') && !(await p.isVisible('#regPagoVendedorCampo')), 'avisa que ya es lead y usa ese');
@@ -159,8 +159,8 @@ const PERSONAS_RPC = {
   check(await p.evaluate(() => modalInscId === 'iY') && await p.inputValue('#modalPagoMonto') === '500' && (await h.ops('leads', 'insert')).length === 0,
         'abre su ficha con el pago escrito y no crea lead');
 
-  h.paso('7. Desde su ficha: "➕ Otro curso"');
-  check(await p.isVisible('#btnInscOtroCurso'), 'la ficha tiene "➕ Otro curso"');
+  h.paso('7. Desde su ficha: "Otro curso"');
+  check(await p.isVisible('#btnInscOtroCurso'), 'la ficha tiene "Otro curso"');
   await p.click('#btnInscOtroCurso');
   await p.waitForSelector('#modalRegistrarPago.open');
   check(!(await p.evaluate(() => document.getElementById('modalInscripcion').classList.contains('open'))) && (await p.textContent('#regPagoAntes')).includes('queda igual'),
@@ -170,11 +170,11 @@ const PERSONAS_RPC = {
   h.paso('8. Desde Historial cliente');
   await p.evaluate(() => verEnHistorial('pV'));
   await p.waitForTimeout(900);
-  check(await p.isVisible('[data-hx-acc="inscribir"]'), 'Historial cliente tiene "➕ Inscribir a un curso"');
+  check(await p.isVisible('[data-hx-acc="inscribir"]'), 'Historial cliente tiene "Inscribir a un curso"');
   await h.captura('otro-curso-historial.png');
   await p.click('[data-hx-acc="inscribir"]');
   await p.waitForSelector('#modalRegistrarPago.open');
-  check(await p.textContent('#regPagoTitulo') === '➕ Inscribir a un curso' && (await p.textContent('#regPagoQuien')).includes('Alumna De Poza Rica'), 'abre "Inscribir a un curso" con sus datos');
+  check(await p.textContent('#regPagoTitulo') === 'Inscribir a un curso' && (await p.textContent('#regPagoQuien')).includes('Alumna De Poza Rica'), 'abre "Inscribir a un curso" con sus datos');
 
   h.paso('9. Celular');
   await p.setViewportSize({ width:390, height:800 });

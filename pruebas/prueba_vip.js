@@ -1,4 +1,4 @@
-/* ⭐ VIP: marcar el paquete en el lead (nuevo y ficha), etiqueta en el
+/* VIP: marcar el paquete en el lead (nuevo y ficha), etiqueta en el
    tablero, VIP primero en Recepción y "Cambiar a VIP" en la ficha. */
 const { abrirHub } = require('./arnes');
 
@@ -33,7 +33,7 @@ const LEAD = { id:'l1', evento_id:'ev1', estatus_id:2, estatus:{ id:2, clave:'no
   await p.waitForTimeout(150);
   check((await h.ops('leads', 'update')).some(u => u.paquete === 'VIP' && Object.keys(u).length === 1), 'guardó solo el paquete');
   check((await txt('#leadPaqueteEstado')).includes('✓ Guardado'), '✓ Guardado');
-  check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'paquete_cambiado' && a.detalle.includes('⭐ VIP')), 'Actividad');
+  check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'paquete_cambiado' && a.detalle.includes('VIP')), 'Actividad');
   await h.limpiarOps();
   await p.click('#leadPaquete [data-paq="VIP"]');
   await p.waitForTimeout(100);
@@ -45,11 +45,11 @@ const LEAD = { id:'l1', evento_id:'ev1', estatus_id:2, estatus:{ id:2, clave:'no
   await h.fallar(null);
   await p.evaluate(() => document.getElementById('modalLead').classList.remove('open'));
 
-  h.paso('2. Tablero: etiqueta ⭐ VIP');
+  h.paso('2. Tablero: etiqueta VIP');
   const tl = await p.evaluate(l => tarjetaLead({ ...l, paquete:'VIP' }), LEAD);
   const ti = await p.evaluate(() => tarjetaInscrito({ id:'x', paquete:'VIP', personas:{ nombre:'X' }, restante:0, anticipo:1900, precio_pactado:1900, estatus:{ id:12 } }));
   const tb = await p.evaluate(l => tarjetaLead(l), LEAD);
-  check(tl.includes('badge-vip') && ti.includes('badge-vip') && !tb.includes('badge-vip'), 'lead e inscrita VIP con ⭐; Básico sin');
+  check(tl.includes('badge-vip') && ti.includes('badge-vip') && !tb.includes('badge-vip'), 'lead e inscrita VIP con ; Básico sin');
 
   h.paso('3. Nuevo lead con paquete VIP');
   await p.evaluate(() => document.getElementById('btnNuevoLead').click());
@@ -69,23 +69,23 @@ const LEAD = { id:'l1', evento_id:'ev1', estatus_id:2, estatus:{ id:2, clave:'no
   await p.evaluate(hoy => abrirRecepcion({ id:'ev1', ciudad:'Ciudad Prueba', fecha:hoy, sede:'S' }), HOY);
   await p.waitForTimeout(250);
   let lista = await p.$$eval('#recLista > *', els => els.map(e => e.classList.contains('rec-grupo') ? '[' + e.textContent.trim() + ']' : e.dataset.recKey));
-  check(lista.join() === '[⭐ VIP · pasan primero (1)],i:b,[Las demás],i:a', 'Faltan: Zoe VIP arriba con su encabezado: ' + lista.join());
-  check(await p.isVisible('#recKpiVip') && (await txt('#recKpiVip .v')).includes('1/2'), 'contador ⭐ 1/2 llegaron: ' + await txt('#recKpiVip'));
-  check((await txt('#recPanel')).includes('⭐ VIP'), 'la ficha de Zoe dice ⭐ VIP');
-  check(await p.$eval('[data-rec-key="i:b"]', e => e.classList.contains('vip') && e.textContent.includes('⭐')), 'fila resaltada con ⭐');
+  check(lista.join() === '[VIP · pasan primero (1)],i:b,[Las demás],i:a', 'Faltan: Zoe VIP arriba con su encabezado: ' + lista.join());
+  check(await p.isVisible('#recKpiVip') && (await txt('#recKpiVip .v')).includes('1/2'), 'contador 1/2 llegaron: ' + await txt('#recKpiVip'));
+  check((await txt('#recPanel')).includes('VIP'), 'la ficha de Zoe dice VIP');
+  check(await p.$eval('[data-rec-key="i:b"]', e => e.classList.contains('vip') && e.textContent.includes('VIP')), 'fila resaltada con VIP');
   await p.click('[data-rec-filtro="todas"]');
   lista = await p.$$eval('#recLista .rec-fila', els => els.map(e => e.dataset.recKey));
   check(lista.slice(0, 2).sort().join() === 'i:b,l:l2' && lista.indexOf('i:c') > 1, 'Todas: VIP que faltan (y el lead VIP) arriba; la VIP que ya llegó en su orden: ' + lista.join());
   await p.click('[data-rec-filtro="vip"]');
   lista = await p.$$eval('#recLista .rec-fila', els => els.map(e => e.dataset.recKey)).then(x => x.sort());
-  check(lista.join() === 'i:b,i:c,l:l2', 'filtro ⭐ VIP: ' + lista.join());
+  check(lista.join() === 'i:b,i:c,l:l2', 'filtro VIP: ' + lista.join());
 
   h.paso('5. Al llegar, sale del grupo de arriba');
   await p.click('[data-rec-filtro="faltan"]');
   await p.evaluate(() => { seleccionarRecepcion('i:b'); document.activeElement.blur(); });
   await p.keyboard.press('l');
   await p.waitForTimeout(300);
-  check((await txt('#recKpiVip .v')).includes('2/2'), 'contador ⭐ 2/2');
+  check((await txt('#recKpiVip .v')).includes('2/2'), 'contador 2/2');
   check(!(await p.$('.rec-grupo.vip')), 'ya no hay VIP pendientes arriba');
   await p.evaluate(() => cerrarRecepcion());
 

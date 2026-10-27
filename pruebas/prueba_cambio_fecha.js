@@ -1,5 +1,5 @@
 /* Cambio de fecha de un curso (se recorrió la gira):
-   - Calendario → hoja del día → "📅 Cambiar fecha" (solo administradores).
+   - Calendario → hoja del día → "Cambiar fecha" (solo administradores).
    - Lista del cambio en Cobranza → Embudo y en la hoja del día: WhatsApp con la plantilla
      "Cambio de fecha" (queda "Avisada"), Aceptó, Reembolso, Ya no va, Regalo dado y, para
      Cobranza, "Reembolso hecho · cerrar lugar".
@@ -54,7 +54,7 @@ const LISTA = [
   h.paso('1. Calendario: "Cambiar fecha" (solo administradores)');
   await p.evaluate(ant => abrirSheetCalendario(ant), ANT);
   await p.waitForTimeout(400);
-  check(await p.$('[data-cf-cambiar]') !== null, 'el administrador ve "📅 Cambiar fecha"');
+  check(await p.$('[data-cf-cambiar]') !== null, 'el administrador ve "Cambiar fecha"');
   check((await p.textContent('.cf-caja[data-cf-ev="e1"]')).includes('Cambio de fecha'), 'la hoja del día trae el bloque del cambio');
   await p.click('[data-cf-cambiar]');
   await p.waitForSelector('#modalCambiarFecha.open');
@@ -113,7 +113,7 @@ const LISTA = [
   check((await rpcs('cambio_fecha_marcar')).some(r => r.p_aviso === 'a1' && r.p_estado === 'acepto'), '"Aceptó"');
   await p.click('#cobVistaEmbudo [data-cf-acc="regalo"][data-cf-aviso="a2"]');
   await p.waitForSelector('#modalConfirmar.open');
-  check((await p.textContent('#confirmarMotivoCampo label')) === '¿Qué curso de la Academia?', 'el regalo pide qué curso');
+  check((await p.textContent('#confirmarMotivoCampo label')) === 'Curso' && await p.isVisible('#cfRegaloEnviado'), 'el regalo pide qué curso y si ya se envió el acceso');
   await p.click('#confirmarSi');
   await p.waitForTimeout(200);
   check((await p.textContent('#toast')).includes('Escribe qué curso') && (await rpcs('cambio_fecha_regalo')).length === 0, 'sin curso no se guarda');
@@ -122,7 +122,7 @@ const LISTA = [
   await p.fill('#confirmarMotivo', 'Galletas decoradas');
   await p.click('#confirmarSi');
   await p.waitForTimeout(300);
-  check((await rpcs('cambio_fecha_regalo')).some(r => r.p_aviso === 'a2' && r.p_curso === 'Galletas decoradas'), 'guarda el regalo con el curso');
+  check((await rpcs('cambio_fecha_regalo')).some(r => r.p_aviso === 'a2' && r.p_curso === 'Galletas decoradas' && r.p_enviado === false), 'guarda el regalo con el curso (falta enviar el acceso)');
   await p.click('#cobVistaEmbudo [data-cf-acc="reembolso"][data-cf-aviso="a1"]');
   await p.waitForSelector('#modalConfirmar.open');
   check((await p.textContent('#confirmarAviso')).includes('Cobranza y a Gerencia'), 'reembolso: avisa que le llega a Cobranza y Gerencia');

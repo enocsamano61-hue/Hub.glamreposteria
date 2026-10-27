@@ -50,7 +50,7 @@ const base = () => ({
   check((await txt('#recKpiCobrado .v')) === '$1,400', 'cobrado hoy $1,400 (el pago de hoy de Dora)');
   check(await p.evaluate(() => document.activeElement.id) === 'recBuscar', 'el cursor ya está en el buscador');
   const filas = await p.$$eval('#recLista .rec-fila .nom', els => els.map(e => e.textContent));
-  check(filas.join('|') === '⭐ Ana Arce Prueba|Bea Bustos Prueba|Carla Cruz Prueba', 'Faltan: Ana (VIP, arriba), Bea, Carla: ' + filas.join('|'));
+  check(filas.join('|') === 'VIP Ana Arce Prueba|Bea Bustos Prueba|Carla Cruz Prueba', 'Faltan: Ana (VIP, arriba), Bea, Carla: ' + filas.join('|'));
   check((await txt('#recFiltros')).includes('Leads 1'), 'hay filtro de Leads');
   await h.captura('recepcion-computadora.png');
 
@@ -133,12 +133,16 @@ const base = () => ({
   await p.waitForTimeout(150);
   check((await updates()).some(u => u.asistencia === null), 'quitó la llegada');
 
-  h.paso('8. Comentario se guarda solo');
+  h.paso('8. El comentario va a su historial (la misma caja que en las fichas)');
+  await p.waitForTimeout(600);   // que termine de recargarse lo del paso anterior
   await h.limpiarOps();
   await p.fill('#recComent', 'Trae a su hija');
-  await p.waitForTimeout(800);
-  check((await updates()).some(u => u.notas_migracion === 'Trae a su hija'), 'guardó el comentario');
-  check((await txt('#recComentEstado')).includes('✓ Guardado'), 'dice ✓ Guardado');
+  await p.click('#recComentGuardar');
+  await p.waitForTimeout(400);
+  check((await h.ops('interacciones', 'insert')).some(i => i.nota === 'Trae a su hija' && i.asesor_id), 'guardó el comentario con quién lo escribió');
+  check(!(await updates()).some(u => 'notas_migracion' in u), 'no pisa sus notas fijas');
+  check((await txt('#recComentEstado')).includes('Guardado en su historial'), 'dice Guardado en su historial');
+  check((await h.ops('interacciones', 'insert')).length === 1 && (await p.inputValue('#recComent')) === '', 'una sola vez, y el cuadro queda listo para otro');
 
   h.paso('9. Si falla el pago, no se da por cobrado; Reintentar');
   await abrir();

@@ -109,7 +109,7 @@ const PRECIOS = [
   await p.fill(fila('pr1') + ' .precio-valor', '600');
   await p.dispatchEvent(fila('pr1') + ' .precio-valor', 'change');
   await p.waitForTimeout(200);
-  check((await p.textContent(fila('pr1') + ' .guardado-estado')).includes('No se guardó'), 'dice ⚠ No se guardó');
+  check((await p.textContent(fila('pr1') + ' .guardado-estado')).includes('No se guardó'), 'dice No se guardó');
   check(await p.inputValue(fila('pr1') + ' .precio-valor') === '', 'regresa al valor guardado (sin precio)');
   await h.fallar(null);
 

@@ -45,8 +45,8 @@ const PERSONAS = [
   const t4 = await p.textContent('[data-plz-persona="p4"]');
   check(t4.includes('Fue lead, no se ha inscrito') && t4.includes('Lead'), 'quien fue lead sin inscribirse también sale');
   const t3 = await p.textContent('[data-plz-persona="p3"]');
-  check(t3.includes('👍 Le interesa') && t3.includes('hace 2 días') && t3.includes('Vendedora Prueba') && t3.includes('quiere el de diciembre'), 'muestra el último contacto, quién y la nota');
-  check((await p.textContent('[data-plz-persona="p1"]')).includes('⭐ VIP') && (await p.textContent('[data-plz-persona="p1"]')).includes('3 cursos'), 'VIP y cuántos cursos tomó');
+  check(t3.includes('Le interesa') && t3.includes('hace 2 días') && t3.includes('Vendedora Prueba') && t3.includes('quiere el de diciembre'), 'muestra el último contacto, quién y la nota');
+  check((await p.textContent('[data-plz-persona="p1"]')).includes('VIP') && (await p.textContent('[data-plz-persona="p1"]')).includes('3 cursos'), 'VIP y cuántos cursos tomó');
   await p.evaluate(() => document.getElementById('plazaPersonas').closest('.card').scrollIntoView());
   await h.captura('plaza-alumnas.png');
 
@@ -80,7 +80,7 @@ const PERSONAS = [
   const ins = (await h.ops('interacciones', 'insert'))[0];
   check(ins && ins.persona_id === 'p2' && ins.canal === 'llamada' && ins.resultado === 'no_contesto' && ins.nota === 'volver a marcar el lunes' && ins.asesor_id === 'u1',
         'se guarda en interacciones con canal, resultado, nota y quién');
-  check((await p.textContent('[data-plz-persona="p2"]')).includes('🔕 Le marqué y no contestó') && (await p.textContent('[data-plz-persona="p2"]')).includes('hoy'), 'la fila muestra el contacto nuevo');
+  check((await p.textContent('[data-plz-persona="p2"]')).includes('Le marqué y no contestó') && (await p.textContent('[data-plz-persona="p2"]')).includes('hoy'), 'la fila muestra el contacto nuevo');
   check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'plaza_contacto' && a.detalle.includes('Ciudad Prueba')), 'queda en la actividad del equipo');
 
   h.paso('4. WhatsApp e historial');
@@ -89,7 +89,7 @@ const PERSONAS = [
   check(await p.evaluate(() => document.getElementById('modalWhats').classList.contains('open') && waDatos.personaId === 'p10'), 'abre el WhatsApp con sus datos');
   await p.evaluate(() => waDatos.alEnviar());
   await p.evaluate(() => document.getElementById('modalWhats').classList.remove('open'));
-  check((await p.textContent('[data-plz-persona="p10"]')).includes('💬 WhatsApp enviado'), 'al enviarlo, la fila lo muestra');
+  check((await p.textContent('[data-plz-persona="p10"]')).includes('WhatsApp enviado'), 'al enviarlo, la fila lo muestra');
   await p.click('[data-plz-historial="p3"]');
   await p.waitForTimeout(300);
   check(await p.evaluate(() => document.getElementById('view-historial').classList.contains('active') && document.getElementById('historialSearch').value === '5510000003'), 'el nombre abre su historial completo');

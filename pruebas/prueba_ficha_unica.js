@@ -67,12 +67,12 @@ const INSC_PASADA = { ...INSC, id:'i0', eventos:{ fecha:'2025-03-01', sede:'S', 
   await p.waitForTimeout(500);
   check(await abierto('modalLead') && !(await abierto('modalInscripcion')) && await p.evaluate(() => leadAbiertoId === 'l1'), 'abre su lead');
 
-  h.paso('5. Sin lead abierto: la pestaña Lead no se puede tocar; el modo "solo cobro" no estorba');
+  h.paso('5. Su lead está cerrado: la pestaña Lead abre ese (toda inscrita es lead); el modo "solo cobro" no estorba');
   await p.evaluate(() => { window.__tablas.leads = window.__tablas.leads.filter(l => l.id !== 'l1'); document.getElementById('modalLead').classList.remove('open'); });
   await p.evaluate(() => abrirModalInscripcion('i1'));
   await p.waitForTimeout(500);
   const t5 = await tabs('#ftabsInsc');
-  check(t5[0].t === 'Lead' && t5[0].d, 'Lead deshabilitada (el lead viejo cerrado no cuenta)');
+  check(t5[0].t.startsWith('Lead') && !t5[0].d, 'Lead se puede abrir aunque su lead ya esté cerrado (' + JSON.stringify(t5[0]) + ')');
   await p.evaluate(() => { cerrarModalInscripcion(); return abrirModalInscripcion('i1', { soloCobro:true }); });
   await p.waitForTimeout(400);
   check(!(await p.isVisible('#ftabsInsc')), 'en "solo cobro" no salen las pestañas');

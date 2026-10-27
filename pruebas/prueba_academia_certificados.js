@@ -253,13 +253,13 @@ const ACADEMIA = { id:'u3', nombre:'Academia Prueba', rol:'Academia e Inbox', es
   check((await txt('#toast')).includes('vuelva a entrar'), 'avisa que en la página ya le sale así');
   // La tarea automática del sistema y su "Ir →".
   await p.evaluate(() => {
-    NOTAS = [{ id:'n1', usuario_id:'u3', texto:'✏️ Corregir nombre del diploma: LUZ DESCARGO PRUEBA (Otra Ciudad, 05/10)', color:'champagne', completado:false,
+    NOTAS = [{ id:'n1', usuario_id:'u3', texto:'Corregir nombre del diploma: LUZ DESCARGO PRUEBA (Otra Ciudad, 05/10)', color:'champagne', completado:false,
       de_sistema:true, asignado_por:null, nota_sistema:'La alumna pidió que su diploma diga: «<b>Luz</b>».', creado_en:new Date().toISOString(),
       enlace:{ vista:'academia', etiqueta:'Corregir nombre', cert_evento:'e2' } }];
     renderNotas();
   });
   const nota = await p.$eval('[data-nota-id="n1"]', n => n.innerHTML);
-  check(nota.includes('⚙️ Sistema') && !nota.includes('Te asignó') && nota.includes('Corregir nombre →'), 'tarea del sistema sin "Te asignó"');
+  check(nota.includes('Sistema') && !nota.includes('Te asignó') && nota.includes('Corregir nombre →'), 'tarea del sistema sin "Te asignó"');
   check(nota.includes('&lt;b&gt;Luz&lt;/b&gt;'), 'lo que escribió la alumna se muestra escapado');
   check((await txt('#notasBadge')).trim() === '1', 'cuenta en el contador del bloc');
   await p.click('#cGrupos [data-c-grupo="e1"]'); await esperar();

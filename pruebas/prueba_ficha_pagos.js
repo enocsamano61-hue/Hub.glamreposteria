@@ -1,4 +1,4 @@
-/* Ficha de la inscrita: forma de pago y banco por separado, y la lista de sus pagos con "✏️ Corregir"
+/* Ficha de la inscrita: forma de pago y banco por separado, y la lista de sus pagos con "Corregir"
    (fecha, forma y banco). Origen: no se podía capturar el banco (compartía casilla con la forma) y un
    pago guardado no se podía corregir. Datos de ejemplo. */
 const { abrirHub } = require('./arnes');
@@ -98,7 +98,7 @@ const INSC = {
   const upE = (await h.ops('pagos', 'update'))[0];
   check(upE && upE.verificacion === 'por_confirmar' && upE.verificado_en === null, 'pasa a por confirmar (' + JSON.stringify(upE) + ')');
   check((await h.ops('inscripciones', 'update')).length === 0, 'el saldo no se mueve');
-  check((await p.textContent('#fichaPorConfirmar')).includes('$700') && (await p.textContent('#fichaPagos')).includes('🏦 por confirmar'), 'aparece arriba en "por confirmar" para "Ya llegó / No llegó"');
+  check((await p.textContent('#fichaPorConfirmar')).includes('$700') && (await p.textContent('#fichaPagos')).includes('por confirmar'), 'aparece arriba en "por confirmar" para "Ya llegó / No llegó"');
   check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'pago_corregido' && a.detalle.includes('estado confirmado → por confirmar')), 'queda en la actividad');
   await h.captura('ficha-pagos-estado.png');
   await p.click('#fichaPagos [data-fp-editar="pg1"]');

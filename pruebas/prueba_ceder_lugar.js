@@ -1,4 +1,4 @@
-/* Ficha de la inscrita: "👤 Ceder su lugar". No puede ir y va otra persona (la que diga la clienta) con lo que ya
+/* Ficha de la inscrita: "Ceder su lugar". No puede ir y va otra persona (la que diga la clienta) con lo que ya
    pagó; la misma inscripción pasa a la otra persona (función ceder_lugar de la base). Solo administradores y
    Cobranza. Origen: ticket #2 de Jared (26 oct 2026). Datos de ejemplo. */
 const { abrirHub, ESTATUS_EJEMPLO } = require('./arnes');
@@ -31,7 +31,7 @@ const PERSONAS = [
 
   h.paso('1. Quién lo ve');
   await abrir();
-  check(await visible('#btnCederLugar'), 'Cobranza ve "👤 Ceder su lugar"');
+  check(await visible('#btnCederLugar'), 'Cobranza ve "Ceder su lugar"');
   await abrir({}, { id:'u3', nombre:'Ventas Prueba', rol:'Ventas', es_admin:false });
   check(!(await visible('#btnCederLugar')), 'Ventas no lo ve');
   await abrir({}, { id:'u1', nombre:'Cobranza Prueba', rol:'Cobranza', es_admin:false });

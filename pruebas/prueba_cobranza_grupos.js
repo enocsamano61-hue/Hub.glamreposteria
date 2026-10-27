@@ -1,5 +1,5 @@
 /* Cobranza → Por cobrar: las inscritas con anticipo que se cobran el día de su curso van en su propio grupo
-   verde "💵 Con anticipo · se cobra en el curso" (antes caían en "Más adelante" con un círculo blanco y
+   verde "Con anticipo · se cobra en el curso" (antes caían en "Más adelante" con un círculo blanco y
    parecía que no tenían estatus) y cada inscrita dice cuánto pagó y cuánto debe. Datos de ejemplo. */
 const { abrirHub } = require('./arnes');
 
@@ -39,7 +39,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   h.paso('1. Las inscritas con anticipo que se cobran en el curso tienen su grupo verde');
   const curso = await grupo('curso');
   check(curso.length === 1 && curso[0].includes('Con Anticipo Curso Lejano'), 'van al grupo del curso (solo las que ya dieron anticipo): ' + curso.join(' | '));
-  check((await p.textContent('#cobG-curso summary')).includes('💵') && (await p.textContent('#cobG-curso summary')).includes('se cobra en el curso'), 'con 💵 y el letrero "se cobra en el curso"');
+  check(await p.$eval('#cobG-curso summary .cob-punto', x => getComputedStyle(x).backgroundColor) === 'rgb(85, 116, 92)' && (await p.textContent('#cobG-curso summary')).includes('se cobra en el curso'), 'punto verde y el letrero "se cobra en el curso"');
   check((await p.textContent('#cobAtajos')).includes('Con anticipo · se cobra en el curso'), 'también en los atajos de arriba');
 
   h.paso('2. "Más adelante" ya no lleva círculo blanco y es para fechas de pago lejanas');
@@ -47,7 +47,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   check(despues.some(t => t.includes('Con Fecha De Pago')) && despues.some(t => t.includes('Lead Promesa Lejana')) && despues.some(t => t.includes('Sin Pago Curso Lejano'))
         && !despues.some(t => t.includes('Con Anticipo Curso Lejano')),
         'con fecha de pago lejana: ' + despues.join(' | '));
-  check((await p.textContent('#cobG-despues summary')).includes('🔵') && !(await p.textContent('#cobG-despues summary')).includes('⚪'), 'ícono azul, no blanco');
+  check(await p.$eval('#cobG-despues summary .cob-punto', x => getComputedStyle(x).backgroundColor) === 'rgb(74, 125, 181)', 'punto azul, no blanco');
   check((await grupo('semana')).some(t => t.includes('Curso Esta Semana')) && (await grupo('sinfecha')).some(t => t.includes('Lead Sin Fecha'))
         && (await grupo('confirmar')).some(t => t.includes('Lead Por Confirmar')), 'lo urgente sigue en su grupo de siempre');
 

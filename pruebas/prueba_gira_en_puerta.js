@@ -1,5 +1,5 @@
 /* Auditoría de dinero y embudos (23 oct 2026): una sola definición de "lo que está en puerta" y una sola
-   clasificación de pago por inscrita (situacionPagoInsc = situacion_pago de la base), la 🧹 Bandeja de
+   clasificación de pago por inscrita (situacionPagoInsc = situacion_pago de la base), la Bandeja de
    limpieza y los candados (pago doble y "Pago por confirmar" sin datos). Datos de ejemplo. */
 const { abrirHub, ESTATUS_EJEMPLO } = require('./arnes');
 
@@ -70,20 +70,20 @@ const BANDEJA = [
   });
   check(casos === 'no_va,no_va,no_llego,verificar,por_confirmar,liquidada,liquidada,anticipo,sin_pago', 'misma tabla de verdad que situacion_pago (' + casos + ')');
 
-  h.paso('2. Cobranza: inscritas con pago por confirmar van a 🟣');
+  h.paso('2. Cobranza: inscritas con pago por confirmar van a ');
   const conf = await grupo('confirmar');
-  check(conf.some(t => t.includes('Con Pago Por Confirmar') && t.includes('Inscrita · pago por confirmar')), 'la inscrita con su pago por confirmar está en 🟣 (antes se quedaba como si nada)');
+  check(conf.some(t => t.includes('Con Pago Por Confirmar') && t.includes('Inscrita · pago por confirmar')), 'la inscrita con su pago por confirmar está en (antes se quedaba como si nada)');
   check(conf.some(t => t.includes('Liquidada Por Confirmar')), 'también la que ya no debe pero su pago aún no se confirma');
   await p.evaluate(() => { document.getElementById('cobG-confirmar').open = true; });
   const filaPC = await p.textContent('#cobG-confirmar .cob-fila[data-cob-id="i1"]');
-  check(filaPC.includes('🏦 $700 por confirmar') && filaPC.includes('debe $700') && filaPC.includes('confírmalo en su ficha'), 'dice cuánto falta confirmar y cuánto debe');
+  check(filaPC.includes('$700 por confirmar') && filaPC.includes('debe $700') && filaPC.includes('confírmalo en su ficha'), 'dice cuánto falta confirmar y cuánto debe');
   check(!(await todos()).includes('No Va Ya'), 'las que no van no salen');
 
   h.paso('3. Curso ya pasó · debe, aparte');
   const pasado = await grupo('pasado');
-  check(pasado.length === 1 && pasado[0].includes('Curso Ya Paso Debe') && !(await grupo('vencidos')).some(t => t.includes('Curso Ya Paso')), 'va a ⏳ "Curso ya pasó · debe", no a Vencidos');
+  check(pasado.length === 1 && pasado[0].includes('Curso Ya Paso Debe') && !(await grupo('vencidos')).some(t => t.includes('Curso Ya Paso')), 'va a "Curso ya pasó · debe", no a Vencidos');
   check((await p.textContent('#cobG-pasado summary')).includes('Curso ya pasó · debe'), 'con su letrero');
-  check((await p.textContent('.cob-fila[data-cob-id="i4"]')).includes('⚠ Verificar antes de cobrar'), 'la marcada "algo está mal" dice Verificar antes de cobrar');
+  check((await p.textContent('.cob-fila[data-cob-id="i4"]')).includes('Verificar antes de cobrar'), 'la marcada "algo está mal" dice Verificar antes de cobrar');
 
   h.paso('4. Solo leads de la gira que viene, sin contar doble');
   const t = await todos();
@@ -91,12 +91,12 @@ const BANDEJA = [
   check(!t.includes('Lead Ciudad Fuera') && !t.includes('Lead Sin Ciudad') && !t.includes('Lead Curso Pasado'), 'fuera: ciudad que no se visita, sin ciudad y curso pasado');
   check(!t.includes('Lead Ya Inscrita Sin Reporte') && !/Lead Ya Inscrita(?! Reporto)/.test(t), 'el lead de alguien ya inscrita en ese curso no cuenta doble');
   const yaPC = conf.find(x => x.includes('Lead Ya Inscrita Reporto'));
-  check(yaPC && yaPC.includes('Lead · ya inscrita'), 'pero si reportó un pago se queda en 🟣 (ese dinero aún no está en su ficha)');
+  check(yaPC && yaPC.includes('Lead · ya inscrita'), 'pero si reportó un pago se queda en (ese dinero aún no está en su ficha)');
   await h.captura('gira-en-puerta-cobranza.png');
 
-  h.paso('5. 🧹 Bandeja de limpieza');
+  h.paso('5. Bandeja de limpieza');
   const resumen = await p.textContent('#cobBandeja summary');
-  check(resumen.includes('Bandeja de limpieza') && resumen.includes('4 por revisar') && resumen.includes('💰 2 con dinero de por medio'), 'cuenta lo que hay y lo que trae dinero: ' + resumen.trim().replace(/\s+/g, ' '));
+  check(resumen.includes('Bandeja de limpieza') && resumen.includes('4 por revisar') && resumen.includes('2 con dinero de por medio'), 'cuenta lo que hay y lo que trae dinero: ' + resumen.trim().replace(/\s+/g, ' '));
   const tipos = await p.$$eval('#cobBandeja [data-bj-tipo]', xs => xs.map(x => x.dataset.bjTipo + (x.open ? ':abierto' : '')));
   check(tipos.join(',') === 'pc_sin_datos:abierto,pago_doble:abierto,ciudad_fuera,sin_ciudad', 'lo de dinero va primero y abierto: ' + tipos.join(','));
   await p.evaluate(() => { const b = document.querySelector('#cobBandeja .cob-bandeja'); b.open = true; b.scrollIntoView(); });
@@ -111,7 +111,7 @@ const BANDEJA = [
   await h.limpiarOps();
   await p.click('#guardarLead');
   await p.waitForTimeout(300);
-  check((await h.ops('leads', 'update')).length === 0 && (await p.textContent('#toast')).includes('💜 Registrar pago'), 'no deja: pide 💜 Registrar pago');
+  check((await h.ops('leads', 'update')).length === 0 && (await p.textContent('#toast')).includes('Registrar pago'), 'no deja: pide Registrar pago');
   await p.evaluate(() => document.getElementById('modalLead').classList.remove('open'));
 
   h.paso('7. Candado: el mismo pago dos veces');
