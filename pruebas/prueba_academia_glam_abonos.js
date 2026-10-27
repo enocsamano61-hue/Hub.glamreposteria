@@ -78,13 +78,13 @@ const PLANES = [
   h.paso('1. Cobros: promesas de abono por grupo');
   await abrir('cobros');
   const grupos = await p.$$eval('.agl-grupo', g => g.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-  check(grupos.join('|') === '⚠️ Atrasadas y promesas vencidas 1|⏰ Hoy 1|🏦 Por confirmar 1|📅 Esta semana 1|❓ Deben y no tienen fecha prometida 1|🔓 Liquidaron: dar acceso 1',
+  check(grupos.join('|') === 'Atrasadas y promesas vencidas 1|Hoy 1|Por confirmar 1|Esta semana 1|Deben y no tienen fecha prometida 1|Liquidaron: dar acceso 1',
         'vencidas, hoy, por confirmar, semana, sin fecha y dar acceso (' + grupos.join('|') + ')');
   const txt = await p.textContent('#agl-cobros');
   check(!txt.includes('Alumna Lejana'), 'una promesa a más de 7 días no estorba');
   check(txt.includes('Prometió hace 2 días') && txt.includes('Prometió hoy') && txt.includes('Sin fecha prometida'), 'dice cuándo prometió');
   check(txt.includes('Debe $20,000') && txt.includes('de $30,000'), 'muestra lo que debe y el total');
-  check(txt.includes('🔕 No contestó · hoy'), 'muestra el último seguimiento');
+  check(txt.includes('No contestó · hoy'), 'muestra el último seguimiento');
   // El arnés ignora gte/lte: "cobrado este mes" suma el abono de $3,000 y la mensualidad de $800 que pagó la alumna mensual
   const k = await p.$$eval('.agl-kpi', ks => ks.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   check(k[0].endsWith('1') && k[1].endsWith('1') && k[2].endsWith('1') && k[3].includes('$3,800'), 'indicadores con abonos y lo cobrado del mes (' + k.join(' | ') + ')');
@@ -153,7 +153,7 @@ const PLANES = [
   check(await p.evaluate(() => document.getElementById('modalAglFicha').classList.contains('open')), 'abre la ficha');
   check(ficha.includes('$30,000') && ficha.includes('$10,000') && ficha.includes('$20,000'), 'total, abonado y lo que debe');
   check(ficha.includes('del Excel') && ficha.includes('no llegó') && ficha.includes('lo registró Admin Prueba'), 'abonos con el del Excel y el que no llegó');
-  check(ficha.includes('🔕 No contestó') && ficha.includes('Recepción Prueba') && ficha.includes('<b>Le marqué</b>'), 'seguimiento con quién lo hizo y la nota escapada');
+  check(ficha.includes('No contestó') && ficha.includes('Recepción Prueba') && ficha.includes('<b>Le marqué</b>'), 'seguimiento con quién lo hizo y la nota escapada');
   check(await p.$('#aglFichaCuerpo b b') === null, 'nada se interpreta como HTML');
   await h.captura('academia-glam-ficha.png');
   await p.click('#aglFichaCuerpo [data-agl-abonar="k1"]');

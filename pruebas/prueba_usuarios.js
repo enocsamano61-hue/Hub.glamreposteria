@@ -1,6 +1,6 @@
 /* Usuarios y permisos, en dos pestañas:
-   👥 Personas (rol, admin, vendedora, recibe tickets, ve actividad, "lo que ve") y
-   🎭 Roles (secciones por área, acciones especiales, rol nuevo). Datos de ejemplo, sin personas reales. */
+   Personas (rol, admin, vendedora, recibe tickets, ve actividad, "lo que ve") y
+   Roles (secciones por área, acciones especiales, rol nuevo). Datos de ejemplo, sin personas reales. */
 const { abrirHub } = require('./arnes');
 
 const persona = (id, nombre, rol, extra) => ({ id, nombre, rol, email:`${id}@ejemplo.com`, es_admin:false, puede_ver_actividad:false,

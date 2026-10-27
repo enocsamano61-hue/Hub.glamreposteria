@@ -101,7 +101,7 @@ const PLANES = [
   check(k[0].endsWith('1') && k[1].endsWith('1') && k[2].endsWith('1'), 'hoy 1, esta semana 1, atrasadas 1 (' + k.join(' | ') + ')');
   check(k[3].includes('$2,000'), 'cobrado del mes suma solo este mes, sin el mes pasado (' + k[3] + ')');
   const grupos = await p.$$eval('.agl-grupo', g => g.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-  check(grupos.length === 4 && grupos[0].startsWith('⚠️ Atrasadas') && grupos[1].startsWith('⏰ Hoy') && grupos[2].startsWith('🏦') && grupos[3].startsWith('📅'), 'atrasadas, hoy, por confirmar, esta semana (' + grupos.join(' | ') + ')');
+  check(grupos.length === 4 && grupos[0].startsWith('Atrasadas') && grupos[1].startsWith('Hoy') && grupos[2].startsWith('Por confirmar') && grupos[3].startsWith('Esta semana'), 'atrasadas, hoy, por confirmar, esta semana (' + grupos.join(' | ') + ')');
   check(!(await p.textContent('#agl-cobros')).includes('Alumna Lejana'), 'lo que vence en más de 7 días no aparece');
   check((await p.textContent('#agl-cobros')).includes('3 días de atraso'), 'dice cuántos días de atraso');
   check(await p.$('#agl-cobros img') === null && await p.evaluate(() => !window.__xss), 'el nombre se escapa');

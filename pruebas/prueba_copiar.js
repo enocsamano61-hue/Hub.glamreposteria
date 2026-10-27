@@ -1,4 +1,4 @@
-/* Copiar nombre y teléfono en Cursos e Historial: botón 📋, menú del clic
+/* Copiar nombre y teléfono en Cursos e Historial: botón , menú del clic
    derecho y que seleccionar texto no abra el historial. Datos inventados. */
 const { abrirHub } = require('./arnes');
 
@@ -29,15 +29,15 @@ const al = (pp, i) => ({ inscripcion_id:'i' + i, persona_id:pp.id, nombre:pp.nom
   const toast = () => p.textContent('#toast');
   const seccion = () => p.evaluate(() => document.querySelector('.view.active, section.active')?.id || [...document.querySelectorAll('[id^="view-"]')].find(v => v.offsetParent)?.id);
 
-  h.paso('1. Cursos: 📋 junto al nombre y al teléfono');
+  h.paso('1. Cursos: junto al nombre y al teléfono');
   await p.evaluate(async () => { cursoActivoIdCache = undefined; setActiveSection('cursos'); await renderCursos(); });
   await p.waitForTimeout(400);
   const fila = '#cxAlumnas tr[data-cx-persona="pA"]';
-  check(await p.$$eval(fila + ' [data-copiar]', els => els.length) === 2, 'dos 📋 en la fila (nombre y teléfono)');
+  check(await p.$$eval(fila + ' [data-copiar]', els => els.length) === 2, 'dos en la fila (nombre y teléfono)');
   await p.click(fila + ' [data-copiar-tipo="nombre"]'); await p.waitForTimeout(150);
   check(await copiado() === 'Rosa Prueba Uno', 'copia el nombre: ' + await copiado());
   check((await toast()).includes('Nombre copiado'), 'avisa "Nombre copiado"');
-  check(await p.isVisible('#view-cursos'), 'el 📋 no abre el historial');
+  check(await p.isVisible('#view-cursos'), 'el no abre el historial');
   await p.click(fila + ' [data-copiar-tipo="telefono"]'); await p.waitForTimeout(150);
   check(await copiado() === '8711111111', 'el teléfono se copia solo con números, sin el 52: ' + await copiado());
   check((await toast()).includes('Teléfono copiado'), 'avisa "Teléfono copiado"');
@@ -64,7 +64,7 @@ const al = (pp, i) => ({ inscripcion_id:'i' + i, persona_id:pp.id, nombre:pp.nom
   await p.click(fila + ' td:nth-child(2)', { button:'right' });
   await p.click('#menuCopiar [data-menu-copiar="wa"]'); await p.waitForTimeout(300);
   check(await p.evaluate(() => document.getElementById('modalWhats').classList.contains('open') && waDatos?.ciudad === 'Torreón'),
-    'WhatsApp del menú abre el mismo envío que 💬 (con ciudad del curso)');
+    'WhatsApp del menú abre el mismo envío que (con ciudad del curso)');
   check((await p.textContent('#waTitulo')).includes('Rosa'), 'a la alumna correcta');
   await p.evaluate(() => document.getElementById('modalWhats').classList.remove('open'));
 
@@ -87,16 +87,16 @@ const al = (pp, i) => ({ inscripcion_id:'i' + i, persona_id:pp.id, nombre:pp.nom
   h.paso('4. Historial: lista y perfil');
   await p.fill('#historialSearch', 'prueba'); await p.waitForTimeout(700);
   const item = '#hxLista [data-ctx-persona="pB"]';
-  check(await p.$$eval(item + ' [data-copiar]', els => els.length) === 2, 'lista: 📋 de nombre y teléfono');
+  check(await p.$$eval(item + ' [data-copiar]', els => els.length) === 2, 'lista: de nombre y teléfono');
   const selAntes = await p.evaluate(() => hx.sel);
   await p.click(item + ' [data-copiar-tipo="nombre"]'); await p.waitForTimeout(150);
   check(await copiado() === 'Lucía Prueba Dos', 'lista: copia el nombre');
-  check(await p.evaluate(() => hx.sel) === selAntes, 'lista: el 📋 no cambia la persona seleccionada');
+  check(await p.evaluate(() => hx.sel) === selAntes, 'lista: el no cambia la persona seleccionada');
   await p.click(item, { button:'right' });
   check((await p.$$eval('#menuCopiar [data-menu-copiar]', els => els.map(e => e.dataset.menuCopiar))).includes('ver'), 'lista: el menú trae Ver historial');
   await p.click('#menuCopiar [data-menu-copiar="ver"]'); await p.waitForTimeout(400);
   check((await p.textContent('#historialResultado .hx-cab h2')).includes('Lucía Prueba Dos'), 'Ver historial abre su perfil');
-  check(await p.$$eval('#historialResultado .hx-cab [data-copiar]', els => els.length) === 2, 'perfil: 📋 en nombre y teléfono');
+  check(await p.$$eval('#historialResultado .hx-cab [data-copiar]', els => els.length) === 2, 'perfil: en nombre y teléfono');
   await p.click('#historialResultado .hx-cab [data-copiar-tipo="telefono"]'); await p.waitForTimeout(150);
   check(await copiado() === '8712222222', 'perfil: copia el teléfono');
   await p.click('#historialResultado .hx-cab h2', { button:'right' });
@@ -108,7 +108,7 @@ const al = (pp, i) => ({ inscripcion_id:'i' + i, persona_id:pp.id, nombre:pp.nom
   h.paso('5. Celular');
   await p.setViewportSize({ width:390, height:800 });
   await p.evaluate(async () => { setActiveSection('cursos'); await renderCursos(); }); await p.waitForTimeout(400);
-  check(await p.isVisible(fila + ' [data-copiar-tipo="nombre"]'), 'el 📋 se ve en celular');
+  check(await p.isVisible(fila + ' [data-copiar-tipo="nombre"]'), 'el se ve en celular');
   await p.click(fila + ' [data-copiar-tipo="nombre"]'); await p.waitForTimeout(150);
   check(await copiado() === 'Rosa Prueba Uno' && await p.isVisible('#view-cursos'), 'y copia sin abrir el historial');
   await p.click(fila + ' td:nth-child(2)', { button:'right' });

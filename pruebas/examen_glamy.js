@@ -23,7 +23,7 @@ const CASOS = [
   { nombre:'Pago de lead sin confirmar (caso Jazmín)', pregunta:'¿Cómo va el pago de 5500000001? dice que ya depositó',
     datos: persona({ leads:[lead({ estatus:'Pago por confirmar', pago_reportado:{ monto:700, banco:'MERCADO PAGO', fecha:mas(-2) },
       siguiente_paso:{ situacion:`Reportó un pago de $700 MERCADO PAGO del ${ddmm(mas(-2)).slice(0,5)} que falta confirmar en el banco. Todavía NO está inscrita.`,
-        seccion:'board', boton:'lead', donde:'su lead: "✅ Confirmar pago" o "❌ No se encontró"', quien:'quien tiene el permiso "Confirmar pagos" (Cobranza)' } })] }),
+        seccion:'board', boton:'lead', donde:'su lead: "Confirmar pago" o "No se encontró"', quien:'quien tiene el permiso "Confirmar pagos" (Cobranza)' } })] }),
     debe:[`⟦lead:${ID(20)}⟧`], noDebe:['⟦ir:calendario⟧'] },
   { nombre:'Inscrita que debe (curso futuro)', pregunta:'¿Cuánto debe 5500000001 y dónde le cobro?',
     datos: persona({ cursos:[curso(mas(60), { siguiente_paso:{ situacion:`Inscrita; debe $700 antes de su curso del ${ddmm(mas(60))}.`, seccion:'cobranza', donde:'Cobranza → Por cobrar, o en su ficha', quien:'Cobranza' } })] }),
@@ -62,6 +62,7 @@ const CURSO_CF = { encontrado:true, curso:{ evento_id:ID(30), fecha:mas(90), ciu
   numeros:{ inscritas:17, liquidadas:1, deben:16, total_que_deben:11350, cobrado:12600, pagos_por_confirmar:0, llegaron:0, no_llegaron:0, sin_marcar_llegada:17, diplomas_entregados:0 },
   cambio_de_fecha:{ fecha_anterior:mas(-2), fecha_nueva:mas(90), inscritas:{ acepto:10, sin_avisar:4 }, inscritas_despues_del_cambio:3,
     nota_despues_del_cambio:'Se inscribieron cuando el curso ya tenía la fecha nueva: no necesitan aviso.', leads:{ sin_avisar:13 },
+    regalos:{ aceptaron_sin_regalo:3, falta_enviar_acceso:2, acceso_enviado:5 },
     significado:'Estados del aviso del cambio de fecha (NO son pagos): acepto = aceptó la nueva fecha; avisada = ya se le mandó el WhatsApp y no ha contestado; sin_avisar = falta avisarle; reembolso = pidió reembolso; reembolsada = ya se le devolvió; no_va = ya no va.' },
   lista:Array.from({ length:10 }, (_, i) => ({ tipo:'inscrita', inscripcion_id:ID(40 + i), nombre:'Alumna Ejemplo ' + (i + 1), telefono:'55000001' + String(i).padStart(2, '0'), estado_cambio:'acepto' })) };
 const usoCurso = r => (r.llamadas || []).some(l => l.nombre === 'curso');
@@ -73,6 +74,25 @@ const CASOS_CF = [
     revisar: (r, t) => usoCurso(r) && /\b4\b/.test(t) && !hablaDePagos(t) },
   { nombre:'Cambio de fecha: confirmados y por confirmar (Jared)', pregunta:'en ciudad ejemplo de los que ya tienen pago para esta fecha dime cuantos estan confirmados y cuantos me faltan por confirmar del cambio',
     revisar: (r, t) => usoCurso(r) && /\b10\b/.test(t) && /\b4\b/.test(t) && !hablaDePagos(t) },
+  { nombre:'Cambio de fecha: regalos sin enviar (Fase 1)', pregunta:'en ciudad ejemplo, ¿a cuántas que aceptaron el cambio les falta que se les envíe el acceso del curso de regalo?',
+    revisar: (r, t) => usoCurso(r) && /\b2\b/.test(t) },
+];
+
+/* Fase 1 (27 oct 2026): cómo se usa lo nuevo, sin datos. Se revisa el texto: el nombre del botón, sin los emojis que el Hub ya no tiene. */
+const SIN_EMOJIS_HUB = t => !/[✅💜❌➕🎁💬📅🏦🧹📊]/u.test(t);
+const CASOS_FASE1 = [
+  { nombre:'Fase 1: dónde escribir un comentario', pregunta:'¿dónde escribo un comentario en la ficha de una alumna inscrita?',
+    revisar: t => /Agregar comentario/.test(t) && SIN_EMOJIS_HUB(t) },
+  { nombre:'Fase 1: le avisé desde mi celular', pregunta:'le avisé del cambio de fecha a una alumna desde mi celular, ¿cómo lo marco en el hub?',
+    revisar: t => /Ya le avis/i.test(t) && SIN_EMOJIS_HUB(t) },
+  { nombre:'Fase 1: ya mandé el acceso del regalo', pregunta:'ya le mandé el acceso del curso de regalo a una alumna que aceptó el cambio de fecha, ¿qué toco?',
+    revisar: t => /Ya se envi/i.test(t) && SIN_EMOJIS_HUB(t) },
+  { nombre:'Fase 1: el aviso de actualización', pregunta:'me salió un aviso de nueva actualización y no me deja seguir, ¿qué hago?',
+    revisar: t => /(pregunta|cuestionario)/i.test(t) && /(hasta abajo|al final|leer|lee)/i.test(t) },
+  { nombre:'Fase 1: alumna del Excel sin lead', pregunta:'una alumna vino del excel, ¿tiene lead? antes la pestaña Lead salía gris',
+    revisar: t => /lead/i.test(t) && /(crea|cread|siempre)/i.test(t) },
+  { nombre:'Fase 1: nombra los botones sin emojis', pregunta:'¿cómo confirmo el pago que reportó un lead?',
+    revisar: t => /Confirmar pago/.test(t) && SIN_EMOJIS_HUB(t) },
 ];
 
 /* Glamy BI (modo bi): se revisa con qué herramientas y datos contestó (lenguaje sencillo → métricas). */
@@ -125,6 +145,16 @@ const CASOS_BI = [
     costo += r.costo_usd || 0;
     const t = String(r.texto || '');
     const bien = !r.error && c.revisar(r, t);
+    bien ? ok++ : mal++;
+    console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
+    if(!bien) console.log('   llamó:', JSON.stringify(r.llamadas || []), '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
+  }
+  for(const c of CASOS_FASE1){
+    const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ accion:'prueba', llave:LLAVE, pregunta:c.pregunta, seccion:'inicio', simular:{} }) }).then(x => x.json());
+    costo += r.costo_usd || 0;
+    const t = String(r.texto || '');
+    const bien = !r.error && c.revisar(t);
     bien ? ok++ : mal++;
     console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
     if(!bien) console.log('   llamó:', JSON.stringify(r.llamadas || []), '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));

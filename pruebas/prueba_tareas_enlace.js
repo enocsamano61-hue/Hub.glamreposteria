@@ -28,7 +28,7 @@ const base = { usuario_id:'u1', asignado_por:'u2', color:'champagne', completado
     { ...base, id:'n2', texto:'Tarea normal de una persona', de_sistema:false, nota_sistema:null, enlace:null },
   ]);
   const c1 = await p.textContent('[data-nota-id="n1"]');
-  check(c1.includes('⚙️ Sistema'), 'encabezado dice Sistema');
+  check(c1.includes('Sistema'), 'encabezado dice Sistema');
   check(c1.includes('COMENTARIO DE SISTEMA') && c1.includes('el Excel no dice si llegó'), 'comentario de sistema aparte');
   check(await p.$('[data-nota-id="n1"] .nota-ir') !== null, 'tiene botón Ir');
   check((await p.textContent('[data-nota-id="n1"] .nota-ir')).includes('Abrir ficha'), 'botón con su etiqueta');

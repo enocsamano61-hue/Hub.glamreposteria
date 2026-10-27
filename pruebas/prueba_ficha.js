@@ -28,12 +28,14 @@ const INSC = {
   check((await txt('#guardarInscPago')).trim() === 'Liquida $500', 'botón dice Liquida $500');
   check(!(await p.evaluate(() => document.getElementById('inscFichaMas').open)), '"Más información" cerrado al abrir');
   check(!(await visible('#inscVendedorSelect')), 'vendedor escondido en Más información');
-  check(await visible('#modalInscNotasEdit'), 'comentario visible');
+  check(await visible('#inscComentNuevo') && await visible('#inscComentGuardar'), 'caja de comentarios visible');
+  check(!(await visible('#modalInscNotasEdit')) && (await txt('#inscNotasFijas summary')).includes('Notas fijas'), 'las notas de siempre van plegadas en "Notas fijas"');
   check(await p.$('#guardarInscNotas') === null && await p.$('#guardarInscVendedor') === null && await p.$('#guardarInscProximoPago') === null, 'ya no hay botones Guardar sueltos');
   check(await p.$('#tabInscPago') === null, 'ya no existe la pestaña Agregar pago');
   await h.captura('ficha-computadora.png');
 
-  h.paso('2. Comentario se guarda solo, sin tocar montos');
+  h.paso('2. Notas fijas se guardan solas, sin tocar montos');
+  await p.evaluate(() => { document.getElementById('inscNotasFijas').open = true; });
   await p.fill('#modalInscNotasEdit', 'Llegó con su hermana');
   check((await txt('#inscNotasEstado')).includes('escribiendo'), 'estado escribiendo…');
   check((await updates()).length === 0, 'no guarda mientras escribe');
@@ -45,6 +47,7 @@ const INSC = {
 
   h.paso('3. Cerrar antes de que termine el tiempo también guarda');
   await abrir();
+  await p.evaluate(() => { document.getElementById('inscNotasFijas').open = true; });
   await p.fill('#modalInscNotasEdit', 'Texto rápido');
   await cerrar();
   await p.waitForTimeout(100);
@@ -55,9 +58,10 @@ const INSC = {
   h.paso('4. Comentario que falla avisa');
   await abrir();
   await h.fallar(op => op.tabla === 'inscripciones' && op.tipo === 'update');
+await p.evaluate(() => { document.getElementById('inscNotasFijas').open = true; });
   await p.fill('#modalInscNotasEdit', 'Esto falla');
   await p.waitForTimeout(800);
-  check((await txt('#inscNotasEstado')).includes('No se guardó'), 'estado ⚠ No se guardó');
+  check((await txt('#inscNotasEstado')).includes('No se guardó'), 'estado No se guardó');
   await h.fallar(null);
   await cerrar();
 
@@ -124,6 +128,7 @@ const INSC = {
   await p.waitForTimeout(100);
   check(await p.inputValue('#inscVendedorSelect') === 'u2', 'cancelar regresa a la vendedora de antes');
   check((await updates()).length === 0, 'cancelar no guarda');
+  await p.evaluate(() => { document.getElementById('inscNotasFijas').open = true; });
   await p.fill('#modalInscNotasEdit', 'Nota nueva');
   await p.selectOption('#inscVendedorSelect', 'u1');
   await p.waitForTimeout(100);
@@ -167,11 +172,11 @@ const INSC = {
 
   h.paso('14. Cobro directo desde Cobranza (soloCobro)');
   await abrir({}, { soloCobro:true });
-  check(!(await visible('#modalInscNotasEdit')) && !(await visible('#inscFichaMas')), 'solo el cobro');
+  check(!(await visible('#inscComentNuevo')) && !(await visible('#inscFichaMas')), 'solo el cobro');
   check(await visible('#guardarInscPago') && await visible('#cobroFichaCompleta'), 'botón y Ver ficha completa');
   check(await p.evaluate(() => document.activeElement.id) === 'modalPagoMonto', 'cursor en el monto');
   await p.click('#cobroFichaCompleta');
-  check(await visible('#modalInscNotasEdit') && await visible('#inscFichaMas'), 'Ver ficha completa muestra todo');
+  check(await visible('#inscComentNuevo') && await visible('#inscFichaMas'), 'Ver ficha completa muestra todo');
   await cerrar();
 
   h.paso('15. Celular 390 px');

@@ -71,8 +71,8 @@ const cand = (id, nombre, abonado, inscripcion, pagadas) => ({ alumna_id:id, nom
   h.paso('1. Cobros: retirar y devolver acceso');
   await abrir('cobros');
   const grupos = await p.$$eval('.agl-grupo', g => g.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-  check(grupos.some(t => t.startsWith('⛔ Deben 7 días o más y tienen acceso') && t.endsWith(' 1')), 'grupo "retirar acceso" con la de 9 días (' + grupos.join(' | ') + ')');
-  check(grupos.some(t => t.startsWith('↩️ Se pusieron al corriente') && t.endsWith(' 1')), 'grupo "devolver acceso" solo con la que está al corriente');
+  check(grupos.some(t => t.startsWith('Deben 7 días o más y tienen acceso') && t.endsWith(' 1')), 'grupo "retirar acceso" con la de 9 días (' + grupos.join(' | ') + ')');
+  check(grupos.some(t => t.startsWith('Se pusieron al corriente') && t.endsWith(' 1')), 'grupo "devolver acceso" solo con la que está al corriente');
   const txt = await p.textContent('#agl-cobros');
   check(txt.includes('9 días con acceso') && !txt.includes('Alumna Debe Cinco Vende') && !txt.includes('5 días con acceso'), 'la de 5 días todavía no sale para retirar');
   check(await p.$('[data-agl-retirar="s1"]') !== null && await p.$('[data-agl-retirar="s2"]') === null && await p.$('[data-agl-retirar="s5"]') === null, 'solo se retira a quien lleva 7 días o más');
@@ -103,17 +103,17 @@ const cand = (id, nombre, abonado, inscripcion, pagadas) => ({ alumna_id:id, nom
   await p.click('[data-agl-ficha="s1"]');
   await p.waitForTimeout(300);
   const ficha = await p.textContent('#aglFichaCuerpo');
-  check(ficha.includes('🔓 Acceso dado') && ficha.includes('Seguimiento'), 'muestra el acceso y su seguimiento');
+  check(ficha.includes('Acceso dado') && ficha.includes('Seguimiento'), 'muestra el acceso y su seguimiento');
   check(await p.$('#aglFichaCuerpo [data-agl-retirar="s1"]') !== null, 'desde la ficha se puede retirar el acceso');
   await h.captura('academia-glam-acceso-ficha.png');
   await p.evaluate(() => { document.getElementById('modalAglFicha').classList.remove('open'); agl.ficha = null; });
   await p.click('[data-agl-ficha="s3"]');
   await p.waitForTimeout(300);
-  check((await p.textContent('#aglFichaCuerpo')).includes('⛔ Acceso retirado') && await p.$('#aglFichaCuerpo [data-agl-acceso="s3"]') !== null, 'la ficha de una retirada al corriente ofrece devolverlo');
+  check((await p.textContent('#aglFichaCuerpo')).includes('Acceso retirado') && await p.$('#aglFichaCuerpo [data-agl-acceso="s3"]') !== null, 'la ficha de una retirada al corriente ofrece devolverlo');
   await p.evaluate(() => { document.getElementById('modalAglFicha').classList.remove('open'); agl.ficha = null; });
 
   h.paso('4. Aviso del bloc: "Ir →" abre la ficha');
-  await p.evaluate(() => { NOTAS = [{ id:'n1', texto:'⛔ Retirar acceso', enlace:{ vista:'academia_glam', etiqueta:'Abrir su ficha', agl_susc:'s1', agl_mens:'ps1' } }]; irAEnlaceNota('n1'); });
+  await p.evaluate(() => { NOTAS = [{ id:'n1', texto:'Retirar acceso', enlace:{ vista:'academia_glam', etiqueta:'Abrir su ficha', agl_susc:'s1', agl_mens:'ps1' } }]; irAEnlaceNota('n1'); });
   await p.waitForTimeout(400);
   check(await p.evaluate(() => document.getElementById('modalAglFicha').classList.contains('open') && agl.ficha?.id === 's1'), 'abre la ficha de la alumna');
   await p.evaluate(() => { document.getElementById('modalAglFicha').classList.remove('open'); agl.ficha = null; });
@@ -136,8 +136,8 @@ const cand = (id, nombre, abonado, inscripcion, pagadas) => ({ alumna_id:id, nom
   await abrir('alumnas');
   const fila = i => `[data-agl-cand="${i}"]`;
   const t0 = await p.textContent(fila(0)), t1 = await p.textContent(fila(1));
-  check(t0.includes('✅ Liquidó') && t0.includes('$6,997 de inscripción'), 'marca a la que ya liquidó y muestra la inscripción');
-  check(!t1.includes('✅ Liquidó') && t1.includes('$500 de inscripción'), 'la que va abonando no sale como liquidada');
+  check(t0.includes('Liquidó') && t0.includes('$6,997 de inscripción'), 'marca a la que ya liquidó y muestra la inscripción');
+  check(!t1.includes('Liquidó') && t1.includes('$500 de inscripción'), 'la que va abonando no sale como liquidada');
   check(!(await p.$(`${fila(0)} [data-agl-c="acceso"]`)), 'sin plan no pide acceso');
   await p.selectOption(`${fila(0)} [data-agl-c="plan"]`, 'pu');
   await p.selectOption(`${fila(1)} [data-agl-c="plan"]`, 'pu');

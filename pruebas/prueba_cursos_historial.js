@@ -56,7 +56,7 @@ alumnos.push({ ...al(92), persona_id:'pB', nombre:'María López', nombre_norm:'
   check((await txt('#cxResumen')).includes('63,000') && (await txt('#cxResumen')).includes('49%'), 'resumen del servidor: cobrado y % liquidadas');
   let r = await ultimoRpc();
   check(r && r.p_curso === 'k1' && r.p_ciudad === null && r.p_q === '', 'resumen pedido para el curso, todas las ciudades');
-  check((await txt('#cxFPago')).includes('⭐ VIP') && !(await txt('#cxFPago')).includes('No llegó'), 'solo los filtros de pago que tienen alumnas');
+  check((await txt('#cxFPago')).includes('VIP') && !(await txt('#cxFPago')).includes('No llegó'), 'solo los filtros de pago que tienen alumnas');
   await h.captura('cursos-computadora.png');
 
   h.paso('2. Ver más y ordenar');
@@ -111,7 +111,7 @@ alumnos.push({ ...al(92), persona_id:'pB', nombre:'María López', nombre_norm:'
   const perfil = (await p.innerText('#historialResultado')).replace(/\s+/g, ' ');
   check(perfil.includes('2 registros juntos') && perfil.includes('Mismo teléfono que Ana López'), 'aviso de juntos y de posible familiar');
   check(perfil.includes('Postres Virales') && perfil.includes(ACTIVO), 'la línea de tiempo trae los cursos de los dos registros');
-  check(perfil.includes('Clienta fiel · 2 cursos') && perfil.includes('⭐ VIP'), 'clienta fiel y VIP');
+  check(perfil.includes('Clienta fiel · 2 cursos') && perfil.includes('VIP'), 'clienta fiel y VIP');
   check(perfil.includes('Pidió fechas de Torreón'), 'últimos contactos');
   check((await txt('#hxLista')).includes('2 registros'), 'en la lista también se ve');
   await h.captura('historial-computadora.png');
@@ -136,7 +136,7 @@ alumnos.push({ ...al(92), persona_id:'pB', nombre:'María López', nombre_norm:'
   await p.fill('#historialSearch', 'a'); await p.waitForTimeout(500);
   check((await txt('#hxLista')).includes('al menos 2 letras'), 'búsqueda muy corta avisa');
 
-  h.paso('12. ➕ Nuevo lead con sus datos');
+  h.paso('12. Nuevo lead con sus datos');
   await p.fill('#historialSearch', 'lopez'); await p.waitForTimeout(700);
   await p.click('#hxLista [data-hx-grupo="' + await p.evaluate(() => hx.grupos.find(g => g.ids.includes('pA')).clave) + '"]'); await p.waitForTimeout(400);
   await p.click('[data-hx-acc="lead"]'); await p.waitForTimeout(200);
