@@ -320,6 +320,8 @@
   .rd-fila .rd-txt{ flex:1; min-width:0; }
   .rd-fila .rd-txt .sub{ font-size:11.5px; margin:2px 0 0; }
   .rd-fila button{ width:auto; flex-shrink:0; }
+  .comp-lead{ margin-top:6px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .fp-comp{ display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .rd-ok{ color:var(--success); font-size:13px; padding:6px 0; }
   .rd-alerta{ color:var(--danger); font-weight:600; font-size:13px; padding:6px 0; }
   .rd-delta{ font-size:11px; font-weight:600; margin-left:6px; }
@@ -2530,6 +2532,8 @@
     <div class="modal-field"><label>Fecha del pago</label><input type="date" id="regPagoFecha"></div>
     <div class="modal-field"><label>Banco</label><input id="regPagoBanco" placeholder="HEY BANCO, COPPEL, OXXO..."></div>
     <div class="modal-field" id="regPagoVendedorCampo" style="display:none;"><label>¿Quién vendió?</label><select id="regPagoVendedor"></select></div>
+    <div class="modal-field"><label>Comprobante (opcional: foto o PDF)</label><input type="file" id="regPagoComprobante" accept="image/*,application/pdf">
+      <div class="vend-hint">Cobranza lo ve al confirmar, sin pedirlo por WhatsApp.</div></div>
     <button class="btn-reportar" id="guardarRegistrarPago" style="width:100%;">Registrar pago</button>
   </div>
 </div>
@@ -3547,6 +3551,7 @@ const ACCION_LABEL = {
   comentario_agregado: 'Agregó un comentario',
   novedad_leida: 'Leyó una actualización del Hub',
   vigilante_revisado: 'Corrió el vigilante de los datos',
+  comprobante_subido: 'Subió un comprobante de pago',
   pago_doble_evitado: 'Evitó registrar un pago dos veces',
   lead_actualizado: 'Actualizó un lead',
   inscripcion_estatus: 'Cambió el estatus de una inscripción',
@@ -5244,6 +5249,61 @@ document.getElementById('btnLeadOtroCurso').addEventListener('click', ()=>{
    otra ficha de la MISMA persona, así se usa como una sola, se abra desde donde se abra.
    (Fase 2: pestaña Historial con todos sus cursos, leads y Academia.)
    ========================================================= */
+/* ---------- Comprobantes de pago (28 oct 2026, opcionales) ----------
+   Bucket PRIVADO "comprobantes" + tabla comprobantes: son datos bancarios, se ven con un enlace que caduca en
+   5 minutos. Las fotos se reducen antes de subir (máx. 1600 px, JPG); los PDF van tal cual. La huella (sha256 del
+   archivo original) deja al vigilante encontrar el mismo comprobante en dos pagos. El comprobante del lead pasa
+   solo a su pago cuando se confirma (trigger comprobantes_al_pago); si "No se encontró", queda marcado. */
+const COMP_TIPOS = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+async function reducirImagen(archivo){
+  if(!archivo.type.startsWith('image/')) return archivo;
+  try{
+    const bmp = await createImageBitmap(archivo);
+    const escala = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * escala); c.height = Math.round(bmp.height * escala);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(r=>c.toBlob(r, 'image/jpeg', 0.82));
+    return blob && blob.size < archivo.size ? new File([blob], 'comprobante.jpg', { type:'image/jpeg' }) : archivo;
+  }catch(e){ return archivo; }
+}
+async function huellaArchivo(archivo){
+  try{ const b = await crypto.subtle.digest('SHA-256', await archivo.arrayBuffer()); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2, '0')).join(''); }
+  catch(e){ return null; }
+}
+async function subirComprobante(archivo, { personaId = null, leadId = null, inscripcionId = null, pagoId = null }, detalle = ''){
+  if(!archivo) return null;
+  if(!COMP_TIPOS.includes(archivo.type)){ toast('El comprobante tiene que ser foto (JPG o PNG) o PDF.', true); return null; }
+  const huella = await huellaArchivo(archivo);      // del original: se reconoce aunque se reduzca
+  const listo = await reducirImagen(archivo);
+  if(listo.size > 10 * 1024 * 1024){ toast('El comprobante pesa más de 10 MB.', true); return null; }
+  const ext = { 'application/pdf':'pdf', 'image/png':'png', 'image/webp':'webp' }[listo.type] || 'jpg';
+  const ruta = `${hoyISO().slice(0, 7)}/${crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2)}.${ext}`;
+  const { error: errS } = await sb.storage.from('comprobantes').upload(ruta, listo, { contentType:listo.type, upsert:false });
+  if(errS){ toast('No se pudo subir el comprobante: ' + errS.message, true); return null; }
+  const { data, error } = await sb.from('comprobantes').insert({ ruta, huella, tipo:listo.type, tamano:listo.size,
+    persona_id:personaId, lead_id:leadId, inscripcion_id:inscripcionId, pago_id:pagoId }).select('id').single();
+  if(error){ toast('Se subió el archivo pero no quedó registrado: ' + error.message, true); return null; }
+  registrarActividad('comprobante_subido', detalle || 'Comprobante de pago');
+  return data?.id || true;
+}
+async function verComprobante(ruta){
+  const w = window.open('', '_blank');   // se abre antes de pedir el enlace: si no, el celular la bloquea
+  const { data, error } = await sb.storage.from('comprobantes').createSignedUrl(ruta, 300);
+  if(error || !data?.signedUrl){ if(w) w.close(); toast('No se pudo abrir el comprobante: ' + (error?.message || 'sin enlace'), true); return; }
+  if(w) w.location = data.signedUrl; else window.open(data.signedUrl, '_blank');
+}
+// Elegir un archivo (foto o PDF; en el celular deja tomar la foto)
+function elegirComprobante(){
+  return new Promise(res=>{
+    const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*,application/pdf';
+    i.onchange = ()=>res(i.files?.[0] || null); i.click();
+  });
+}
+// Botones "Ver comprobante" (uno por archivo)
+const botonesComprobante = (lista, attr = 'data-comp-ver') => (lista || []).map((c, n)=>
+  `<button type="button" class="cf-ver" ${attr}="${escapeAttr(c.ruta)}">Ver comprobante${lista.length > 1 ? ' ' + (n + 1) : ''}</button>`).join(' ');
+
 const ficha = { turno:0, leads:{} };
 const CANAL_TXT = { whatsapp:'WhatsApp', llamada:'Llamada', otro:'Nota', nota:'Nota', email:'Correo', correo:'Correo' };
 // Historial de contacto de una persona (el mismo en las dos fichas)
@@ -5646,8 +5706,10 @@ function pintarPagoLead(lead){
       + `${lead.pago_reportado_fecha ? ' · pagó el ' + fechaCorta(lead.pago_reportado_fecha) : ''}`
       + `${donde ? '<br>Curso: ' + donde : ''}${lead.paquete ? ' · ' + (lead.paquete === 'VIP' ? 'VIP' : 'Básico') : ''}`
       + `<br><span style="color:var(--ink-soft);">Lo reportó ${nombreVendedor(lead.pago_reportado_por) || 'alguien'} ${hace(lead.pago_reportado_en)}.`
-      + `${confirma ? '' : ' Cobranza lo confirma en cuanto lo vea en el banco.'}</span>`;
+      + `${confirma ? '' : ' Cobranza lo confirma en cuanto lo vea en el banco.'}</span>`
+      + `<div class="comp-lead" data-comp-lead="${escapeAttr(lead.id)}"></div>`;
     caja.style.display = '';
+    pintarComprobantesLead(lead);
     bReg.textContent = 'Corregir pago'; bReg.classList.add('suave');
     bIns.textContent = 'Confirmar pago';
     bIns.style.display = confirma ? '' : 'none';
@@ -5667,6 +5729,7 @@ let regPagoPaquete = 'BASICO';
 let regPagoPersona = null;
 function modoRegistrarPago(persona){
   regPagoPersona = persona;
+  document.getElementById('regPagoComprobante').value = '';
   document.getElementById('regPagoTitulo').textContent = persona ? 'Inscribir a un curso' : 'Registrar pago';
   document.getElementById('regPagoVendedorCampo').style.display = persona ? '' : 'none';
   document.getElementById('regPagoAntes').style.display = 'none';
@@ -5689,6 +5752,27 @@ function abrirRegistrarPago(){
   document.getElementById('modalRegistrarPago').classList.add('open');
 }
 document.getElementById('btnRegistrarPago').addEventListener('click', abrirRegistrarPago);
+// Comprobante del pago reportado de un lead: verlo o adjuntarlo
+async function comprobantesDeLead(leadId){
+  const { data } = await sb.from('comprobantes').select('id, ruta, estado, pago_id').eq('lead_id', leadId);
+  return (data || []).filter(c=>c.estado === 'vigente' && !c.pago_id);
+}
+async function pintarComprobantesLead(lead){
+  const lista = await comprobantesDeLead(lead.id);
+  document.querySelectorAll(`[data-comp-lead="${CSS.escape(lead.id)}"]`).forEach(c=>{
+    c.innerHTML = (lista.length ? botonesComprobante(lista) : '<span class="sub" style="margin:0;">Sin comprobante.</span>')
+      + ` <button type="button" class="cf-ver" data-comp-subir-lead="${escapeAttr(lead.id)}">Adjuntar comprobante</button>`;
+  });
+}
+document.getElementById('leadPagoReportado').addEventListener('click', async e=>{
+  const ver = e.target.closest('[data-comp-ver]'); if(ver) return verComprobante(ver.dataset.compVer);
+  const sub = e.target.closest('[data-comp-subir-lead]'); if(!sub) return;
+  const lead = leadAbierto(); if(!lead) return;
+  const arch = await elegirComprobante(); if(!arch) return;
+  if(await subirComprobante(arch, { personaId: lead.personas?.id, leadId: lead.id }, `${lead.personas?.nombre || 'lead'} · pago reportado`)){
+    toast('Comprobante adjuntado.'); pintarComprobantesLead(lead);
+  }
+});
 
 /* INSCRIBIR A UN CURSO (Historial cliente, ficha de la alumna y el aviso "ya está en el Hub").
    Para alguien que ya conocemos: se elige el curso de la gira (arriba los de su lada), paquete y
@@ -5812,6 +5896,8 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
   }
   btn.disabled = false; btn.textContent = 'Registrar pago';
   if(error){ toast('No se pudo registrar el pago: ' + error.message, true); return; }
+  const archComp = document.getElementById('regPagoComprobante').files?.[0];
+  if(archComp) await subirComprobante(archComp, { personaId: lead.personas?.id, leadId }, `${alumno} · pago reportado de ${fmtMoney(monto)}`);
   await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: leadId, asesor_id: usuarioActual?.id || null, nota, canal: 'otro' });
   registrarActividad('pago_reportado', `${alumno} · ${fmtMoney(monto)} · ${donde}${per ? ' · inscribir a un curso' : ''}`);
   document.getElementById('modalRegistrarPago').classList.remove('open');
@@ -5885,7 +5971,8 @@ function abrirModalInscribir(){
   const cajaRep = document.getElementById('inscribirReportado');
   cajaRep.style.display = rep ? '' : 'none';
   cajaRep.innerHTML = rep ? `Reportado por <b>${escHtml(nombreVendedor(lead.pago_reportado_por) || 'alguien')}</b> ${hace(lead.pago_reportado_en)}. `
-    + 'Revisa que el monto, la fecha y el banco coincidan con lo que ves en el banco.' : '';
+    + 'Revisa que el monto, la fecha y el banco coincidan con lo que ves en el banco.' + `<div class="comp-lead" data-comp-lead="${escapeAttr(lead.id)}"></div>` : '';
+  if(rep) pintarComprobantesLead(lead);
 
   // Su ciudad primero. Si su ciudad no tiene curso, NO se preselecciona nada:
   // tiene que escoger a propósito, para no inscribirla en la ciudad equivocada.
@@ -5942,6 +6029,15 @@ function actualizarPreviewInscribir(){
 }
 
 document.getElementById('btnInscribirLead').addEventListener('click', abrirModalInscribir);
+document.getElementById('inscribirReportado').addEventListener('click', async e=>{
+  const ver = e.target.closest('[data-comp-ver]'); if(ver) return verComprobante(ver.dataset.compVer);
+  const sub = e.target.closest('[data-comp-subir-lead]'); if(!sub) return;
+  const lead = leadAbierto(); if(!lead) return;
+  const arch = await elegirComprobante(); if(!arch) return;
+  if(await subirComprobante(arch, { personaId: lead.personas?.id, leadId: lead.id }, `${lead.personas?.nombre || 'lead'} · pago reportado`)){
+    toast('Comprobante adjuntado.'); pintarComprobantesLead(lead);
+  }
+});
 document.getElementById('closeModalInscribir').addEventListener('click', ()=>document.getElementById('modalInscribir').classList.remove('open'));
 document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.addEventListener('click', ()=>{
   inscribirPaquete = b.dataset.paq;
@@ -6136,7 +6232,16 @@ async function cargarCobranza(){
     l._yaInscrita = suya.evento_id;
     return (l.estatus?.id ?? l.estatus_id) === ESTATUS_POR_CONFIRMAR();
   });
-  cobDatos = { leads, inscritas };
+  cobDatos = { leads, inscritas, comp:new Map() };
+  // Comprobantes de lo que está por confirmar (para confirmarlo sin pedirlo por WhatsApp)
+  const leadsPC = leads.filter(l=>(l.estatus?.id ?? l.estatus_id) === ESTATUS_POR_CONFIRMAR()).map(l=>l.id);
+  const inscPC = inscritas.filter(i=>(i.pagos || []).some(p=>p.verificacion === 'por_confirmar')).map(i=>i.id);
+  const [cl, ci] = await Promise.all([
+    leadsPC.length ? sb.from('comprobantes').select('ruta, lead_id, inscripcion_id, pago_id, estado').in('lead_id', leadsPC) : { data:[] },
+    inscPC.length ? sb.from('comprobantes').select('ruta, lead_id, inscripcion_id, pago_id, estado').in('inscripcion_id', inscPC) : { data:[] },
+  ]);
+  (cl.data || []).filter(c=>c.estado === 'vigente' && !c.pago_id).forEach(c=>cobDatos.comp.set('lead:' + c.lead_id, c.ruta));
+  (ci.data || []).filter(c=>c.estado === 'vigente').forEach(c=>cobDatos.comp.set('insc:' + c.inscripcion_id, c.ruta));
   return true;
 }
 
@@ -6219,6 +6324,7 @@ function filaCobranza(it, grupo){
       <div class="cob-fecha ${grupo === 'vencidos' ? 'vencida' : ''}">${it.queEs} · ${cuando}</div>
       <div class="cob-acciones">
         ${tel.length >= 10 ? `<button type="button" data-cob-wa title="WhatsApp" aria-label="WhatsApp"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 19.5l1.2-3.4A8 8 0 1 1 8.4 19z"/></svg></button>` : ''}
+        ${it.porConfirmar && cobDatos.comp?.get(it.tipo + ':' + it.id) ? `<button type="button" data-cob-comp title="Ver el comprobante">Comprobante</button>` : ''}
         <button type="button" data-cob-cobrar title="${it.tipo === 'lead' ? (puede('confirmar_pagos') ? 'Confirmar pago e inscribir' : 'Registrar el pago') : 'Registrar un abono'}">Cobrar</button>
         ${grupo !== 'confirmar' ? `<button type="button" data-cob-mover title="Mover la fecha" aria-label="Mover la fecha"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></button><input type="date" class="cob-mover-input" value="${it.fecha && !it.fechaEsCurso ? it.fecha : ''}">` : ''}
       </div>
@@ -6439,6 +6545,7 @@ cobGrupos.addEventListener('click', async e=>{
   if(e.target.closest('[data-cob-no-abrir]')) return;
   const fila = e.target.closest('.cob-fila'); if(!fila) return;
   const tipo = fila.dataset.cobTipo, id = fila.dataset.cobId;
+  if(e.target.closest('[data-cob-comp]')) return verComprobante(cobDatos.comp.get(tipo + ':' + id));
   if(e.target.closest('[data-cob-mover]')){
     const inp = fila.querySelector('.cob-mover-input');
     try{ inp.showPicker(); } catch(_){ inp.style.cssText = 'position:static; opacity:1; width:auto; height:auto; pointer-events:auto;'; inp.focus(); }
@@ -7663,7 +7770,9 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   document.getElementById('fichaPagos').innerHTML = '';   // cada ficha abre con la lista de pagos cerrada
   document.getElementById('cobroProximo').value = data.fecha_proximo_pago || '';
   data.pagos = (data.pagos || []).sort((a,b)=>`${a.fecha}${a.hora || ''}`.localeCompare(`${b.fecha}${b.hora || ''}`));
+  data.comprobantes = [];
   pintarPagosFicha();
+  cargarComprobantesFicha(inscId);
   marcarPCFicha(false);
   pintarPorConfirmarFicha();
   pintarVipFicha();
@@ -8441,6 +8550,12 @@ function formaYBanco(p){
    "Confirmar pagos". Cada corrección queda en la actividad con el antes y el después. */
 let fpEditando = null;
 function puedeCorregirPagos(){ return !!usuarioActual?.es_admin || puede('confirmar_pagos'); }
+async function cargarComprobantesFicha(inscId){
+  const { data } = await sb.from('comprobantes').select('id, ruta, estado, pago_id').eq('inscripcion_id', inscId);
+  if(modalInscId !== inscId || !modalInscDatos) return;
+  modalInscDatos.comprobantes = (data || []).filter(c=>c.estado === 'vigente');
+  pintarPagosFicha();
+}
 function pintarPagosFicha(){
   const d = modalInscDatos, cont = document.getElementById('fichaPagos');
   const pagos = d?.pagos || [];
@@ -8460,10 +8575,24 @@ function pintarPagosFicha(){
         <div class="acc"><button type="button" data-fp-guardar="${escapeAttr(p.id)}">Guardar</button><button type="button" data-fp-cancelar>Cancelar</button></div></div></div>`
       : `<div class="fp-fila"><span>${escHtml(fechaCorta(p.fecha))} · <b>${fmtMoney(Number(p.monto || 0))}</b>${formaYBanco(p) ? ' · ' + escHtml(formaYBanco(p)) : ''}
           ${estado(p) ? `<span class="tag">${estado(p)}</span>` : ''}</span>
+          <span class="fp-comp">${botonesComprobante((d.comprobantes || []).filter(c=>c.pago_id === p.id))}
+            <button type="button" data-fp-comp-subir="${escapeAttr(p.id)}" title="Adjuntar comprobante">${(d.comprobantes || []).some(c=>c.pago_id === p.id) ? 'Otro comprobante' : 'Adjuntar comprobante'}</button></span>
           ${corrige ? `<button type="button" data-fp-editar="${escapeAttr(p.id)}">Corregir</button>` : ''}</div>`).join('')
     + '</details>';
 }
 document.getElementById('fichaPagos').addEventListener('click', async e=>{
+  const verC = e.target.closest('[data-comp-ver]'); if(verC) return verComprobante(verC.dataset.compVer);
+  const subC = e.target.closest('[data-fp-comp-subir]');
+  if(subC){
+    const d = modalInscDatos; if(!d) return;
+    const arch = await elegirComprobante(); if(!arch) return;
+    const p = (d.pagos || []).find(x=>x.id === subC.dataset.fpCompSubir);
+    if(await subirComprobante(arch, { personaId: d.persona_id || d.personas?.id, inscripcionId: d.id, pagoId: subC.dataset.fpCompSubir },
+        `${d.personas?.nombre || 'inscrita'} · pago de ${fmtMoney(Number(p?.monto || 0))}`)){
+      toast('Comprobante adjuntado.'); cargarComprobantesFicha(d.id);
+    }
+    return;
+  }
   const ed = e.target.closest('[data-fp-editar]'), ca = e.target.closest('[data-fp-cancelar]'), gu = e.target.closest('[data-fp-guardar]');
   if(ed){ fpEditando = ed.dataset.fpEditar; pintarPagosFicha(); return; }
   if(ca){ fpEditando = null; pintarPagosFicha(); return; }
