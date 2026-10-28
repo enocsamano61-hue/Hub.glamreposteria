@@ -44,7 +44,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
 
   h.paso('2. "Más adelante" ya no lleva círculo blanco y es para fechas de pago lejanas');
   const despues = await grupo('despues');
-  check(despues.some(t => t.includes('Con Fecha De Pago')) && despues.some(t => t.includes('Lead Promesa Lejana')) && despues.some(t => t.includes('Sin Pago Curso Lejano'))
+  check(despues.some(t => t.includes('Con Fecha De Pago')) && despues.some(t => t.includes('Lead Promesa Lejana')) && !despues.some(t => t.includes('Sin Pago Curso Lejano'))
         && !despues.some(t => t.includes('Con Anticipo Curso Lejano')),
         'con fecha de pago lejana: ' + despues.join(' | '));
   check(await p.$eval('#cobG-despues summary .cob-punto', x => getComputedStyle(x).backgroundColor) === 'rgb(74, 125, 181)', 'punto azul, no blanco');
@@ -55,8 +55,8 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   await p.evaluate(() => { document.getElementById('cobG-curso').open = true; });
   const fila = await p.textContent('#cobG-curso .cob-fila[data-cob-id="i1"]');
   check(fila.includes('Inscrita · con anticipo') && fila.includes('Pagó $700 de $1,400 · debe $700'), 'con anticipo: "Pagó $700 de $1,400 · debe $700"');
-  await p.evaluate(() => { document.getElementById('cobG-despues').open = true; });
-  const f4 = await p.textContent('#cobG-despues .cob-fila[data-cob-id="i4"]');
+  // La inscrita sin pago y sin fecha ya no se esconde en "Más adelante" (caso Miriam, 28 oct)
+  const f4 = await p.textContent('#cobG-sinpago .cob-fila[data-cob-id="i4"]');
   check(f4.includes('Inscrita · sin pago') && f4.includes('Sin pago · debe $1,400'), 'sin pago lo dice');
   check(!(await p.textContent('#cobG-semana')).includes('Lead · Pagó'), 'los leads no traen esa línea');
   await p.evaluate(() => document.getElementById('cobG-curso').scrollIntoView());

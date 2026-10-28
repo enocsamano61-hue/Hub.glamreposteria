@@ -2467,6 +2467,7 @@
     <div class="vend-hint">Se guardan con "Guardar cambios".</div></details>
     <div class="modal-field"><label>Curso que tomará</label><select id="modalEventoSelect"></select></div>
     <div class="modal-field"><label>Ciudad de interés</label><select id="modalCiudadSelect"><option value="">— Sin especificar —</option></select></div>
+    <div class="aviso-corregir" id="leadAvisoInscrita" style="display:none;"></div>
     <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="modalFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
     <div class="modal-field"><label>Estatus</label><select id="modalEstatusSelect"></select></div>
     <div class="modal-notas coment-caja"><div class="modal-notas-titulo">Comentarios</div>
@@ -2500,6 +2501,8 @@
     <div class="modal-field"><label>¿Cuánto pagó?</label><input type="number" id="inscribirPagado" inputmode="decimal" min="0" step="50"></div>
     <div class="modal-field"><label>Fecha del pago</label><input type="date" id="inscribirFecha"></div>
     <div class="modal-field"><label>Banco</label><input id="inscribirBanco" placeholder="HEY BANCO, COPPEL, OXXO..."></div>
+    <div class="modal-field" id="inscribirProximoCampo"><label id="inscribirProximoLabel">Fecha de pago de lo que falta</label><input type="date" id="inscribirProximo">
+      <div class="vend-hint">El día que dijo que paga. Cobranza le da seguimiento ese día.</div></div>
     <div class="modal-field"><label>¿Quién vendió?</label><select id="inscribirVendedor"></select></div>
     <div class="corr-preview" id="inscribirPreview">—</div>
     <button class="btn-primary" id="guardarInscribir">Inscribir</button>
@@ -5260,11 +5263,12 @@ async function pintarFichaTabs(donde, { personaId, leadId = null, inscId = null 
   const modal = cont.closest('.modal');
   modal.classList.remove('ver-contactos');
   cont.innerHTML = '';
+  if(donde === 'lead') document.getElementById('leadAvisoInscrita').style.display = 'none';
   if(!personaId) return;
   const turno = ++ficha.turno;
   const traer = () => Promise.all([
     sb.from('leads').select(LEAD_SELECT).eq('persona_id', personaId).order('creado_en', { ascending:false }).limit(10),
-    sb.from('inscripciones').select('id, estatus_id, eventos(fecha, ciudades(nombre))').eq('persona_id', personaId).limit(30),
+    sb.from('inscripciones').select('id, evento_id, estatus_id, eventos(fecha, ciudades(nombre))').eq('persona_id', personaId).limit(30),
   ]);
   let [rl, ri] = await traer();
   // Toda inscrita es lead: si es alumna de antes y nunca tuvo lead en el Hub, se le crea (cerrado, como "Inscrita").
@@ -5282,6 +5286,15 @@ async function pintarFichaTabs(donde, { personaId, leadId = null, inscId = null 
   const inscs = (ri.data || []).filter(i=>i.id === inscId || (![6, 15].includes(i.estatus_id) && (i.eventos?.fecha || '') >= hoy))
     .sort((a, b)=>String(a.eventos?.fecha || '').localeCompare(String(b.eventos?.fecha || ''))).slice(0, 3);
   const corta = f => f ? new Date(f + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
+  // Lead de alguien ya inscrita en ese curso: su fecha de pago y su seguimiento van en su ficha
+  if(donde === 'lead'){
+    const aviso = document.getElementById('leadAvisoInscrita');
+    const ev = (ficha.leads[leadId] || leadsCache.find(l=>l.id === leadId))?.evento_id;
+    const suya = ev && (ri.data || []).find(i=>i.evento_id === ev && ![6, 15].includes(i.estatus_id));
+    aviso.style.display = suya ? '' : 'none';
+    aviso.innerHTML = suya ? '<b>Ya está inscrita en este curso.</b> Su fecha de pago y su seguimiento van en su ficha (es lo que ve Cobranza). '
+      + `Si pones aquí una fecha de anticipo, se pasa sola a su ficha. <button type="button" class="cf-ver" data-ft="insc:${escapeAttr(suya.id)}">Abrir su ficha</button>` : '';
+  }
   const btn = (clave, txt, activa, extra = '') => `<button type="button" data-ft="${escapeAttr(clave)}" class="${activa ? 'activa' : ''}" ${extra}>${escHtml(txt)}</button>`;
   cont.innerHTML = (leads.length
       ? leads.map(l=>btn('lead:' + l.id, 'Lead' + ((l.eventos?.ciudades?.nombre || l.ciudades?.nombre) ? ' · ' + (l.eventos?.ciudades?.nombre || l.ciudades?.nombre) : ''), donde === 'lead' && l.id === leadId)).join('')
@@ -5324,6 +5337,11 @@ async function irPestanaFicha(e){
   return abrirModalInscripcion(id);
 }
 ['ftabsLead', 'ftabsInsc'].forEach(id=>document.getElementById(id).addEventListener('click', irPestanaFicha));
+document.getElementById('leadAvisoInscrita').addEventListener('click', e=>{
+  const b = e.target.closest('[data-ft]'); if(!b) return;
+  document.getElementById('modalLead').classList.remove('open');
+  abrirModalInscripcion(b.dataset.ft.split(':')[1]);
+});
 document.getElementById('closeModalLead').addEventListener('click', ()=>document.getElementById('modalLead').classList.remove('open'));
 document.getElementById('modalLeadTelefono').addEventListener('click', e=>{
   if(!e.target.closest('#btnLeadWhats')) return;
@@ -5388,7 +5406,10 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
 
   if(errPersona || errUpd || errInt){ toast('Error al guardar: ' + (errPersona||errUpd||errInt).message, true); return; }
   const fueraDeGira = ciudadNueva && CIUDADES_GIRA_ACTIVA.length && !CIUDADES_GIRA_ACTIVA.includes(ciudadNueva);
-  toast(fueraDeGira ? 'Guardado — pero esa ciudad no es parte de la gira activa, este lead no se verá en el tablero hasta que lo sea.' : 'Guardado.', fueraDeGira);
+  // Ya está inscrita en ese curso: la base pasó la fecha a su ficha y su lead sigue como "Inscrita"
+  const yaInscrita = document.getElementById('leadAvisoInscrita').style.display !== 'none';
+  toast(fueraDeGira ? 'Guardado — pero esa ciudad no es parte de la gira activa, este lead no se verá en el tablero hasta que lo sea.'
+    : yaInscrita && fechaAnticipo ? `Guardado. Como ya está inscrita, la fecha ${fechaCorta(fechaAnticipo)} quedó en su ficha: Cobranza la ve ese día.` : 'Guardado.', fueraDeGira);
   const etiquetaNueva = ESTATUS.find(e=>e.id===nuevoEstatusId)?.etiqueta || '';
   registrarActividad('lead_actualizado', `${nombreNuevo} → ${etiquetaNueva}`);
   document.getElementById('modalLead').classList.remove('open');
@@ -5892,6 +5913,8 @@ function abrirModalInscribir(){
   document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.classList.toggle('active', b.dataset.paq === inscribirPaquete));
   document.getElementById('inscribirPagado').value = rep ? (lead.pago_reportado_monto ?? 700) : 700;
   document.getElementById('inscribirFecha').value = rep && lead.pago_reportado_fecha ? lead.pago_reportado_fecha : new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD local
+  // Si ya prometió una fecha (su fecha de anticipo), se propone como fecha de pago
+  document.getElementById('inscribirProximo').value = lead.fecha_compromiso_pago && lead.fecha_compromiso_pago >= hoyISO() ? lead.fecha_compromiso_pago : '';
   document.getElementById('inscribirBanco').value = rep ? (lead.pago_reportado_banco || '') : '';
   // Vendedor por defecto: el dueño del lead; si no tiene, quien inscribe (si vende).
   const porDefecto = lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '');
@@ -5909,6 +5932,9 @@ function actualizarPreviewInscribir(){
   if(!(pagado >= 0)){ caja.innerHTML = '<span class="malo">El monto pagado no puede ser negativo.</span>'; return; }
   const etiqueta = ESTATUS.find(e=>e.id === estatusInicialInscripcion(pagado, precio))?.etiqueta || '—';
   const restante = Math.max(precio - pagado, 0);
+  // Fecha de pago: solo si queda debiendo; obligatoria si no pagó nada
+  document.getElementById('inscribirProximoCampo').style.display = restante > 0 ? '' : 'none';
+  document.getElementById('inscribirProximoLabel').textContent = pagado > 0 ? 'Fecha de pago de lo que falta' : 'Fecha de pago (obligatoria: no ha pagado nada)';
   let html = restante > 0 ? `Queda debiendo <b>${fmtMoney(restante)}</b> · ${etiqueta}` : `Queda <b>liquidada</b> · ${etiqueta}`;
   if(pagado > precio) html += ` · <span class="malo">pagó ${fmtMoney(pagado - precio)} de más</span>`;
   if(!document.getElementById('inscribirVendedor').value) html += '<br><span class="malo">Sin vendedor: no le contará a nadie en el corte.</span>';
@@ -5922,7 +5948,7 @@ document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.addEventListe
   document.querySelectorAll('#inscribirPaquete button').forEach(x=>x.classList.toggle('active', x === b));
   actualizarPreviewInscribir();
 }));
-['inscribirPagado','inscribirVendedor'].forEach(id=>{
+['inscribirPagado','inscribirVendedor','inscribirProximo'].forEach(id=>{
   document.getElementById(id).addEventListener('input', actualizarPreviewInscribir);
   document.getElementById(id).addEventListener('change', actualizarPreviewInscribir);
 });
@@ -5942,6 +5968,10 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   if(!eventoId){ toast('Elige a qué curso la inscribes.', true); return; }
   if(!(pagado >= 0)){ toast('El monto pagado no puede ser negativo.', true); return; }
   if(pagado > 0 && !fecha){ toast('Pon la fecha del pago.', true); return; }
+  // Fecha de pago de lo que falta: sin ella, Cobranza no sabe cuándo cobrarle (caso Miriam, 28 oct)
+  const proximo = pagado < precio ? (document.getElementById('inscribirProximo').value || null) : null;
+  if(!(pagado > 0) && !proximo){ toast('Pon la fecha de pago: no ha pagado nada y Cobranza necesita saber cuándo cobrarle.', true); return; }
+  if(proximo && proximo < hoyISO()){ toast('La fecha de pago ya pasó: pon la fecha que prometió pagar.', true); return; }
 
   // Si el vendedor elegido no es el dueño del lead, es una reasignación:
   // misma confirmación que en cualquier ficha, o este botón serviría para
@@ -5979,7 +6009,7 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
     precio_pactado: precio, paquete: inscribirPaquete,
     anticipo: pagado, restante: Math.max(precio - pagado, 0), liquidado: pagado >= precio,
     estatus_id: estatusInicialInscripcion(pagado, precio),
-    asesor_id: vendedorId, notas_migracion: nota,
+    asesor_id: vendedorId, notas_migracion: nota, fecha_proximo_pago: proximo,
   }).select('id').single();
   if(error){ listo(); toast('No se pudo inscribir: ' + error.message, true); return; }
 
@@ -6027,13 +6057,15 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
 let cobDia = null;            // 'YYYY-MM-DD'
 let cobQuien = 'todos';       // todos | leads | inscritas
 let cobDatos = { leads:[], inscritas:[] };
-const cobAbiertos = new Set(['confirmar','vencidos','hoy','semana']);
+const cobAbiertos = new Set(['confirmar','vencidos','hoy','semana','sinpago']);
 // "curso": inscritas con anticipo sin fecha de pago, que se cobran el día de su curso (antes caían en
 // "Más adelante" con un círculo blanco y parecía que no tenían estatus).
 // "pasado": inscritas cuyo curso ya fue y siguen debiendo; aparte para que no hagan ruido con la gira
 // que viene, pero sin perder ese dinero.
-const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','curso','despues','sinfecha','pasado'];
-const COB_ICONO = { confirmar:'<i class="cob-punto" style="background:#8E5BB5"></i>', vencidos:'<i class="cob-punto" style="background:#B5453A"></i>', hoy:'<i class="cob-punto" style="background:#D9822B"></i>', semana:'<i class="cob-punto" style="background:#D9B43B"></i>', curso:'<i class="cob-punto" style="background:#55745C"></i>', despues:'<i class="cob-punto" style="background:#4A7DB5"></i>', sinfecha:'<i class="cob-punto" style="background:#5A5057"></i>', pasado:'<i class="cob-punto" style="background:#9C8590"></i>' };
+// "sinpago": inscritas que no han pagado nada y no tienen fecha de pago (caso Miriam, 28 oct): antes tomaban la
+// fecha del curso y se escondían en "Más adelante".
+const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','sinpago','curso','despues','sinfecha','pasado'];
+const COB_ICONO = { confirmar:'<i class="cob-punto" style="background:#8E5BB5"></i>', vencidos:'<i class="cob-punto" style="background:#B5453A"></i>', hoy:'<i class="cob-punto" style="background:#D9822B"></i>', semana:'<i class="cob-punto" style="background:#D9B43B"></i>', sinpago:'<i class="cob-punto" style="background:#C2185B"></i>', curso:'<i class="cob-punto" style="background:#55745C"></i>', despues:'<i class="cob-punto" style="background:#4A7DB5"></i>', sinfecha:'<i class="cob-punto" style="background:#5A5057"></i>', pasado:'<i class="cob-punto" style="background:#9C8590"></i>' };
 /* "Hoy" con la hora de quien usa el Hub (México). new Date().toISOString() da
    la fecha de Londres (UTC): desde las 5–6 pm ya es "mañana", los días del
    Calendario desaparecían en pleno curso y los abonos salían con fecha de mañana. */
@@ -6048,6 +6080,7 @@ function etiquetaGrupoCob(id){
     vencidos:  ['Vencidos', esHoy ? 'ya pasó su fecha' : `antes del ${dia}`],
     hoy:       [esHoy ? 'Hoy' : `El ${dia}`, ''],
     semana:    [esHoy ? 'Esta semana' : 'Los 7 días siguientes', 'los próximos 7 días'],
+    sinpago:   ['Inscritas sin pago · sin fecha', 'no han pagado nada y no tienen fecha de pago: ponles fecha en su ficha'],
     curso:     ['Con anticipo · se cobra en el curso', 'pagaron una parte; lo que falta se cobra el día de su curso'],
     despues:   ['Más adelante', 'con fecha de pago después de 7 días'],
     sinfecha:  ['Sin fecha', 'leads sin fecha de anticipo'],
@@ -6149,6 +6182,7 @@ function itemsCobranza(){
 function grupoCobranza(it){
   if(it.porConfirmar) return 'confirmar';
   if(it.tipo === 'insc' && it.cursoPasado) return 'pasado';
+  if(it.tipo === 'insc' && it.fechaEsCurso && !(it.pagado > 0)) return 'sinpago';
   if(!it.fecha) return 'sinfecha';
   if(it.fecha < cobDia) return 'vencidos';
   if(it.fecha === cobDia) return 'hoy';
