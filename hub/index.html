@@ -1265,6 +1265,17 @@
   .usr-rol-panel{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; }
   .usr-area{ margin-top:6px; }
   .usr-aviso{ background:rgba(198,166,107,.18); color:#6B5420; border-radius:10px; padding:8px 12px; font-size:12.5px; margin-top:10px; }
+  .usr-cabeza{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .usr-cabeza #usrBuscar{ margin-bottom:0; flex:1 1 240px; }
+  .usr-cabeza button{ width:auto; }
+  .usr-persona.baja{ opacity:.72; }
+  .usr-badge.baja{ background:#E9E2E4; color:#6B5B60; }
+  .usr-badge.nuevo{ background:rgba(198,166,107,.25); color:#6B5420; }
+  .usr-acciones{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+  .usr-acciones button{ width:auto; }
+  .usr-acciones .usr-baja{ color:var(--wine); border-color:var(--wine); }
+  .usr-clave{ font-family:ui-monospace, Menlo, Consolas, monospace; font-size:22px; font-weight:700; letter-spacing:.04em; text-align:center; background:rgba(var(--wine-rgb),.08); border:1px dashed var(--wine); border-radius:12px; padding:12px; margin:12px 0; color:var(--wine-dark); user-select:all; }
+  .usr-msj{ white-space:pre-wrap; font-family:inherit; font-size:13px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:0; max-height:220px; overflow:auto; }
   @media (max-width:760px){
     .usr-fila{ grid-template-columns:1fr auto; }
     .usr-panel{ grid-template-columns:1fr; }
@@ -3021,6 +3032,13 @@
 </div>
 
 <!-- ===================== MODAL: GLAMY BI — metas de la gira ===================== -->
+<!-- ===================== MODAL: Usuarios — nuevo usuario y contraseña temporal ===================== -->
+<div class="modal-overlay" id="modalUsuario">
+  <div class="modal" style="max-width:480px;">
+    <button class="close" id="closeModalUsuario">✕</button>
+    <div id="usrModalCuerpo"></div>
+  </div>
+</div>
 <div class="modal-overlay" id="modalVigilante">
   <div class="modal" style="max-width:620px;">
     <button class="close" id="closeModalVigilante">✕</button>
@@ -3177,6 +3195,13 @@ async function onLogin(session){
   sesionActual = session;
   document.getElementById('loginScreen').style.display='none';
   await resolverUsuarioActual();
+  // Dado de baja: no entra (su cuenta ya está bloqueada; esto cierra la sesión que tuviera abierta).
+  if(usuarioActual?.activo === false){
+    await sb.auth.signOut();
+    const errBox = document.getElementById('loginError');
+    errBox.textContent = 'Tu usuario está dado de baja. Si es un error, habla con un administrador.'; errBox.className = 'login-error show';
+    return;
+  }
   if(usuarioActual?.debe_cambiar_password){
     mostrarPantallaCambiarPassword();
     return;
@@ -3341,7 +3366,7 @@ pickerOverlay.addEventListener('click', closePicker);
 let usuarioActual = null; // { id, nombre, rol, es_admin, puede_ver_actividad } — fila de public.usuarios
 async function resolverUsuarioActual(){
   if(!sesionActual) return;
-  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad, debe_cambiar_password, recibe_pedidos').eq('email', sesionActual.user.email).maybeSingle();
+  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad, debe_cambiar_password, recibe_pedidos, activo, creado_en, bienvenida_pendiente').eq('email', sesionActual.user.email).maybeSingle();
   usuarioActual = data || { id:null, nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false, puede_ver_actividad:false, debe_cambiar_password:false };
 }
 const TODAS_SECCIONES = SECCIONES.map(s=>s.id);
@@ -3549,6 +3574,10 @@ async function registrarActividad(accion, detalle){
 
 /* ---------- Vista "Actividad del equipo" (admin, o con puede_ver_actividad) ---------- */
 const ACCION_LABEL = {
+  usuario_creado: 'Creó un usuario',
+  usuario_baja: 'Dio de baja a un usuario',
+  usuario_reactivado: 'Reactivó a un usuario',
+  usuario_contrasena: 'Le dio una contraseña temporal a un usuario',
   lead_creado: 'Creó un lead',
   comentario_agregado: 'Agregó un comentario',
   novedad_leida: 'Leyó una actualización del Hub',
@@ -3809,7 +3838,7 @@ async function renderUsuariosPermisos(){
   const caja = document.getElementById(usr.tab === 'personas' ? 'usrPersonas' : 'usrRoles');
   if(!usr.usuarios.length) caja.innerHTML = '<div class="empty-note">Cargando…</div>';
   const [u, r, a] = await Promise.all([
-    sb.from('usuarios').select('id, nombre, rol, email, es_admin, puede_ver_actividad, es_vendedor, recibe_pedidos').order('nombre'),
+    sb.from('usuarios').select('id, nombre, rol, email, es_admin, puede_ver_actividad, es_vendedor, recibe_pedidos, activo, baja_en, baja_por, creado_en, debe_cambiar_password, bienvenida_pendiente').order('nombre'),
     sb.from('permisos_rol').select('rol, seccion_id'),
     sb.from('permisos_accion').select('rol, accion'),
   ]);
@@ -3839,43 +3868,169 @@ function usrLoQueVe(u){
 function usrPintarPersonas(){
   const caja = document.getElementById('usrPersonas');
   const q = normTexto(usr.buscar);
-  const lista = usr.usuarios.filter(u=>!q || normTexto(`${u.nombre} ${u.email} ${u.rol}`).includes(q));
-  const porRol = usrRoles().map(r=>[r, usr.usuarios.filter(u=>u.rol === r).length]).filter(([, n])=>n);
+  // Primero los activos; los dados de baja al final (en orden de nombre cada grupo).
+  const lista = usr.usuarios.filter(u=>!q || normTexto(`${u.nombre} ${u.email} ${u.rol}`).includes(q))
+    .sort((a, b)=>(a.activo === false) - (b.activo === false));
+  const activos = usr.usuarios.filter(u=>u.activo !== false), deBaja = usr.usuarios.length - activos.length;
+  const porRol = usrRoles().map(r=>[r, activos.filter(u=>u.rol === r).length]).filter(([, n])=>n);
   const roles = usrRoles();
+  const dueno = !!usuarioActual?.recibe_pedidos;
   const fila = u=>{
-    const badges = [u.es_admin ? '<span class="usr-badge admin">Admin</span>' : '', u.es_vendedor ? '<span class="usr-badge">Vendedora</span>' : '',
-      u.recibe_pedidos ? '<span class="usr-badge">Recibe tickets</span>' : '', !u.es_admin && u.puede_ver_actividad ? '<span class="usr-badge">Ve actividad</span>' : ''].join('');
+    const baja = u.activo === false;
+    const badges = baja ? '<span class="usr-badge baja">De baja</span>' : [u.es_admin ? '<span class="usr-badge admin">Admin</span>' : '', u.es_vendedor ? '<span class="usr-badge">Vendedora</span>' : '',
+      u.recibe_pedidos ? '<span class="usr-badge">Recibe tickets</span>' : '', !u.es_admin && u.puede_ver_actividad ? '<span class="usr-badge">Ve actividad</span>' : '',
+      u.debe_cambiar_password ? '<span class="usr-badge nuevo">Todavía no entra</span>' : u.bienvenida_pendiente ? '<span class="usr-badge nuevo">Falta su bienvenida</span>' : ''].join('');
     const yo = u.id === usuarioActual?.id, abierto = usr.abierto === u.id;
-    return `<div class="usr-persona ${abierto ? 'abierta' : ''}" data-usr-persona="${escapeAttr(u.id)}">
+    const tocar = usrPuedeTocar(u);
+    const porQue = yo ? 'Esto no se hace con tu propio usuario.' : !tocar ? `A un administrador solo lo cambia ${usrDueno()}.` : '';
+    const cuenta = `<div class="usr-sub-t">Cuenta</div>
+          ${baja ? `<div class="sub">Dado de baja el ${escHtml(u.baja_en ? fechaCorta(u.baja_en.slice(0, 10)) : '')}${u.baja_por ? ' por ' + escHtml(usr.usuarios.find(x=>x.id === u.baja_por)?.nombre || '') : ''}. Sus datos se quedan.</div>` : ''}
+          <div class="usr-acciones">${baja
+            ? `<button type="button" class="btn-primary small" data-usr-accion="reactivar" ${tocar ? '' : 'disabled'}>Reactivar</button>`
+            : `<button type="button" class="btn-outline small" data-usr-accion="contrasena" ${tocar ? '' : 'disabled'}>Nueva contraseña temporal</button>
+               <button type="button" class="btn-outline small usr-baja" data-usr-accion="baja" ${tocar ? '' : 'disabled'}>Dar de baja</button>`}</div>
+          ${porQue ? `<div class="sub">${escHtml(porQue)}</div>` : ''}`;
+    return `<div class="usr-persona ${abierto ? 'abierta' : ''} ${baja ? 'baja' : ''}" data-usr-persona="${escapeAttr(u.id)}">
       <div class="usr-fila">
         <div><b>${escHtml(u.nombre || '(sin nombre)')}</b>${yo ? ' <span class="sub">(tú)</span>' : ''}<div class="sub">${escHtml(u.email || '')}</div></div>
         <div><span class="usr-rol">${escHtml(u.rol || 'Sin rol')}</span></div>
         <div class="usr-badges">${badges}</div>
         <div><button type="button" class="btn-outline small" data-usr-editar="${escapeAttr(u.id)}">${abierto ? 'Cerrar' : 'Editar'}</button></div>
       </div>
-      ${abierto ? `<div class="usr-panel">
+      ${abierto && baja ? `<div class="usr-panel"><div class="usr-col">${cuenta}</div></div>` : abierto ? `<div class="usr-panel">
         <div class="usr-col">
           <label class="usr-campo">Rol<select class="select" data-usr-rol="${escapeAttr(u.id)}">${roles.map(r=>`<option ${r === u.rol ? 'selected' : ''}>${escHtml(r)}</option>`).join('')}</select></label>
           <div class="sub">¿Falta un rol? Créalo en la pestaña Roles.</div>
-          <label class="usr-sw"><input type="checkbox" data-usr-campo="es_admin" ${u.es_admin ? 'checked' : ''} ${yo ? 'disabled' : ''}>
-            <span><b>Administrador</b><small>${yo ? 'No puedes quitártelo a ti mismo.' : 'Ve y edita todo el Hub, y da permisos.'}</small></span></label>
+          <label class="usr-sw"><input type="checkbox" data-usr-campo="es_admin" ${u.es_admin ? 'checked' : ''} ${yo || !dueno ? 'disabled' : ''}>
+            <span><b>Administrador</b><small>${yo ? 'No puedes quitártelo a ti mismo.' : !dueno ? `Solo ${escHtml(usrDueno())} puede cambiarlo.` : 'Ve y edita todo el Hub, y da permisos.'}</small></span></label>
           <label class="usr-sw"><input type="checkbox" data-usr-campo="es_vendedor" ${u.es_vendedor ? 'checked' : ''}>
             <span><b>Es vendedora</b><small>Sale en "¿Quién vendió?" y en los filtros por vendedora.</small></span></label>
-          <label class="usr-sw"><input type="checkbox" data-usr-campo="recibe_pedidos" ${u.recibe_pedidos ? 'checked' : ''}>
-            <span><b>Recibe tickets de Glamy</b><small>Le llegan los tickets y ve la sección Glamy.</small></span></label>
+          <label class="usr-sw"><input type="checkbox" data-usr-campo="recibe_pedidos" ${u.recibe_pedidos ? 'checked' : ''} ${dueno ? '' : 'disabled'}>
+            <span><b>Recibe tickets de Glamy</b><small>${dueno ? 'Le llegan los tickets y ve la sección Glamy.' : `Solo ${escHtml(usrDueno())} puede cambiarlo.`}</small></span></label>
           <label class="usr-sw"><input type="checkbox" data-usr-campo="puede_ver_actividad" ${u.puede_ver_actividad || u.es_admin ? 'checked' : ''} ${u.es_admin ? 'disabled' : ''}>
             <span><b>Ve actividad del equipo</b><small>${u.es_admin ? 'Ya la ve por ser administrador.' : 'Checador y bitácora, sin ser administrador.'}</small></span></label>
+          ${cuenta}
         </div>
         <div class="usr-col"><div class="usr-sub-t">Lo que ve</div>${usrLoQueVe(u)}</div>
       </div>` : ''}
     </div>`;
   };
   caja.innerHTML = `
-    <div class="usr-resumen"><span><b>${usr.usuarios.length}</b> personas</span><span><b>${usr.usuarios.filter(u=>u.es_admin).length}</b> administradores</span>
-      ${porRol.map(([r, n])=>`<span>${escHtml(r)} <b>${n}</b></span>`).join('')}</div>
-    <input type="search" class="search" id="usrBuscar" placeholder="Buscar por nombre, correo o rol" value="${escapeAttr(usr.buscar)}" aria-label="Buscar persona">
+    <div class="usr-resumen"><span><b>${activos.length}</b> personas</span><span><b>${activos.filter(u=>u.es_admin).length}</b> administradores</span>
+      ${porRol.map(([r, n])=>`<span>${escHtml(r)} <b>${n}</b></span>`).join('')}${deBaja ? `<span>De baja <b>${deBaja}</b></span>` : ''}</div>
+    <div class="usr-cabeza"><input type="search" class="search" id="usrBuscar" placeholder="Buscar por nombre, correo o rol" value="${escapeAttr(usr.buscar)}" aria-label="Buscar persona">
+      <button type="button" class="btn-primary small" id="usrNuevo">Nuevo usuario</button></div>
     <div class="usr-lista">${lista.map(fila).join('') || '<div class="empty-note">Nadie con esa búsqueda.</div>'}</div>`;
 }
+/* ---------- Alta, baja y contraseña temporal (función usuarios, con la llave de servicio) ----------
+   Los tres administradores crean usuarios, los dan de baja y les dan contraseña nueva; solo quien recibe los
+   tickets (Enoc) hace administradores o da "Recibe tickets", y solo él toca la cuenta de un administrador.
+   La base pone el mismo candado (trigger usuarios_cambios_protegidos). Nunca se borra a nadie. */
+const usrDueno = () => usr.usuarios.find(u=>u.recibe_pedidos && u.activo !== false)?.nombre || 'quien recibe los tickets';
+const usrPuedeTocar = u => u.id !== usuarioActual?.id && (!(u.es_admin || u.recibe_pedidos) || !!usuarioActual?.recibe_pedidos);
+async function usrLlamar(cuerpo){
+  const { data, error } = await sb.functions.invoke('usuarios', { body: cuerpo });
+  if(error){
+    // El motivo viene en el cuerpo de la respuesta (403, 409…)
+    let msg = error.message;
+    try{ const j = await error.context?.json?.(); if(j?.error) msg = j.error; }catch(_){}
+    return { error: msg };
+  }
+  return data?.error ? { error: data.error } : (data || { error: 'Sin respuesta' });
+}
+const usrModal = () => document.getElementById('modalUsuario');
+function usrAbrirNuevo(){
+  const dueno = !!usuarioActual?.recibe_pedidos;
+  document.getElementById('usrModalCuerpo').innerHTML = `<h3 style="margin-bottom:2px;">Nuevo usuario</h3>
+    <div class="sub" style="margin-bottom:12px;">Se crea su cuenta con una contraseña temporal. Al entrar, el Hub le pide poner la suya y le da la bienvenida de su rol.</div>
+    <div class="modal-field"><label for="usrNNombre">Nombre</label><input id="usrNNombre" maxlength="80" placeholder="Nombre y apellido"></div>
+    <div class="modal-field"><label for="usrNEmail">Correo (con el que va a entrar)</label><input type="email" id="usrNEmail" maxlength="120" autocomplete="off"></div>
+    <div class="modal-field"><label for="usrNRol">Rol</label><select id="usrNRol">${usrRoles().map(r=>`<option>${escHtml(r)}</option>`).join('')}</select></div>
+    <label class="usr-sw"><input type="checkbox" id="usrNVende"><span><b>Es vendedora</b><small>Sale en "¿Quién vendió?" y en los filtros por vendedora.</small></span></label>
+    ${dueno ? `<label class="usr-sw"><input type="checkbox" id="usrNAdmin"><span><b>Administrador</b><small>Ve y edita todo el Hub, y da permisos.</small></span></label>
+      <label class="usr-sw"><input type="checkbox" id="usrNTickets"><span><b>Recibe tickets de Glamy</b><small>Le llegan los tickets y ve la sección Glamy.</small></span></label>`
+      : `<div class="sub" style="margin-top:6px;">Para hacerlo administrador, pídeselo a ${escHtml(usrDueno())}.</div>`}
+    <div class="aviso" id="usrNError" style="display:none;"></div>
+    <div class="confirm-acciones"><button type="button" class="btn-ghost" id="usrNCancelar">Cancelar</button><button type="button" class="btn-primary small" id="usrNCrear">Crear usuario</button></div>`;
+  usrModal().classList.add('open');
+  document.getElementById('usrNNombre').focus();
+}
+async function usrCrear(btn){
+  const v = id => document.getElementById(id);
+  const datos = { accion:'crear', nombre: v('usrNNombre').value.trim().replace(/\s+/g, ' '), email: v('usrNEmail').value.trim().toLowerCase(), rol: v('usrNRol').value,
+    es_vendedor: v('usrNVende').checked, es_admin: !!v('usrNAdmin')?.checked, recibe_pedidos: !!v('usrNTickets')?.checked };
+  const err = v('usrNError'), mal = t => { err.textContent = t; err.style.display = ''; };
+  if(!datos.nombre) return mal('Escribe su nombre.');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email)) return mal('Escribe un correo válido.');
+  const ya = usr.usuarios.find(u=>(u.email || '').toLowerCase() === datos.email);
+  if(ya) return mal(`Ese correo ya es de ${ya.nombre}${ya.activo === false ? ' (dado de baja: ábrelo y toca Reactivar)' : ''}.`);
+  btn.disabled = true; btn.textContent = 'Creando…';
+  const r = await usrLlamar(datos);
+  btn.disabled = false; btn.textContent = 'Crear usuario';
+  if(r.error) return mal(r.error);
+  registrarActividad('usuario_creado', `${datos.nombre} (${datos.rol})${datos.es_admin ? ' · administrador' : ''}`);
+  // El directorio del equipo (vendedoras, nombres) se usa en todo el Hub.
+  EQUIPO.push({ id:r.usuario_id, nombre:datos.nombre, rol:datos.rol, es_vendedor:datos.es_vendedor, es_admin:datos.es_admin, activo:true });
+  VENDEDORES = EQUIPO.filter(x=>x.es_vendedor);
+  usrMostrarClave(r, `Listo: ${datos.nombre} ya tiene usuario`, true);
+  renderUsuariosPermisos();
+}
+// La contraseña temporal se ve una sola vez (no se guarda). Va con el mensaje listo para mandarle por WhatsApp.
+function usrMostrarClave(r, titulo, nuevo){
+  const nombre = String(r.nombre || '').split(' ')[0];
+  usr.mensaje = nuevo
+    ? `Hola ${nombre}, ya tienes tu usuario del Hub de Glam Repostería.\n\nEntra a https://hub.glamreposteria.com\nCorreo: ${r.email}\nContraseña temporal: ${r.password}\n\nAl entrar te va a pedir que pongas tu propia contraseña y te va a dar la bienvenida. Cualquier duda, pregúntale a Glamy (el botón de abajo a la derecha): es tu asistente dentro del Hub.`
+    : `Hola ${nombre}, te di una contraseña temporal nueva para el Hub.\n\nEntra a https://hub.glamreposteria.com\nCorreo: ${r.email}\nContraseña temporal: ${r.password}\n\nAl entrar te va a pedir que pongas tu propia contraseña.`;
+  usr.clave = r.password;
+  document.getElementById('usrModalCuerpo').innerHTML = `<h3 style="margin-bottom:2px;">${escHtml(titulo)}</h3>
+    <div class="sub">Cópiala ahora: por seguridad no se guarda y no se vuelve a mostrar. Si se pierde, dale otra con "Nueva contraseña temporal".</div>
+    <div class="usr-clave" id="usrClave">${escHtml(r.password)}</div>
+    <div class="usr-sub-t">Mensaje para mandarle por WhatsApp</div>
+    <pre class="usr-msj" id="usrMsj">${escHtml(usr.mensaje)}</pre>
+    <div class="confirm-acciones"><button type="button" class="btn-ghost" id="usrCopiarClave">Copiar contraseña</button><button type="button" class="btn-primary small" id="usrCopiarMsj">Copiar mensaje</button></div>`;
+  usrModal().classList.add('open');
+}
+async function usrBaja(u, btn){
+  const ok = await preguntarConfirmacion({ titulo:`¿Dar de baja a ${u.nombre}?`, textoSi:'Sí, dar de baja', fuerte:true,
+    aviso:`Ya no va a poder entrar al Hub y deja de salir como vendedora. <b>No se borra nada</b>: sus leads, ventas e historial se quedan. Se puede reactivar.` });
+  if(ok === null) return;
+  btn.disabled = true;
+  const r = await usrLlamar({ accion:'baja', usuario_id:u.id });
+  btn.disabled = false;
+  if(r.error){ toast(r.error, true); return; }
+  registrarActividad('usuario_baja', u.nombre);
+  Object.assign(u, { activo:false, baja_en:new Date().toISOString(), baja_por:usuarioActual.id, es_vendedor:false });
+  const e = EQUIPO.find(x=>x.id === u.id);
+  if(e){ e.activo = false; e.es_vendedor = false; VENDEDORES = EQUIPO.filter(x=>x.es_vendedor); }
+  toast(`${u.nombre} quedó dado de baja.`);
+  usrPintarPersonas();
+}
+// "contrasena" (sigue activo) o "reactivar" (estaba de baja): las dos le dan una contraseña temporal.
+async function usrClaveNueva(u, accion, btn){
+  if(accion === 'contrasena'){
+    const ok = await preguntarConfirmacion({ titulo:`¿Contraseña nueva para ${u.nombre}?`, textoSi:'Sí, darle una nueva',
+      aviso:'Su contraseña de ahora deja de servir. Le mandas la temporal y, al entrar, pone la suya.' });
+    if(ok === null) return;
+  }
+  btn.disabled = true;
+  const r = await usrLlamar({ accion, usuario_id:u.id });
+  btn.disabled = false;
+  if(r.error){ toast(r.error, true); return; }
+  registrarActividad(accion === 'reactivar' ? 'usuario_reactivado' : 'usuario_contrasena', u.nombre);
+  u.debe_cambiar_password = true;
+  if(accion === 'reactivar'){
+    Object.assign(u, { activo:true, baja_en:null, baja_por:null });
+    const e = EQUIPO.find(x=>x.id === u.id); if(e) e.activo = true;
+  }
+  usrMostrarClave(r, accion === 'reactivar' ? `${u.nombre} ya puede entrar otra vez` : `Contraseña nueva para ${u.nombre}`, false);
+  usrPintarPersonas();
+}
+usrModal().addEventListener('click', e=>{
+  if(e.target.closest('#closeModalUsuario, #usrNCancelar')) return usrModal().classList.remove('open');
+  if(e.target.closest('#usrNCrear')) return usrCrear(e.target.closest('#usrNCrear'));
+  if(e.target.closest('#usrCopiarClave')) return copiarTexto(usr.clave, 'Contraseña copiada');
+  if(e.target.closest('#usrCopiarMsj')) return copiarTexto(usr.mensaje, 'Mensaje copiado. Pégalo en su WhatsApp.');
+});
 async function usrCambiarPersona(u, campo, valor, chk){
   if(usr.ocupado) return;
   if(campo === 'es_admin' && valor){
@@ -3901,6 +4056,12 @@ async function usrCambiarPersona(u, campo, valor, chk){
   } finally { usr.ocupado = false; }
 }
 document.getElementById('usrPersonas').addEventListener('click', e=>{
+  if(e.target.closest('#usrNuevo')) return usrAbrirNuevo();
+  const acc = e.target.closest('[data-usr-accion]');
+  if(acc){
+    const u = usr.usuarios.find(x=>x.id === acc.closest('[data-usr-persona]')?.dataset.usrPersona); if(!u) return;
+    return acc.dataset.usrAccion === 'baja' ? usrBaja(u, acc) : usrClaveNueva(u, acc.dataset.usrAccion, acc);
+  }
   const b = e.target.closest('[data-usr-editar]'); if(!b) return;
   usr.abierto = usr.abierto === b.dataset.usrEditar ? null : b.dataset.usrEditar;
   usrPintarPersonas();
@@ -4056,7 +4217,7 @@ async function cargarCatalogos(){
   ]);
   if(e1||e2||e3){ toast('Error cargando catálogos: ' + (e1||e2||e3).message, true); return; }
   ESTATUS = est||[]; CURSOS = cur||[]; CIUDADES = ciu||[];
-  const { data: eq } = await sb.from('usuarios').select('id, nombre, rol, es_vendedor, es_admin').order('nombre');
+  const { data: eq } = await sb.from('usuarios').select('id, nombre, rol, es_vendedor, es_admin, activo').order('nombre');
   EQUIPO = eq || [];
   VENDEDORES = EQUIPO.filter(u=>u.es_vendedor);
 }
@@ -4138,21 +4299,26 @@ async function renderReporteDia(){
   if(!caja.innerHTML) caja.innerHTML = '<div class="card"><div class="empty-note">Cargando tu reporte…</div></div>';
   const hoy = hoyISO(), ayer = sumarDias(hoy, -1);
   const desdeAyer = new Date(ayer + 'T00:00:00').toISOString();
-  const [rv, rt, rc, ru, rn] = await Promise.all([
+  const [rv, rt, rc, ru, rn, rus, rb] = await Promise.all([
     sb.from('vigilante_resultados').select('fecha, regla, tipo, titulo, quien, n, casos, creado_en').order('fecha', { ascending:false }).limit(80),
     sb.from('hub_pedidos').select('numero, titulo, seccion').eq('estado', 'nuevo').order('numero', { ascending:false }).limit(10),
     sb.from('glamy_comentarios').select('pregunta, nota, usuario_id, creado_en').gte('creado_en', desdeAyer).order('creado_en', { ascending:false }).limit(10),
     sb.from('glamy_uso').select('id').eq('fecha', ayer).not('error', 'is', null),
-    sb.from('hub_novedades').select('id, titulo').eq('publicada', true).order('creado_en', { ascending:false }).limit(1),
+    sb.from('hub_novedades').select('id, titulo, tipo, creado_en').eq('publicada', true).neq('tipo', 'bienvenida').order('creado_en', { ascending:false }).limit(1),
+    sb.from('usuarios').select('id, nombre, rol, activo, creado_en, bienvenida_pendiente').order('nombre'),
+    sb.from('hub_novedades').select('rol').eq('publicada', true).eq('tipo', 'bienvenida'),
   ]);
+  const usuarios = rus.data || [];
   if(rv.error){ caja.innerHTML = `<div class="card"><div class="rd-alerta">No se pudo leer el vigilante: ${escHtml(rv.error.message)}</div></div>`; return; }
   // Quién falta de leer la última actualización publicada
-  let faltan = [], nov = (rn.data || [])[0];
+  let faltan = [], nov = (rn.data || []).find(n=>n.tipo !== 'bienvenida');
   if(nov){
-    const [{ data: leidas }, { data: usuarios }] = await Promise.all([
-      sb.from('hub_novedades_leidas').select('usuario_id').eq('novedad_id', nov.id), sb.from('usuarios').select('id, nombre').order('nombre')]);
-    faltan = (usuarios || []).filter(u=>!(leidas || []).some(l=>l.usuario_id === u.id)).map(u=>u.nombre);
+    const { data: leidas } = await sb.from('hub_novedades_leidas').select('usuario_id').eq('novedad_id', nov.id);
+    faltan = usuarios.filter(u=>novLeToca(nov, u) && !(leidas || []).some(l=>l.usuario_id === u.id)).map(u=>u.nombre);
   }
+  // Gente nueva que todavía no termina su bienvenida (y si su rol no tiene bienvenida publicada, se dice)
+  const rolesConBienv = new Set((rb.data || []).map(b=>b.rol));
+  const nuevos = usuarios.filter(u=>u.activo !== false && u.bienvenida_pendiente);
   // Resultado de hoy (el más reciente) y el anterior, para comparar
   const fechas = [...new Set((rv.data || []).map(r=>r.fecha))];
   const ult = (rv.data || []).filter(r=>r.fecha === fechas[0]);
@@ -4185,7 +4351,12 @@ async function renderReporteDia(){
       <div class="rd-txt"><b>Veces que Glamy no pudo contestar ayer</b></div><button type="button" class="btn-outline small" data-rd-ir="glamy">Ver uso</button></div></div>`);
   if(nov && faltan.length) bloques.push(`<div class="rd-bloque"><h4>Actualización: ${escHtml(nov.titulo)}</h4>
       <div class="rd-fila"><span class="rd-n">${faltan.length}</span><div class="rd-txt"><b>Falta leerla</b><div class="sub">${escHtml(faltan.join(', '))}</div></div></div></div>`);
-  const nada = !rojas.length && !amarillas.length && !tickets.length && !comentarios.length && !errGlamy && !(nov && faltan.length) && fechas[0] === hoy;
+  if(nuevos.length) bloques.push(`<div class="rd-bloque"><h4>Gente nueva</h4>${nuevos.map(u=>{
+      const dias = Math.max(0, Math.floor((Date.now() - new Date(u.creado_en).getTime()) / 864e5));
+      return `<div class="rd-fila"><div class="rd-txt"><b>${escHtml(u.nombre)} todavía no termina su bienvenida</b>
+        <div class="sub">${escHtml(u.rol || 'Sin rol')} · se dio de alta ${dias === 0 ? 'hoy' : dias === 1 ? 'ayer' : `hace ${dias} días`}${rolesConBienv.has(u.rol) ? '' : ' · su rol no tiene bienvenida publicada'}</div></div></div>`;
+    }).join('')}</div>`);
+  const nada = !rojas.length && !amarillas.length && !tickets.length && !comentarios.length && !errGlamy && !(nov && faltan.length) && !nuevos.length && fechas[0] === hoy;
   const hora = ult[0]?.creado_en ? new Date(ult[0].creado_en).toLocaleTimeString('es-MX', { hour:'numeric', minute:'2-digit' }) : '';
   caja.innerHTML = `<div class="card"><div class="rd-cab"><h3>Reporte del día</h3>
       <span class="sub">${fechas.length ? `Revisado el ${escHtml(fechaCorta(fechas[0]))}${hora ? ' a las ' + escHtml(hora) : ''} · ` : ''}<button type="button" class="cf-ver" id="rdRevisar">Revisar ahora</button></span></div>
@@ -14081,7 +14252,7 @@ function pintarSelectorPara(){
   if(!fila || !sel) return;
   if(!usuarioActual?.es_admin){ fila.style.display = 'none'; return; }
   fila.style.display = 'flex';
-  const otros = EQUIPO.filter(u=> u.id !== usuarioActual.id);
+  const otros = EQUIPO.filter(u=> u.id !== usuarioActual.id && u.activo !== false);
   sel.innerHTML = `<option value="">Yo</option>` +
     otros.map(u=>`<option value="${u.id}">${u.nombre}${u.rol?' · '+u.rol:''}</option>`).join('');
 }
@@ -16030,6 +16201,14 @@ function abrirGlamy(){
   pintarGlamy();
   if(window.innerWidth > 600) document.getElementById('glamyTexto').focus();
 }
+// Al terminar su bienvenida, Glamy se presenta: queda como su primer mensaje (no llama a la función).
+function glamyPresentarse(){
+  glamyCargar();
+  const nombre = String(usuarioActual?.nombre || '').split(' ')[0];
+  glamy.mensajes.push({ rol:'assistant', texto:`¡Hola${nombre ? ', ' + nombre : ''}! 🧁 Soy **Glamy**, tu asistente personal del Hub. Pregúntame lo que sea de tu trabajo: cómo se hace algo, dónde está, o pásame el celular de una clienta y te digo cómo va y qué sigue. Si algo no existe o sale mal, yo levanto el ticket. ¿Por dónde empezamos?` });
+  glamyGuardar();
+  abrirGlamy();
+}
 function cerrarGlamy(){ document.getElementById('glamyPanel').classList.remove('open'); }
 // "¿Te ayudo?" una vez al día por persona (se recuerda en este navegador; si no se puede, no pasa nada).
 function glamySaludoDelDia(){
@@ -16327,11 +16506,15 @@ function novEditando(){
 async function revisarNovedades(){
   if(!usuarioActual?.id || nov.actual) return;
   const [{ data: novs }, { data: leidas }] = await Promise.all([
-    sb.from('hub_novedades').select('id, version, titulo, fecha, contenido, preguntas').eq('publicada', true).order('creado_en', { ascending:true }),
+    sb.from('hub_novedades').select('id, version, titulo, fecha, contenido, preguntas, tipo, rol, creado_en').eq('publicada', true).order('creado_en', { ascending:true }),
     sb.from('hub_novedades_leidas').select('novedad_id').eq('usuario_id', usuarioActual.id),
   ]);
   const ya = new Set((leidas || []).map(x=>x.novedad_id));
-  const pendiente = (novs || []).find(n=>!ya.has(n.id));   // la más vieja que falte, una a la vez
+  // Alguien nuevo ve primero la bienvenida de su rol (si ya está publicada). Las actualizaciones le salen solo
+  // las que se dieron de alta después que él (lo de antes ya viene en su bienvenida); la más vieja que falte, una a la vez.
+  const bienvenida = usuarioActual.bienvenida_pendiente
+    ? (novs || []).find(n=>n.tipo === 'bienvenida' && n.rol === usuarioActual.rol && !ya.has(n.id)) : null;
+  const pendiente = bienvenida || (novs || []).find(n=>n.tipo !== 'bienvenida' && !ya.has(n.id) && novLeToca(n, usuarioActual));
   if(!pendiente) return;
   nov.actual = pendiente; nov.vista = false;
   intentarMostrarNovedad();
@@ -16351,6 +16534,9 @@ function iniciarNovedades(){
   nov.intervalo = setInterval(revisarNovedades, 60000);
 }
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') revisarNovedades(); });
+// ¿Le toca leer esta actualización? A quien está activo y ya existía cuando se dio de alta (a los nuevos les toca su
+// bienvenida). Esta misma regla la usan Actividad del equipo y el Reporte del día para decir quién falta.
+const novLeToca = (n, u) => u?.activo !== false && (!u?.creado_en || !n?.creado_en || u.creado_en <= n.creado_en);
 // Texto con **negritas** (lo demás se escapa).
 const novTxt = t => escHtml(t || '').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 function pintarNovedad(){
@@ -16359,7 +16545,8 @@ function pintarNovedad(){
   const fecha = n.fecha ? new Date(n.fecha + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' }) : '';
   const preguntas = Array.isArray(n.preguntas) ? n.preguntas : [];
   const total = preguntas.length ? 3 : 2;
-  const cab = (sub) => `<div class="nov-cab"><span class="nov-eti">Nueva actualización del Hub</span>
+  const esBienv = n.tipo === 'bienvenida';
+  const cab = (sub) => `<div class="nov-cab"><span class="nov-eti">${esBienv ? 'Bienvenida al Hub' : 'Nueva actualización del Hub'}</span>
     <h2 id="novTitulo">${escHtml(n.titulo)}</h2><div class="nov-meta">${escHtml(fecha)}${sub ? ' · ' + sub : ''}</div>
     <div class="nov-pasos">${Array.from({ length:total }, (_, k)=>`<i class="${k < nov.paso ? 'on' : ''}"></i>`).join('')}</div></div>`;
   if(nov.paso === 1){
@@ -16367,7 +16554,7 @@ function pintarNovedad(){
     caja.innerHTML = cab(`Paso 1 de ${total}: leer`) + `<div class="nov-cuerpo" id="novCuerpo">
       ${(c.secciones || []).map(sec=>`<h4>${escHtml(sec.titulo || '')}</h4>${sec.texto ? `<p>${novTxt(sec.texto)}</p>` : ''}${(sec.puntos || []).length ? `<ul>${sec.puntos.map(x=>`<li>${novTxt(x)}</li>`).join('')}</ul>` : ''}`).join('')}
       ${c.nota ? `<div class="nov-nota">${novTxt(c.nota)}</div>` : ''}
-      <div class="nov-fin">Fin de la actualización</div></div>
+      <div class="nov-fin">${esBienv ? 'Fin de la bienvenida' : 'Fin de la actualización'}</div></div>
       <div class="nov-pie"><span class="sub">${nov.leyo ? '' : 'Lee hasta abajo para continuar'}</span>
         <button type="button" class="nov-btn" id="novSeguir" ${nov.leyo ? '' : 'disabled'}>${preguntas.length ? 'Continuar al cuestionario' : 'Entendido'}</button></div>`;
     const cuerpo = document.getElementById('novCuerpo');
@@ -16391,8 +16578,8 @@ function pintarNovedad(){
     return;
   }
   caja.innerHTML = `<div class="nov-listo"><div class="circ"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#55745C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-    <span class="nov-eti">Actualización leída</span><h2 id="novTitulo">Listo, ya puedes continuar</h2>
-    <p>${n.version > HUB_VERSION ? 'El Hub se actualiza a la versión nueva. Lo que estabas haciendo queda donde lo dejaste.' : 'Gracias por leerla.'}</p></div>
+    <span class="nov-eti">${esBienv ? 'Bienvenida terminada' : 'Actualización leída'}</span><h2 id="novTitulo">${esBienv ? 'Listo, ya puedes empezar' : 'Listo, ya puedes continuar'}</h2>
+    <p>${esBienv ? 'Glamy, tu asistente, te espera abajo a la derecha.' : novRecargar(n) ? 'El Hub se actualiza a la versión nueva. Lo que estabas haciendo queda donde lo dejaste.' : 'Gracias por leerla.'}</p></div>
     <div class="nov-pie" style="border-top:0; justify-content:center;"><button type="button" class="nov-btn" id="novCerrar">Continuar</button></div>`;
 }
 document.getElementById('novTarjeta').addEventListener('click', async e=>{
@@ -16416,26 +16603,30 @@ document.getElementById('novTarjeta').addEventListener('click', async e=>{
     return terminarNovedad();
   }
   if(e.target.closest('#novCerrar')){
-    const recargar = n.version > HUB_VERSION;
+    const recargar = novRecargar(n), presentarse = n.tipo === 'bienvenida' && !nov.vista;
     document.getElementById('novedadOverlay').classList.remove('open');
     document.body.style.overflow = '';
     nov.actual = null;
     if(recargar){ location.reload(); return; }
+    if(presentarse) glamyPresentarse();
     revisarNovedades();   // por si hay otra
   }
 });
+// Solo una actualización más nueva que este código recarga el Hub (la bienvenida no).
+const novRecargar = n => n.tipo !== 'bienvenida' && n.version > HUB_VERSION;
 async function terminarNovedad(){
   const n = nov.actual; if(!n) return;
   if(!nov.vista){
     const { error } = await sb.rpc('novedad_leida', { p_novedad: n.id, p_errores: nov.errores });
     if(error){ toast('No se pudo guardar que la leíste: ' + error.message, true); return; }
+    if(n.tipo === 'bienvenida') usuarioActual.bienvenida_pendiente = false;   // la base también la quita (novedad_leida)
     registrarActividad('novedad_leida', `${n.titulo}${nov.errores ? ' · ' + nov.errores + ' error' + (nov.errores === 1 ? '' : 'es') : ''}`);
   }
   nov.paso = 3; pintarNovedad();
 }
 // Vista previa para administradores (desde Actividad del equipo): no guarda nada.
 async function verNovedadPrevia(id){
-  const { data } = await sb.from('hub_novedades').select('id, version, titulo, fecha, contenido, preguntas').eq('id', id).maybeSingle();
+  const { data } = await sb.from('hub_novedades').select('id, version, titulo, fecha, contenido, preguntas, tipo').eq('id', id).maybeSingle();
   if(!data) return;
   nov.actual = data; nov.vista = true; nov.paso = 1; nov.errores = 0; nov.bien = {}; nov.malas = {}; nov.leyo = false;
   document.getElementById('novedadOverlay').classList.add('open');
@@ -16445,22 +16636,30 @@ async function verNovedadPrevia(id){
 // Actividad del equipo: quién ya leyó cada actualización y quién falta.
 async function pintarNovedadesActividad(){
   const caja = document.getElementById('actividadNovedades'); if(!caja) return;
-  const [{ data: novs }, { data: leidas }, { data: usuarios }] = await Promise.all([
-    sb.from('hub_novedades').select('id, titulo, fecha, publicada').order('creado_en', { ascending:false }).limit(5),
+  const [{ data: todas }, { data: leidas }, { data: usuarios }] = await Promise.all([
+    sb.from('hub_novedades').select('id, titulo, fecha, publicada, tipo, rol, creado_en').order('creado_en', { ascending:false }),
     sb.from('hub_novedades_leidas').select('novedad_id, usuario_id, leida_en, errores'),
-    sb.from('usuarios').select('id, nombre').order('nombre'),
+    sb.from('usuarios').select('id, nombre, activo, creado_en').order('nombre'),
   ]);
-  if(!(novs || []).length){ caja.innerHTML = '<div class="empty-note">Todavía no hay actualizaciones publicadas.</div>'; return; }
+  const novs = (todas || []).filter(n=>n.tipo !== 'bienvenida').slice(0, 5);
+  const bienv = (todas || []).filter(n=>n.tipo === 'bienvenida').sort((a, b)=>String(a.rol).localeCompare(String(b.rol), 'es'));
+  // Bienvenidas por rol: Enoc las revisa con "Ver cómo se ve" antes de publicarlas.
+  const htmlBienv = bienv.length ? `<details class="cob-bj-tipo"><summary>Bienvenidas por rol · ${bienv.filter(n=>n.publicada).length} de ${bienv.length} publicadas</summary>
+      ${bienv.map(n=>{ const hechas = (leidas || []).filter(l=>l.novedad_id === n.id).length;
+        return `<div class="nov-adm-fila"><span>${escHtml(n.rol || '')}</span><span class="sub" style="margin:0;">${n.publicada ? `publicada · ${hechas} la ${hechas === 1 ? 'terminó' : 'terminaron'}` : 'sin publicar'}
+          <button type="button" class="cf-ver" data-nov-previa="${escapeAttr(n.id)}">Ver cómo se ve</button></span></div>`; }).join('')}</details>` : '';
+  if(!novs.length){ caja.innerHTML = '<div class="empty-note">Todavía no hay actualizaciones publicadas.</div>' + htmlBienv; return; }
   caja.innerHTML = novs.map(n=>{
     const suyas = (leidas || []).filter(l=>l.novedad_id === n.id);
-    const faltan = (usuarios || []).filter(u=>!suyas.some(l=>l.usuario_id === u.id));
-    return `<details class="cob-bj-tipo" ${n === novs[0] ? 'open' : ''}><summary>${escHtml(n.titulo)} · ${n.publicada ? `${suyas.length} de ${(usuarios || []).length} la leyeron` : 'sin publicar'}</summary>
+    const leToca = (usuarios || []).filter(u=>novLeToca(n, u));
+    const faltan = leToca.filter(u=>!suyas.some(l=>l.usuario_id === u.id));
+    return `<details class="cob-bj-tipo" ${n === novs[0] ? 'open' : ''}><summary>${escHtml(n.titulo)} · ${n.publicada ? `${suyas.length} de ${leToca.length} la leyeron` : 'sin publicar'}</summary>
       <div style="margin:6px 0;"><button type="button" class="btn-outline small" style="width:auto;" data-nov-previa="${escapeAttr(n.id)}">Ver cómo se ve</button></div>
       ${suyas.sort((a, b)=>a.leida_en.localeCompare(b.leida_en)).map(l=>`<div class="nov-adm-fila"><span>${escHtml((usuarios || []).find(u=>u.id === l.usuario_id)?.nombre || '(?)')}</span>
         <span class="sub" style="margin:0;">${new Date(l.leida_en).toLocaleString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}${l.errores ? ' · ' + l.errores + ' error' + (l.errores === 1 ? '' : 'es') : ' · sin errores'}</span></div>`).join('')}
       ${n.publicada && faltan.length ? `<div class="nov-adm-fila"><span>Falta leerla</span><span class="sub" style="margin:0;">${escHtml(faltan.map(u=>u.nombre).join(', '))}</span></div>` : ''}
     </details>`;
-  }).join('');
+  }).join('') + htmlBienv;
 }
 document.getElementById('view-actividad').addEventListener('click', e=>{
   const b = e.target.closest('[data-nov-previa]'); if(b) verNovedadPrevia(b.dataset.novPrevia);
