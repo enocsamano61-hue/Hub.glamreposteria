@@ -322,6 +322,8 @@
   .rd-fila button{ width:auto; flex-shrink:0; }
   .comp-lead{ margin-top:6px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .fp-comp{ display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .k-envio{ margin-top:6px; font-size:12.5px; font-weight:600; color:#8E5BB5; }
+  .k-envio.ok{ color:var(--success); }
   .rd-ok{ color:var(--success); font-size:13px; padding:6px 0; }
   .rd-alerta{ color:var(--danger); font-weight:600; font-size:13px; padding:6px 0; }
   .rd-delta{ font-size:11px; font-weight:600; margin-left:6px; }
@@ -10400,22 +10402,25 @@ document.getElementById('agDetalle').addEventListener('change', async e=>{
 
 /* =========================================================
    ACADEMIA — pestaña Kits (Fase 3): kits a domicilio.
-   Tablero Por pagar → Por preparar → Enviado → Entregado. Los 44 kits del
+   Tablero Por pagar → Por preparar → Por pagar envío → Enviado → Entregado. Los 44 kits del
    Excel arrancan "Del Excel · por clasificar" y Academia los acomoda.
    El precio sale de Precios ("Kit a domicilio") y se puede ajustar por kit.
    Al liquidarse, el kit pasa solo a "Por preparar".
+   "Por pagar envío" (28 oct, pedido de Tamar): ya está preparado y falta que paguen el envío. Se guarda
+   como marca del kit (esperando_envio) con el estado "por_preparar"; el envío se cobra después de prepararlo.
    ========================================================= */
 const K_ESTADOS = [
   { id:'por_clasificar', label:'Del Excel · por clasificar', color:'#8C8378' },
   { id:'por_pagar',      label:'Por pagar',    color:'#B56F55' },
   { id:'por_preparar',   label:'Por preparar', color:'#C6A66B' },
+  { id:'por_pagar_envio', label:'Por pagar envío', color:'#8E5BB5' },
   { id:'enviado',        label:'Enviado',      color:'#3F6FB0' },
   { id:'entregado',      label:'Entregado',    color:'#55745C' },
   { id:'cancelado',      label:'Cancelados',   color:'#B5453A' },
 ];
 const K_SELECT = `id, graduacion_id, alumna_id, clave_origen, fila, nombre, telefono, generacion_texto, direccion, anticipo_texto,
   filipina_texto, pago_texto, envio_texto, situacion_filipina, estado, guia, paqueteria, enviado_en, entregado_en, precio,
-  envio_costo, cantidad, filipina_talla, filipina_color, filipina_nombre, notas,
+  envio_costo, esperando_envio, cantidad, filipina_talla, filipina_color, filipina_nombre, notas,
   academia_alumnas ( id, nombre, generacion_id, persona_id, telefono, ciudad_texto )`;
 let kk = { filas:[], pagos:new Map(), sel:null, todas:null };
 
@@ -10424,7 +10429,17 @@ function cuentaKit(x){
   const pagos = kk.pagos.get(x.id) || [];
   const total = Number(x.precio || 0) + Number(x.envio_costo || 0);
   const pagado = pagos.reduce((s, p)=>s + Number(p.monto), 0);
-  return { total, pagado, debe:Math.max(total - pagado, 0) };
+  const debe = Math.max(total - pagado, 0);
+  // Lo que falta del envío: lo pagado como "envío" y lo que se pagó de más del kit cuentan para el envío
+  const pagadoEnvio = pagos.filter(p=>p.concepto === 'envio').reduce((s, p)=>s + Number(p.monto), 0);
+  const sobraKit = Math.max(pagado - pagadoEnvio - Number(x.precio || 0), 0);
+  const envioDebe = Math.min(debe, Math.max(Number(x.envio_costo || 0) - pagadoEnvio - sobraKit, 0));
+  return { total, pagado, debe, envioDebe, kitDebe:debe - envioDebe };
+}
+// Columna del tablero: "Por pagar envío" es un kit en "Por preparar" con la marca esperando_envio
+const estadoKit = x => (x.estado === 'por_preparar' && x.esperando_envio) ? 'por_pagar_envio' : (x.estado || 'por_clasificar');
+function textoEnvioKit(x, c = cuentaKit(x)){
+  return x.envio_costo == null ? 'Falta el costo del envío' : c.envioDebe ? `Envío: debe ${fmtMoney(c.envioDebe)}` : 'Envío pagado · ya se puede enviar';
 }
 function etiquetaEstadoKit(id){ return K_ESTADOS.find(e=>e.id === id)?.label || id; }
 
@@ -10476,7 +10491,7 @@ function pintarKits(){
   const filas = visiblesKits();
   if(!filas.some(x=>x.id === kk.sel)) kk.sel = filas.find(x=>x.estado !== 'cancelado')?.id ?? null;
   document.getElementById('kTablero').innerHTML = K_ESTADOS.map(e=>{
-    const items = filas.filter(x=>(x.estado || 'por_clasificar') === e.id);
+    const items = filas.filter(x=>estadoKit(x) === e.id);
     if(!items.length && (e.id === 'por_clasificar' || e.id === 'cancelado')) return '';   // columnas que solo salen si hay algo
     return `<section class="k-col" aria-label="${escapeAttr(e.label)}">
       <div class="k-col-cab"><span class="punto" style="background:${e.color}"></span>${escHtml(e.label)}<span class="n">${items.length}</span></div>
@@ -10484,13 +10499,15 @@ function pintarKits(){
         const c = cuentaKit(x);
         const gen = nombreGenAcademia(x.academia_alumnas?.generacion_id) || x.generacion_texto || '';
         const fil = x.filipina_talla ? `${x.filipina_talla} · ${AG_COLOR[x.filipina_color] || '¿color?'}${x.cantidad > 1 ? ' ×' + x.cantidad : ''}` : (x.filipina_texto || 'Sin talla');
-        const pago = x.estado === 'por_clasificar' ? (x.pago_texto || x.anticipo_texto || '') : (c.total ? (c.debe ? `Debe ${fmtMoney(c.debe)}` : 'Liquidado ✓') : 'Sin precio');
+        const pago = x.estado === 'por_clasificar' ? (x.pago_texto || x.anticipo_texto || '')
+          : estadoKit(x) === 'por_pagar_envio' ? textoEnvioKit(x, c)
+          : (c.total ? (c.debe ? `Debe ${fmtMoney(c.debe)}` : 'Liquidado ✓') : 'Sin precio');
         const aviso = x.situacion_filipina && !/^correcta/i.test(x.situacion_filipina) && x.estado !== 'entregado' ? x.situacion_filipina : '';
         return `<button type="button" class="k-card ${x.id === kk.sel ? 'sel' : ''}" style="--k-color:${e.color}" data-k-id="${escapeAttr(x.id)}">
           <b>${escHtml(tituloCaso(x.nombre))}</b>
           <div class="sub">${escHtml([gen, x.academia_alumnas?.ciudad_texto].filter(Boolean).join(' · '))}</div>
           <div>${escHtml(fil)}</div>
-          ${pago ? `<div style="font-weight:600;color:${/debe/i.test(pago) ? 'var(--danger)' : /liquid/i.test(pago) ? 'var(--success)' : 'var(--ink-soft)'}">${escHtml(pago)}</div>` : ''}
+          ${pago ? `<div style="font-weight:600;color:${/debe/i.test(pago) ? 'var(--danger)' : /liquid|pagado/i.test(pago) ? 'var(--success)' : 'var(--ink-soft)'}">${escHtml(pago)}</div>` : ''}
           ${x.guia ? `<div>${escHtml([x.paqueteria, x.guia].filter(Boolean).join(' · '))}</div>` : ''}
           ${aviso ? `<span class="k-aviso">${escHtml(aviso)}</span>` : ''}
         </button>`;
@@ -10513,13 +10530,14 @@ function pintarDetalleKit(){
     <div>
       <div class="sub" style="margin:0;color:#7A5D22;font-weight:700;">${escHtml(gen)}</div>
       <h3>${escHtml(tituloCaso(x.nombre))}</h3>
-      <div class="sub" style="margin:2px 0 0;">${escHtml(tel || 'Sin teléfono')} · ${escHtml(etiquetaEstadoKit(x.estado))}</div>
+      <div class="sub" style="margin:2px 0 0;">${escHtml(tel || 'Sin teléfono')} · ${escHtml(etiquetaEstadoKit(estadoKit(x)))}</div>
     </div>
     ${tel ? '<div class="nl-acciones"><button type="button" class="nl-acc primario" data-k-acc="whats">Enviar WhatsApp</button></div>' : ''}
     <div class="ac-caja"><h4>Estado</h4>
       <div class="k-estados">${K_ESTADOS.filter(e=>e.id !== 'por_clasificar' && e.id !== 'cancelado').map(e=>
-        `<button type="button" class="${x.estado === e.id ? 'on' : ''}" data-k-estado="${e.id}" aria-pressed="${x.estado === e.id}">${escHtml(e.label)}</button>`).join('')}</div>
+        `<button type="button" class="${estadoKit(x) === e.id ? 'on' : ''}" data-k-estado="${e.id}" aria-pressed="${estadoKit(x) === e.id}">${escHtml(e.label)}</button>`).join('')}</div>
       ${x.estado === 'por_clasificar' ? '<div class="sub" style="margin:0;">Vino del Excel: toca la columna donde va.</div>' : ''}
+      ${estadoKit(x) === 'por_pagar_envio' ? `<div class="k-envio ${c.envioDebe || x.envio_costo == null ? '' : 'ok'}">${escHtml(textoEnvioKit(x, c))}${x.envio_costo == null ? ': escríbelo abajo en "Envío".' : ''}</div>` : ''}
       ${x.enviado_en ? `<div class="sub" style="margin:0;">Enviado el ${escHtml(fechaCorta(x.enviado_en))}${x.entregado_en ? ' · entregado el ' + escHtml(fechaCorta(x.entregado_en)) : ''}</div>` : ''}
     </div>
     <div class="ac-caja ag-cuenta"><h4>Cuenta del kit</h4>
@@ -10532,7 +10550,7 @@ function pintarDetalleKit(){
       <div class="dato-row ${c.debe ? 'debe' : ''}"><span class="l"><b>${c.debe ? 'Debe' : c.total ? 'Liquidado' : 'Sin precio'}</b></span><span class="v">${c.debe ? fmtMoney(c.debe) : c.total ? '✓' : '—'}</span></div>
       ${pagos.map(p=>`<div class="ag-pago-fila"><span>${escHtml(fechaCorta(p.fecha))} · ${p.concepto === 'envio' ? 'Envío' : 'Kit'}${p.forma ? ' · ' + escHtml(p.forma) : ''}</span><b>${fmtMoney(p.monto)}</b></div>`).join('')}
       ${!puede('cobrar_academia') ? '<div class="sub" style="margin:0;">Para registrar pagos hace falta el permiso “Cobrar en Academia”.</div>' : `<div class="ac-form">
-        <label>Concepto<select id="kPagoConcepto"><option value="kit">Kit</option><option value="envio">Envío</option></select></label>
+        <label>Concepto<select id="kPagoConcepto"><option value="kit">Kit</option><option value="envio" ${estadoKit(x) === 'por_pagar_envio' ? 'selected' : ''}>Envío</option></select></label>
         <label>Monto<input id="kPagoMonto" type="number" min="0" step="10" inputmode="decimal" placeholder="$"></label>
         <label>Forma<select id="kPagoForma">${AC_FORMAS_PAGO.map(f=>`<option>${escHtml(f)}</option>`).join('')}</select></label>
         <label>Fecha<input id="kPagoFecha" type="date" value="${hoyISO()}"></label>
@@ -10574,14 +10592,22 @@ async function guardarKit(x, cambios, accion, detalle){
   return true;
 }
 async function cambiarEstadoKit(x, estado){
-  if(x.estado === estado) return;
-  const cambios = { estado };
+  if(estadoKit(x) === estado) return;
+  // "Por pagar envío" se guarda como "Por preparar" con su marca; cualquier otra columna la quita
+  const cambios = estado === 'por_pagar_envio' ? { estado:'por_preparar', esperando_envio:true } : { estado, esperando_envio:false };
   if(estado === 'enviado'){
     if(!x.guia){ toast('Escribe primero el número de guía (abajo, en Envío).', true); return; }
+    const c = cuentaKit(x);
+    // Solo en "Por pagar envío": ahí se espera el pago del envío antes de mandarlo
+    if(x.esperando_envio && (c.envioDebe > 0 || x.envio_costo == null)){
+      const ok = await preguntarConfirmacion({ titulo:'Falta pagar el envío', textoSi:'Sí, enviarlo',
+        aviso:`${escHtml(tituloCaso(x.nombre))}: ${escHtml(textoEnvioKit(x, c))}. ¿Lo envías de todos modos?` });
+      if(ok === null) return;
+    }
     if(!x.enviado_en) cambios.enviado_en = hoyISO();
   }
   if(estado === 'entregado' && !x.entregado_en) cambios.entregado_en = hoyISO();
-  const antes = x.estado;
+  const antes = estadoKit(x);
   if(!await guardarKit(x, cambios, 'academia_kit_estado', `${x.nombre}: ${etiquetaEstadoKit(antes)} → ${etiquetaEstadoKit(estado)}`)) return;
   toast(`${tituloCaso(x.nombre)}: ${etiquetaEstadoKit(estado)}`);
   pintarKits();
@@ -10643,9 +10669,10 @@ async function accionKit(acc){
     kk.pagos.get(x.id).push(data);
     registrarActividad('academia_kit_pago', `${x.nombre} · ${concepto === 'envio' ? 'envío' : 'kit'} · ${fmtMoney(monto)} · ${forma}`);
     toast(`Pago de ${fmtMoney(monto)} registrado.`);
-    // Liquidado: pasa solo a "Por preparar".
+    // Liquidado (el kit; el envío se cobra después de prepararlo): pasa solo a "Por preparar".
     const ahora = cuentaKit(x);
-    if(x.estado === 'por_pagar' && ahora.total > 0 && ahora.debe === 0){
+    if(estadoKit(x) === 'por_pagar_envio' && concepto === 'envio' && !ahora.envioDebe) toast('Envío pagado: ya se puede enviar.');
+    if(x.estado === 'por_pagar' && ahora.total > 0 && ahora.kitDebe === 0){
       if(await guardarKit(x, { estado:'por_preparar' }, 'academia_kit_estado', `${x.nombre}: Por pagar → Por preparar (liquidó)`)) toast('✓ Liquidado: pasa a “Por preparar”.');
     }
     return pintarKits();
@@ -10743,7 +10770,7 @@ document.getElementById('kDetalle').addEventListener('change', async e=>{
   if(!await guardarKit(x, { [campo]:valor }, campo === 'notas' ? null : 'academia_kit_cambio', detalle)) return;
   // Si con el nuevo precio ya quedó liquidado, también pasa a "Por preparar".
   const c = cuentaKit(x);
-  if(['precio', 'envio_costo'].includes(campo) && x.estado === 'por_pagar' && c.total > 0 && c.debe === 0)
+  if(['precio', 'envio_costo'].includes(campo) && x.estado === 'por_pagar' && c.total > 0 && c.kitDebe === 0)
     await guardarKit(x, { estado:'por_preparar' }, 'academia_kit_estado', `${x.nombre}: Por pagar → Por preparar (liquidó)`);
   if(campo !== 'notas' && campo !== 'direccion') pintarKits();
 });
