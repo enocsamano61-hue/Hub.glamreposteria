@@ -6,7 +6,8 @@
    "HISTORIAS fallas=0 ..." = todo bien. Si falla una, no se publica.
    Las escrituras imitan las del Hub (hub/index.html): Registrar pago, Confirmar pago (inscribir desde el
    lead), No se encontró, Cambiar de curso, Ceder su lugar (ceder_lugar) y Reembolso
-   (cambio_fecha_marcar + cambio_fecha_cerrar_reembolso). Personas de prueba inventadas. */
+   (cambio_fecha_marcar + cambio_fecha_cerrar_reembolso), y la promesa de una inscrita puesta en su lead (H7).
+   Personas de prueba inventadas. */
 do $historias$
 declare
   v_hoy date := (now() at time zone 'America/Mexico_City')::date;
@@ -131,6 +132,16 @@ begin
   t := pg_temp.grupos(ea, p3); if t = 'no_van(i)' then ok := ok + 1; else mal := mal || ('H6 Embudo: ' || t); end if;
   t := pg_temp.lista(ea, p3); if t like 'inscrita:reembolsada:%' then ok := ok + 1; else mal := mal || ('H6 lista: ' || t); end if;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H6 vigilante: ' || rojos); end if;
+
+  -- ===== H7. Inscrita sin pago → le ponen la promesa en la pestaña Lead → queda en su ficha (caso del 28 oct) =====
+  insert into public.personas (nombre, telefono_principal) values ('HISTORIA SIETE', '0000000107') returning id into p2;
+  insert into public.inscripciones (persona_id, evento_id, precio_pactado, paquete, anticipo, restante, liquidado, estatus_id, asesor_id, notas_migracion)
+  values (p2, e0, 1400, 'BASICO', 0, 1400, false, st_ppc, v_vend, 'HISTORIA') returning id into i3;
+  select id into l2 from public.leads where persona_id = p2 limit 1;   -- su lead "Inscrita" (lo crea la base)
+  update public.leads set estatus_id = st_novence, fecha_compromiso_pago = v_hoy + 5, actualizado_en = now() where id = l2;
+  if (select fecha_proximo_pago from public.inscripciones where id = i3) = v_hoy + 5 then ok := ok + 1; else mal := mal || 'H7 la promesa no pasó a su ficha'::text; end if;
+  if (select estatus_id from public.leads where id = l2) = st_pagado then ok := ok + 1; else mal := mal || 'H7 su lead se reabrió'::text; end if;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H7 vigilante: ' || rojos); end if;
 
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;

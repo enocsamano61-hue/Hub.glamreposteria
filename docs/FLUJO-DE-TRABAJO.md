@@ -181,9 +181,11 @@ ese día; las alumnas se mueven (pagan, se cambian de curso, ceden su lugar, las
    `vigilante-diario` 5:41 México). Reglas **rojas** = errores del Hub (deben estar en 0; antes de publicar
    también): inscrita fuera de la lista de su cambio de fecha, inscrita sin lead, lead "Inscrita" sin su
    inscripción (salvo que cedió su lugar), inscrita dos veces en el mismo curso, liquidada que debe (o al revés),
-   Embudo que no cuenta igual que la base, Glamy que no cuenta igual que la base o la lista. Reglas
+   Embudo que no cuenta igual que la base, Glamy que no cuenta igual que la base o la lista, promesa de pago de una
+   inscrita guardada en su lead. Reglas
    **amarillas** = datos que limpia el equipo (inscritas sin vendedora, leads sin curso, pagos que no cuadran,
-   pago doble, "Pago por confirmar" sin datos, lead abierto de una inscrita, teléfono repetido). Enoc lo ve en
+   pago doble, "Pago por confirmar" sin datos, lead abierto de una inscrita, teléfono repetido, inscritas sin pago
+   y sin fecha de pago). Enoc lo ve en
    su **Inicio → Reporte del día**. **Cuando aparezca un tipo de falla nuevo, se agrega su regla.**
 
 ### 3.4 Convenciones de código (para que lo nuevo se vea igual que lo viejo)
