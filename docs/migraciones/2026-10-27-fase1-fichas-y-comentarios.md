@@ -87,3 +87,4 @@ Decisiones de Enoc:
   Respaldo del texto anterior en `respaldo.hub_novedades_20261028`. Sigue **sin publicar** hasta que Enoc lo apruebe.
 - `HUB_VERSION` del Hub pasa a `2026-10-28-al-dia`: quien tenga abierto el Hub viejo, al terminar de leer el aviso,
   recarga y toma la versión nueva.
+- **Publicado el 28 oct** (Enoc: "publica el aviso"), migración `publicar_aviso_2026_10_28`. Le toca a las 9 personas activas.
