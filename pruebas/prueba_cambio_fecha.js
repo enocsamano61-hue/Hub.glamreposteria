@@ -86,7 +86,7 @@ const LISTA = [
   check((await p.textContent('#cobVistaEmbudo .cf-caja')).includes('Ver lista (4)') && await p.$('#cobVistaEmbudo .cf-fila') === null, 'se puede ocultar');
   await p.click('#cobVistaEmbudo [data-cf-ver="e1"]');
   const lista = await p.textContent('#cobVistaEmbudo .cf-caja');
-  check(lista.includes('Ya pagaron · 3') && lista.includes('Leads (todavía no pagan) · 1'), 'primero las que ya pagaron, luego los leads');
+  check(lista.includes('Ya pagaron · 3') && lista.includes('Leads (todavía no se inscriben) · 1'), 'primero las que ya pagaron, luego los leads');
   check(!(await p.evaluate(() => window.__xss)), 'los nombres se escapan');
   await h.captura('cambio-fecha-embudo.png');
 
