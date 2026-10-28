@@ -19,7 +19,8 @@ const PERM_ACC = [{ rol:'Ventas', accion:'confirmar_pagos' }];
 
 (async () => {
   const h = await abrirHub({ tablas:{ usuarios:USUARIOS, permisos_rol:PERM_ROL, permisos_accion:PERM_ACC },
-    usuario:{ id:'u1', nombre:'Admin Prueba', rol:'Sistemas', es_admin:true },
+    // Entra quien recibe los tickets: solo él hace administradores (prueba_usuarios_alta_baja.js revisa a otro admin).
+    usuario:{ id:'u1', nombre:'Admin Prueba', rol:'Sistemas', es_admin:true, recibe_pedidos:true },
     equipo:USUARIOS.map(u => ({ id:u.id, nombre:u.nombre, rol:u.rol, es_vendedor:u.es_vendedor, es_admin:u.es_admin })) });
   const { p, check } = h;
   await p.evaluate(() => setActiveSection('usuarios'));

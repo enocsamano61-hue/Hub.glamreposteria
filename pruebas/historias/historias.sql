@@ -6,7 +6,8 @@
    "HISTORIAS fallas=0 ..." = todo bien. Si falla una, no se publica.
    Las escrituras imitan las del Hub (hub/index.html): Registrar pago, Confirmar pago (inscribir desde el
    lead), No se encontró, Cambiar de curso, Ceder su lugar (ceder_lugar) y Reembolso
-   (cambio_fecha_marcar + cambio_fecha_cerrar_reembolso), y la promesa de una inscrita puesta en su lead (H7).
+   (cambio_fecha_marcar + cambio_fecha_cerrar_reembolso), la promesa de una inscrita puesta en su lead (H7) y la baja de
+   una vendedora con un lead abierto, con los candados de Usuarios (H8).
    Personas de prueba inventadas. */
 do $historias$
 declare
@@ -14,6 +15,7 @@ declare
   e0 uuid; ea uuid; eb uuid; v_admin uuid; v_yo uuid; v_vend uuid;
   st_pagado int; st_ppc int; st_anticipo int; st_novence int; st_intento int;
   p1 uuid; p2 uuid; p3 uuid; p4 uuid; l1 uuid; l2 uuid; l3 uuid; i1 uuid; i3 uuid; a1 uuid; a3 uuid;
+  p8 uuid; l8 uuid; u8 uuid; v_otro_admin uuid;
   ok int := 0; mal text[] := '{}'; t text; rojos text;
 begin
   -- Ayudantes (solo viven en esta corrida)
@@ -142,6 +144,33 @@ begin
   if (select fecha_proximo_pago from public.inscripciones where id = i3) = v_hoy + 5 then ok := ok + 1; else mal := mal || 'H7 la promesa no pasó a su ficha'::text; end if;
   if (select estatus_id from public.leads where id = l2) = st_pagado then ok := ok + 1; else mal := mal || 'H7 su lead se reabrió'::text; end if;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H7 vigilante: ' || rojos); end if;
+
+  -- ===== H8. Vendedora con un lead abierto → se da de baja → el vigilante pide reasignarlo; candados de Usuarios =====
+  perform set_config('request.jwt.claims', '', true);   -- como la función usuarios (llave de servicio)
+  insert into public.usuarios (nombre, rol, email, es_vendedor, bienvenida_pendiente)
+  values ('HISTORIA VENDEDORA', 'Ventas', 'historia8@ejemplo.invalid', true, true) returning id into u8;
+  insert into public.personas (nombre, telefono_principal) values ('HISTORIA OCHO', '0000000108') returning id into p8;
+  insert into public.leads (persona_id, evento_id, estatus_id, asesor_id, ciudad_interes_id)
+  values (p8, e0, st_novence, u8, (select ciudad_id from public.eventos where id = e0)) returning id into l8;
+  update public.usuarios set activo = false, baja_en = now(), es_vendedor = false where id = u8;
+  if exists (select 1 from jsonb_array_elements(public.vigilante_calcular()) x, jsonb_array_elements(x -> 'casos') c
+              where x ->> 'regla' = 'leads_de_usuario_de_baja' and c ->> 'lead_id' = l8::text) then ok := ok + 1;
+  else mal := mal || 'H8 el vigilante no ve el lead abierto de la vendedora dada de baja'::text; end if;
+  -- Otro administrador (no recibe los tickets): no hace administradores ni reactiva a mano
+  select auth_user_id into v_otro_admin from public.usuarios where es_admin and not recibe_pedidos and activo and auth_user_id is not null limit 1;
+  if v_otro_admin is not null then
+    perform set_config('request.jwt.claims', json_build_object('sub', v_otro_admin, 'role', 'authenticated')::text, true);
+    begin update public.usuarios set es_admin = true where id = u8; mal := mal || 'H8 otro administrador pudo hacer administrador a alguien'::text;
+    exception when insufficient_privilege then ok := ok + 1; end;
+    begin update public.usuarios set activo = true where id = u8; mal := mal || 'H8 se pudo reactivar a mano, sin la función'::text;
+    exception when insufficient_privilege then ok := ok + 1; end;
+    begin delete from public.usuarios where id = u8; mal := mal || 'H8 se pudo borrar un usuario'::text;
+    exception when others then ok := ok + 1; end;
+  end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+  begin update public.usuarios set es_admin = true where id = u8; ok := ok + 1;
+  exception when others then mal := mal || ('H8 quien recibe los tickets no pudo hacer administrador: ' || sqlerrm); end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H8 vigilante: ' || rojos); end if;
 
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;

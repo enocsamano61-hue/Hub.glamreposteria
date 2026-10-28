@@ -163,7 +163,7 @@ const HERRAMIENTAS_BI: Anthropic.Tool[] = [
   },
 ];
 
-type Usuario = { id: string; nombre: string; rol: string; es_admin: boolean; recibe_pedidos: boolean };
+type Usuario = { id: string; nombre: string; rol: string; es_admin: boolean; recibe_pedidos: boolean; creado_en: string | null; activo?: boolean };
 // Lo único que se usa del cliente con la sesión del usuario: llamar funciones glamy_*.
 type ClienteRpc = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }> };
 
@@ -341,6 +341,16 @@ Eres su analista de datos, como un Power BI que platica.
 - "faltaron", "no llegaron" → no_llegaron. "interesadas", "prospectos", "en seguimiento" → leads_abiertos.
 - "en una sola tabla", "que las filas sean las ciudades" → bi_tabla por ciudad.`;
 
+// Las primeras 2 semanas de alguien en el Hub, Glamy lo sabe y le explica con más calma.
+function nuevaEnElEquipo(u: Usuario) {
+  if (!u.creado_en) return "";
+  const dias = Math.floor((Date.now() - new Date(u.creado_en).getTime()) / 86_400_000);
+  if (dias < 0 || dias > 14) return "";
+  return `\nEs **nueva en el equipo**: se dio de alta en el Hub ${dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`}. ` +
+    "Explícale con calma y paso a paso, dile en qué sección y con qué botón se hace cada cosa (con su botón ⟦ir:…⟧), " +
+    "no des por hecho que conoce los nombres del Hub y, al final, ofrécele seguir con lo siguiente de su trabajo.";
+}
+
 async function huella(texto: string) {
   const b = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto)));
   return Array.from(b).map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -377,7 +387,9 @@ Deno.serve(async (req) => {
       { type: "text", text: MANUAL + await faq(), cache_control: { type: "ephemeral" } },
       { type: "text", text: "# Quién te escribe\nPrueba técnica del sistema (modo prueba: las herramientas regresan datos de ejemplo). "
         + (enBI ? `Rol: Dirección, administrador. Está en la sección "reportes".` + INSTRUCCIONES_BI
-                : `Rol: Cobranza. Está en la sección "${corto(cuerpo.seccion, 30) || "inicio"}". Secciones que puede abrir: inicio, board, historial, cursos, cobranza, nollegaron, calendario, academia, mensajes.`) },
+                : `Rol: Cobranza. Está en la sección "${corto(cuerpo.seccion, 30) || "inicio"}". Secciones que puede abrir: inicio, board, historial, cursos, cobranza, nollegaron, calendario, academia, mensajes.`)
+        // nueva_dias: para probar cómo trata a alguien que se acaba de dar de alta.
+        + (typeof cuerpo.nueva_dias === "number" ? nuevaEnElEquipo({ creado_en: new Date(Date.now() - cuerpo.nueva_dias * 86_400_000).toISOString() } as Usuario) : "") },
     ];
     const llamadas: { nombre: string; entrada: Record<string, unknown> }[] = [];
     const r = await conversar(historial, sistema, async (nombre, entrada) => {
@@ -391,9 +403,10 @@ Deno.serve(async (req) => {
   const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   const { data: sesion } = await servicio.auth.getUser(token);
   if (!sesion?.user) return responder({ error: "Inicia sesión en el Hub." }, 401);
-  const { data: usuario } = await servicio.from("usuarios").select("id, nombre, rol, es_admin, recibe_pedidos")
+  const { data: usuario } = await servicio.from("usuarios").select("id, nombre, rol, es_admin, recibe_pedidos, creado_en, activo")
     .eq("auth_user_id", sesion.user.id).maybeSingle<Usuario>();
   if (!usuario) return responder({ error: "Tu usuario no está dado de alta en el Hub." }, 403);
+  if (usuario.activo === false) return responder({ error: "Tu usuario está dado de baja." }, 403);
 
   // Sin límites por ahora: cada pregunta se anota en glamy_uso para medir.
   const hoy = hoyMX();
@@ -414,7 +427,7 @@ Deno.serve(async (req) => {
   const contexto = `# Quién te escribe
 ${usuario.nombre} (rol: ${usuario.rol}${usuario.es_admin ? ", administrador" : ""}). Hoy es ${fechaLarga}. Está en la sección "${seccion || "inicio"}".
 Secciones que puede abrir: ${(secciones ?? []).join(", ")}${usuario.recibe_pedidos ? ", glamy (el uso de Glamy y los tickets; los recibe él)" : ""}.
-Solo pon botones ⟦ir:…⟧ de secciones que puede abrir.`;
+Solo pon botones ⟦ir:…⟧ de secciones que puede abrir.${nuevaEnElEquipo(usuario)}`;
 
   // Glamy BI: solo administradores y solo desde Reportes → Glamy BI (ahí se dibujan las gráficas).
   const modoBI = cuerpo.modo === "bi" && usuario.es_admin;

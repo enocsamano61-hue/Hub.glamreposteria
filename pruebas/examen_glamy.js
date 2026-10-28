@@ -98,6 +98,18 @@ const CASOS_FASE1 = [
     revisar: t => /ficha/i.test(t) && /fecha de pago/i.test(t) },
   { nombre:'Vigilante: el lead sigue a su inscripción (28 oct)', pregunta:'si cambio de curso a una alumna inscrita, ¿su lead se queda en la ciudad de antes?',
     revisar: t => /lead/i.test(t) && /(nuev|se va|tambi[eé]n|con ella|se mueve|pasa)/i.test(t) && !/s[ií],? se queda/i.test(t) },
+  { nombre:'Comprobantes: dónde se sube (28 oct)', pregunta:'¿dónde subo el comprobante de pago que me mandó una clienta?',
+    revisar: t => /comprobante/i.test(t) && /(Registrar pago|Adjuntar comprobante)/.test(t) },
+  { nombre:'Kits: falta pagar el envío (28 oct)', pregunta:'el kit de una alumna ya está listo pero no ha pagado el envío, ¿en qué columna lo pongo?',
+    revisar: t => /Por pagar env[ií]o/.test(t) },
+  { nombre:'Usuarios: crear el usuario de alguien nuevo (28 oct)', pregunta:'¿cómo le creo su usuario del hub a una vendedora nueva?',
+    revisar: t => /Nuevo usuario/.test(t) && /contrase[ñn]a temporal/i.test(t) },
+  { nombre:'Usuarios: dar de baja no borra nada (28 oct)', pregunta:'si doy de baja a una vendedora que ya se fue, ¿se borran sus leads y sus ventas?',
+    revisar: t => /(no se borra|se quedan|se conserva|no se pierde)/i.test(t) && !/s[ií],? se borran/i.test(t) },
+  { nombre:'Usuarios: solo Enoc hace administradores (28 oct)', pregunta:'soy administradora, ¿puedo hacer administrador a alguien del equipo?',
+    revisar: t => /Enoc/.test(t) },
+  { nombre:'Gente nueva: le explica con calma y con botón (28 oct)', pregunta:'¿cómo registro un lead?', nueva_dias:1,
+    revisar: t => /Nuevo lead/.test(t) && /⟦ir:board⟧/.test(t) && /(Glamy|asistente)/i.test(t) },
 ];
 
 /* Glamy BI (modo bi): se revisa con qué herramientas y datos contestó (lenguaje sencillo → métricas). */
@@ -156,7 +168,7 @@ const CASOS_BI = [
   }
   for(const c of CASOS_FASE1){
     const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
-      body: JSON.stringify({ accion:'prueba', llave:LLAVE, pregunta:c.pregunta, seccion:'inicio', simular:{} }) }).then(x => x.json());
+      body: JSON.stringify({ accion:'prueba', llave:LLAVE, pregunta:c.pregunta, seccion:'inicio', simular:{}, nueva_dias:c.nueva_dias }) }).then(x => x.json());
     costo += r.costo_usd || 0;
     const t = String(r.texto || '');
     const bien = !r.error && c.revisar(t);
