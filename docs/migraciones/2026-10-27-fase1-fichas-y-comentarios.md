@@ -79,3 +79,11 @@ Decisiones de Enoc:
   `prueba_regalo_y_aviso.js` (17). Ajustadas por los emojis y las cajas: ficha, ficha_unica, recepcion, cambio_fecha,
   embudo, academia_*, cobranza_grupos, plaza_alumnas, vip y otras.
 - `correr_todas.js`: 41 archivos en verde. Capturas a 1200 y 390 px en cada prueba nueva.
+
+## Actualización del aviso (28 oct, migración `aviso_actualizacion_al_dia`)
+- El aviso de esta fase nunca se publicó; se puso al día con todo lo del 28 oct (fecha de pago de inscritas en su
+  ficha, comprobantes, lista del cambio de fecha al día, kits "Por pagar envío" y usuarios). Versión
+  `2026-10-28-al-dia`, título "Un solo lugar para cada cosa: comentarios, fechas de pago y comprobantes", 3 preguntas.
+  Respaldo del texto anterior en `respaldo.hub_novedades_20261028`. Sigue **sin publicar** hasta que Enoc lo apruebe.
+- `HUB_VERSION` del Hub pasa a `2026-10-28-al-dia`: quien tenga abierto el Hub viejo, al terminar de leer el aviso,
+  recarga y toma la versión nueva.
