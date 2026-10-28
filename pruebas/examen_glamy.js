@@ -57,11 +57,11 @@ const CASOS = [
 ];
 
 /* Cambio de fecha de un curso (preguntas de Jared, 24 oct): "confirmados" = aceptaron la nueva fecha, no pagos.
-   La herramienta curso regresa siempre el mismo ejemplo (17 inscritas: 10 aceptaron, 4 sin avisar, 3 después del cambio). */
+   La herramienta curso regresa siempre el mismo ejemplo (17 inscritas: 10 aceptaron, 7 sin avisar; 3 de ellas llegaron con la fecha nueva). */
 const CURSO_CF = { encontrado:true, curso:{ evento_id:ID(30), fecha:mas(90), ciudad:'Ciudad Ejemplo', curso:'LOS PASTELES MAS SABROSOS DE LA CHEF', sede:'Salón' },
   numeros:{ inscritas:17, liquidadas:1, deben:16, total_que_deben:11350, cobrado:12600, pagos_por_confirmar:0, llegaron:0, no_llegaron:0, sin_marcar_llegada:17, diplomas_entregados:0 },
-  cambio_de_fecha:{ fecha_anterior:mas(-2), fecha_nueva:mas(90), inscritas:{ acepto:10, sin_avisar:4 }, inscritas_despues_del_cambio:3,
-    nota_despues_del_cambio:'Se inscribieron cuando el curso ya tenía la fecha nueva: no necesitan aviso.', leads:{ sin_avisar:13 },
+  cambio_de_fecha:{ fecha_anterior:mas(-2), fecha_nueva:mas(90), inscritas:{ acepto:10, sin_avisar:7 }, inscritas_con_fecha_nueva:3, inscritas_de_otro_curso:0,
+    nota_nuevas:'Todas las inscritas del curso están en la lista y ya cuentan en "inscritas". inscritas_con_fecha_nueva = se inscribieron cuando el curso ya tenía la fecha nueva: en la lista dicen "Nueva" y el equipo decide si les toca regalo.', leads:{ sin_avisar:13 },
     regalos:{ aceptaron_sin_regalo:3, falta_enviar_acceso:2, acceso_enviado:5 },
     significado:'Estados del aviso del cambio de fecha (NO son pagos): acepto = aceptó la nueva fecha; avisada = ya se le mandó el WhatsApp y no ha contestado; sin_avisar = falta avisarle; reembolso = pidió reembolso; reembolsada = ya se le devolvió; no_va = ya no va.' },
   lista:Array.from({ length:10 }, (_, i) => ({ tipo:'inscrita', inscripcion_id:ID(40 + i), nombre:'Alumna Ejemplo ' + (i + 1), telefono:'55000001' + String(i).padStart(2, '0'), estado_cambio:'acepto' })) };
@@ -71,9 +71,11 @@ const CASOS_CF = [
   { nombre:'Cambio de fecha: ¿cuáles aceptaron? (Jared)', pregunta:'de los 17 de ciudad ejemplo cuales son los que aceptaron el cambio de fecha?',
     revisar: (r, t) => usoCurso(r) && (r.llamadas || []).some(l => l.nombre === 'curso' && l.entrada.filtro === 'cambio_aceptaron') && /Alumna Ejemplo/.test(t) },
   { nombre:'Cambio de fecha: ¿cuántos faltan? (Jared)', pregunta:'hay un boton que dice cuando ya saben del cambio de fecha, para que esten confirmados de la fecha anterior y de esta, ya sabes cuantos de los 17 de ciudad ejemplo faltan?',
-    revisar: (r, t) => usoCurso(r) && /\b4\b/.test(t) && !hablaDePagos(t) },
+    revisar: (r, t) => usoCurso(r) && /\b7\b/.test(t) && !hablaDePagos(t) },
   { nombre:'Cambio de fecha: confirmados y por confirmar (Jared)', pregunta:'en ciudad ejemplo de los que ya tienen pago para esta fecha dime cuantos estan confirmados y cuantos me faltan por confirmar del cambio',
-    revisar: (r, t) => usoCurso(r) && /\b10\b/.test(t) && /\b4\b/.test(t) && !hablaDePagos(t) },
+    revisar: (r, t) => usoCurso(r) && /\b10\b/.test(t) && /\b7\b/.test(t) && !hablaDePagos(t) },
+  { nombre:'Cambio de fecha: las nuevas (28 oct)', pregunta:'en ciudad ejemplo, ¿cuántas se inscribieron ya con la fecha nueva? ¿también están en la lista?',
+    revisar: (r, t) => usoCurso(r) && /\b3\b/.test(t) && /(lista|Nueva)/i.test(t) },
   { nombre:'Cambio de fecha: regalos sin enviar (Fase 1)', pregunta:'en ciudad ejemplo, ¿a cuántas que aceptaron el cambio les falta que se les envíe el acceso del curso de regalo?',
     revisar: (r, t) => usoCurso(r) && /\b2\b/.test(t) },
 ];

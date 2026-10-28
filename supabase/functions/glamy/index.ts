@@ -46,8 +46,8 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
   {
     name: "curso",
     description: "Cómo va un curso de la gira: inscritas, llegaron, liquidadas, quién debe y cuánto, pagos por confirmar, diplomas entregados y, si el curso cambió de fecha, " +
-      "cómo van los avisos del cambio (cambio_de_fecha: cuántas aceptaron, avisadas, sin avisar, reembolso o ya no van, inscritas y leads por separado, y las que se inscribieron " +
-      "después del cambio y no necesitan aviso; regalos: inscritas que aceptaron sin regalo, con regalo y falta enviar el acceso, y con acceso enviado). " +
+      "cómo van los avisos del cambio (cambio_de_fecha: cuántas aceptaron, avisadas, sin avisar, reembolso o ya no van, inscritas y leads por separado; inscritas_con_fecha_nueva = se inscribieron " +
+      "cuando ya tenía la fecha nueva (en la lista dicen Nueva; ya cuentan en inscritas); regalos: inscritas que aceptaron sin regalo, con regalo y falta enviar el acceso, y con acceso enviado). " +
       "Con 'filtro' regresa además la lista de ese grupo: cambio_faltan = a quién falta avisar o no ha contestado; cambio_aceptaron = quién aceptó (con su regalo); regalo_falta = aceptaron y falta enviarles el acceso al curso de regalo. " +
       "Sin fecha toma el curso de esa ciudad más cercano a hoy; sin ciudad ni fecha, el curso más cercano a hoy.",
     input_schema: {

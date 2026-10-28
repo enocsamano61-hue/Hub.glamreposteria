@@ -1278,6 +1278,7 @@
   .cf-tag.acepto{ background:#E7F0E9; color:#2F4A38; } .cf-tag.reembolso, .cf-tag.reembolsada, .cf-tag.no_va{ background:#F7E1DE; color:#8A2F25; }
   .cf-regalo{ color:var(--success); font-size:12px; }
   .cf-regalo.falta{ color:#9A6B12; font-weight:600; }
+  .cf-origen{ display:inline-block; margin-top:3px; font-size:11.5px; font-weight:600; color:#6B5320; background:#FBF1DC; border-radius:6px; padding:2px 7px; }
   .cf-ficha{ font-size:12.5px; background:#FFFBF3; border:1px solid #F0D9A8; border-radius:10px; padding:8px 10px; margin-bottom:12px; }
   .cf-ficha:empty{ display:none; }
   .cf-ficha-acc{ display:inline-flex; gap:6px; flex-wrap:wrap; margin-left:6px; vertical-align:middle; }
@@ -13071,6 +13072,9 @@ document.getElementById('sheetEventos').addEventListener('click', e=>{
    - Calendario → hoja del día → "Cambiar fecha" (solo administradores): función
      cambiar_fecha_evento. Guarda la fecha anterior y pone en la lista a todas las inscritas
      (y los leads abiertos) de ese curso.
+   - La lista está siempre al día (28 oct): quien llega después al curso, el lead que paga y quien se
+     cambia de curso entran solos (cambio_fecha_sincronizar). "Nueva" = llegó con la fecha nueva
+     (el equipo decide si le toca regalo); "Viene de…" = la cambiaron de otro curso.
    - La lista se ve igual en Cobranza → Embudo y en la hoja del día: quién ya sabe, quién aceptó,
      quién pidió reembolso y a quién ya se le dio el regalo de la Academia (solo registro).
    - WhatsApp con la plantilla "Cambio de fecha" (editable en Mensajes): al mandarlo queda "Avisada".
@@ -13093,14 +13097,21 @@ const cfPuedeCerrar = () => !!(usuarioActual?.es_admin || ['Cobranza', 'Gerente'
 
 // Trae la lista (de un curso o de toda la gira de hoy en adelante) y la guarda por curso.
 async function cfCargar(eventoId, pintar = true){
+  // Antes de leerla, que nadie del curso falte (la base también lo hace sola al inscribir o cambiar de curso).
+  await sb.rpc('cambio_fecha_sincronizar', { p_evento: eventoId || null }).then(({ error })=>{ if(error) console.warn('cambio_fecha_sincronizar:', error.message); });
   const { data, error } = await sb.rpc('cambio_fecha_lista', { p_evento: eventoId || null });
   if(error){ console.warn('cambio_fecha_lista:', error.message); return; }
   if(!eventoId) cf.porEvento = {};
   else delete cf.porEvento[eventoId];
-  // Si ya se le envió el acceso a su regalo (aparte: la lista de la base no lo trae).
-  const { data: env } = await sb.from('cambio_fecha_avisos').select('id, regalo_enviado_en').not('regalo_curso', 'is', null);
-  const enviado = new Map((env || []).map(x=>[x.id, x.regalo_enviado_en]));
-  (data || []).forEach(f=>{ f.regalo_enviado_en = enviado.get(f.aviso_id) || null; (cf.porEvento[f.evento_id] = cf.porEvento[f.evento_id] || []).push(f); });
+  // Si ya se le envió el acceso a su regalo y cómo entró a la lista (aparte: la lista de la base no lo trae).
+  const { data: extra } = await sb.from('cambio_fecha_avisos').select('id, regalo_enviado_en, origen, origen_nota')
+    .or('regalo_curso.not.is.null,origen.not.is.null');
+  const mas = new Map((extra || []).map(x=>[x.id, x]));
+  (data || []).forEach(f=>{
+    const x = mas.get(f.aviso_id) || {};
+    f.regalo_enviado_en = x.regalo_enviado_en || null; f.origen = x.origen || null; f.origen_nota = x.origen_nota || null;
+    (cf.porEvento[f.evento_id] = cf.porEvento[f.evento_id] || []).push(f);
+  });
   if(pintar) cfPintarCajas(eventoId);
 }
 function cfPintarCajas(eventoId){
@@ -13114,14 +13125,16 @@ function cfHtml(eventoId){
   const regalosFalta = filas.filter(f=>f.regalo_curso && !f.regalo_enviado_en).length;
   const regalosEnviados = filas.filter(f=>f.regalo_curso && f.regalo_enviado_en).length;
   const sinRegalo = filas.filter(f=>f.estado === 'acepto' && f.inscripcion_id && !f.regalo_curso).length;
+  const nuevas = filas.filter(f=>f.origen === 'nueva').length, deOtro = filas.filter(f=>f.origen === 'otro_curso').length;
   const barra = ['acepto', 'avisada', 'reembolso', 'reembolsada', 'no_va'].map(k=>n(k) ? `<i style="width:${(n(k) / filas.length * 100).toFixed(2)}%;background:${CF_ESTADOS[k].c}" title="${escapeAttr(CF_ESTADOS[k].l)}: ${n(k)}"></i>` : '').join('');
   const chips = [['Aceptaron', n('acepto')], ['Avisadas sin respuesta', n('avisada')], ['Reembolso', n('reembolso') + n('reembolsada')],
     ['Ya no van', n('no_va')], ['Sin avisar', n('sin_avisar')], ['Aceptaron sin regalo', sinRegalo], ['Regalo: falta enviar acceso', regalosFalta],
-    ['Regalo: acceso enviado', regalosEnviados]].filter(([, v])=>v)
+    ['Regalo: acceso enviado', regalosEnviados], ['Nuevas: verificar regalo', nuevas], ['Vienen de otro curso', deOtro]].filter(([, v])=>v)
     .map(([l, v])=>`<span class="cf-chip">${l} <b>${v}</b></span>`).join('');
   const abierto = cf.abiertos.has(eventoId);
   const grupos = [['Ya pagaron', filas.filter(f=>f.inscripcion_id && f.pago)], ['Inscritas sin pago', filas.filter(f=>f.inscripcion_id && !f.pago)],
-    ['Leads (todavía no pagan)', filas.filter(f=>f.lead_id)]];
+    // Los leads con un pago reportado van primero
+    ['Leads (todavía no se inscriben)', filas.filter(f=>!f.inscripcion_id).sort((a, b)=>Number(b.pago) - Number(a.pago))]];
   const quien = EQUIPO.find(u=>u.id === c.cambiado_por)?.nombre;
   return `<div class="cf-cab"><b>Cambio de fecha · ${escHtml(fechaCorta(c.fecha_anterior))} → ${escHtml(fechaCorta(c.fecha_nueva))}</b>
       <span class="sub">cambió el ${escHtml(fechaCorta(String(c.cambiado_en).slice(0, 10)))}${quien ? ' · ' + escHtml(quien) : ''}${c.motivo ? ' · ' + escHtml(c.motivo) : ''}</span></div>
@@ -13133,7 +13146,7 @@ function cfHtmlFila(f){
   const e = CF_ESTADOS[f.estado] || CF_ESTADOS.sin_avisar;
   const dato = f.inscripcion_id
     ? (f.pago ? `Inscrita · pagó ${fmtMoney(f.monto)}${f.debe > 0 ? ' · debe ' + fmtMoney(f.debe) : ' · liquidada'}` : 'Inscrita sin pago')
-    : 'Lead (todavía no paga)';
+    : f.pago ? `Lead · reportó pago de ${fmtMoney(f.monto)} (falta confirmarlo)` : 'Lead (todavía no paga)';
   const id = escapeAttr(f.aviso_id), ev = escapeAttr(f.evento_id);
   const b = (acc, txt, cls='') => `<button type="button" class="${cls}" data-cf-acc="${acc}" data-cf-aviso="${id}" data-cf-ev="${ev}">${txt}</button>`;
   let acc = '';
@@ -13149,6 +13162,7 @@ function cfHtmlFila(f){
   }
   return `<div class="cf-fila"><div><b>${escHtml(tituloCaso(f.nombre || ''))}</b><span class="cf-tag ${escapeAttr(f.estado)}">${escHtml(e.l)}${f.estado_en && f.estado !== 'sin_avisar' ? ' · ' + escHtml(fechaCorta(String(f.estado_en).slice(0, 10))) : ''}</span>
       <div class="sub">${escHtml([dato, embVend(f.asesor_id)].join(' · '))}</div>
+      ${cfTextoOrigen(f)}
       ${f.regalo_curso ? `<div class="cf-regalo ${f.regalo_enviado_en ? '' : 'falta'}">${cfTextoRegalo(f)}</div>` : ''}
       ${f.nota ? `<div class="sub">${escHtml(f.nota)}</div>` : ''}</div>
     <div class="cf-acc">${acc}</div></div>`;
@@ -13203,6 +13217,13 @@ async function cfAccion(btn){
   if(acc === 'reembolso') toast('Anotado. Cobranza y Gerencia ya tienen la tarea.');
   cfDespues(eventoId);
 }
+// Cómo entró a la lista si no estaba cuando se cambió la fecha (la ve el equipo para decidir).
+function cfTextoOrigen(a){
+  if(a.origen === 'nueva') return `<div class="cf-origen">Nueva: ${a.inscripcion_id ? 'se inscribió' : 'llegó'} con la fecha nueva. Verifica si le corresponde regalo.</div>`;
+  if(a.origen === 'otro_curso') return `<div class="cf-origen">${escHtml(a.origen_nota || 'Viene de otro curso')}. Verifica qué se le dijo.</div>`;
+  if(a.origen === 'faltaba') return '<div class="cf-origen">Se agregó a la lista después del cambio.</div>';
+  return '';
+}
 // Regalo de la Academia por el cambio de fecha: se elige el curso y si ya se le envió el acceso.
 function cfTextoRegalo(a){
   return `Regalo: ${escHtml(a.regalo_curso)} · ${a.regalo_enviado_en ? 'acceso enviado ' + escHtml(fechaCorta(String(a.regalo_enviado_en).slice(0, 10))) : 'falta enviar el acceso'}`;
@@ -13249,13 +13270,13 @@ document.addEventListener('click', e=>{
 async function pintarCambioFechaFicha(inscId){
   const caja = document.getElementById('modalInscCambioFecha');
   caja.innerHTML = '';
-  const { data } = await sb.from('cambio_fecha_avisos').select('id, persona_id, lead_id, estado, estado_en, regalo_curso, regalo_enviado_en, nota, cambios_fecha(fecha_anterior, fecha_nueva)')
+  const { data } = await sb.from('cambio_fecha_avisos').select('id, persona_id, lead_id, inscripcion_id, estado, estado_en, regalo_curso, regalo_enviado_en, nota, origen, origen_nota, cambios_fecha(fecha_anterior, fecha_nueva)')
     .eq('inscripcion_id', inscId).order('creado_en', { ascending:false }).limit(1);
   const a = (data || [])[0];
   if(!a || modalInscId !== inscId) return;
   const e = CF_ESTADOS[a.estado] || CF_ESTADOS.sin_avisar;
   caja.innerHTML = `Cambio de fecha ${escHtml(fechaCorta(a.cambios_fecha?.fecha_anterior))} → ${escHtml(fechaCorta(a.cambios_fecha?.fecha_nueva))}: `
-    + `<b>${escHtml(e.l)}</b>${a.regalo_curso ? ` · ${cfTextoRegalo(a)}` : ''}${a.nota ? ` · ${escHtml(a.nota)}` : ''}`
+    + `<b>${escHtml(e.l)}</b>${a.regalo_curso ? ` · ${cfTextoRegalo(a)}` : ''}${a.nota ? ` · ${escHtml(a.nota)}` : ''}${cfTextoOrigen(a)}`
     + `<span class="cf-ficha-acc">${a.estado === 'sin_avisar' ? '<button type="button" class="btn-outline small" data-fcf="avisada">Ya le avisé</button>' : ''}`
     + `${a.estado === 'acepto' && !a.regalo_curso ? '<button type="button" class="btn-outline small" data-fcf="regalo">Registrar regalo</button>' : ''}`
     + `${a.regalo_curso && !a.regalo_enviado_en ? '<button type="button" class="btn-outline small" data-fcf="regalo_enviado">Ya se envió</button>' : ''}</span>`;
