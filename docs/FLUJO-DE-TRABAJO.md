@@ -102,14 +102,15 @@ Navegador ──► Cloudflare Pages (hub/ = raíz del sitio) ──► hub.glam
 ### 3.1 Las fases, siempre en este orden
 
 ```
-idea → lluvia de ideas → confirmar → plan (roadmap) → maqueta → "permitido generar" → construir
-  → probar → documentar → publicar → avisar
+idea → lluvia de ideas → confirmar → plan (roadmap) + "¿qué pasa si…?" → maqueta → "permitido generar"
+  → construir → probar (+ historias y vigilante) → documentar → publicar → avisar
 ```
 
 1. **Idea y lluvia de ideas.** Enoc cuenta qué quiere. Se le hacen preguntas cortas y numeradas
    (él contesta "1 - sí / 2 - a…"). Se le dan **opciones con recomendación**, no encuestas largas.
 2. **Confirmar.** Se repite lo entendido y las decisiones tomadas.
-3. **Plan.** Qué tablas, qué pantalla, qué se prueba, qué se publica.
+3. **Plan.** Qué tablas, qué pantalla, qué se prueba, qué se publica. Incluye las respuestas de
+   **"¿qué pasa si…?"** (sección 3.9 y `docs/plantilla-fase.md`): si alguna no tiene respuesta, la fase no se construye.
 4. **Maqueta** (si hay pantalla): imagen con datos inventados (HTML + captura con Playwright).
    Él elige o corrige.
 5. **"permitido generar".** Sin esto no se toca nada. **Cada fase pide el suyo**; uno anterior
@@ -153,6 +154,37 @@ armar maquetas en el scratchpad y proponer.
    `tabla_AAAAMMDD` (a veces con sufijo de fase), **y luego** una migración con nombre.
 5. **Dinero:** nunca se confirma ni se cobra automáticamente. Glamy, por ejemplo, **solo consulta**.
 6. **Secretos fuera del chat y del repo.**
+
+### 3.9 Que no vuelva a pasar (28 oct 2026)
+
+Casi todas las fallas de octubre fueron la misma: **la misma información en dos lugares que se
+desincronizan** (Embudo vs Cobranza, Glamy sin los datos del cambio de fecha, inscritas sin lead, dos cajas de
+comentarios, la lista del cambio de fecha como foto del día del cambio). Cada función se pensó con los datos de
+ese día; las alumnas se mueven (pagan, se cambian de curso, ceden su lugar, las capturan tarde). Por eso:
+
+1. **Nada de fotos.** Ninguna lista, número o estado se guarda como foto de un momento. Se calcula del estado
+   de hoy. Si algo se tiene que guardar porque alguien lo marca a mano (p. ej. "Aceptó"), la base lo mantiene al
+   día sola cuando la persona cambia (trigger o función de sincronía, como `cambio_fecha_sincronizar`). Un número
+   que se ve en dos lugares (Hub, Glamy, Glamy BI) sale de la misma función de la base.
+2. **"¿Qué pasa si…?" en cada fase**, antes del "permitido generar" (plantilla en `docs/plantilla-fase.md`).
+   Qué pasa con lo nuevo si la persona: (1) la capturan tarde, (2) el lead paga y queda inscrita, (3) su pago no
+   se encontró, (4) se cambia de curso, (5) cede su lugar, (6) no va / pide reembolso / pierde su anticipo,
+   (7) su curso cambia de fecha, (8) tiene dos cursos o dos teléfonos, (9) su curso ya pasó, y (10) ¿Glamy,
+   Glamy BI, el Embudo y Cobranza lo cuentan igual?
+3. **Historias completas** (`pruebas/historias/historias.sql`): recorren de punta a punta contra la base real y
+   lo deshacen todo al final (lead → pago → confirmar; "No se encontró"; cambio de curso; ceder lugar; lead
+   tardío en un curso con cambio de fecha; reembolso). En cada paso revisan el Embudo y la lista del cambio de
+   fecha; al final de cada historia, las reglas rojas del vigilante. **Las corre Claude antes de cada
+   publicación**: deben salir `HISTORIAS fallas=0`. Si una fase cambia uno de esos recorridos (o agrega otro),
+   se actualiza el archivo; Codex escribe la historia nueva en el doc de su fase y Claude la corre.
+4. **Vigilante diario** (`vigilante_calcular` / `vigilante_revisar`, tabla `vigilante_resultados`, cron
+   `vigilante-diario` 5:41 México). Reglas **rojas** = errores del Hub (deben estar en 0; antes de publicar
+   también): inscrita fuera de la lista de su cambio de fecha, inscrita sin lead, lead "Inscrita" sin su
+   inscripción (salvo que cedió su lugar), inscrita dos veces en el mismo curso, liquidada que debe (o al revés),
+   Embudo que no cuenta igual que la base, Glamy que no cuenta igual que la base o la lista. Reglas
+   **amarillas** = datos que limpia el equipo (inscritas sin vendedora, leads sin curso, pagos que no cuadran,
+   pago doble, "Pago por confirmar" sin datos, lead abierto de una inscrita, teléfono repetido). Enoc lo ve en
+   su **Inicio → Reporte del día**. **Cuando aparezca un tipo de falla nuevo, se agrega su regla.**
 
 ### 3.4 Convenciones de código (para que lo nuevo se vea igual que lo viejo)
 
@@ -486,6 +518,10 @@ Detalle: `docs/migraciones/2026-10-19-glamy.md` y `…-glamy-cupcake-uso-tickets
   llama registrarActividad. Variables CSS (paleta C): --wine=frambuesa, --wine-dark=frambuesa oscuro, --champagne=rosa de adorno.
 - Cada cambio: prueba Playwright + capturas 1200/390 px + docs/migraciones/AAAA-MM-DD-tema.md.
 - Lee docs/FLUJO-DE-TRABAJO.md (este reporte) antes de empezar.
+- Nada de fotos: ninguna lista, número o estado se guarda como foto de un momento; se calcula del estado
+  de hoy, o la base lo mantiene al día sola (triggers). Un número que se ve en dos lugares sale de la misma función.
+- Cada fase responde "¿qué pasa si…?" (docs/plantilla-fase.md) ANTES de pedir el "permitido generar".
+- Antes de publicar: reglas rojas del vigilante en 0 y `pruebas/historias/historias.sql` con fallas=0 (lo corre Claude).
 ```
 
 ---

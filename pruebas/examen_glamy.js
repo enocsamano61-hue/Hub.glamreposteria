@@ -94,7 +94,8 @@ const CASOS_FASE1 = [
   { nombre:'Fase 1: alumna del Excel sin lead', pregunta:'una alumna vino del excel, ¿tiene lead? antes la pestaña Lead salía gris',
     revisar: t => /lead/i.test(t) && /(crea|cread|siempre)/i.test(t) },
   { nombre:'Fase 1: nombra los botones sin emojis', pregunta:'¿cómo confirmo el pago que reportó un lead?',
-    revisar: t => /Confirmar pago/.test(t) && SIN_EMOJIS_HUB(t) },
+    revisar: t => /Confirmar pago/.test(t) && SIN_EMOJIS_HUB(t) },  { nombre:'Vigilante: el lead sigue a su inscripción (28 oct)', pregunta:'si cambio de curso a una alumna inscrita, ¿su lead se queda en la ciudad de antes?',
+    revisar: t => /lead/i.test(t) && /(nuev|se va|tambi[eé]n|con ella|se mueve|pasa)/i.test(t) && !/s[ií],? se queda/i.test(t) },
 ];
 
 /* Glamy BI (modo bi): se revisa con qué herramientas y datos contestó (lenguaje sencillo → métricas). */
