@@ -108,6 +108,8 @@ const CASOS_FASE1 = [
     revisar: t => /(no se borra|se quedan|se conserva|no se pierde)/i.test(t) && !/s[ií],? se borran/i.test(t) },
   { nombre:'Usuarios: solo Enoc hace administradores (28 oct)', pregunta:'soy administradora, ¿puedo hacer administrador a alguien del equipo?',
     revisar: t => /Enoc/.test(t) },
+  { nombre:'Academia: ver rápido cómo va el kit de una alumna (29 oct)', pregunta:'¿dónde veo rápido en qué va el kit de cada alumna de la academia sin abrir el tablero de kits?',
+    revisar: t => /Alumnas/.test(t) && /(estado|Por pagar|Enviado|decisi[oó]n)/i.test(t) },
   { nombre:'Gente nueva: le explica con calma y con botón (28 oct)', pregunta:'¿cómo registro un lead?', nueva_dias:1,
     revisar: t => /Nuevo lead/.test(t) && /⟦ir:board⟧/.test(t) && /(Glamy|asistente)/i.test(t) },
 ];

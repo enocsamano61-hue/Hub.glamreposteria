@@ -959,6 +959,13 @@
   .ac-dec.espera{ background:rgba(106,71,117,.13); color:#6A4775; }
   .ac-dec.no_quiere{ background:rgba(181,69,58,.13); color:#8E3328; }
   .ac-dec.graduada{ background:rgba(var(--wine-rgb),.12); color:var(--wine); }
+  .ac-kit{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; border-radius:999px; padding:3px 9px; white-space:nowrap;
+    border:1px solid var(--k-color, var(--border)); color:var(--k-color, var(--ink-soft)); background:var(--card); margin-left:4px; }
+  .ac-kit::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--k-color, var(--border)); }
+  @media (max-width:600px){ .ac-kit{ white-space:normal; margin:4px 0 0; font-size:11px; padding:2px 7px; } }
+  .ac-kit-linea{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:12.5px; }
+  .ac-kit-linea .ac-kit{ margin-left:0; }
+  .ac-kit-linea button{ width:auto; }
   .ac-pagos{ font-size:12.5px; }
   .ac-pagos .debe{ color:var(--danger); font-weight:700; }
   .ac-pagos .rev{ color:#7A6232; font-weight:600; }
@@ -9746,7 +9753,7 @@ const AC_POR_PAGINA = 200;
 const AC_SELECT = `id, generacion_id, persona_id, hoja, fila, seccion_excel, matricula, nombre, telefono, sin_telefono, telefono_2,
   ciudad_texto, vendedor_texto, graduacion_excel, comentario_excel, decision, notas, revisar,
   personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento )`;
-let ac = { tab:'alumnas', generaciones:null, gen:null, filas:[], resumen:new Map(), filtro:'todas', sel:null,
+let ac = { tab:'alumnas', generaciones:null, gen:null, filas:[], resumen:new Map(), kits:new Map(), filtro:'todas', sel:null,
            pagosDe:null, pagos:null, pagoSel:null, privados:null, limite:AC_POR_PAGINA };
 
 /* La API devuelve máximo 1,000 filas: se pide por páginas hasta traer todo. */
@@ -9776,14 +9783,17 @@ async function cargarGeneracionesAcademia(){
 }
 async function cargarAlumnasAcademia(){
   const porGen = q => ac.gen ? q.eq('generacion_id', ac.gen) : q;
-  const [ra, rr] = await Promise.all([
+  const [ra, rr, rk] = await Promise.all([
     acTraerTodo(()=>porGen(sb.from('academia_alumnas').select(AC_SELECT)).order('hoja').order('fila')),
     acTraerTodo(()=>porGen(sb.from('academia_pagos_resumen').select('alumna_id, pagos, pagados, debe, por_revisar, total_pagado'))),
+    acTraerTodo(()=>sb.from('academia_kits').select('id, alumna_id, estado, esperando_envio, creado_en').not('alumna_id', 'is', null)),
   ]);
-  const error = ra.error || rr.error;
+  const error = ra.error || rr.error || rk.error;
   if(error){ toast('No se pudieron cargar las alumnas: ' + error.message, true); return false; }
   ac.filas = ra.data;
   ac.resumen = new Map(rr.data.map(r=>[r.alumna_id, r]));
+  ac.kits = new Map();
+  rk.data.forEach(x=>{ if(!ac.kits.has(x.alumna_id)) ac.kits.set(x.alumna_id, []); ac.kits.get(x.alumna_id).push(x); });
   return true;
 }
 
@@ -9818,6 +9828,23 @@ function visiblesAcademia(){
     return true;
   });
 }
+/* Estado del kit de una alumna, para verlo rápido en la lista y en su panel (pedido del 28 oct).
+   Sale de su tarjeta en Kits con la misma regla del tablero (estadoKit); si tiene dos, el más reciente que no
+   esté cancelado y "+N" por los demás. */
+function kitDeAlumna(a){
+  const kits = (ac.kits.get(a.id) || []).slice().sort((x, y)=>String(y.creado_en).localeCompare(String(x.creado_en)));
+  const vivos = kits.filter(x=>x.estado !== 'cancelado');
+  const kit = vivos[0] || kits[0] || null;
+  return { kit, mas:Math.max(vivos.length - 1, 0) };
+}
+const K_CORTA = { por_clasificar:'Por clasificar', cancelado:'Cancelado' };
+function htmlKitAlumna(a){
+  const { kit, mas } = kitDeAlumna(a);
+  if(!kit) return a.decision === 'kit' ? '<span class="ac-kit" title="Decidió kit pero no tiene tarjeta en Kits">Sin tarjeta</span>' : '';
+  const id = estadoKit(kit), e = K_ESTADOS.find(x=>x.id === id);
+  const texto = (a.decision === 'kit' ? '' : 'Kit: ') + (K_CORTA[id] || e?.label || id) + (mas ? ` +${mas}` : '');
+  return `<span class="ac-kit" style="--k-color:${e?.color || '#8C8378'}" title="Estado de su kit">${escHtml(texto)}</span>`;
+}
 function cumpleFiltroAcademia(a, f){ return f === 'todas' || (f === 'revisar' ? !!a.revisar : a.decision === f); }
 function textoPagosLista(r){
   if(!r?.pagos) return '<span class="sub">Sin pagos</span>';
@@ -9846,7 +9873,7 @@ function pintarAcademia(){
         <div class="sub">${escHtml(telAcademia(a) || 'Sin teléfono')}${ac.gen === '' ? ' · ' + escHtml(nombreGenAcademia(a.generacion_id)) : ''}</div></td>
       <td>${escHtml(a.ciudad_texto || '—')}</td>
       <td class="ac-pagos">${textoPagosLista(ac.resumen.get(a.id))}</td>
-      <td><span class="ac-dec ${escapeAttr(a.decision)}">${escHtml(AC_DEC_CORTA[a.decision] || a.decision)}</span></td>
+      <td><span class="ac-dec ${escapeAttr(a.decision)}">${escHtml(AC_DEC_CORTA[a.decision] || a.decision)}</span>${htmlKitAlumna(a)}</td>
     </tr>`).join('')
     : `<tr><td colspan="4" class="empty-note">${ac.filas.length ? 'Nadie con esos filtros.' : 'Esta generación no tiene alumnas.'}</td></tr>`;
   document.getElementById('acMas').innerHTML = filas.length > ac.limite
@@ -9953,6 +9980,7 @@ function pintarDetalleAcademia(){
       <h4>¿Qué decidió?</h4>
       ${a.graduacion_excel ? `<div class="sub" style="margin:0;">En el Excel decía: “${escHtml(a.graduacion_excel)}”</div>` : ''}
       <div class="ac-decisiones">${AC_DECISIONES.map(d=>`<button type="button" class="${a.decision === d.id ? 'on' : ''}" data-ac-decision="${d.id}" aria-pressed="${a.decision === d.id}">${escHtml(d.label)}</button>`).join('')}</div>
+      ${htmlKitAlumna(a) ? `<div class="ac-kit-linea"><span>Su kit:</span>${htmlKitAlumna(a)}${kitDeAlumna(a).kit ? '<button type="button" class="btn-outline small" data-ac-acc="verkit">Ver en Kits</button>' : ''}</div>` : ''}
     </div>
     <div class="ac-caja">
       <h4>Pagos de la academia</h4>
@@ -10034,6 +10062,11 @@ async function corregirPagoAcademia(a){
 async function accionAcademia(acc){
   const a = ac.filas.find(x=>x.id === ac.sel); if(!a) return;
   if(acc === 'whats') return abrirEnviarWhatsApp({ nombre:a.personas?.nombre || a.nombre, telefono:telAcademia(a), personaId:a.persona_id, ciudad:a.ciudad_texto || '' });
+  if(acc === 'verkit'){
+    const { kit } = kitDeAlumna(a); if(!kit) return;
+    kk.sel = kit.id; kk.irA = kit.id; document.getElementById('kBuscar').value = '';
+    return document.querySelector('#view-academia [data-ac-tab="kits"]').click();
+  }
   if(acc === 'contacto') return abrirDatosContacto(a.persona_id, ()=>{ ac.pagosDe = null; renderAcademia(); });
   if(acc === 'privados') return cargarPrivadosAcademia(a);
   if(acc === 'pago') return registrarPagoAcademia(a);
@@ -10686,6 +10719,8 @@ function pintarKits(){
     </section>`;
   }).join('');
   pintarDetalleKit();
+  // Viene de "Ver en Kits" (Academia → Alumnas): se muestra su tarjeta
+  if(kk.irA){ document.querySelector(`[data-k-id="${CSS.escape(kk.irA)}"]`)?.scrollIntoView({ block:'nearest', inline:'center' }); kk.irA = null; }
 }
 
 function pintarDetalleKit(){
