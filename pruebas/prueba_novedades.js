@@ -93,7 +93,7 @@ const NOVEDAD = { id:'nov1', version:'2026-10-27-fase1', titulo:'Fichas más cla
 
   h.paso('6. Escribiendo no la interrumpe');
   await p.evaluate(() => { window.__tablas.hub_novedades_leidas = []; nov.actual = null; });
-  await p.evaluate(() => { setActiveSection('cobranza'); const i = document.getElementById('cobBuscar'); i.focus(); i.dispatchEvent(new KeyboardEvent('keydown', { key:'a', bubbles:true })); });
+  await p.evaluate(() => { setActiveSection('cobranza'); document.querySelector('#cobTabs [data-cob-tab="cobrar"]').click(); const i = document.getElementById('cobBuscar'); i.focus(); i.dispatchEvent(new KeyboardEvent('keydown', { key:'a', bubbles:true })); });
   await p.evaluate(() => revisarNovedades());
   await p.waitForTimeout(500);
   check(!(await abierta()), 'si está escribiendo, espera');

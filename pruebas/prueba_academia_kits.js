@@ -118,11 +118,31 @@ const ACADEMIA = { id:'u3', nombre:'Academia Prueba', rol:'Academia e Inbox', es
   check(wa === 'Hola Bety, tu kit va por Paquetería Y con guía GUIA-777.', 'el WhatsApp lleva {guia} y {paqueteria}: ' + wa);
   await p.evaluate(() => document.getElementById('modalWhats').classList.remove('open'));
 
-  h.paso('6. Cancelar y reactivar');
+  h.paso('6. Cancelar (con motivo y qué pasa con lo que pagó; ticket #3 de Tamar) y reactivar');
   await elegir('k3');
+  // Si ya pagó algo, que el aviso lo diga (para probarlo se le registra un pago)
+  await p.evaluate(() => { kk.pagos.set('k3', [{ id:'kpx', kit_id:'k3', concepto:'kit', monto:500, forma:'Efectivo', fecha:hoyISO(), creado_en:new Date().toISOString() }]);
+    kk.filas.find(x => x.id === 'k3').alumna_id = 'a2'; pintarKits(); });
+  check(await p.isVisible('#kDetalle .k-estados + .k-cancelar'), '"Cancelar el kit" está arriba, junto a los estados');
   await p.click('[data-k-acc="cancelar"]');
-  await confirmar();
-  check((await ultimo('academia_kits', 'update'))?.estado === 'cancelado' && await col('Cancelados') === 'k3', 'cancelado (no se borra)');
+  await p.waitForSelector('#modalKitCancelar.open');
+  check((await p.textContent('#kcDineroLabel')).includes('Pagó $500'), 'dice cuánto pagó y pregunta qué pasa con ese dinero');
+  await p.click('#kcSi');
+  check((await p.textContent('#kcError')).includes('por qué'), 'el motivo es obligatorio');
+  await p.fill('#kcMotivo', 'Se gradúa el próximo año');
+  await p.click('#kcSi');
+  check((await p.textContent('#kcError')).includes('qué pasa con lo que pagó'), 'si pagó, hay que decir qué pasa con su dinero');
+  await p.click('[data-kc-op^="Queda a su favor"]');
+  check(await p.isVisible('#kcDecisionCaja'), 'ofrece cambiar su decisión en Academia');
+  await p.check('#kcDecision');
+  await h.captura('academia-kits-cancelar.png');
+  await p.click('#kcSi'); await p.waitForTimeout(300);
+  const canc = await ultimo('academia_kits', 'update');
+  check(canc?.estado === 'cancelado' && canc.cancelado_motivo === 'Se gradúa el próximo año' && canc.cancelado_dinero.startsWith('Queda a su favor') && canc.cancelado_por && await col('Cancelados') === 'k3',
+    'cancelado con su motivo y su dinero (no se borra)');
+  check((await ultimo('academia_alumnas', 'update'))?.decision === 'espera', 'su decisión pasa a "Espera la siguiente"');
+  const det = await p.textContent('#kDetalle');
+  check(det.includes('Motivo: Se gradúa el próximo año') && det.includes('Su dinero: Queda a su favor') && det.includes('sus pagos se conservan'), 'el kit cancelado dice por qué y qué pasó con su dinero');
   await p.click('[data-k-acc="reactivar"]'); await p.waitForTimeout(150);
   check((await ultimo('academia_kits', 'update'))?.estado === 'por_pagar', 'reactivado');
   check((await h.ops('academia_kits', 'delete')).length === 0, 'nunca se borra');

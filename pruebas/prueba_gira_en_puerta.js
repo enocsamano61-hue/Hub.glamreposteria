@@ -54,7 +54,7 @@ const BANDEJA = [
   await p.evaluate(async bandeja => {
     window.__rpc.bandeja_limpieza = () => bandeja;
     cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA', 'cB'];
-    setActiveSection('cobranza');
+    setActiveSection('cobranza'); document.querySelector('#cobTabs [data-cob-tab="cobrar"]').click();
     await renderCobranza();
   }, BANDEJA);
   await p.waitForTimeout(600);
@@ -149,7 +149,7 @@ const BANDEJA = [
   check(nLeads === '4', 'solo cuenta los leads de la gira que viene (' + nLeads + ' de 7)');
 
   h.paso('10. Celular');
-  await p.evaluate(async () => { setActiveSection('cobranza'); await renderCobranza(); });
+  await p.evaluate(async () => { setActiveSection('cobranza'); document.querySelector('#cobTabs [data-cob-tab="cobrar"]').click(); await renderCobranza(); });
   await p.setViewportSize({ width:390, height:800 });
   await p.waitForTimeout(400);
   check(await p.evaluate(() => document.documentElement.scrollWidth <= 392), 'sin scroll de lado');

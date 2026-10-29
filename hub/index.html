@@ -323,6 +323,11 @@
   .comp-lead{ margin-top:6px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .fp-comp{ display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .k-envio{ margin-top:6px; font-size:12.5px; font-weight:600; color:#8E5BB5; }
+  .k-cancelar{ margin-top:8px; background:none; border:0; padding:4px 0; color:var(--danger); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; text-decoration:underline; }
+  .k-cancelado{ background:rgba(181,69,58,.08); border:1px solid rgba(181,69,58,.3); color:#8E3328; border-radius:10px; padding:8px 10px; font-size:12.5px; margin-top:4px; }
+  .k-cancelado button{ width:auto; margin-top:6px; }
+  .kc-opciones{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .kc-opciones button{ width:auto; }
   .k-envio.ok{ color:var(--success); }
   .rd-ok{ color:var(--success); font-size:13px; padding:6px 0; }
   .rd-alerta{ color:var(--danger); font-weight:600; font-size:13px; padding:6px 0; }
@@ -1324,6 +1329,7 @@
   .cf-ficha:empty{ display:none; }
   .cf-ficha-acc{ display:inline-flex; gap:6px; flex-wrap:wrap; margin-left:6px; vertical-align:middle; }
   .cf-ficha-acc .btn-outline.small{ width:auto; padding:3px 9px; font-size:11.5px; }
+  .cf-ficha .cf-acc{ margin-top:7px; }
   .cf-check{ display:flex; align-items:center; gap:8px; margin-top:10px; font-weight:600; font-size:13px; cursor:pointer; }
   .btn-cambiar-fecha{ margin-top:8px; width:auto; }
   .emb-curso{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-bottom:10px; }
@@ -1463,6 +1469,45 @@
   .cob-grupo > summary .cob-cuenta{ margin-left:auto; font-size:12px; font-weight:600; color:var(--ink-soft); }
   .cob-grupo > summary .cob-ayuda{ font-weight:400; font-size:12px; color:var(--ink-soft); }
   .cob-lista{ border-top:1px solid var(--border); }
+  /* Cobranza → Calendario: el mes con los nombres de quién paga cada día */
+  .cc-cab{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .cc-cab h3{ margin:0; min-width:150px; }
+  .cc-cab button{ width:auto; }
+  .cc-ley{ display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-left:auto; }
+  .cc-ley i, .cc-p{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; flex-shrink:0; }
+  .cc-p.lead{ background:#E296B0; } .cc-p.insc{ background:#55745C; } .cc-p.agl{ background:#8E5BB5; }
+  .cc-aviso{ font-size:12.5px; background:var(--card); border:1px dashed var(--border); border-radius:10px; padding:7px 10px; margin-bottom:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .cc-aviso button{ width:auto; }
+  .cc-grid{ display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px; }
+  .cc-dsem{ font-size:11px; font-weight:700; text-transform:uppercase; color:var(--ink-soft); text-align:center; padding:2px 0; }
+  .cc-dia{ min-height:92px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:5px 6px; text-align:left; font:inherit; color:var(--ink); cursor:pointer; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .cc-dia.fuera{ visibility:hidden; }
+  .cc-dia.hoy{ border:2px solid var(--wine); }
+  .cc-dia.vencido{ background:rgba(181,69,58,.07); border-color:rgba(181,69,58,.35); }
+  .cc-dia.sel{ box-shadow:0 0 0 3px rgba(var(--wine-rgb),.25); }
+  .cc-num{ font-size:12px; font-weight:700; display:flex; justify-content:space-between; gap:4px; }
+  .cc-n{ font-size:11px; font-weight:700; background:var(--wine); color:#fff; border-radius:999px; padding:0 6px; }
+  .cc-dia.vencido .cc-n{ background:var(--danger); }
+  .cc-nom{ font-size:11.5px; display:flex; align-items:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cc-nom span{ overflow:hidden; text-overflow:ellipsis; }
+  .cc-mas{ font-size:11px; color:var(--ink-soft); font-weight:600; }
+  .cc-lista{ margin-top:14px; }
+  .cc-lista h4{ margin:0 0 6px; }
+  .cc-fila{ display:flex; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); }
+  .cc-fila:last-child{ border-bottom:0; }
+  .cc-fila > div:first-child{ flex:1; min-width:0; }
+  .cc-fila .acc{ display:flex; gap:6px; }
+  .cc-fila .acc button{ width:auto; }
+  .cc-tag{ font-size:11px; font-weight:700; border-radius:8px; padding:1px 7px; margin-left:6px; background:var(--border); color:var(--ink-soft); white-space:nowrap; }
+  .cc-tag.venc{ background:rgba(181,69,58,.13); color:#8E3328; }
+  .cc-monto{ font-weight:700; white-space:nowrap; }
+  @media (max-width:600px){
+    .cc-dia{ min-height:52px; padding:4px; align-items:center; }
+    .cc-nom, .cc-mas{ display:none; }
+    .cc-num{ flex-direction:column; align-items:center; }
+    .cc-ley{ margin-left:0; }
+    .cc-fila{ flex-wrap:wrap; }
+  }
   .cob-fila{ display:flex; gap:10px; padding:11px 16px; border-bottom:1px solid var(--border); cursor:pointer; align-items:flex-start; }
   .cob-fila:last-child{ border-bottom:none; }
   .cob-fila:hover{ background:var(--bg); }
@@ -2311,10 +2356,12 @@
     <!-- COBRANZA — a quién cobrarle y cuándo -->
     <div class="view" id="view-cobranza">
       <div class="subtabs" id="cobTabs">
-        <button class="subtab active" data-cob-tab="cobrar">Por cobrar</button>
+        <button class="subtab active" data-cob-tab="calendario">Calendario</button>
+        <button class="subtab" data-cob-tab="cobrar">Por cobrar</button>
         <button class="subtab" data-cob-tab="embudo">Embudo por curso</button>
       </div>
-      <div id="cobVistaCobrar">
+      <div id="cobVistaCalendario" class="card"></div>
+      <div id="cobVistaCobrar" style="display:none;">
       <div class="card cob-cabeza">
         <div class="cob-dia">
           <button class="btn-outline small" id="cobDiaAnt" title="Día anterior">‹</button>
@@ -2490,6 +2537,7 @@
     <div class="modal-field"><label>Curso que tomará</label><select id="modalEventoSelect"></select></div>
     <div class="modal-field"><label>Ciudad de interés</label><select id="modalCiudadSelect"><option value="">— Sin especificar —</option></select></div>
     <div class="aviso-corregir" id="leadAvisoInscrita" style="display:none;"></div>
+    <div class="cf-ficha" id="leadCambioFecha"></div>
     <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="modalFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
     <div class="modal-field"><label>Estatus</label><select id="modalEstatusSelect"></select></div>
     <div class="modal-notas coment-caja"><div class="modal-notas-titulo">Comentarios</div>
@@ -3039,6 +3087,23 @@
 </div>
 
 <!-- ===================== MODAL: GLAMY BI — metas de la gira ===================== -->
+<!-- ===================== MODAL: Kits — cancelar un kit (motivo y qué pasa con lo que pagó) ===================== -->
+<div class="modal-overlay" id="modalKitCancelar">
+  <div class="modal" style="max-width:460px;">
+    <button class="close" id="closeModalKitCancelar">✕</button>
+    <h3 style="margin-bottom:2px;">Cancelar el kit</h3>
+    <div class="sub" id="kcSub" style="margin-bottom:12px;"></div>
+    <div class="modal-field"><label for="kcMotivo">¿Por qué se cancela?</label><input id="kcMotivo" maxlength="300" placeholder="Ej.: se gradúa el próximo año"></div>
+    <div id="kcDineroCaja">
+      <div class="modal-field"><label for="kcDinero" id="kcDineroLabel">¿Qué pasa con lo que pagó?</label><input id="kcDinero" maxlength="300" placeholder="Escríbelo o elige una opción">
+        <div class="kc-opciones"><button type="button" class="btn-outline small" data-kc-op="Queda a su favor (cuenta si se reactiva)">Queda a su favor</button>
+          <button type="button" class="btn-outline small" data-kc-op="Se le devolvió">Se le devolvió</button></div></div>
+    </div>
+    <label class="usr-sw" id="kcDecisionCaja"><input type="checkbox" id="kcDecision"><span><b>Cambiar su decisión en Academia a "Espera la siguiente"</b><small>Para que en Alumnas no siga como "Kit".</small></span></label>
+    <div class="aviso" id="kcError" style="display:none;"></div>
+    <div class="confirm-acciones"><button type="button" class="btn-ghost" id="kcNo">No cancelar</button><button type="button" class="btn-primary small" id="kcSi">Cancelar el kit</button></div>
+  </div>
+</div>
 <!-- ===================== MODAL: Usuarios — nuevo usuario y contraseña temporal ===================== -->
 <div class="modal-overlay" id="modalUsuario">
   <div class="modal" style="max-width:480px;">
@@ -5383,6 +5448,7 @@ async function abrirModalLead(leadId){
   const lead = leadsCache.find(l=>l.id===leadId);
   if(!lead) return;
   leadAbiertoId = leadId; leadAbiertoPersonaId = lead.personas?.id;
+  pintarCambioFechaLead(leadId);
   document.getElementById('modalLeadNombre').textContent = lead.personas?.nombre || '(sin nombre)';
   document.getElementById('modalLeadAvatar').textContent = iniciales(lead.personas?.nombre);
   document.getElementById('modalLeadTelefono').innerHTML = `<span>${escHtml(lead.personas?.telefono_principal || '')}</span>`
@@ -6425,12 +6491,13 @@ async function cargarCobranza(){
   return true;
 }
 
-function itemsCobranza(){
-  const q = normTexto(document.getElementById('cobBuscar').value);
-  const qTel = document.getElementById('cobBuscar').value.replace(/\D/g, '');
-  const vend = document.getElementById('cobVendedor').value;
+function itemsCobranza(sinFiltros = false){
+  const q = sinFiltros ? '' : normTexto(document.getElementById('cobBuscar').value);
+  const qTel = sinFiltros ? '' : document.getElementById('cobBuscar').value.replace(/\D/g, '');
+  const vend = sinFiltros ? '' : document.getElementById('cobVendedor').value;
+  const quien = sinFiltros ? 'todos' : cobQuien;
   const items = [];
-  if(cobQuien !== 'inscritas') cobDatos.leads.forEach(l=>{
+  if(quien !== 'inscritas') cobDatos.leads.forEach(l=>{
     const conf = l.estatus?.id === ESTATUS_POR_CONFIRMAR();
     items.push({
       tipo:'lead', id:l.id, nombre:l.personas?.nombre || '(sin nombre)', tel:l.personas?.telefono_principal || '',
@@ -6442,7 +6509,7 @@ function itemsCobranza(){
       nota: l.comentario || '', raw:l,
     });
   });
-  if(cobQuien !== 'leads') cobDatos.inscritas.forEach(i=>{
+  if(quien !== 'leads') cobDatos.inscritas.forEach(i=>{
     const sit = situacionPagoInsc(i);
     // Con un pago por confirmar: va a con lo que falta confirmar (caso Estefani: el pago se pasó a
     // "por confirmar" en su ficha y aquí seguía como si nada).
@@ -6464,6 +6531,128 @@ function itemsCobranza(){
     return true;
   });
 }
+/* =========================================================
+   COBRANZA → CALENDARIO (29 oct 2026): el mes con los nombres de quién paga cada día, sin filtros ni grupos
+   ("se pierde la información entre tanto filtro"). Gira: los mismos renglones de Por cobrar (itemsCobranza, misma
+   regla); su día es la promesa del lead o la fecha de pago de la inscrita. Academia Glam (si su rol la ve, con lo
+   que la base le deja ver): mensualidades que vencen y abonos prometidos. Tocar un día da su lista con WhatsApp y
+   Abrir. Los días que ya pasaron con alguien sin pagar salen en rojo.
+   ========================================================= */
+const cobCal = { mes:null, dia:null, agl:{ mens:[], cuentas:[] }, turno:0 };
+const CC_DSEM = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+// Lo de la Academia Glam: mensualidades pendientes y cuentas de abonos con saldo, hasta el fin del mes que se ve.
+async function ccCargar(){
+  const turno = ++cobCal.turno;
+  if(!cobCal.mes) cobCal.mes = hoyISO().slice(0, 7);
+  if(!cobCal.dia) cobCal.dia = hoyISO();
+  if(seccionesPermitidas().includes('academia_glam')){
+    const fin = ccFinMes(cobCal.mes);
+    const [m, c] = await Promise.all([
+      fetchTodasFilas('vista_agl_cobros', 'mensualidad_id, suscripcion_id, numero, meses, vence, monto, estado, vendedor_id, alumna_nombre, alumna_telefono, plan_nombre', q=>q.lte('vence', fin).order('vence')),
+      fetchTodasFilas('vista_agl_cuentas', 'suscripcion_id, vendedor_id, fecha_promesa, alumna_nombre, alumna_telefono, plan_nombre, saldo, por_confirmar', q=>q.gt('saldo', 0)),
+    ]);
+    if(turno !== cobCal.turno) return;
+    cobCal.agl = { mens:m.error ? [] : (m.data || []), cuentas:c.error ? [] : (c.data || []) };
+  } else cobCal.agl = { mens:[], cuentas:[] };
+  ccPintar();
+}
+const ccFinMes = mes => { const [a, m] = mes.split('-').map(Number); return new Date(a, m, 0).toLocaleDateString('en-CA'); };
+// Todos con su día (o sin día): gira y Academia Glam juntas.
+function ccItems(){
+  const items = itemsCobranza(true).map(it=>({
+    k:it.tipo, id:it.id, nombre:it.nombre, tel:it.tel, conf:it.porConfirmar,
+    // La inscrita sin fecha de pago (Cobranza toma el día de su curso) no tiene día: va en "sin fecha"
+    fecha:it.fechaEsCurso ? null : it.fecha, monto:it.monto, donde:it.donde, vend:it.vendedor, it,
+  }));
+  cobCal.agl.mens.forEach(r=>items.push({ k:'agl', id:r.suscripcion_id, nombre:r.alumna_nombre || '', tel:r.alumna_telefono || '', conf:r.estado === 'por_confirmar',
+    fecha:r.vence, monto:Number(r.monto) || 0, donde:`Academia Glam · ${r.plan_nombre || ''} · mensualidad ${r.numero} de ${r.meses}`, vend:r.vendedor_id }));
+  cobCal.agl.cuentas.forEach(c=>items.push({ k:'agl', id:c.suscripcion_id, nombre:c.alumna_nombre || '', tel:c.alumna_telefono || '', conf:false,
+    fecha:c.fecha_promesa || null, monto:Number(c.saldo) || 0, donde:`Academia Glam · ${c.plan_nombre || ''} · abono prometido`, vend:c.vendedor_id }));
+  return items;
+}
+const ccNombreCorto = n => tituloCaso(String(n || '').split(/\s+/).slice(0, 2).join(' '));
+const ccSuma = l => l.reduce((t, x)=>t + (Number(x.monto) || 0), 0);
+function ccPintar(){
+  const caja = document.getElementById('cobVistaCalendario');
+  const hoy = hoyISO(), items = ccItems();
+  const [a, m] = cobCal.mes.split('-').map(Number);
+  const inicio = cobCal.mes + '-01', fin = ccFinMes(cobCal.mes);
+  const porDia = new Map();
+  items.filter(x=>x.fecha && x.fecha >= inicio && x.fecha <= fin).forEach(x=>{ if(!porDia.has(x.fecha)) porDia.set(x.fecha, []); porDia.get(x.fecha).push(x); });
+  const antes = items.filter(x=>x.fecha && x.fecha < inicio && x.fecha < hoy);
+  const sinFecha = items.filter(x=>!x.fecha);
+  const vacios = (new Date(a, m - 1, 1).getDay() + 6) % 7;   // lunes primero
+  const dias = Number(fin.slice(8));
+  const celda = d => {
+    const f = `${cobCal.mes}-${String(d).padStart(2, '0')}`, l = porDia.get(f) || [];
+    const cls = [f === hoy ? 'hoy' : '', l.length && f < hoy ? 'vencido' : '', f === cobCal.dia ? 'sel' : ''].join(' ');
+    return `<button type="button" class="cc-dia ${cls}" data-cc-dia="${f}" aria-label="${escapeAttr(fechaCorta(f) + ': ' + l.length + ' por cobrar')}">
+      <span class="cc-num">${d}${l.length ? `<span class="cc-n">${l.length}</span>` : ''}</span>
+      ${l.slice(0, 3).map(x=>`<span class="cc-nom"><i class="cc-p ${x.k}"></i><span>${escHtml(ccNombreCorto(x.nombre))}</span></span>`).join('')}
+      ${l.length > 3 ? `<span class="cc-mas">+${l.length - 3} más</span>` : ''}</button>`;
+  };
+  const mayus = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const titulo = mayus(new Date(a, m - 1, 15).toLocaleDateString('es-MX', { month:'long', year:'numeric' }));
+  const lista = cobCal.dia === 'antes' ? antes : (porDia.get(cobCal.dia) || (cobCal.dia && (cobCal.dia < inicio || cobCal.dia > fin) ? items.filter(x=>x.fecha === cobCal.dia) : []));
+  const nombreDia = cobCal.dia === 'antes' ? 'Atrasados de meses anteriores'
+    : cobCal.dia ? mayus(new Date(cobCal.dia + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' })) : '';
+  caja.innerHTML = `<div class="cc-cab">
+      <button type="button" class="btn-outline small" data-cc-mes="-1" aria-label="Mes anterior">‹</button>
+      <h3>${escHtml(titulo)}</h3>
+      <button type="button" class="btn-outline small" data-cc-mes="1" aria-label="Mes siguiente">›</button>
+      <button type="button" class="btn-outline small" data-cc-hoy>Hoy</button>
+      <span class="cc-ley"><span><i class="cc-p lead"></i>Lead (anticipo)</span><span><i class="cc-p insc"></i>Inscrita (lo que debe)</span>${seccionesPermitidas().includes('academia_glam') ? '<span><i class="cc-p agl"></i>Academia Glam</span>' : ''}</span>
+    </div>
+    ${antes.length || sinFecha.length ? `<div class="cc-aviso">
+      ${antes.length ? `<span><b>${antes.length}</b> atrasado${antes.length === 1 ? '' : 's'} de meses anteriores</span><button type="button" class="btn-outline small" data-cc-dia="antes">Ver</button>` : ''}
+      ${sinFecha.length ? `<span><b>${sinFecha.length}</b> sin fecha de pago (no salen en el calendario)</span><button type="button" class="btn-outline small" data-cc-sinfecha>Ver en Por cobrar</button>` : ''}
+    </div>` : ''}
+    <div class="cc-grid">${CC_DSEM.map(d=>`<div class="cc-dsem">${d}</div>`).join('')}
+      ${'<span class="cc-dia fuera" aria-hidden="true"></span>'.repeat(vacios)}${Array.from({ length:dias }, (_, i)=>celda(i + 1)).join('')}</div>
+    ${cobCal.dia ? `<div class="cc-lista"><h4>${escHtml(nombreDia)}${lista.length ? ` · ${lista.length} · ${fmtMoney(ccSuma(lista))}` : ''}</h4>
+      ${lista.length ? lista.map(x=>ccHtmlFila(x, hoy)).join('') : '<div class="sub">Nadie paga este día.</div>'}</div>` : ''}`;
+}
+function ccHtmlFila(x, hoy){
+  const tipo = x.k === 'lead' ? 'Lead' : x.k === 'insc' ? 'Inscrita' : 'Academia Glam';
+  const venc = x.fecha && x.fecha < hoy;
+  return `<div class="cc-fila" data-cc-k="${x.k}" data-cc-id="${escapeAttr(x.id)}">
+    <div><i class="cc-p ${x.k}"></i><b>${escHtml(tituloCaso(x.nombre))}</b><span class="cc-tag">${tipo}</span>${x.conf ? '<span class="cc-tag">por confirmar</span>' : ''}${venc ? `<span class="cc-tag venc">venció ${escHtml(fechaCorta(x.fecha))}</span>` : ''}
+      <div class="sub">${escHtml([x.donde, x.vend ? nombreVendedor(x.vend) || aglNombreVend(x.vend) : 'sin vendedora'].filter(Boolean).join(' · '))}</div></div>
+    <div class="cc-monto">${x.monto ? fmtMoney(x.monto) : '—'}</div>
+    <div class="acc">${x.tel ? '<button type="button" class="btn-outline small" data-cc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-cc-acc="abrir">Abrir</button></div>
+  </div>`;
+}
+document.getElementById('cobVistaCalendario').addEventListener('click', async e=>{
+  const mes = e.target.closest('[data-cc-mes]');
+  if(mes){
+    const [a, m] = cobCal.mes.split('-').map(Number), d = new Date(a, m - 1 + Number(mes.dataset.ccMes), 1);
+    cobCal.mes = d.toLocaleDateString('en-CA').slice(0, 7); cobCal.dia = null;
+    return ccCargar();
+  }
+  if(e.target.closest('[data-cc-hoy]')){ cobCal.mes = hoyISO().slice(0, 7); cobCal.dia = hoyISO(); return ccCargar(); }
+  if(e.target.closest('[data-cc-sinfecha]')) return document.querySelector('#cobTabs [data-cob-tab="cobrar"]').click();
+  const dia = e.target.closest('[data-cc-dia]');
+  if(dia){ cobCal.dia = dia.dataset.ccDia; ccPintar(); document.querySelector('#cobVistaCalendario .cc-lista')?.scrollIntoView({ behavior:'smooth', block:'nearest' }); return; }
+  const b = e.target.closest('[data-cc-acc]'); if(!b) return;
+  const fila = b.closest('[data-cc-k]'), k = fila.dataset.ccK, id = fila.dataset.ccId;
+  const x = ccItems().find(y=>y.k === k && y.id === id); if(!x) return;
+  if(k === 'agl'){
+    if(b.dataset.ccAcc === 'wa') return abrirEnviarWhatsApp({ telefono:x.tel, nombre:x.nombre, debe:x.monto, fecha:x.fecha });
+    await aglAbrirFicha(id);
+    return alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza' && emb.tab === 'calendario') ccCargar(); });
+  }
+  const r = x.it.raw;
+  if(b.dataset.ccAcc === 'wa'){
+    const ev = k === 'lead' ? (r.eventos || (r.evento_id && eventoPorId(r.evento_id))) : r.eventos;
+    return abrirEnviarWhatsApp({ nombre:x.nombre, telefono:x.tel, personaId:r.personas?.id, leadId:k === 'lead' ? id : null,
+      ciudad:ev?.ciudades?.nombre || (k === 'lead' ? r.ciudades?.nombre : '') || '', fecha:ev?.fecha || '', sede:(ev && eventoPorId(ev.id))?.sede || '',
+      debe:k === 'insc' ? x.it.debe : null });
+  }
+  if(k === 'lead'){ if(!leadsCache.some(l=>l.id === id)) leadsCache.push(r); await abrirModalLead(id); }
+  else { alCerrarFichaInscripcion = null; await abrirModalInscripcion(id); }
+  alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza') renderCobranza(); });
+});
+
 function grupoCobranza(it){
   if(it.porConfirmar) return 'confirmar';
   if(it.tipo === 'insc' && it.cursoPasado) return 'pasado';
@@ -6662,7 +6851,7 @@ async function renderCobranza(){
     + '<option value="__sin">Sin vendedor</option>';
   selV.value = vActual;
   if(!cobDatos.leads.length && !cobDatos.inscritas.length) document.getElementById('cobGrupos').innerHTML = 'Cargando…';
-  if(await cargarCobranza()) pintarCobranza();
+  if(await cargarCobranza()){ pintarCobranza(); if(emb.tab === 'calendario') ccCargar(); }
 }
 
 // Cuando se cierran las fichas que se abrieron desde aquí (y las que se
@@ -10625,6 +10814,7 @@ const K_ESTADOS = [
 const K_SELECT = `id, graduacion_id, alumna_id, clave_origen, fila, nombre, telefono, generacion_texto, direccion, anticipo_texto,
   filipina_texto, pago_texto, envio_texto, situacion_filipina, estado, guia, paqueteria, enviado_en, entregado_en, precio,
   envio_costo, esperando_envio, cantidad, filipina_talla, filipina_color, filipina_nombre, notas,
+  cancelado_motivo, cancelado_dinero, cancelado_en, cancelado_por,
   academia_alumnas ( id, nombre, generacion_id, persona_id, telefono, ciudad_texto )`;
 let kk = { filas:[], pagos:new Map(), sel:null, todas:null };
 
@@ -10714,6 +10904,7 @@ function pintarKits(){
           ${pago ? `<div style="font-weight:600;color:${/debe/i.test(pago) ? 'var(--danger)' : /liquid|pagado/i.test(pago) ? 'var(--success)' : 'var(--ink-soft)'}">${escHtml(pago)}</div>` : ''}
           ${x.guia ? `<div>${escHtml([x.paqueteria, x.guia].filter(Boolean).join(' · '))}</div>` : ''}
           ${aviso ? `<span class="k-aviso">${escHtml(aviso)}</span>` : ''}
+          ${x.estado === 'cancelado' && x.cancelado_motivo ? `<div class="sub">${escHtml(x.cancelado_motivo)}</div>` : ''}
         </button>`;
       }).join('') || '<div class="sub" style="padding:6px;">—</div>'}</div>
     </section>`;
@@ -10740,8 +10931,13 @@ function pintarDetalleKit(){
     </div>
     ${tel ? '<div class="nl-acciones"><button type="button" class="nl-acc primario" data-k-acc="whats">Enviar WhatsApp</button></div>' : ''}
     <div class="ac-caja"><h4>Estado</h4>
-      <div class="k-estados">${K_ESTADOS.filter(e=>e.id !== 'por_clasificar' && e.id !== 'cancelado').map(e=>
+      ${x.estado === 'cancelado' ? `<div class="k-cancelado"><b>Cancelado</b>${x.cancelado_en ? ' el ' + escHtml(fechaCorta(String(x.cancelado_en).slice(0, 10))) : ''}${x.cancelado_por ? ' por ' + escHtml(EQUIPO.find(u=>u.id === x.cancelado_por)?.nombre || '') : ''}
+          ${x.cancelado_motivo ? `<div>Motivo: ${escHtml(x.cancelado_motivo)}</div>` : ''}${x.cancelado_dinero ? `<div>Su dinero: ${escHtml(x.cancelado_dinero)}</div>` : ''}
+          ${c.pagado ? `<div>Pagó ${fmtMoney(c.pagado)}: sus pagos se conservan.</div>` : ''}
+          <button type="button" class="btn-outline small" data-k-acc="reactivar">Reactivar el kit</button></div>`
+      : `<div class="k-estados">${K_ESTADOS.filter(e=>e.id !== 'por_clasificar' && e.id !== 'cancelado').map(e=>
         `<button type="button" class="${estadoKit(x) === e.id ? 'on' : ''}" data-k-estado="${e.id}" aria-pressed="${estadoKit(x) === e.id}">${escHtml(e.label)}</button>`).join('')}</div>
+      <button type="button" class="k-cancelar" data-k-acc="cancelar">Cancelar el kit</button>`}
       ${x.estado === 'por_clasificar' ? '<div class="sub" style="margin:0;">Vino del Excel: toca la columna donde va.</div>' : ''}
       ${estadoKit(x) === 'por_pagar_envio' ? `<div class="k-envio ${c.envioDebe || x.envio_costo == null ? '' : 'ok'}">${escHtml(textoEnvioKit(x, c))}${x.envio_costo == null ? ': escríbelo abajo en "Envío".' : ''}</div>` : ''}
       ${x.enviado_en ? `<div class="sub" style="margin:0;">Enviado el ${escHtml(fechaCorta(x.enviado_en))}${x.entregado_en ? ' · entregado el ' + escHtml(fechaCorta(x.entregado_en)) : ''}</div>` : ''}
@@ -10785,9 +10981,7 @@ function pintarDetalleKit(){
       <label class="modal-notas-titulo" for="kNotas">Notas</label>
       <textarea id="kNotas" class="textarea" rows="2" maxlength="2000" data-k-campo="notas">${escHtml(x.notas || '')}</textarea>
     </div>
-    <div class="nl-acciones">${x.estado === 'cancelado'
-      ? '<button type="button" class="nl-acc" data-k-acc="reactivar">↩ Reactivar el kit</button>'
-      : '<button type="button" class="nl-acc peligro" data-k-acc="cancelar">Cancelar el kit</button>'}</div>`;
+`;
 }
 
 async function guardarKit(x, cambios, accion, detalle){
@@ -10883,17 +11077,57 @@ async function accionKit(acc){
     }
     return pintarKits();
   }
-  if(acc === 'cancelar'){
-    const ok = await preguntarConfirmacion({ titulo:'¿Cancelar el kit?', textoSi:'Sí, cancelarlo',
-      aviso:`El kit de ${escHtml(tituloCaso(x.nombre))} pasa a “Cancelados”. No se borra nada (sus pagos se conservan) y se puede reactivar.` });
-    if(ok === null) return;
-    if(await guardarKit(x, { estado:'cancelado' }, 'academia_kit_estado', `${x.nombre}: ${etiquetaEstadoKit(x.estado)} → Cancelado`)){ toast('Kit cancelado.'); pintarKits(); }
-    return;
-  }
+  if(acc === 'cancelar') return abrirCancelarKit(x);
   if(acc === 'reactivar'){
     if(await guardarKit(x, { estado:'por_pagar' }, 'academia_kit_estado', `${x.nombre}: Cancelado → Por pagar`)){ toast('Kit reactivado.'); pintarKits(); }
   }
 }
+
+/* Cancelar un kit (ticket #3 de Tamar, 29 oct): pasa a "Cancelados" con su motivo y, si ya pagó algo, lo que pasa con
+   ese dinero (lo escribe quien lo cancela). No se borra nada: sus pagos se conservan y se puede reactivar. */
+const kc = { kit:null };
+function abrirCancelarKit(x){
+  kc.kit = x;
+  const c = cuentaKit(x);
+  document.getElementById('kcSub').innerHTML = `El kit de <b>${escHtml(tituloCaso(x.nombre))}</b> pasa a "Cancelados". No se borra nada y se puede reactivar.`;
+  document.getElementById('kcMotivo').value = '';
+  document.getElementById('kcDinero').value = '';
+  document.getElementById('kcDineroCaja').style.display = c.pagado ? '' : 'none';
+  document.getElementById('kcDineroLabel').textContent = `Pagó ${fmtMoney(c.pagado)}. ¿Qué pasa con ese dinero?`;
+  document.getElementById('kcDecision').checked = false;
+  document.getElementById('kcDecisionCaja').style.display = x.alumna_id ? '' : 'none';
+  document.getElementById('kcError').style.display = 'none';
+  document.getElementById('modalKitCancelar').classList.add('open');
+  document.getElementById('kcMotivo').focus();
+}
+document.getElementById('modalKitCancelar').addEventListener('input', ()=>{ document.getElementById('kcError').style.display = 'none'; });
+const cerrarCancelarKit = () => { document.getElementById('modalKitCancelar').classList.remove('open'); kc.kit = null; };
+document.getElementById('modalKitCancelar').addEventListener('click', async e=>{
+  if(e.target.closest('#closeModalKitCancelar, #kcNo')) return cerrarCancelarKit();
+  const op = e.target.closest('[data-kc-op]');
+  if(op){ document.getElementById('kcDinero').value = op.dataset.kcOp; document.getElementById('kcError').style.display = 'none'; return; }
+  if(!e.target.closest('#kcSi')) return;
+  const x = kc.kit; if(!x) return;
+  const motivo = document.getElementById('kcMotivo').value.trim(), dinero = document.getElementById('kcDinero').value.trim();
+  const pagado = cuentaKit(x).pagado;
+  const err = document.getElementById('kcError'), mal = t => { err.textContent = t; err.style.display = ''; };
+  if(!motivo) return mal('Escribe por qué se cancela.');
+  if(pagado && !dinero) return mal('Escribe qué pasa con lo que pagó (o elige una opción).');
+  const btn = document.getElementById('kcSi'); btn.disabled = true;
+  const ok = await guardarKit(x, { estado:'cancelado', esperando_envio:false, cancelado_motivo:motivo, cancelado_dinero:pagado ? dinero : null,
+      cancelado_en:new Date().toISOString(), cancelado_por:usuarioActual?.id || null },
+    'academia_kit_estado', `${x.nombre}: ${etiquetaEstadoKit(estadoKit(x))} → Cancelado · ${motivo}${pagado ? ` · pagó ${fmtMoney(pagado)}: ${dinero}` : ''}`);
+  btn.disabled = false;
+  if(!ok) return;
+  if(x.alumna_id && document.getElementById('kcDecision').checked){
+    const { error } = await sb.from('academia_alumnas').update({ decision:'espera' }).eq('id', x.alumna_id);
+    if(error) toast('El kit se canceló, pero no se pudo cambiar su decisión: ' + error.message, true);
+    else registrarActividad('academia_decision', `${x.nombre}: Kit → Espera (canceló su kit)`);
+  }
+  cerrarCancelarKit();
+  toast('Kit cancelado.');
+  pintarKits();
+});
 
 async function pintarAgregarKit(){
   const lista = document.getElementById('kAgregarLista');
@@ -13367,7 +13601,7 @@ const EMB_GRUPOS = [
   { k:'sin_respuesta', l:'Sin respuesta',   c:'#D9CED4', e:'🔕' },
 ];
 const EMB_NO_VAN = { k:'no_van', l:'No van', c:'#EEE7EA', e:'✖' };
-const emb = { tab:'cobrar', filas:null, vend:'', abierto:'', turno:0, cal:{},
+const emb = { tab:'calendario', filas:null, vend:'', abierto:'', turno:0, cal:{},
               rep:{ alcance:'curso', curso:'', porVend:false, numeros:true, nombres:true, tel:false, coment:false } };
 const embVend = id => EQUIPO.find(u=>u.id === id)?.nombre || 'Sin vendedora';
 // Trae el embudo de la gira activa (o de un solo curso) de 1,000 en 1,000.
@@ -13533,9 +13767,11 @@ document.getElementById('cobTabs').addEventListener('click', e=>{
   const b = e.target.closest('[data-cob-tab]'); if(!b) return;
   emb.tab = b.dataset.cobTab;
   document.querySelectorAll('#cobTabs [data-cob-tab]').forEach(x=>x.classList.toggle('active', x === b));
+  document.getElementById('cobVistaCalendario').style.display = emb.tab === 'calendario' ? '' : 'none';
   document.getElementById('cobVistaCobrar').style.display = emb.tab === 'cobrar' ? '' : 'none';
   document.getElementById('cobVistaEmbudo').style.display = emb.tab === 'embudo' ? '' : 'none';
   if(emb.tab === 'embudo') embCargar();
+  if(emb.tab === 'calendario') ccCargar();
 });
 // Abrir el lead o la ficha de la inscrita; al cerrar, el embudo se vuelve a consultar.
 function embAbrir(d){
@@ -13685,6 +13921,17 @@ function cfHtmlFila(f){
   const dato = f.inscripcion_id
     ? (f.pago ? `Inscrita · pagó ${fmtMoney(f.monto)}${f.debe > 0 ? ' · debe ' + fmtMoney(f.debe) : ' · liquidada'}` : 'Inscrita sin pago')
     : f.pago ? `Lead · reportó pago de ${fmtMoney(f.monto)} (falta confirmarlo)` : 'Lead (todavía no paga)';
+  const acc = cfBotones(f);
+  return `<div class="cf-fila"><div><b>${escHtml(tituloCaso(f.nombre || ''))}</b><span class="cf-tag ${escapeAttr(f.estado)}">${escHtml(e.l)}${f.estado_en && f.estado !== 'sin_avisar' ? ' · ' + escHtml(fechaCorta(String(f.estado_en).slice(0, 10))) : ''}</span>
+      <div class="sub">${escHtml([dato, embVend(f.asesor_id)].join(' · '))}</div>
+      ${cfTextoOrigen(f)}
+      ${f.regalo_curso ? `<div class="cf-regalo ${f.regalo_enviado_en ? '' : 'falta'}">${cfTextoRegalo(f)}</div>` : ''}
+      ${f.nota ? `<div class="sub">${escHtml(f.nota)}</div>` : ''}</div>
+    <div class="cf-acc">${acc}</div></div>`;
+}
+// Botones de un renglón del cambio de fecha según cómo va. Los usan la lista y la ficha (la de la inscrita y la del
+// lead), así hacen exactamente lo mismo (cfAccion).
+function cfBotones(f){
   const id = escapeAttr(f.aviso_id), ev = escapeAttr(f.evento_id);
   const b = (acc, txt, cls='') => `<button type="button" class="${cls}" data-cf-acc="${acc}" data-cf-aviso="${id}" data-cf-ev="${ev}">${txt}</button>`;
   let acc = '';
@@ -13698,16 +13945,13 @@ function cfHtmlFila(f){
   } else if(f.estado === 'reembolso'){
     acc = (cfPuedeCerrar() ? b('cerrar', 'Reembolso hecho · cerrar lugar', 'lleno') : '') + b('sin_avisar', '↩', 'min');
   }
-  return `<div class="cf-fila"><div><b>${escHtml(tituloCaso(f.nombre || ''))}</b><span class="cf-tag ${escapeAttr(f.estado)}">${escHtml(e.l)}${f.estado_en && f.estado !== 'sin_avisar' ? ' · ' + escHtml(fechaCorta(String(f.estado_en).slice(0, 10))) : ''}</span>
-      <div class="sub">${escHtml([dato, embVend(f.asesor_id)].join(' · '))}</div>
-      ${cfTextoOrigen(f)}
-      ${f.regalo_curso ? `<div class="cf-regalo ${f.regalo_enviado_en ? '' : 'falta'}">${cfTextoRegalo(f)}</div>` : ''}
-      ${f.nota ? `<div class="sub">${escHtml(f.nota)}</div>` : ''}</div>
-    <div class="cf-acc">${acc}</div></div>`;
+  return acc;
 }
 // Después de cualquier cambio: la lista, el embudo y la ficha que esté abierta.
 async function cfDespues(eventoId){
   await cfCargar(eventoId);
+  if(modalInscId && document.getElementById('modalInscripcion').classList.contains('open')){ pintarCambioFechaFicha(modalInscId, false); pintarComentariosInsc(); }
+  if(leadAbiertoId && document.getElementById('modalLead').classList.contains('open')) pintarCambioFechaLead(leadAbiertoId, false);
   if(emb.tab === 'embudo' && seccionActiva === 'cobranza') embCargar();
   if(document.querySelector(`[data-emb-cal="${CSS.escape(eventoId)}"]`)) embPintarCalendario(eventoId);
 }
@@ -13804,32 +14048,44 @@ document.addEventListener('click', e=>{
   const b = e.target.closest('[data-cf-acc]'); if(b) cfAccion(b);
 });
 
-// En la ficha de la inscrita: cómo va su cambio de fecha (el último).
-async function pintarCambioFechaFicha(inscId){
+/* En la ficha (la de la inscrita y la del lead): cómo va su cambio de fecha, con los MISMOS botones que la lista
+   (pedido de Eliab, 29 oct): así se marca mientras se contesta su WhatsApp, sin ir al Calendario ni buscarla en la
+   lista de su ciudad. Sale de la misma lista (cambio_fecha_lista) que se lee al momento. */
+async function cfFilaDe({ inscId = null, leadId = null, eventoId }, recargar = true){
+  if(!eventoId) return null;
+  if(recargar || !cf.porEvento[eventoId]) await cfCargar(eventoId, false);
+  return (cf.porEvento[eventoId] || []).find(f=>inscId ? f.inscripcion_id === inscId : (f.lead_id === leadId && !f.inscripcion_id)) || null;
+}
+function cfHtmlFicha(f){
+  const e = CF_ESTADOS[f.estado] || CF_ESTADOS.sin_avisar;
+  const botones = cfBotones(f);
+  return `Cambio de fecha ${escHtml(fechaCorta(f.fecha_anterior))} → ${escHtml(fechaCorta(f.fecha_nueva))}: <b>${escHtml(e.l)}</b>`
+    + `${f.estado_en && f.estado !== 'sin_avisar' ? ' · ' + escHtml(fechaCorta(String(f.estado_en).slice(0, 10))) : ''}`
+    + `${f.regalo_curso ? ` · ${cfTextoRegalo(f)}` : ''}${f.nota ? ` · ${escHtml(f.nota)}` : ''}${cfTextoOrigen(f)}`
+    + (botones ? `<div class="cf-acc">${botones}</div>` : '');
+}
+async function pintarCambioFechaFicha(inscId, recargar = true){
   const caja = document.getElementById('modalInscCambioFecha');
-  caja.innerHTML = '';
-  const { data } = await sb.from('cambio_fecha_avisos').select('id, persona_id, lead_id, inscripcion_id, estado, estado_en, regalo_curso, regalo_enviado_en, nota, origen, origen_nota, cambios_fecha(fecha_anterior, fecha_nueva)')
+  if(recargar) caja.innerHTML = '';
+  const f = await cfFilaDe({ inscId, eventoId:modalInscDatos?.evento_id }, recargar);
+  if(modalInscId !== inscId) return;
+  if(f){ caja.innerHTML = cfHtmlFicha(f); return; }
+  // Ya no está en la lista (su curso ya pasó o se cerró su lugar): solo cómo quedó
+  const { data } = await sb.from('cambio_fecha_avisos').select('estado, regalo_curso, regalo_enviado_en, nota, cambios_fecha(fecha_anterior, fecha_nueva)')
     .eq('inscripcion_id', inscId).order('creado_en', { ascending:false }).limit(1);
   const a = (data || [])[0];
-  if(!a || modalInscId !== inscId) return;
-  const e = CF_ESTADOS[a.estado] || CF_ESTADOS.sin_avisar;
-  caja.innerHTML = `Cambio de fecha ${escHtml(fechaCorta(a.cambios_fecha?.fecha_anterior))} → ${escHtml(fechaCorta(a.cambios_fecha?.fecha_nueva))}: `
-    + `<b>${escHtml(e.l)}</b>${a.regalo_curso ? ` · ${cfTextoRegalo(a)}` : ''}${a.nota ? ` · ${escHtml(a.nota)}` : ''}${cfTextoOrigen(a)}`
-    + `<span class="cf-ficha-acc">${a.estado === 'sin_avisar' ? '<button type="button" class="btn-outline small" data-fcf="avisada">Ya le avisé</button>' : ''}`
-    + `${a.estado === 'acepto' && !a.regalo_curso ? '<button type="button" class="btn-outline small" data-fcf="regalo">Registrar regalo</button>' : ''}`
-    + `${a.regalo_curso && !a.regalo_enviado_en ? '<button type="button" class="btn-outline small" data-fcf="regalo_enviado">Ya se envió</button>' : ''}</span>`;
-  caja.dataset.aviso = a.id;
-  cfFichaAviso = { ...a, fecha_anterior:a.cambios_fecha?.fecha_anterior, fecha_nueva:a.cambios_fecha?.fecha_nueva, ciudad:modalInscDatos?.eventos?.ciudades?.nombre || '' };
+  if(modalInscId !== inscId) return;
+  caja.innerHTML = a ? `Cambio de fecha ${escHtml(fechaCorta(a.cambios_fecha?.fecha_anterior))} → ${escHtml(fechaCorta(a.cambios_fecha?.fecha_nueva))}: `
+    + `<b>${escHtml((CF_ESTADOS[a.estado] || CF_ESTADOS.sin_avisar).l)}</b>${a.regalo_curso ? ` · ${cfTextoRegalo(a)}` : ''}${a.nota ? ` · ${escHtml(a.nota)}` : ''}` : '';
 }
-let cfFichaAviso = null;
-document.getElementById('modalInscCambioFecha').addEventListener('click', async e=>{
-  const b = e.target.closest('[data-fcf]'); const a = cfFichaAviso; if(!b || !a || !modalInscId) return;
-  const nombre = tituloCaso(modalInscDatos?.personas?.nombre || '');
-  const ok = b.dataset.fcf === 'avisada' ? await cfYaLeAvise(a, nombre)
-           : b.dataset.fcf === 'regalo' ? await cfRegistrarRegalo(a.id, nombre)
-           : await cfRegaloEnviado(a.id, nombre, a.regalo_curso);
-  if(ok){ pintarCambioFechaFicha(modalInscId); pintarComentariosInsc(); }
-});
+async function pintarCambioFechaLead(leadId, recargar = true){
+  const caja = document.getElementById('leadCambioFecha');
+  if(recargar) caja.innerHTML = '';
+  const ev = (leadsCache.find(l=>l.id === leadId) || ficha.leads?.[leadId])?.evento_id;
+  const f = await cfFilaDe({ leadId, eventoId:ev }, recargar);
+  if(leadAbiertoId !== leadId) return;
+  caja.innerHTML = f ? cfHtmlFicha(f) : '';
+}
 
 // Calendario → "Cambiar fecha" (solo administradores)
 let cfEvento = null;
@@ -16525,7 +16781,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-10-28-al-dia';
+const HUB_VERSION = '2026-10-29-calendario';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
