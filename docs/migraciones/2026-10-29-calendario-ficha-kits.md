@@ -63,3 +63,4 @@ Pedidos:
 - Nueva `pruebas/prueba_cobranza_calendario.js` (21). Actualizadas: `prueba_regalo_y_aviso.js` (ficha de inscrita y
   de lead), `prueba_academia_kits.js` (cancelar con motivo y dinero), `prueba_cambio_fecha.js` y
   `prueba_cambio_fecha_al_dia.js` (la ficha sale de la lista), y las de Cobranza tocan "Por cobrar".
+- **Publicado el 29 oct** (Enoc: "publica el aviso"), migración `publicar_aviso_2026_10_29`.
