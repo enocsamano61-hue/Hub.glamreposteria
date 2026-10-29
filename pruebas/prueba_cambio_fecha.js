@@ -150,7 +150,8 @@ const LISTA = [
   await p.evaluate(() => { usuarioActual.es_admin = true; usuarioActual.rol = 'Sistemas'; });
 
   h.paso('6. Ficha de la inscrita y Mensajes');
-  await p.evaluate(() => abrirModalInscripcion('ia2'));
+  // La ficha sale de la misma lista (cambio_fecha_lista): en la base su renglón ya trae su regalo
+  await p.evaluate(() => { window.__rpc.cambio_fecha_lista().find(x => x.inscripcion_id === 'ia2').regalo_curso = 'Galletas decoradas'; return abrirModalInscripcion('ia2'); });
   await p.waitForTimeout(400);
   const ficha = await p.textContent('#modalInscCambioFecha');
   check(ficha.includes('Cambio de fecha') && ficha.includes('Aceptó') && ficha.includes('Galletas decoradas'), 'la ficha dice cómo va su cambio y su regalo');

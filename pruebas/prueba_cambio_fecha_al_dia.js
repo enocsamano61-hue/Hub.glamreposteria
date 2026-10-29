@@ -8,21 +8,21 @@ const { abrirHub, EQUIPO_EJEMPLO } = require('./arnes');
 const HOY = new Date().toLocaleDateString('en-CA');
 const mas = n => { const d = new Date(HOY + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); };
 const ANT = mas(-1), NUEVA = mas(90);
-const fila = (id, extra) => ({ aviso_id:id, cambio_id:'c1', evento_id:'e1', ciudad:'Ciudad Prueba', sede:'Salón', fecha_anterior:ANT, fecha_nueva:NUEVA,
+const renglon = (id, extra) => ({ aviso_id:id, cambio_id:'c1', evento_id:'e1', ciudad:'Ciudad Prueba', sede:'Salón', fecha_anterior:ANT, fecha_nueva:NUEVA,
   motivo:'Se recorrió la gira', cambiado_en:new Date().toISOString(), cambiado_por:'u1', persona_id:'p' + id, nombre:'ALUMNA ' + id.toUpperCase(),
   telefono:'551000000' + id.slice(-1), inscripcion_id:'i' + id, lead_id:null, pago:true, monto:700, debe:700, asesor_id:'u2',
   estado:'sin_avisar', estado_en:null, estado_por:null, nota:null, regalo_curso:null, regalo_en:null, ...extra });
 const LISTA = [
-  fila('a1'),
+  renglon('a1'),
   // Era lead, pagó y ya es inscrita: su renglón trae los dos ids y conserva "Aceptó"
-  fila('a2', { lead_id:'l2', estado:'acepto', estado_en:new Date().toISOString() }),
+  renglon('a2', { lead_id:'l2', estado:'acepto', estado_en:new Date().toISOString() }),
   // Llegó con la fecha nueva y ya aceptó: puede recibir regalo
-  fila('a3', { estado:'acepto', estado_en:new Date().toISOString() }),
+  renglon('a3', { estado:'acepto', estado_en:new Date().toISOString() }),
   // La cambiaron de otro curso
-  fila('a4'),
+  renglon('a4'),
   // Lead con un pago reportado y lead sin pago
-  fila('a5', { inscripcion_id:null, lead_id:'l5', pago:true, monto:600, debe:0 }),
-  fila('a6', { inscripcion_id:null, lead_id:'l6', pago:false, monto:0, debe:0, nombre:'<img src=x onerror="window.__xss=1"> Lead' }),
+  renglon('a5', { inscripcion_id:null, lead_id:'l5', pago:true, monto:600, debe:0 }),
+  renglon('a6', { inscripcion_id:null, lead_id:'l6', pago:false, monto:0, debe:0, nombre:'<img src=x onerror="window.__xss=1"> Lead' }),
 ];
 
 (async () => {
@@ -84,7 +84,9 @@ const LISTA = [
   await h.captura('cambio-fecha-al-dia.png');
 
   h.paso('6. En la ficha de la inscrita');
-  await p.evaluate(() => abrirModalInscripcion('i9'));
+  // La ficha sale de la misma lista del curso (en la base, toda inscrita del curso está en ella)
+  await p.evaluate(fila9 => { const antes = window.__rpc.cambio_fecha_lista; window.__rpc.cambio_fecha_lista = () => [...antes(), fila9];
+    return abrirModalInscripcion('i9'); }, renglon('a9', { inscripcion_id:'i9', persona_id:'p9', nombre:'ALUMNA FICHA' }));
   await p.waitForTimeout(500);
   check((await p.textContent('#modalInscCambioFecha')).includes('Nueva: se inscribió con la fecha nueva'), 'su ficha también dice que es nueva');
 

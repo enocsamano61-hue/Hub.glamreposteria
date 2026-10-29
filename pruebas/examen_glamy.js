@@ -110,6 +110,12 @@ const CASOS_FASE1 = [
     revisar: t => /Enoc/.test(t) },
   { nombre:'Academia: ver rápido cómo va el kit de una alumna (29 oct)', pregunta:'¿dónde veo rápido en qué va el kit de cada alumna de la academia sin abrir el tablero de kits?',
     revisar: t => /Alumnas/.test(t) && /(estado|Por pagar|Enviado|decisi[oó]n)/i.test(t) },
+  { nombre:'Cobranza: calendario de quién paga cada día (29 oct)', pregunta:'¿hay algún calendario donde vea por día quién me tiene que pagar?',
+    revisar: t => /Calendario/.test(t) && /Cobranza/.test(t) && /⟦ir:cobranza⟧/.test(t) },
+  { nombre:'Cambio de fecha: marcar Aceptó desde su ficha (29 oct, Eliab)', pregunta:'estoy contestando el whatsapp de una alumna inscrita que aceptó el cambio de fecha, ¿puedo marcarlo sin ir al calendario?',
+    revisar: t => /ficha/i.test(t) && /Acept[oó]/.test(t) },
+  { nombre:'Kits: cancelar el kit y qué pasa con lo pagado (29 oct, Tamar)', pregunta:'una alumna ya no quiere su kit porque se gradúa el próximo año, ¿cómo lo quito y qué pasa con lo que pagó?',
+    revisar: t => /Cancelar el kit/.test(t) && /(motivo|dinero|pag[oó])/i.test(t) && !/no (existe|hay) (forma|opci[oó]n)/i.test(t) },
   { nombre:'Gente nueva: le explica con calma y con botón (28 oct)', pregunta:'¿cómo registro un lead?', nueva_dias:1,
     revisar: t => /Nuevo lead/.test(t) && /⟦ir:board⟧/.test(t) && /(Glamy|asistente)/i.test(t) },
 ];

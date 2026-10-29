@@ -89,7 +89,7 @@ const reportado = { estatus:{ id:1 }, estatus_id:1, pago_reportado_monto:700, pa
   await p.evaluate(() => cerrarModalInscripcion());
 
   h.paso('5. Cobranza: "Comprobante" en lo que está por confirmar');
-  await p.evaluate(async () => { cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA']; setActiveSection('cobranza'); await renderCobranza(); });
+  await p.evaluate(async () => { cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA']; setActiveSection('cobranza'); document.querySelector('#cobTabs [data-cob-tab="cobrar"]').click(); await renderCobranza(); });
   await p.waitForTimeout(500);
   check(await p.isVisible('#cobG-confirmar .cob-fila[data-cob-id="l2"] [data-cob-comp]') && await p.isVisible('#cobG-confirmar .cob-fila[data-cob-id="i1"] [data-cob-comp]'),
         'el lead y la inscrita con pago por confirmar tienen su botón');

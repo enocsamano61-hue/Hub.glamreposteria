@@ -144,7 +144,7 @@ const base = () => ({
       { id:'x2', monto:300, fecha:'2026-09-21', hora:'12:00:00', forma_pago:'Depósito / OXXO', concepto:'curso', verificacion:'por_confirmar', inscripciones:{ id:'f2', personas:{ nombre:'Gina Dos Prueba' }, eventos:{ fecha:'2026-09-21', ciudades:{ nombre:'Otra Ciudad' } } } },
       { id:'x3', monto:900, fecha:'2026-09-21', verificacion:'confirmado', inscripciones:{ id:'f3', personas:{ nombre:'No Sale' } } },
     ];
-    setActiveSection('cobranza');
+    setActiveSection('cobranza'); document.querySelector('#cobTabs [data-cob-tab="cobrar"]').click();
   });
   await p.waitForTimeout(400);
   const bloque = await txt('#cobPorConfirmar');
