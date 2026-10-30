@@ -45,3 +45,5 @@ Permitido por Enoc el 30 oct 2026 ("permitido generar, todas": fases A a E del r
 ## Pruebas
 - Nuevas: `prueba_cobranza_completar.js` (13), `prueba_toca_cobrar.js` (13). Ajustadas: `prueba_ceder_lugar.js`,
   `prueba_cobranza_grupos.js`, `prueba_fecha_pago_inscrita.js`. Capturas `cobranza-completar*.png`, `toca-cobrar*.png`.
+
+- **Aviso publicado el 30 oct** (Enoc: "publica el aviso"), migración `publicar_aviso_2026_10_30`. Ticket #4 de Jared cerrado (`cerrar_ticket_4_toca_cobrar`).
