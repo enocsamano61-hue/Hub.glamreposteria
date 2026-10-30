@@ -20,7 +20,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
         insc('i3', 'Inscrita Futura', { fecha_proximo_pago:mas(5) }) ],
       leads:[
         lead('l1', 'Lead Hoy', { fecha_compromiso_pago:HOY, monto_anticipo:700 }),
-        lead('l2', 'Lead Vencido', { fecha_compromiso_pago:mas(-3), monto_anticipo:500 }),
+        lead('l2', 'Lead Vencido', { fecha_compromiso_pago:mas(-3), monto_anticipo:500, personas:{ id:'pl2', nombre:'Lead Vencido', telefono_principal:'+52 (55) 2222-3333' } }),
         lead('l3', 'Lead Sin Fecha', {}),
         lead('l4', 'Lead Ajeno', { fecha_compromiso_pago:HOY, asesor_id:'u9' }) ],
       pagos:[] },
@@ -38,6 +38,9 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   check(!(await t()).includes('Ajena') && !(await t()).includes('Ajeno') && !(await t()).includes('Futura') && !(await t()).includes('Sin Fecha'), 'no lo de otra vendedora, ni lo futuro, ni lo sin fecha');
   check((await t()).includes('Se te pasaron · 1') && (await t()).includes('Lead Vencido') && (await t()).includes('venció'), 'abajo lo que se le pasó');
   check((await p.textContent('#toast')).includes('Hoy te toca cobrar a 2') && (await p.textContent('#toast')).includes('se te pasaron 1'), 'aviso corto al entrar');
+  check((await p.textContent('[data-tc-k="lead"][data-tc-id="l1"] .tc-tel')) === '5511111111', 'cada renglón trae su celular a 10 dígitos, para copiarlo y pegarlo (pedido de Jared)');
+  check((await p.textContent('[data-tc-k="lead"][data-tc-id="l2"] .tc-tel')) === '5522223333', 'con +52, espacios o guiones: solo los 10 dígitos');
+  check(await p.$eval('[data-tc-k="lead"][data-tc-id="l1"] .tc-tel', x => getComputedStyle(x).userSelect === 'all'), 'un toque lo selecciona completo');
   await h.captura('toca-cobrar.png');
 
   h.paso('1b. Semáforo (30 oct): vencidos, vencen pronto, con fecha, sin fecha');
