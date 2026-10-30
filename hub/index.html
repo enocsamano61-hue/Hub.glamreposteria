@@ -1497,6 +1497,7 @@
   .tc-venc{ margin-top:12px; padding-top:8px; border-top:1px dashed var(--border); }
   .tc-venc h4{ margin:0 0 2px; color:var(--danger); font-size:13.5px; }
   .tc-vacio{ margin-top:8px; color:var(--success); font-weight:600; font-size:13.5px; }
+  .tc-tel{ font-weight:700; color:var(--ink); user-select:all; -webkit-user-select:all; white-space:nowrap; }
   .tc-sem{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px; }
   .tc-s{ flex:1 1 90px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:8px 6px; border-radius:12px; border:2px solid var(--border); background:var(--card); font-family:inherit; cursor:pointer; color:var(--ink); }
   .tc-s b{ font-size:22px; line-height:1.1; } .tc-s span{ font-size:11.5px; font-weight:600; color:var(--ink-soft); }
@@ -4408,12 +4409,14 @@ function tcSemaforo(items, hoy){
   };
 }
 function tcFila(it, hoy){
+  // Su celular a 10 dígitos, para copiarlo y pegarlo (pedido de Jared, 30 oct)
+  const tel10 = String(it.tel || '').replace(/\D/g, '').slice(-10);
   const venc = it.fecha && !it.fechaEsCurso && it.fecha < hoy;
   const marca = !it.fecha || it.fechaEsCurso ? '<span class="cc-tag">Sin fecha</span>'
     : venc ? `<span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span>` : it.fecha > hoy ? `<span class="cc-tag">${escHtml(fechaCorta(it.fecha))}</span>` : '';
   return `<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}">
     <div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b><span class="cc-tag">${it.tipo === 'lead' ? 'Anticipo prometido' : 'Fecha de pago'}</span>${marca}
-      <div class="sub">${escHtml(it.donde)}</div></div>
+      <div class="sub">${escHtml(it.donde)}${tel10 ? ` · <span class="tc-tel" title="Toca para seleccionarlo y copiarlo">${escHtml(tel10)}</span>` : ''}</div></div>
     <div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
     <div class="acc">${it.tel ? '<button type="button" class="btn-outline small" data-tc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-tc-acc="abrir">Abrir</button></div></div>`;
 }
@@ -4463,9 +4466,7 @@ document.getElementById('tocaCobrar').addEventListener('click', async e=>{
   if(e.target.closest('[data-tc-todos]')){
     const hoy = hoyISO(), ven = tcSemaforo(tc.items, hoy).rojo;
     const bloque = e.target.closest('.tc-venc'); e.target.remove();
-    bloque.insertAdjacentHTML('beforeend', ven.slice(5).map(it=>`<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}"><div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b>
-      <span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span><div class="sub">${escHtml(it.donde)}</div></div><div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
-      <div class="acc">${it.tel ? '<button type="button" class="btn-outline small" data-tc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-tc-acc="abrir">Abrir</button></div></div>`).join(''));
+    bloque.insertAdjacentHTML('beforeend', ven.slice(5).map(it=>tcFila(it, hoy)).join(''));
     return;
   }
   const b = e.target.closest('[data-tc-acc]'); if(!b) return;

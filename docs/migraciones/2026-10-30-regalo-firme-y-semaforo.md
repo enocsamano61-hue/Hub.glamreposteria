@@ -47,3 +47,14 @@ Al tocar un color sale su lista (total, WhatsApp, Abrir; hasta 30 y avisa el res
 - Aviso `2026-10-30-semaforo`: **sin publicar** (espera "publica el aviso").
 
 - **Aviso publicado el 30 oct** (Enoc: "publica el aviso"), migración `publicar_aviso_2026_10_30_semaforo`. Publicado en main y verificado en producción.
+
+## H. Celular a 10 dígitos en "Te toca cobrar hoy" (pedido de Jared, 30 oct)
+
+Cada renglón del panel de la vendedora (lo de hoy, "Se te pasaron", la lista de cada color del semáforo y "Ver los restantes") trae su celular a 10 dígitos junto a la ciudad, en negritas, para copiarlo y pegarlo; un toque lo selecciona completo (`user-select: all`). Todos los renglones salen de una sola función (`tcFila`).
+
+**¿Qué pasa si…?**
+- *…el teléfono viene con +52, espacios, paréntesis o guiones?* Se limpia y se muestran solo los últimos 10 dígitos.
+- *…no tiene teléfono?* No sale el número ni el botón de WhatsApp; "Abrir" sigue.
+- *…se toca el número?* Solo se selecciona; no abre nada (los botones siguen siendo WhatsApp y Abrir).
+
+Prueba: `prueba_toca_cobrar.js` (celular limpio, con +52 y selección de un toque). Glamy: sin cambios (no cambia lo que explica). Sin base de datos.
