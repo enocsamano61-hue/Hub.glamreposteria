@@ -40,6 +40,23 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   check((await p.textContent('#toast')).includes('Hoy te toca cobrar a 2') && (await p.textContent('#toast')).includes('se te pasaron 1'), 'aviso corto al entrar');
   await h.captura('toca-cobrar.png');
 
+  h.paso('1b. Semáforo (30 oct): vencidos, vencen pronto, con fecha, sin fecha');
+  const chip = k => p.textContent(`[data-tc-sem="${k}"]`);
+  check((await chip('rojo')).startsWith('1') && (await chip('rojo')).includes('Vencidos'), 'rojo: 1 vencido');
+  check((await chip('amarillo')).startsWith('2') && (await chip('amarillo')).includes('Vencen pronto'), 'amarillo: 2 vencen hoy o en 3 días');
+  check((await chip('verde')).startsWith('1'), 'verde: 1 con fecha más adelante');
+  check((await chip('gris')).startsWith('1') && (await chip('gris')).includes('Sin fecha'), 'gris: 1 sin fecha');
+  check(!(await p.$('.tc-lista')), 'cerrado: no sale la lista hasta que toca un color');
+  await p.click('[data-tc-sem="verde"]');
+  check((await p.textContent('.tc-lista')).includes('Inscrita Futura') && !(await p.textContent('.tc-lista')).includes('Ajena'), 'toca verde: su lista (solo lo suyo)');
+  await p.click('[data-tc-sem="gris"]');
+  check((await p.textContent('.tc-lista')).includes('Lead Sin Fecha') && (await p.textContent('.tc-lista')).includes('Cobranza les completa'), 'toca gris: quién no tiene fecha');
+  await p.click('[data-tc-sem="rojo"]');
+  check((await p.textContent('.tc-lista')).includes('Lead Vencido') && !(await p.$('.tc-venc')), 'toca rojo: sus vencidos, sin repetirlos abajo');
+  await h.captura('toca-cobrar-semaforo.png');
+  await p.click('[data-tc-sem="rojo"]');
+  check(!(await p.$('.tc-lista')) && !!(await p.$('.tc-venc')), 'volver a tocarlo lo cierra');
+
   h.paso('2. WhatsApp y Abrir');
   await p.click('[data-tc-k="lead"][data-tc-id="l1"] [data-tc-acc="wa"]');
   check(await p.evaluate(() => window.__wa?.telefono === '5511111111' && window.__wa?.leadId === 'l1'), 'WhatsApp con su teléfono');
@@ -64,7 +81,12 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   h.paso('5. Sin nada para hoy');
   await p.evaluate(() => { usuarioActual = { ...usuarioActual, recibe_pedidos:false }; window.__tablas.leads = []; window.__tablas.inscripciones = []; return renderDashboard(); });
   await p.waitForTimeout(500);
-  check((await t()).includes('Hoy no te toca cobrar a nadie') && !(await t()).includes('Se te pasaron'), 'dice que hoy no hay nada');
+  check((await t()).includes('Nada por cobrar por ahora') && !(await t()).includes('Se te pasaron') && (await chip('rojo')).startsWith('0'), 'sin nada: semáforo en 0 y lo dice');
+  // Con cobros pero ninguno hoy
+  await p.evaluate(() => { window.__tablas.leads = [{ id:'l8', persona_id:'p8', estatus_id:2, estatus:{ id:2 }, asesor_id:'u2', ciudad_interes_id:'cA', creado_en:new Date().toISOString(), fecha_compromiso_pago:new Date(Date.now() + 9 * 864e5).toLocaleDateString('en-CA'),
+    personas:{ id:'p8', nombre:'Lead Lejano', telefono_principal:'5511111118' } }]; return renderDashboard(); });
+  await p.waitForTimeout(500);
+  check((await t()).includes('Hoy no te toca cobrar a nadie') && (await chip('verde')).startsWith('1'), 'con cobros pero ninguno hoy: lo dice y el verde cuenta');
 
   h.paso('6. Celular');
   await p.setViewportSize({ width:390, height:800 });

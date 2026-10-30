@@ -1497,6 +1497,15 @@
   .tc-venc{ margin-top:12px; padding-top:8px; border-top:1px dashed var(--border); }
   .tc-venc h4{ margin:0 0 2px; color:var(--danger); font-size:13.5px; }
   .tc-vacio{ margin-top:8px; color:var(--success); font-weight:600; font-size:13.5px; }
+  .tc-sem{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px; }
+  .tc-s{ flex:1 1 90px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:8px 6px; border-radius:12px; border:2px solid var(--border); background:var(--card); font-family:inherit; cursor:pointer; color:var(--ink); }
+  .tc-s b{ font-size:22px; line-height:1.1; } .tc-s span{ font-size:11.5px; font-weight:600; color:var(--ink-soft); }
+  .tc-s.rojo{ border-color:var(--danger); } .tc-s.rojo b{ color:var(--danger); }
+  .tc-s.amarillo{ border-color:#C9A227; } .tc-s.amarillo b{ color:#8A6D0B; }
+  .tc-s.verde{ border-color:var(--success); } .tc-s.verde b{ color:var(--success); }
+  .tc-s.gris{ border-style:dashed; }
+  .tc-s.sel{ background:var(--bg-soft, rgba(0,0,0,.05)); box-shadow:0 0 0 2px var(--wine) inset; }
+  .tc-lista{ margin-top:10px; padding-top:8px; border-top:1px dashed var(--border); } .tc-lista h4{ margin:0 0 2px; font-size:13.5px; }
   .cd-sec{ margin-bottom:18px; }
   .cd-sec h4{ margin:0 0 2px; }
   .cd-fila{ display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
@@ -3685,6 +3694,7 @@ const ACCION_LABEL = {
   cambio_fecha_respuesta: 'Registró la respuesta a un cambio de fecha',
   cambio_fecha_regalo: 'Registró el regalo de Academia por cambio de fecha',
   cambio_fecha_regalo_enviado: 'Marcó enviado el acceso del regalo de Academia',
+  cambio_fecha_regalo_quitado: 'Quitó el regalo de Academia (cambio de fecha)',
   cambio_fecha_reembolso: 'Cerró un reembolso por cambio de fecha',
   permiso_cambiado: 'Cambió un permiso de rol',
   usuario_cambiado: 'Cambió el rol o los permisos de una persona',
@@ -4384,7 +4394,47 @@ const esReporteDia = () => !!usuarioActual?.recibe_pedidos;
    (cargarCobranza / itemsCobranza), filtrada a su nombre: los números siempre cuadran con los de Cobranza y el
    Calendario. Nada se guarda aparte. Al entrar, un aviso corto una vez al día.
    ========================================================= */
-const tc = { turno:0, items:[] };
+const tc = { turno:0, items:[], sel:'', hoy:'' };
+// Semáforo (30 oct 2026): rojo = ya venció, amarillo = vence hoy o en los próximos 3 días, verde = fecha más adelante,
+// gris = sin fecha (lo completa Cobranza). Se calcula de la lista de hoy cada vez; nada se guarda.
+const TC_SEM = { rojo:'Vencidos', amarillo:'Vencen pronto', verde:'Con fecha', gris:'Sin fecha' };
+function tcSemaforo(items, hoy){
+  const pronto = sumarDias(hoy, 3);
+  return {
+    rojo: items.filter(it=>it.fecha && !it.fechaEsCurso && it.fecha < hoy).sort((a, b)=>a.fecha.localeCompare(b.fecha)),
+    amarillo: items.filter(it=>it.fecha && !it.fechaEsCurso && it.fecha >= hoy && it.fecha <= pronto).sort((a, b)=>a.fecha.localeCompare(b.fecha)),
+    verde: items.filter(it=>it.fecha && !it.fechaEsCurso && it.fecha > pronto).sort((a, b)=>a.fecha.localeCompare(b.fecha)),
+    gris: items.filter(it=>!it.fecha || (it.fechaEsCurso && !(it.pagado > 0))),
+  };
+}
+function tcFila(it, hoy){
+  const venc = it.fecha && !it.fechaEsCurso && it.fecha < hoy;
+  const marca = !it.fecha || it.fechaEsCurso ? '<span class="cc-tag">Sin fecha</span>'
+    : venc ? `<span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span>` : it.fecha > hoy ? `<span class="cc-tag">${escHtml(fechaCorta(it.fecha))}</span>` : '';
+  return `<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}">
+    <div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b><span class="cc-tag">${it.tipo === 'lead' ? 'Anticipo prometido' : 'Fecha de pago'}</span>${marca}
+      <div class="sub">${escHtml(it.donde)}</div></div>
+    <div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
+    <div class="acc">${it.tel ? '<button type="button" class="btn-outline small" data-tc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-tc-acc="abrir">Abrir</button></div></div>`;
+}
+function tcPintar(){
+  const caja = document.getElementById('tocaCobrar'); if(!caja) return;
+  const hoy = tc.hoy, suma = l => l.reduce((t, x)=>t + (Number(x.monto) || 0), 0);
+  const sem = tcSemaforo(tc.items, hoy);
+  const deHoy = tc.items.filter(it=>it.fecha === hoy && !it.fechaEsCurso), vencidos = sem.rojo;
+  const hayAlgo = Object.values(sem).some(l=>l.length);
+  const chip = k => (k === 'gris' && !sem.gris.length) ? '' : `<button type="button" class="tc-s ${k}${tc.sel === k ? ' sel' : ''}" data-tc-sem="${k}" aria-pressed="${tc.sel === k}"><b>${sem[k].length}</b><span>${TC_SEM[k]}</span></button>`;
+  const lista = tc.sel && sem[tc.sel] ? `<div class="tc-lista"><h4>${TC_SEM[tc.sel]} · ${sem[tc.sel].length}${tc.sel === 'gris' ? '' : ' · ' + fmtMoney(suma(sem[tc.sel]))}</h4>
+    ${tc.sel === 'gris' ? '<div class="tc-sub">Cobranza les completa su fecha de pago.</div>' : ''}
+    ${sem[tc.sel].slice(0, 30).map(it=>tcFila(it, hoy)).join('')}
+    ${sem[tc.sel].length > 30 ? `<div class="tc-sub">Y ${sem[tc.sel].length - 30} más: míralas en Cobranza → Calendario.</div>` : ''}</div>` : '';
+  caja.innerHTML = `<div class="tc-cab"><h3>Te toca cobrar hoy</h3><span class="tc-sub">${deHoy.length ? `<b>${deHoy.length}</b> · ${fmtMoney(suma(deHoy))}` : ''}</span></div>
+    <div class="tc-sem">${['rojo', 'amarillo', 'verde', 'gris'].map(chip).join('')}</div>${lista}
+    ${hayAlgo ? '' : '<div class="tc-vacio">Nada por cobrar por ahora.</div>'}
+    ${deHoy.length ? deHoy.map(it=>tcFila(it, hoy)).join('') : (hayAlgo ? '<div class="tc-vacio">Hoy no te toca cobrar a nadie.</div>' : '')}
+    ${vencidos.length && tc.sel !== 'rojo' ? `<div class="tc-venc"><h4>Se te pasaron · ${vencidos.length} · ${fmtMoney(suma(vencidos))}</h4>${vencidos.slice(0, 5).map(it=>tcFila(it, hoy)).join('')}
+      ${vencidos.length > 5 ? `<button type="button" class="btn-outline small" data-tc-todos style="width:auto;margin-top:8px;">Ver los ${vencidos.length - 5} restantes</button>` : ''}</div>` : ''}`;
+}
 async function renderTocaCobrar(){
   const caja = document.getElementById('tocaCobrar'); if(!caja) return;
   const soyVendedora = !!(usuarioActual?.es_vendedor || EQUIPO.find(u=>u.id === usuarioActual?.id)?.es_vendedor);
@@ -4395,33 +4445,23 @@ async function renderTocaCobrar(){
   if(!await cargarCobranza()){ caja.style.display = 'none'; return; }
   if(turno !== tc.turno) return;
   const hoy = hoyISO();
-  const mios = itemsCobranza(true).filter(it=>it.vendedor === usuarioActual.id && !it.porConfirmar && it.fecha && !it.fechaEsCurso && it.fecha <= hoy && !(it.tipo === 'insc' && it.cursoPasado));
-  tc.items = mios;
-  const deHoy = mios.filter(it=>it.fecha === hoy), vencidos = mios.filter(it=>it.fecha < hoy).sort((a, b)=>a.fecha.localeCompare(b.fecha));
-  const suma = l => l.reduce((t, x)=>t + (Number(x.monto) || 0), 0);
-  const fila = it=>{
-    const venc = it.fecha < hoy;
-    return `<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}">
-      <div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b><span class="cc-tag">${it.tipo === 'lead' ? 'Anticipo prometido' : 'Fecha de pago'}</span>${venc ? `<span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span>` : ''}
-        <div class="sub">${escHtml(it.donde)}</div></div>
-      <div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
-      <div class="acc">${it.tel ? '<button type="button" class="btn-outline small" data-tc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-tc-acc="abrir">Abrir</button></div></div>`;
-  };
-  caja.innerHTML = `<div class="tc-cab"><h3>Te toca cobrar hoy</h3><span class="tc-sub">${deHoy.length ? `<b>${deHoy.length}</b> · ${fmtMoney(suma(deHoy))}` : ''}</span></div>
-    ${deHoy.length ? deHoy.map(fila).join('') : '<div class="tc-vacio">Hoy no te toca cobrar a nadie.</div>'}
-    ${vencidos.length ? `<div class="tc-venc"><h4>Se te pasaron · ${vencidos.length} · ${fmtMoney(suma(vencidos))}</h4>${vencidos.slice(0, 5).map(fila).join('')}
-      ${vencidos.length > 5 ? `<button type="button" class="btn-outline small" data-tc-todos style="width:auto;margin-top:8px;">Ver los ${vencidos.length - 5} restantes</button>` : ''}</div>` : ''}`;
-  caja.dataset.todos = '';
+  // Lo suyo, de la misma lista de Cobranza (sin lo que está por confirmar ni inscritas de cursos que ya pasaron)
+  tc.hoy = hoy;
+  tc.items = itemsCobranza(true).filter(it=>it.vendedor === usuarioActual.id && !it.porConfirmar && !(it.tipo === 'insc' && it.cursoPasado));
+  tcPintar();
+  const sem = tcSemaforo(tc.items, hoy), nHoy = tc.items.filter(it=>it.fecha === hoy && !it.fechaEsCurso).length, vencidos = sem.rojo;
   // Aviso corto al entrar: una vez al día por persona (se recuerda en este navegador; si no se puede, no pasa nada)
-  if(deHoy.length || vencidos.length){
+  if(nHoy || vencidos.length){
     const clave = 'tocaCobrar:' + usuarioActual.id;
     try{ if(localStorage.getItem(clave) === hoy) return; localStorage.setItem(clave, hoy); }catch(_){}
-    toast(`${deHoy.length ? `Hoy te toca cobrar a ${deHoy.length}` : 'Hoy no te toca cobrar a nadie'}${vencidos.length ? ` · se te pasaron ${vencidos.length}` : ''}.`);
+    toast(`${nHoy ? `Hoy te toca cobrar a ${nHoy}` : 'Hoy no te toca cobrar a nadie'}${vencidos.length ? ` · se te pasaron ${vencidos.length}` : ''}.`);
   }
 }
 document.getElementById('tocaCobrar').addEventListener('click', async e=>{
+  const chip = e.target.closest('[data-tc-sem]');
+  if(chip){ tc.sel = tc.sel === chip.dataset.tcSem ? '' : chip.dataset.tcSem; tcPintar(); return; }
   if(e.target.closest('[data-tc-todos]')){
-    const hoy = hoyISO(), ven = tc.items.filter(it=>it.fecha < hoy).sort((a, b)=>a.fecha.localeCompare(b.fecha));
+    const hoy = hoyISO(), ven = tcSemaforo(tc.items, hoy).rojo;
     const bloque = e.target.closest('.tc-venc'); e.target.remove();
     bloque.insertAdjacentHTML('beforeend', ven.slice(5).map(it=>`<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}"><div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b>
       <span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span><div class="sub">${escHtml(it.donde)}</div></div><div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
@@ -14090,8 +14130,11 @@ function cfBotones(f){
     acc = (f.telefono ? b('wa', 'WhatsApp') : '') + (f.estado === 'sin_avisar' ? b('avisada', 'Ya le avisé') : '')
       + b('acepto', 'Aceptó', 'ok') + (f.inscripcion_id ? b('reembolso', 'Reembolso', 'no') : b('no_va', 'Ya no va', 'no'));
   } else if(f.estado === 'acepto'){
+    // Con regalo registrado la decisión ya está firme: no sale "↩" (regresaría a "Sin avisar" con el regalo puesto y
+    // volverían los botones de Aceptó/Reembolso). Para corregirlo, primero "Quitar regalo".
     acc = (f.inscripcion_id && !f.regalo_curso ? b('regalo', 'Registrar regalo', 'lleno') : '')
-      + (f.regalo_curso && !f.regalo_enviado_en ? b('regalo_enviado', 'Ya se envió', 'ok') : '') + b('sin_avisar', '↩', 'min');
+      + (f.regalo_curso && !f.regalo_enviado_en ? b('regalo_enviado', 'Ya se envió', 'ok') : '')
+      + (f.regalo_curso ? b('regalo_quitar', 'Quitar regalo', 'min') : b('sin_avisar', '↩', 'min'));
   } else if(f.estado === 'reembolso'){
     acc = (cfPuedeCerrar() ? b('cerrar', 'Reembolso hecho · cerrar lugar', 'lleno') : '') + b('sin_avisar', '↩', 'min');
   }
@@ -14120,6 +14163,17 @@ async function cfAccion(btn){
       } });
   }
   if(acc === 'regalo'){ if(await cfRegistrarRegalo(avisoId, nombre)) cfDespues(eventoId); return; }
+  if(acc === 'regalo_quitar'){
+    const nota = await preguntarConfirmacion({ titulo:'¿Quitar el regalo?', fuerte:true,
+      aviso:`Se quita el regalo (${escHtml(f.regalo_curso || '')}) de <b>${escHtml(nombre)}</b>. Sigue como "Aceptó" y queda anotado en su historial.`,
+      pedirMotivo:true, etiquetaMotivo:'Por qué (opcional)', ejemploMotivo:'Ej.: se registró en la persona equivocada', textoSi:'Sí, quitar regalo' });
+    if(nota === null) return;
+    const { error } = await sb.rpc('cambio_fecha_regalo_quitar', { p_aviso:avisoId, p_nota:nota || null });
+    if(error){ toast('No se pudo quitar: ' + error.message, true); return; }
+    registrarActividad('cambio_fecha_regalo_quitado', `${nombre}: ${f.regalo_curso || 'regalo'}`);
+    toast('Regalo quitado.');
+    return cfDespues(eventoId);
+  }
   if(acc === 'regalo_enviado'){ if(await cfRegaloEnviado(avisoId, nombre, f.regalo_curso)) cfDespues(eventoId); return; }
   if(acc === 'avisada'){ if(await cfYaLeAvise(f, nombre)) cfDespues(eventoId); return; }
   if(acc === 'cerrar'){
@@ -16931,7 +16985,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-10-30-cobrar-hoy';
+const HUB_VERSION = '2026-10-30-semaforo';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
