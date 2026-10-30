@@ -39,7 +39,7 @@ const LISTA = [
   await p.evaluate(() => cfCargar('e1'));
   await p.waitForTimeout(300);
   const rpcs = n => h.ops('rpc:' + n, 'rpc');
-  const fila = id => p.textContent(`#cajaPrueba .cf-fila:has([data-cf-aviso="${id}"])`);
+  const fila = id => p.textContent(`#cajaPrueba .cf-fila:has-text("alumna ${id}")`);
 
   h.paso('1. Lo que se ve en la lista');
   const caja = await p.textContent('#cajaPrueba');
@@ -70,26 +70,12 @@ const LISTA = [
   await p.waitForTimeout(300);
   check((await rpcs('cambio_fecha_regalo_enviado')).some(r => r.p_aviso === 'a3'), 'marca el acceso enviado');
 
-  h.paso('3b. Con regalo la decisión es firme (ticket de Jared, 30 oct): sin "↩"; para corregir, "Quitar regalo"');
-  check(!(await p.$('[data-cf-acc="sin_avisar"][data-cf-aviso="a3"]')) && !(await p.$('[data-cf-acc="sin_avisar"][data-cf-aviso="a4"]')), 'con regalo no sale "↩"');
-  check(await p.isVisible('[data-cf-acc="regalo_quitar"][data-cf-aviso="a4"]') && !(await p.$('[data-cf-acc="acepto"][data-cf-aviso="a4"]')) && !(await p.$('[data-cf-acc="reembolso"][data-cf-aviso="a4"]')),
-    'solo "Quitar regalo": no vuelven Aceptó ni Reembolso');
-  check(!!(await p.$('[data-cf-acc="sin_avisar"][data-cf-aviso="a1"]')) === false && !!(await p.$('[data-cf-acc="sin_avisar"][data-cf-aviso="a2"]')), 'sin regalo, "↩" sigue donde estaba');
-  await h.limpiarOps();
-  await p.click('[data-cf-acc="regalo_quitar"][data-cf-aviso="a4"]');
-  await p.waitForSelector('#modalConfirmar.open');
-  check((await p.textContent('#confirmarTitulo')).includes('Quitar el regalo') && (await p.textContent('#modalConfirmar')).includes('Sigue como'), 'pide confirmar');
-  await h.captura('regalo-quitar.png');
-  await p.click('#confirmarNo');
-  await p.waitForTimeout(200);
-  check((await rpcs('cambio_fecha_regalo_quitar')).length === 0, 'cancelar no cambia nada');
-  await p.click('[data-cf-acc="regalo_quitar"][data-cf-aviso="a4"]');
-  await p.waitForSelector('#modalConfirmar.open');
-  await p.fill('#confirmarMotivo', 'Persona equivocada');
-  await p.click('#confirmarSi');
-  await p.waitForTimeout(300);
-  check((await rpcs('cambio_fecha_regalo_quitar')).some(r => r.p_aviso === 'a4' && r.p_nota === 'Persona equivocada'), 'confirmado: quita el regalo');
-  check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'cambio_fecha_regalo_quitado'), 'queda en la actividad');
+  h.paso('3b. Con regalo la decisión es firme (ticket de Jared, 30 oct): sin "↩" y, si ya se envió, sin ningún botón');
+  check(!(await p.$('[data-cf-aviso="a4"]')), 'aceptó, con regalo y acceso enviado: el renglón no lleva ningún botón');
+  check(!(await p.$('[data-cf-acc="sin_avisar"][data-cf-aviso="a3"]')) && !(await p.$('[data-cf-acc="acepto"][data-cf-aviso="a3"]')) && !(await p.$('[data-cf-acc="reembolso"][data-cf-aviso="a3"]')),
+    'con regalo no sale "↩", ni Aceptó, ni Reembolso');
+  check(!(await p.$('[data-cf-acc="regalo_quitar"]')), '"Quitar regalo" no sale en la lista');
+  check(!!(await p.$('[data-cf-acc="sin_avisar"][data-cf-aviso="a2"]')), 'sin regalo, "↩" sigue donde estaba');
 
   h.paso('4. "Ya le avisé" (desde el celular)');
   await h.limpiarOps();
@@ -126,6 +112,27 @@ const LISTA = [
   await p.evaluate(() => { window.__l9.regalo_curso = 'Pan de muerto'; window.__tablas.cambio_fecha_avisos.find(x => x.id === 'a9').regalo_curso = 'Pan de muerto'; return pintarCambioFechaFicha('i9'); });
   await p.waitForTimeout(300);
   check((await p.textContent('#modalInscCambioFecha')).includes('falta enviar el acceso') && await p.isVisible(fb('regalo_enviado')), 'y luego "Ya se envió"');
+  h.paso('5a. "Quitar regalo": solo administradores, dentro de la ficha');
+  check(await p.isVisible(fb('regalo_quitar')) && !(await p.$(fb('sin_avisar'))) && !(await p.$(fb('acepto'))), 'administrador: "Quitar regalo" y no vuelven Aceptó ni "↩"');
+  await h.limpiarOps();
+  await p.click(fb('regalo_quitar'));
+  await p.waitForSelector('#modalConfirmar.open');
+  check((await p.textContent('#confirmarTitulo')).includes('Quitar el regalo') && (await p.textContent('#modalConfirmar')).includes('Sigue como'), 'pide confirmar');
+  await h.captura('regalo-quitar.png');
+  await p.click('#confirmarNo');
+  await p.waitForTimeout(200);
+  check((await rpcs('cambio_fecha_regalo_quitar')).length === 0, 'cancelar no cambia nada');
+  await p.click(fb('regalo_quitar'));
+  await p.waitForSelector('#modalConfirmar.open');
+  await p.fill('#confirmarMotivo', 'Persona equivocada');
+  await p.click('#confirmarSi');
+  await p.waitForTimeout(300);
+  check((await rpcs('cambio_fecha_regalo_quitar')).some(r => r.p_aviso === 'a9' && r.p_nota === 'Persona equivocada'), 'confirmado: quita el regalo');
+  check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'cambio_fecha_regalo_quitado'), 'queda en la actividad');
+  await p.evaluate(() => { usuarioActual = { ...usuarioActual, es_admin:false }; return pintarCambioFechaFicha('i9'); });
+  await p.waitForTimeout(300);
+  check(!(await p.$(fb('regalo_quitar'))) && await p.isVisible(fb('regalo_enviado')), 'quien no es administrador: no sale "Quitar regalo"');
+  await p.evaluate(() => { usuarioActual = { ...usuarioActual, es_admin:true }; });
   await p.evaluate(() => cerrarModalInscripcion());
 
   h.paso('5b. En la ficha del lead');

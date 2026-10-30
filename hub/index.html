@@ -14121,7 +14121,7 @@ function cfHtmlFila(f){
 }
 // Botones de un renglón del cambio de fecha según cómo va. Los usan la lista y la ficha (la de la inscrita y la del
 // lead), así hacen exactamente lo mismo (cfAccion).
-function cfBotones(f){
+function cfBotones(f, enFicha = false){
   const id = escapeAttr(f.aviso_id), ev = escapeAttr(f.evento_id);
   const b = (acc, txt, cls='') => `<button type="button" class="${cls}" data-cf-acc="${acc}" data-cf-aviso="${id}" data-cf-ev="${ev}">${txt}</button>`;
   let acc = '';
@@ -14131,10 +14131,11 @@ function cfBotones(f){
       + b('acepto', 'Aceptó', 'ok') + (f.inscripcion_id ? b('reembolso', 'Reembolso', 'no') : b('no_va', 'Ya no va', 'no'));
   } else if(f.estado === 'acepto'){
     // Con regalo registrado la decisión ya está firme: no sale "↩" (regresaría a "Sin avisar" con el regalo puesto y
-    // volverían los botones de Aceptó/Reembolso). Para corregirlo, primero "Quitar regalo".
+    // volverían los botones de Aceptó/Reembolso). Si ya se envió el acceso, el renglón no lleva ningún botón.
+    // "Quitar regalo" (por si se registró por error) solo lo ven los administradores, dentro de la ficha.
     acc = (f.inscripcion_id && !f.regalo_curso ? b('regalo', 'Registrar regalo', 'lleno') : '')
       + (f.regalo_curso && !f.regalo_enviado_en ? b('regalo_enviado', 'Ya se envió', 'ok') : '')
-      + (f.regalo_curso ? b('regalo_quitar', 'Quitar regalo', 'min') : b('sin_avisar', '↩', 'min'));
+      + (f.regalo_curso ? (enFicha && usuarioActual?.es_admin ? b('regalo_quitar', 'Quitar regalo', 'min') : '') : b('sin_avisar', '↩', 'min'));
   } else if(f.estado === 'reembolso'){
     acc = (cfPuedeCerrar() ? b('cerrar', 'Reembolso hecho · cerrar lugar', 'lleno') : '') + b('sin_avisar', '↩', 'min');
   }
@@ -14262,7 +14263,7 @@ async function cfFilaDe({ inscId = null, leadId = null, eventoId }, recargar = t
 }
 function cfHtmlFicha(f){
   const e = CF_ESTADOS[f.estado] || CF_ESTADOS.sin_avisar;
-  const botones = cfBotones(f);
+  const botones = cfBotones(f, true);
   return `Cambio de fecha ${escHtml(fechaCorta(f.fecha_anterior))} → ${escHtml(fechaCorta(f.fecha_nueva))}: <b>${escHtml(e.l)}</b>`
     + `${f.estado_en && f.estado !== 'sin_avisar' ? ' · ' + escHtml(fechaCorta(String(f.estado_en).slice(0, 10))) : ''}`
     + `${f.regalo_curso ? ` · ${cfTextoRegalo(f)}` : ''}${f.nota ? ` · ${escHtml(f.nota)}` : ''}${cfTextoOrigen(f)}`
