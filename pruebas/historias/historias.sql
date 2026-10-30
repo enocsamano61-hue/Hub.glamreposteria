@@ -129,6 +129,7 @@ begin
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H5 vigilante: ' || rojos); end if;
 
   -- ===== H6. Inscrita → pide reembolso → Cobranza cierra su lugar =====
+  perform public.cambio_fecha_regalo_quitar(a3, 'historia');   -- con regalo no se puede pasar a reembolso: primero se quita
   perform public.cambio_fecha_marcar(a3, 'reembolso', 'historia');
   perform public.cambio_fecha_cerrar_reembolso(a3, 'historia');
   t := pg_temp.grupos(ea, p3); if t = 'no_van(i)' then ok := ok + 1; else mal := mal || ('H6 Embudo: ' || t); end if;
@@ -183,6 +184,22 @@ begin
   if (select count(*) from public.notas_usuario where de_sistema and texto like 'Cedió su lugar%') > ok_av then ok := ok + 1; else mal := mal || 'H9 a Cobranza no le llegó el aviso'::text; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H9 vigilante: ' || rojos); end if;
+
+  -- ===== H10. Cambio de fecha: con regalo la decisión es firme; se quita el regalo y entonces sí se puede regresar (30 oct) =====
+  declare av uuid;
+  begin
+    select id into av from public.cambio_fecha_avisos where estado = 'acepto' and regalo_curso is not null and inscripcion_id is not null limit 1;
+    if av is null then ok := ok + 3;
+    else
+      begin perform public.cambio_fecha_marcar(av, 'sin_avisar', null); mal := mal || 'H10 se pudo regresar a "Sin avisar" a alguien con regalo'::text;
+      exception when others then ok := ok + 1; end;
+      perform public.cambio_fecha_regalo_quitar(av, 'Historia');
+      if (select regalo_curso from public.cambio_fecha_avisos where id = av) is null then ok := ok + 1; else mal := mal || 'H10 no se quitó el regalo'::text; end if;
+      begin perform public.cambio_fecha_marcar(av, 'sin_avisar', null); ok := ok + 1;
+      exception when others then mal := mal || ('H10 sin regalo no se pudo regresar: ' || sqlerrm); end;
+    end if;
+  end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H10 vigilante: ' || rojos); end if;
 
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;
