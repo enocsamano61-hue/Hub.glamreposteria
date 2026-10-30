@@ -58,3 +58,7 @@ Cada renglón del panel de la vendedora (lo de hoy, "Se te pasaron", la lista de
 - *…se toca el número?* Solo se selecciona; no abre nada (los botones siguen siendo WhatsApp y Abrir).
 
 Prueba: `prueba_toca_cobrar.js` (celular limpio, con +52 y selección de un toque). Glamy: sin cambios (no cambia lo que explica). Sin base de datos.
+
+### H2. El mismo celular en las listas de Cobranza (Enoc: "sí también")
+
+Una sola función (`htmlCel10`) da el celular a 10 dígitos, y la usan: Te toca cobrar hoy, **Por cobrar**, el **Calendario de Cobranza** (lista del día, incluye Academia Glam) y **Completar datos** (inscritas sin fecha, sin vendedora y leads sin curso). Un número que se ve en varios lugares sale de la misma función. Mismas reglas del punto H (sin teléfono: no sale). Pruebas: `prueba_cobranza_grupos.js`, `prueba_cobranza_completar.js`, `prueba_cobranza_calendario.js`, `prueba_toca_cobrar.js`. Sin cambios en la base ni en Glamy.

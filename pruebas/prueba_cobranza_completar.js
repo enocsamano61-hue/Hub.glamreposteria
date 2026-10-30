@@ -38,6 +38,8 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   check(t.includes('Inscritas sin fecha de pago · 2') && t.includes('Inscritas sin vendedora · 1') && t.includes('Leads sin curso · 1'), 'tres bloques con su cuenta');
   check(t.includes('Sin Fecha Uno') && t.includes('Sin Vendedora') && t.includes('Lead Sin Curso') && !t.includes('Ya No Va') && !t.includes('Lead Con Curso'), 'solo a quien le falta (no a quien ya no va ni a quien ya tiene curso)');
   check(t.includes('4 por completar'), 'el total');
+  check((await p.$$eval('#cobVistaDatos .tc-tel', xs => xs.map(x => x.textContent))).filter(x => x === '5500000000').length >= 2 && (await p.$$eval('#cobVistaDatos .tc-tel', xs => xs.map(x => x.textContent))).includes('5511111111'),
+    'cada renglón trae su celular a 10 dígitos (inscritas y leads)');
   await h.captura('cobranza-completar.png');
 
   h.paso('2. Fecha de pago');
