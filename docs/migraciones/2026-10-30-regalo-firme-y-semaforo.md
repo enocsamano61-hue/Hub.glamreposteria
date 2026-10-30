@@ -14,10 +14,10 @@ Autorizado por Enoc ("permitido generar").
   - Reparación: las inscritas con regalo que estaban en "Sin avisar"/"Avisada" vuelven a "Aceptó" (ya recibieron su regalo). Quedaron 0 con regalo fuera de "Aceptó".
   - `cambio_fecha_marcar`: quien tiene regalo no puede pasar a otro estado que no sea "Aceptó" ("Ya tiene regalo registrado: primero quítale el regalo"). Protege aunque la pantalla estuviera vieja.
   - Función nueva `cambio_fecha_regalo_quitar(aviso, nota)`: quita el regalo, deja nota en su ficha y en su historial.
-- Hub: con regalo registrado ya no sale "↩"; sale **"Quitar regalo"** (con confirmación y motivo opcional). Misma regla en la lista y en las dos fichas (usan `cfBotones`). Actividad: `cambio_fecha_regalo_quitado`.
+- Hub (ajuste pedido por Enoc): con regalo registrado no sale "↩" y, si ya se envió el acceso, el renglón **no lleva ningún botón** (si falta enviarlo, solo "Ya se envió"). **"Quitar regalo"** (con confirmación y motivo opcional) solo lo ven los **administradores, dentro de la ficha** (lista y fichas usan `cfBotones`). Actividad: `cambio_fecha_regalo_quitado`.
 
 **¿Qué pasa si…?**
-- *…se registró el regalo a la persona equivocada?* "Quitar regalo" y se registra a la correcta.
+- *…se registró el regalo a la persona equivocada?* Un administrador abre su ficha, "Quitar regalo", y se registra a la correcta.
 - *…tiene regalo y pide reembolso?* Primero se quita el regalo (la base lo exige); el botón Reembolso no sale con regalo.
 - *…el regalo está registrado pero sin enviar el acceso?* Se queda "Ya se envió" y "Quitar regalo".
 - *…alguien con la pantalla vieja toca "↩"?* La base lo rechaza con un mensaje claro.
