@@ -1491,6 +1491,19 @@
   .cc-nom{ font-size:11.5px; display:flex; align-items:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cc-nom span{ overflow:hidden; text-overflow:ellipsis; }
   .cc-mas{ font-size:11px; color:var(--ink-soft); font-weight:600; }
+  .tc-cab{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .tc-cab h3{ margin:0; }
+  .tc-sub{ font-size:13px; color:var(--ink-soft); }
+  .tc-venc{ margin-top:12px; padding-top:8px; border-top:1px dashed var(--border); }
+  .tc-venc h4{ margin:0 0 2px; color:var(--danger); font-size:13.5px; }
+  .tc-vacio{ margin-top:8px; color:var(--success); font-weight:600; font-size:13.5px; }
+  .cd-sec{ margin-bottom:18px; }
+  .cd-sec h4{ margin:0 0 2px; }
+  .cd-fila{ display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .cd-fila > div:first-child{ flex:1 1 220px; min-width:0; }
+  .cd-fila select, .cd-fila input[type=date]{ width:auto; max-width:230px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:13px; background:var(--card); color:var(--ink); }
+  .cd-fila button{ width:auto; }
+  .cd-ok{ text-align:center; padding:16px; color:var(--success); font-weight:700; }
   .cc-lista{ margin-top:14px; }
   .cc-lista h4{ margin:0 0 6px; }
   .cc-fila{ display:flex; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); }
@@ -1804,6 +1817,8 @@
       <div class="card" style="margin-bottom:20px;"><h1 style="font-size:22px;" id="saludoInicio">Buenos días</h1></div>
       <!-- Reporte del día (solo quien recibe los tickets): lo que hay que atender del Hub -->
       <div id="reporteDia" style="display:none; margin-bottom:20px;"></div>
+      <!-- Te toca cobrar hoy (vendedoras): lo suyo, de la misma lista de Cobranza -->
+      <div class="card" id="tocaCobrar" style="display:none; margin-bottom:20px;"></div>
       <div class="card" id="pendientesCard" style="display:none; margin-bottom:20px;"><h3>Tus pendientes</h3><div id="pendientesContenido" class="sub" style="margin-top:10px;">Cargando…</div></div>
       <div class="kpis" id="dashKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
       <div class="card" id="inicioLeadsCard"><h3>Leads más recientes</h3><div id="actividadList" class="sub">Cargando…</div></div>
@@ -2359,8 +2374,10 @@
         <button class="subtab active" data-cob-tab="calendario">Calendario</button>
         <button class="subtab" data-cob-tab="cobrar">Por cobrar</button>
         <button class="subtab" data-cob-tab="embudo">Embudo por curso</button>
+        <button class="subtab" data-cob-tab="datos">Completar datos</button>
       </div>
       <div id="cobVistaCalendario" class="card"></div>
+      <div id="cobVistaDatos" class="card" style="display:none;"></div>
       <div id="cobVistaCobrar" style="display:none;">
       <div class="card cob-cabeza">
         <div class="cob-dia">
@@ -2372,12 +2389,6 @@
           <button class="btn-primary small cob-registrar" id="cobRegistrarPago" type="button">Registrar pago</button>
         </div>
         <div class="cob-filtros">
-          <div class="seg" id="cobQuien">
-            <button type="button" data-q="todos" class="active">Todos</button>
-            <button type="button" data-q="leads">Leads</button>
-            <button type="button" data-q="inscritas">Inscritas</button>
-          </div>
-          <select id="cobVendedor"></select>
           <input id="cobBuscar" placeholder="Buscar nombre o teléfono…">
         </div>
         <div class="cob-atajos" id="cobAtajos"></div>
@@ -3438,7 +3449,7 @@ pickerOverlay.addEventListener('click', closePicker);
 let usuarioActual = null; // { id, nombre, rol, es_admin, puede_ver_actividad } — fila de public.usuarios
 async function resolverUsuarioActual(){
   if(!sesionActual) return;
-  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad, debe_cambiar_password, recibe_pedidos, activo, creado_en, bienvenida_pendiente').eq('email', sesionActual.user.email).maybeSingle();
+  const { data } = await sb.from('usuarios').select('id, nombre, rol, es_admin, puede_ver_actividad, debe_cambiar_password, recibe_pedidos, activo, creado_en, bienvenida_pendiente, es_vendedor').eq('email', sesionActual.user.email).maybeSingle();
   usuarioActual = data || { id:null, nombre: sesionActual.user.email.split('@')[0], rol: null, es_admin: false, puede_ver_actividad:false, debe_cambiar_password:false };
 }
 const TODAS_SECCIONES = SECCIONES.map(s=>s.id);
@@ -4324,6 +4335,7 @@ async function renderDashboard(){
   box.style.display = reporte ? 'none' : '';
   document.getElementById('inicioLeadsCard').style.display = reporte ? 'none' : '';
   document.getElementById('reporteDia').style.display = reporte ? '' : 'none';
+  renderTocaCobrar();
   if(reporte) return renderReporteDia();
   // Solo la gira que viene (la misma regla que Cobranza y el Embudo). Antes "Leads totales" contaba
   // todos los leads de la historia y "Cursos próximos" los de cualquier curso.
@@ -4365,6 +4377,71 @@ async function renderDashboard(){
    - Actualización publicada: quién falta de leerla.
    El vigilante corre solo cada mañana (vigilante_revisar, 5:41) y se puede volver a correr aquí. */
 const esReporteDia = () => !!usuarioActual?.recibe_pedidos;
+
+/* =========================================================
+   TE TOCA COBRAR HOY (30 oct 2026, ticket #4 de Jared): en el Inicio de cada vendedora, lo suyo de hoy (anticipos
+   prometidos de sus leads y fechas de pago de sus inscritas) y lo que se le pasó. Sale de la MISMA lista de Cobranza
+   (cargarCobranza / itemsCobranza), filtrada a su nombre: los números siempre cuadran con los de Cobranza y el
+   Calendario. Nada se guarda aparte. Al entrar, un aviso corto una vez al día.
+   ========================================================= */
+const tc = { turno:0, items:[] };
+async function renderTocaCobrar(){
+  const caja = document.getElementById('tocaCobrar'); if(!caja) return;
+  const soyVendedora = !!(usuarioActual?.es_vendedor || EQUIPO.find(u=>u.id === usuarioActual?.id)?.es_vendedor);
+  if(!soyVendedora || !usuarioActual?.id || esReporteDia()){ caja.style.display = 'none'; return; }
+  const turno = ++tc.turno;
+  if(!caja.innerHTML) caja.innerHTML = '<div class="tc-sub">Cargando lo que te toca cobrar…</div>';
+  caja.style.display = '';
+  if(!await cargarCobranza()){ caja.style.display = 'none'; return; }
+  if(turno !== tc.turno) return;
+  const hoy = hoyISO();
+  const mios = itemsCobranza(true).filter(it=>it.vendedor === usuarioActual.id && !it.porConfirmar && it.fecha && !it.fechaEsCurso && it.fecha <= hoy && !(it.tipo === 'insc' && it.cursoPasado));
+  tc.items = mios;
+  const deHoy = mios.filter(it=>it.fecha === hoy), vencidos = mios.filter(it=>it.fecha < hoy).sort((a, b)=>a.fecha.localeCompare(b.fecha));
+  const suma = l => l.reduce((t, x)=>t + (Number(x.monto) || 0), 0);
+  const fila = it=>{
+    const venc = it.fecha < hoy;
+    return `<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}">
+      <div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b><span class="cc-tag">${it.tipo === 'lead' ? 'Anticipo prometido' : 'Fecha de pago'}</span>${venc ? `<span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span>` : ''}
+        <div class="sub">${escHtml(it.donde)}</div></div>
+      <div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
+      <div class="acc">${it.tel ? '<button type="button" class="btn-outline small" data-tc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-tc-acc="abrir">Abrir</button></div></div>`;
+  };
+  caja.innerHTML = `<div class="tc-cab"><h3>Te toca cobrar hoy</h3><span class="tc-sub">${deHoy.length ? `<b>${deHoy.length}</b> · ${fmtMoney(suma(deHoy))}` : ''}</span></div>
+    ${deHoy.length ? deHoy.map(fila).join('') : '<div class="tc-vacio">Hoy no te toca cobrar a nadie.</div>'}
+    ${vencidos.length ? `<div class="tc-venc"><h4>Se te pasaron · ${vencidos.length} · ${fmtMoney(suma(vencidos))}</h4>${vencidos.slice(0, 5).map(fila).join('')}
+      ${vencidos.length > 5 ? `<button type="button" class="btn-outline small" data-tc-todos style="width:auto;margin-top:8px;">Ver los ${vencidos.length - 5} restantes</button>` : ''}</div>` : ''}`;
+  caja.dataset.todos = '';
+  // Aviso corto al entrar: una vez al día por persona (se recuerda en este navegador; si no se puede, no pasa nada)
+  if(deHoy.length || vencidos.length){
+    const clave = 'tocaCobrar:' + usuarioActual.id;
+    try{ if(localStorage.getItem(clave) === hoy) return; localStorage.setItem(clave, hoy); }catch(_){}
+    toast(`${deHoy.length ? `Hoy te toca cobrar a ${deHoy.length}` : 'Hoy no te toca cobrar a nadie'}${vencidos.length ? ` · se te pasaron ${vencidos.length}` : ''}.`);
+  }
+}
+document.getElementById('tocaCobrar').addEventListener('click', async e=>{
+  if(e.target.closest('[data-tc-todos]')){
+    const hoy = hoyISO(), ven = tc.items.filter(it=>it.fecha < hoy).sort((a, b)=>a.fecha.localeCompare(b.fecha));
+    const bloque = e.target.closest('.tc-venc'); e.target.remove();
+    bloque.insertAdjacentHTML('beforeend', ven.slice(5).map(it=>`<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}"><div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b>
+      <span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span><div class="sub">${escHtml(it.donde)}</div></div><div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
+      <div class="acc">${it.tel ? '<button type="button" class="btn-outline small" data-tc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-tc-acc="abrir">Abrir</button></div></div>`).join(''));
+    return;
+  }
+  const b = e.target.closest('[data-tc-acc]'); if(!b) return;
+  const fila = b.closest('[data-tc-k]'), k = fila.dataset.tcK, id = fila.dataset.tcId;
+  const it = tc.items.find(x=>x.tipo === k && x.id === id); if(!it) return;
+  const r = it.raw;
+  if(b.dataset.tcAcc === 'wa'){
+    const ev = k === 'lead' ? (r.eventos || (r.evento_id && eventoPorId(r.evento_id))) : r.eventos;
+    return abrirEnviarWhatsApp({ nombre:it.nombre, telefono:it.tel, personaId:r.personas?.id, leadId:k === 'lead' ? id : null,
+      ciudad:ev?.ciudades?.nombre || (k === 'lead' ? r.ciudades?.nombre : '') || '', fecha:ev?.fecha || '', sede:(ev && eventoPorId(ev.id))?.sede || '',
+      debe:k === 'insc' ? it.debe : null });
+  }
+  if(k === 'lead'){ if(!leadsCache.some(l=>l.id === id)) leadsCache.push(r); await abrirModalLead(id); }
+  else { alCerrarFichaInscripcion = null; await abrirModalInscripcion(id); }
+  alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'inicio') renderTocaCobrar(); });
+});
 const vig = { filas:[] };
 async function renderReporteDia(){
   const caja = document.getElementById('reporteDia');
@@ -6397,16 +6474,19 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
    hasta arriba: son lo primero que hay que confirmar.
    ========================================================= */
 let cobDia = null;            // 'YYYY-MM-DD'
-let cobQuien = 'todos';       // todos | leads | inscritas
 let cobDatos = { leads:[], inscritas:[] };
-const cobAbiertos = new Set(['confirmar','vencidos','hoy','semana','sinpago']);
+const cobAbiertos = new Set(['confirmar','vencidos','hoy','sinfecha']);
 // "curso": inscritas con anticipo sin fecha de pago, que se cobran el día de su curso (antes caían en
 // "Más adelante" con un círculo blanco y parecía que no tenían estatus).
 // "pasado": inscritas cuyo curso ya fue y siguen debiendo; aparte para que no hagan ruido con la gira
 // que viene, pero sin perder ese dinero.
 // "sinpago": inscritas que no han pagado nada y no tienen fecha de pago (caso Miriam, 28 oct): antes tomaban la
 // fecha del curso y se escondían en "Más adelante".
-const COB_GRUPOS = ['confirmar','vencidos','hoy','semana','sinpago','curso','despues','sinfecha','pasado'];
+/* Por cobrar más simple (30 oct 2026): de 9 grupos a 6 (4 que se leen de un vistazo y 2 que casi no se abren).
+   "Hoy y esta semana" junta Hoy y Esta semana; "Sin fecha" junta a los leads sin fecha de anticipo y a las inscritas sin pago ni
+   fecha; "Más adelante" junta lo de después de 7 días y lo que se cobra el día del curso. Sin filtros de Leads/Inscritas
+   ni de vendedora (para eso están el Calendario y el panel de cada vendedora). */
+const COB_GRUPOS = ['confirmar','vencidos','hoy','sinfecha','despues','pasado'];
 const COB_ICONO = { confirmar:'<i class="cob-punto" style="background:#8E5BB5"></i>', vencidos:'<i class="cob-punto" style="background:#B5453A"></i>', hoy:'<i class="cob-punto" style="background:#D9822B"></i>', semana:'<i class="cob-punto" style="background:#D9B43B"></i>', sinpago:'<i class="cob-punto" style="background:#C2185B"></i>', curso:'<i class="cob-punto" style="background:#55745C"></i>', despues:'<i class="cob-punto" style="background:#4A7DB5"></i>', sinfecha:'<i class="cob-punto" style="background:#5A5057"></i>', pasado:'<i class="cob-punto" style="background:#9C8590"></i>' };
 /* "Hoy" con la hora de quien usa el Hub (México). new Date().toISOString() da
    la fecha de Londres (UTC): desde las 5–6 pm ya es "mañana", los días del
@@ -6420,12 +6500,9 @@ function etiquetaGrupoCob(id){
   return {
     confirmar: ['Por confirmar', 'pagos reportados o por confirmar en el banco'],
     vencidos:  ['Vencidos', esHoy ? 'ya pasó su fecha' : `antes del ${dia}`],
-    hoy:       [esHoy ? 'Hoy' : `El ${dia}`, ''],
-    semana:    [esHoy ? 'Esta semana' : 'Los 7 días siguientes', 'los próximos 7 días'],
-    sinpago:   ['Inscritas sin pago · sin fecha', 'no han pagado nada y no tienen fecha de pago: ponles fecha en su ficha'],
-    curso:     ['Con anticipo · se cobra en el curso', 'pagaron una parte; lo que falta se cobra el día de su curso'],
-    despues:   ['Más adelante', 'con fecha de pago después de 7 días'],
-    sinfecha:  ['Sin fecha', 'leads sin fecha de anticipo'],
+    hoy:       [esHoy ? 'Hoy y esta semana' : `Desde el ${dia}, 7 días`, 'hoy y los próximos 7 días'],
+    despues:   ['Más adelante', 'con fecha de pago después de 7 días, o que se cobran el día de su curso'],
+    sinfecha:  ['Sin fecha', 'leads sin fecha de anticipo e inscritas que no han pagado nada ni tienen fecha: ponles fecha (Completar datos)'],
     pasado:    ['Curso ya pasó · debe', 'su curso ya fue y no terminó de pagar'],
   }[id];
 }
@@ -6494,8 +6571,8 @@ async function cargarCobranza(){
 function itemsCobranza(sinFiltros = false){
   const q = sinFiltros ? '' : normTexto(document.getElementById('cobBuscar').value);
   const qTel = sinFiltros ? '' : document.getElementById('cobBuscar').value.replace(/\D/g, '');
-  const vend = sinFiltros ? '' : document.getElementById('cobVendedor').value;
-  const quien = sinFiltros ? 'todos' : cobQuien;
+  const vend = '';
+  const quien = 'todos';
   const items = [];
   if(quien !== 'inscritas') cobDatos.leads.forEach(l=>{
     const conf = l.estatus?.id === ESTATUS_POR_CONFIRMAR();
@@ -6653,15 +6730,98 @@ document.getElementById('cobVistaCalendario').addEventListener('click', async e=
   alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza') renderCobranza(); });
 });
 
+/* =========================================================
+   COBRANZA → COMPLETAR DATOS (30 oct 2026): una sola lista de lo que falta para que nadie se pierda del
+   calendario ni del panel de su vendedora: inscritas sin fecha de pago, inscritas sin vendedora y leads sin curso.
+   Se llena ahí mismo, renglón por renglón, sin abrir fichas; al completarse el renglón sale. Nada se guarda aparte:
+   se calcula de lo que hay hoy (las mismas reglas del vigilante).
+   ========================================================= */
+const cd = { sinFecha:[], sinVend:[], sinCurso:[], cargado:false, limite:{ f:25, v:25, c:25 }, turno:0 };
+async function cdCargar(){
+  const turno = ++cd.turno, caja = document.getElementById('cobVistaDatos');
+  if(!cd.cargado) caja.innerHTML = '<div class="empty-note">Cargando…</div>';
+  const hoy = hoyISO(), finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
+  const [ri, rl] = await Promise.all([
+    fetchTodasFilas('inscripciones', 'id, persona_id, asesor_id, anticipo, restante, precio_pactado, personas ( id, nombre, telefono_principal ), estatus ( clave ), eventos!inner ( id, fecha, ciudades ( nombre ) )',
+      q=>q.is('asesor_id', null).gte('eventos.fecha', hoy).order('id')),
+    fetchTodasFilas('leads', LEAD_SELECT + ', estatus_id, persona_id', q=>{ q = q.is('evento_id', null).order('id'); return finales.length ? q.not('estatus_id', 'in', `(${finales.join(',')})`) : q; }),
+  ]);
+  if(turno !== cd.turno) return;
+  if(ri.error || rl.error){ caja.innerHTML = `<div class="empty-note">No se pudo cargar: ${escHtml((ri.error || rl.error).message)}</div>`; return; }
+  cd.sinFecha = itemsCobranza(true).filter(it=>it.tipo === 'insc' && !it.porConfirmar && !it.cursoPasado && it.fechaEsCurso && !(it.pagado > 0));
+  cd.sinVend = (ri.data || []).filter(i=>!i.asesor_id && !['no_va_al_curso', 'perdio_anticipo'].includes(i.estatus?.clave));
+  cd.sinCurso = (rl.data || []).filter(l=>!l.evento_id);
+  cd.cargado = true;
+  cdPintar();
+}
+function cdPintar(){
+  const caja = document.getElementById('cobVistaDatos');
+  const total = cd.sinFecha.length + cd.sinVend.length + cd.sinCurso.length;
+  if(!total){ caja.innerHTML = '<div class="cd-ok">Todo completo: nadie sin fecha, sin vendedora ni sin curso.</div>'; return; }
+  const sec = (clave, titulo, ayuda, lista, fila)=> !lista.length ? '' : `<div class="cd-sec"><h4>${titulo} · ${lista.length}</h4><div class="sub" style="margin:0 0 4px;">${ayuda}</div>
+      ${lista.slice(0, cd.limite[clave]).map(fila).join('')}
+      ${lista.length > cd.limite[clave] ? `<button type="button" class="btn-outline small" data-cd-mas="${clave}" style="width:auto;margin-top:8px;">Ver ${Math.min(25, lista.length - cd.limite[clave])} más</button>` : ''}</div>`;
+  const vendOpts = '<option value="">Elige vendedora…</option>' + VENDEDORES.map(u=>`<option value="${escapeAttr(u.id)}">${escHtml(u.nombre)}</option>`).join('');
+  const cursoOpts = l=>{
+    const evs = [...(EVENTOS_CAL || [])];
+    const suyos = evs.filter(e=>l.ciudad_interes_id && e.ciudad_id === l.ciudad_interes_id), otros = evs.filter(e=>!suyos.includes(e));
+    const op = e=>`<option value="${escapeAttr(e.id)}">${escHtml(e.ciudades?.nombre || '(ciudad?)')} · ${escHtml(fechaCorta(e.fecha))}</option>`;
+    return '<option value="">Elige el curso…</option>' + (suyos.length ? `<optgroup label="De su ciudad">${suyos.map(op).join('')}</optgroup>` : '') + `<optgroup label="Otros cursos">${otros.map(op).join('')}</optgroup>`;
+  };
+  caja.innerHTML = `<div class="sub" style="margin:0 0 12px;"><b>${total}</b> por completar. Se guarda al elegir; el renglón desaparece.</div>
+    ${sec('f', 'Inscritas sin fecha de pago', 'No han pagado nada. Con su fecha salen en el Calendario.', cd.sinFecha, it=>`<div class="cd-fila" data-cd-k="f" data-cd-id="${escapeAttr(it.id)}">
+        <div><b>${escHtml(tituloCaso(it.nombre))}</b><div class="sub">${escHtml(it.donde)} · debe ${fmtMoney(it.debe)} · ${escHtml(nombreVendedor(it.vendedor) || 'sin vendedora')}</div></div>
+        <input type="date" min="${hoyISO()}" data-cd-fecha aria-label="Fecha de pago"><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}
+    ${sec('v', 'Inscritas sin vendedora', 'Sin vendedora no salen en el panel de nadie. Elige quién vendió.', cd.sinVend, i=>`<div class="cd-fila" data-cd-k="v" data-cd-id="${escapeAttr(i.id)}">
+        <div><b>${escHtml(tituloCaso(i.personas?.nombre || ''))}</b><div class="sub">${escHtml((i.eventos?.ciudades?.nombre || '(ciudad?)') + ' · ' + fechaCorta(i.eventos?.fecha))} · pagó ${fmtMoney(i.anticipo)}</div></div>
+        <select data-cd-vend aria-label="Vendedora">${vendOpts}</select><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}
+    ${sec('c', 'Leads sin curso', 'Sin curso ligado no cuentan en ningún embudo. Elige el curso que tomará.', cd.sinCurso, l=>`<div class="cd-fila" data-cd-k="c" data-cd-id="${escapeAttr(l.id)}">
+        <div><b>${escHtml(tituloCaso(l.personas?.nombre || ''))}</b><div class="sub">${escHtml([l.ciudades?.nombre || 'sin ciudad', 'capturado el ' + fechaCorta(String(l.creado_en).slice(0, 10)), nombreVendedor(l.asesor_id) || 'sin vendedora'].join(' · '))}</div></div>
+        <select data-cd-curso aria-label="Curso">${cursoOpts(l)}</select><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}`;
+}
+document.getElementById('cobVistaDatos').addEventListener('click', async e=>{
+  const mas = e.target.closest('[data-cd-mas]');
+  if(mas){ cd.limite[mas.dataset.cdMas] += 25; return cdPintar(); }
+  const ab = e.target.closest('[data-cd-abrir]'); if(!ab) return;
+  const fila = ab.closest('[data-cd-k]'), k = fila.dataset.cdK, id = fila.dataset.cdId;
+  if(k === 'c'){ const l = cd.sinCurso.find(x=>x.id === id); if(l && !leadsCache.some(x=>x.id === id)) leadsCache.push(l); await abrirModalLead(id); }
+  else { alCerrarFichaInscripcion = null; await abrirModalInscripcion(id); }
+  alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza') renderCobranza(); });
+});
+document.getElementById('cobVistaDatos').addEventListener('change', async e=>{
+  const fila = e.target.closest('[data-cd-k]'); if(!fila || !e.target.value) return;
+  const k = fila.dataset.cdK, id = fila.dataset.cdId, v = e.target.value;
+  e.target.disabled = true;
+  let error, nombre, texto;
+  if(k === 'f'){
+    const it = cd.sinFecha.find(x=>x.id === id); nombre = it?.nombre;
+    if(v < hoyISO()){ toast('Esa fecha ya pasó: pon una de hoy en adelante.', true); e.target.value = ''; e.target.disabled = false; return; }
+    ({ error } = await sb.from('inscripciones').update({ fecha_proximo_pago: v }).eq('id', id));
+    if(!error){ registrarActividad('fecha_cobro_movida', `${nombre}: sin fecha → ${fechaCorta(v)}`); texto = `ahora paga el ${fechaCorta(v)}`; cd.sinFecha = cd.sinFecha.filter(x=>x.id !== id); }
+  } else if(k === 'v'){
+    const i = cd.sinVend.find(x=>x.id === id); nombre = i?.personas?.nombre;
+    ({ error } = await sb.from('inscripciones').update({ asesor_id: v }).eq('id', id));
+    if(!error){ registrarActividad('venta_asignada', `${nombre}: ${nombreVendedor(v)}`); texto = `a nombre de ${nombreVendedor(v)}`; cd.sinVend = cd.sinVend.filter(x=>x.id !== id); }
+  } else {
+    const l = cd.sinCurso.find(x=>x.id === id); nombre = l?.personas?.nombre;
+    const ev = eventoPorId(v);
+    ({ error } = await sb.from('leads').update({ evento_id:v, ciudad_interes_id: ev?.ciudad_id || l?.ciudad_interes_id || null, actualizado_en:new Date().toISOString() }).eq('id', id));
+    if(!error){ registrarActividad('lead_actualizado', `${nombre} → curso ${ev?.ciudades?.nombre || ''} ${ev ? fechaCorta(ev.fecha) : ''}`); texto = `curso: ${ev?.ciudades?.nombre || ''} ${ev ? fechaCorta(ev.fecha) : ''}`; cd.sinCurso = cd.sinCurso.filter(x=>x.id !== id); }
+  }
+  if(error){ toast('No se pudo guardar: ' + error.message, true); e.target.disabled = false; return; }
+  toast(`${tituloCaso(nombre || '')}: ${texto}.`);
+  cdPintar();
+  cargarCobranza();   // el calendario y Por cobrar se ponen al día con lo nuevo
+});
+
 function grupoCobranza(it){
   if(it.porConfirmar) return 'confirmar';
   if(it.tipo === 'insc' && it.cursoPasado) return 'pasado';
-  if(it.tipo === 'insc' && it.fechaEsCurso && !(it.pagado > 0)) return 'sinpago';
+  if(it.tipo === 'insc' && it.fechaEsCurso && !(it.pagado > 0)) return 'sinfecha';
   if(!it.fecha) return 'sinfecha';
   if(it.fecha < cobDia) return 'vencidos';
   if(it.fecha === cobDia) return 'hoy';
-  if(it.fecha <= sumarDias(cobDia, 7)) return 'semana';
-  if(it.tipo === 'insc' && it.fechaEsCurso && it.pagado > 0) return 'curso';
+  if(it.fecha <= sumarDias(cobDia, 7)) return 'hoy';
   return 'despues';
 }
 function etiquetaCobInsc(it){
@@ -6673,7 +6833,7 @@ function filaCobranza(it, grupo){
   if(grupo === 'confirmar') cuando = it.tipo === 'insc' ? 'confírmalo en su ficha' : it.reportadoEn ? hace(it.reportadoEn) : 'sin datos del pago';
   else if(!it.fecha) cuando = 'sin fecha';
   else if(grupo === 'vencidos'){ const n = diasEntre(it.fecha, cobDia); cuando = `venció ${fechaCorta(it.fecha)} · ${n === 1 ? 'hace 1 día' : 'hace ' + n + ' días'}`; }
-  else if(grupo === 'hoy') cuando = cobDia === hoyISO() ? 'hoy' : fechaCorta(it.fecha);
+  else if(grupo === 'hoy') cuando = it.fecha === hoyISO() ? 'hoy' : fechaCorta(it.fecha);
   else cuando = fechaCorta(it.fecha);
   if(it.fechaEsCurso && grupo !== 'confirmar') cuando += ' (día del curso)';
   const vend = nombreVendedor(it.vendedor);
@@ -6706,7 +6866,7 @@ function pintarCobranza(){
   const por = Object.fromEntries(COB_GRUPOS.map(g=>[g, []]));
   items.forEach(it=> por[grupoCobranza(it)].push(it));
   por.confirmar.sort((a,b)=> (a.reportadoEn || '').localeCompare(b.reportadoEn || '') || a.nombre.localeCompare(b.nombre, 'es'));
-  ['vencidos','hoy','semana','curso','despues','pasado'].forEach(g=> por[g].sort((a,b)=> (a.fecha || '').localeCompare(b.fecha || '') || a.nombre.localeCompare(b.nombre, 'es')));
+  ['vencidos','hoy','despues','pasado'].forEach(g=> por[g].sort((a,b)=> (a.fecha || '').localeCompare(b.fecha || '') || a.nombre.localeCompare(b.nombre, 'es')));
   por.sinfecha.sort((a,b)=> a.nombre.localeCompare(b.nombre, 'es'));
   const suma = g => por[g].reduce((t,it)=> t + (Number(it.monto) || 0), 0);
 
@@ -6844,14 +7004,8 @@ async function renderCobranza(){
   cargarPorConfirmarCobranza();
   cargarBandejaCobranza();
   document.getElementById('cobDia').value = cobDia;
-  const selV = document.getElementById('cobVendedor');
-  const vActual = selV.value;
-  selV.innerHTML = '<option value="">Todos los vendedores</option>'
-    + VENDEDORES.map(u=>`<option value="${u.id}">${u.nombre}</option>`).join('')
-    + '<option value="__sin">Sin vendedor</option>';
-  selV.value = vActual;
   if(!cobDatos.leads.length && !cobDatos.inscritas.length) document.getElementById('cobGrupos').innerHTML = 'Cargando…';
-  if(await cargarCobranza()){ pintarCobranza(); if(emb.tab === 'calendario') ccCargar(); }
+  if(await cargarCobranza()){ pintarCobranza(); if(emb.tab === 'calendario') ccCargar(); if(emb.tab === 'datos') cdCargar(); }
 }
 
 // Cuando se cierran las fichas que se abrieron desde aquí (y las que se
@@ -6890,12 +7044,6 @@ document.getElementById('cobDia').addEventListener('change', e=>{ if(e.target.va
 document.getElementById('cobDiaAnt').addEventListener('click', ()=>{ cobDia = sumarDias(cobDia || hoyISO(), -1); document.getElementById('cobDia').value = cobDia; pintarCobranza(); });
 document.getElementById('cobDiaSig').addEventListener('click', ()=>{ cobDia = sumarDias(cobDia || hoyISO(), 1); document.getElementById('cobDia').value = cobDia; pintarCobranza(); });
 document.getElementById('cobDiaHoy').addEventListener('click', ()=>{ cobDia = hoyISO(); document.getElementById('cobDia').value = cobDia; pintarCobranza(); });
-document.querySelectorAll('#cobQuien button').forEach(b=>b.addEventListener('click', ()=>{
-  cobQuien = b.dataset.q;
-  document.querySelectorAll('#cobQuien button').forEach(x=>x.classList.toggle('active', x === b));
-  pintarCobranza();
-}));
-document.getElementById('cobVendedor').addEventListener('change', pintarCobranza);
 document.getElementById('cobBuscar').addEventListener('input', pintarCobranza);
 document.getElementById('cobAtajos').addEventListener('click', e=>{
   const b = e.target.closest('[data-cob-ir]'); if(!b) return;
@@ -8196,7 +8344,7 @@ function pintarCursoFicha(){
   document.getElementById('fichaCursoTxt').textContent = ev ? `${ev.ciudades?.nombre || '(ciudad?)'} · ${ev.fecha ? fechaLarga(ev.fecha) : 'sin fecha'}` : 'sin curso';
   document.getElementById('fichaCursoMover').hidden = true;
   document.getElementById('fichaCeder').hidden = true;
-  // Ceder su lugar: administradores y Cobranza, solo si su curso no ha pasado y no ha llegado.
+  // Ceder su lugar: todo el equipo, solo si su curso no ha pasado y no ha llegado.
   document.getElementById('btnCederLugar').style.display = puedeCederLugar() && ev?.fecha && ev.fecha >= hoyISO() && d.asistencia !== 'llego' ? '' : 'none';
 }
 
@@ -8204,7 +8352,7 @@ function pintarCursoFicha(){
    Es la misma inscripción: no se cancela ni se crea otra (los números no cambian). Lo hace la base de una
    sola vez (ceder_lugar): rastro en inscripcion_traspasos, en el historial de las dos y en sus notas. */
 const ceder = { sel:null, turno:0 };
-function puedeCederLugar(){ return !!(usuarioActual?.es_admin || usuarioActual?.rol === 'Cobranza'); }
+function puedeCederLugar(){ return !!usuarioActual?.id; }   // abierto para todo el equipo (30 oct); a Cobranza le llega un aviso al bloc
 document.getElementById('btnCederLugar').addEventListener('click', ()=>{
   ceder.sel = null;
   ['cederTel', 'cederNombre', 'cederMotivo'].forEach(id=>{ document.getElementById(id).value = ''; });
@@ -13770,6 +13918,8 @@ document.getElementById('cobTabs').addEventListener('click', e=>{
   document.getElementById('cobVistaCalendario').style.display = emb.tab === 'calendario' ? '' : 'none';
   document.getElementById('cobVistaCobrar').style.display = emb.tab === 'cobrar' ? '' : 'none';
   document.getElementById('cobVistaEmbudo').style.display = emb.tab === 'embudo' ? '' : 'none';
+  document.getElementById('cobVistaDatos').style.display = emb.tab === 'datos' ? '' : 'none';
+  if(emb.tab === 'datos') cdCargar();
   if(emb.tab === 'embudo') embCargar();
   if(emb.tab === 'calendario') ccCargar();
 });
@@ -16781,7 +16931,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-10-29-calendario';
+const HUB_VERSION = '2026-10-30-cobrar-hoy';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);

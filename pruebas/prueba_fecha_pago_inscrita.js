@@ -33,12 +33,12 @@ const lead = (id, pid, nombre, extra) => ({ id, persona_id:pid, evento_id:'ev1',
   const grupo = g => p.$$eval(`#cobG-${g} .cob-fila .cob-nombre`, xs => xs.map(x => x.textContent));
 
   h.paso('1. Cobranza: las inscritas sin pago y sin fecha ya no se esconden');
-  const sinpago = await grupo('sinpago');
-  check(sinpago.length === 2 && sinpago.some(t => t.includes('Inscrita Sin Pago Sin Fecha')) && sinpago.some(t => t.includes('Inscrita Con Su Lead')), 'tienen su grupo: ' + sinpago.join(' | '));
-  check(await p.$eval('#cobG-sinpago', d => d.open) && (await p.textContent('#cobG-sinpago summary')).includes('Inscritas sin pago · sin fecha'), 'abierto de entrada, sin filtrar');
+  const sinpago = (await grupo('sinfecha')).filter(t => t.includes('Inscrita ·'));
+  check(sinpago.length >= 2 && sinpago.some(t => t.includes('Inscrita Sin Pago Sin Fecha')) && sinpago.some(t => t.includes('Inscrita Con Su Lead')), 'tienen su grupo: ' + sinpago.join(' | '));
+  check(await p.$eval('#cobG-sinfecha', d => d.open) && (await p.textContent('#cobG-sinfecha summary')).includes('Sin fecha'), 'abierto de entrada, sin filtrar');
   check(!(await grupo('despues')).some(t => t.includes('Sin Pago Sin Fecha')), 'ya no está en "Más adelante"');
-  check((await grupo('semana')).some(t => t.includes('Inscrita Sin Pago Con Fecha')), 'con su fecha de pago sale en su día (esta semana)');
-  check((await grupo('curso')).some(t => t.includes('Inscrita Con Anticipo')), 'con anticipo y sin fecha, como antes: se cobra en el curso');
+  check((await grupo('hoy')).some(t => t.includes('Inscrita Sin Pago Con Fecha')), 'con su fecha de pago sale en su día (esta semana)');
+  check((await grupo('despues')).some(t => t.includes('Inscrita Con Anticipo')), 'con anticipo y sin fecha, como antes: se cobra el día de su curso, en "Más adelante"');
   await h.captura('fecha-pago-cobranza.png');
 
   h.paso('2. Inscribir sin pago pide la fecha de pago');

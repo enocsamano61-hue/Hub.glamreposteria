@@ -15,7 +15,7 @@ declare
   e0 uuid; ea uuid; eb uuid; v_admin uuid; v_yo uuid; v_vend uuid;
   st_pagado int; st_ppc int; st_anticipo int; st_novence int; st_intento int;
   p1 uuid; p2 uuid; p3 uuid; p4 uuid; l1 uuid; l2 uuid; l3 uuid; i1 uuid; i3 uuid; a1 uuid; a3 uuid;
-  p8 uuid; l8 uuid; u8 uuid; v_otro_admin uuid;
+  p8 uuid; l8 uuid; u8 uuid; v_otro_admin uuid; ok_av int;
   ok int := 0; mal text[] := '{}'; t text; rojos text;
 begin
   -- Ayudantes (solo viven en esta corrida)
@@ -171,6 +171,18 @@ begin
   begin update public.usuarios set es_admin = true where id = u8; ok := ok + 1;
   exception when others then mal := mal || ('H8 quien recibe los tickets no pudo hacer administrador: ' || sqlerrm); end;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H8 vigilante: ' || rojos); end if;
+
+  -- ===== H9. Una vendedora cede un lugar (abierto para todos, 30 oct) → se hace y a Cobranza le llega el aviso =====
+  perform set_config('request.jwt.claims', json_build_object('sub', (select auth_user_id from public.usuarios where rol = 'Ventas' and activo and auth_user_id is not null limit 1), 'role', 'authenticated')::text, true);
+  insert into public.personas (nombre, telefono_principal) values ('HISTORIA NUEVE', '0000000109') returning id into p8;
+  insert into public.inscripciones (persona_id, evento_id, precio_pactado, paquete, anticipo, restante, liquidado, estatus_id, asesor_id, notas_migracion)
+  values (p4, e0, 1400, 'BASICO', 700, 700, false, st_anticipo, v_vend, 'HISTORIA') returning id into i3;
+  select count(*) into ok_av from public.notas_usuario where de_sistema and texto like 'Cedió su lugar%';
+  perform public.ceder_lugar(i3, p8, 'Historia: la vendedora cede');
+  if (select persona_id from public.inscripciones where id = i3) = p8 then ok := ok + 1; else mal := mal || 'H9 la vendedora no pudo ceder el lugar'::text; end if;
+  if (select count(*) from public.notas_usuario where de_sistema and texto like 'Cedió su lugar%') > ok_av then ok := ok + 1; else mal := mal || 'H9 a Cobranza no le llegó el aviso'::text; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H9 vigilante: ' || rojos); end if;
 
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;
