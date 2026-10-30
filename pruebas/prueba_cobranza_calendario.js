@@ -72,6 +72,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   const lista = await p.textContent('#cobVistaCalendario .cc-lista');
   check(lista.includes('5') && lista.includes('Lead Paga Hoy') && lista.includes('Lead Cuatro Hoy') && lista.includes('Alumna Academia') && lista.includes('Academia Glam'), 'la lista del día, con todos');
   check(lista.includes('$700') && lista.includes('$799') && lista.includes('$1,499'), 'cuánto paga cada una y el total del día');
+  check((await p.textContent('.cc-fila[data-cc-k="lead"][data-cc-id="l1"] .tc-tel')) === '5511111111' && (await p.textContent('.cc-lista')).includes('5522222222'), 'cada renglón trae su celular a 10 dígitos (leads y Academia Glam)');
   await p.click('.cc-fila[data-cc-k="lead"][data-cc-id="l1"] [data-cc-acc="wa"]');
   check(await p.evaluate(() => window.__wa?.telefono === '5511111111' && window.__wa?.leadId === 'l1'), 'WhatsApp con su teléfono');
   await p.click('.cc-fila[data-cc-k="lead"][data-cc-id="l1"] [data-cc-acc="abrir"]');

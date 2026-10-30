@@ -4395,6 +4395,12 @@ const esReporteDia = () => !!usuarioActual?.recibe_pedidos;
    (cargarCobranza / itemsCobranza), filtrada a su nombre: los números siempre cuadran con los de Cobranza y el
    Calendario. Nada se guarda aparte. Al entrar, un aviso corto una vez al día.
    ========================================================= */
+// Celular a 10 dígitos para copiar y pegar (pedido de Jared, 30 oct): sin +52, espacios ni guiones; un toque lo selecciona.
+// Lo usan "Te toca cobrar hoy", Por cobrar, el Calendario de Cobranza y Completar datos.
+function htmlCel10(tel){
+  const t = String(tel || '').replace(/\D/g, '').slice(-10);
+  return t.length >= 10 ? `<span class="tc-tel" title="Toca para seleccionarlo y copiarlo">${escHtml(t)}</span>` : '';
+}
 const tc = { turno:0, items:[], sel:'', hoy:'' };
 // Semáforo (30 oct 2026): rojo = ya venció, amarillo = vence hoy o en los próximos 3 días, verde = fecha más adelante,
 // gris = sin fecha (lo completa Cobranza). Se calcula de la lista de hoy cada vez; nada se guarda.
@@ -4409,14 +4415,12 @@ function tcSemaforo(items, hoy){
   };
 }
 function tcFila(it, hoy){
-  // Su celular a 10 dígitos, para copiarlo y pegarlo (pedido de Jared, 30 oct)
-  const tel10 = String(it.tel || '').replace(/\D/g, '').slice(-10);
   const venc = it.fecha && !it.fechaEsCurso && it.fecha < hoy;
   const marca = !it.fecha || it.fechaEsCurso ? '<span class="cc-tag">Sin fecha</span>'
     : venc ? `<span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span>` : it.fecha > hoy ? `<span class="cc-tag">${escHtml(fechaCorta(it.fecha))}</span>` : '';
   return `<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}">
     <div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b><span class="cc-tag">${it.tipo === 'lead' ? 'Anticipo prometido' : 'Fecha de pago'}</span>${marca}
-      <div class="sub">${escHtml(it.donde)}${tel10 ? ` · <span class="tc-tel" title="Toca para seleccionarlo y copiarlo">${escHtml(tel10)}</span>` : ''}</div></div>
+      <div class="sub">${escHtml(it.donde)}${htmlCel10(it.tel) ? ' · ' + htmlCel10(it.tel) : ''}</div></div>
     <div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
     <div class="acc">${it.tel ? '<button type="button" class="btn-outline small" data-tc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-tc-acc="abrir">Abrir</button></div></div>`;
 }
@@ -6735,7 +6739,7 @@ function ccHtmlFila(x, hoy){
   const venc = x.fecha && x.fecha < hoy;
   return `<div class="cc-fila" data-cc-k="${x.k}" data-cc-id="${escapeAttr(x.id)}">
     <div><i class="cc-p ${x.k}"></i><b>${escHtml(tituloCaso(x.nombre))}</b><span class="cc-tag">${tipo}</span>${x.conf ? '<span class="cc-tag">por confirmar</span>' : ''}${venc ? `<span class="cc-tag venc">venció ${escHtml(fechaCorta(x.fecha))}</span>` : ''}
-      <div class="sub">${escHtml([x.donde, x.vend ? nombreVendedor(x.vend) || aglNombreVend(x.vend) : 'sin vendedora'].filter(Boolean).join(' · '))}</div></div>
+      <div class="sub">${escHtml([x.donde, x.vend ? nombreVendedor(x.vend) || aglNombreVend(x.vend) : 'sin vendedora'].filter(Boolean).join(' · '))}${htmlCel10(x.tel) ? ' · ' + htmlCel10(x.tel) : ''}</div></div>
     <div class="cc-monto">${x.monto ? fmtMoney(x.monto) : '—'}</div>
     <div class="acc">${x.tel ? '<button type="button" class="btn-outline small" data-cc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-cc-acc="abrir">Abrir</button></div>
   </div>`;
@@ -6811,13 +6815,13 @@ function cdPintar(){
   };
   caja.innerHTML = `<div class="sub" style="margin:0 0 12px;"><b>${total}</b> por completar. Se guarda al elegir; el renglón desaparece.</div>
     ${sec('f', 'Inscritas sin fecha de pago', 'No han pagado nada. Con su fecha salen en el Calendario.', cd.sinFecha, it=>`<div class="cd-fila" data-cd-k="f" data-cd-id="${escapeAttr(it.id)}">
-        <div><b>${escHtml(tituloCaso(it.nombre))}</b><div class="sub">${escHtml(it.donde)} · debe ${fmtMoney(it.debe)} · ${escHtml(nombreVendedor(it.vendedor) || 'sin vendedora')}</div></div>
+        <div><b>${escHtml(tituloCaso(it.nombre))}</b><div class="sub">${escHtml(it.donde)} · debe ${fmtMoney(it.debe)} · ${escHtml(nombreVendedor(it.vendedor) || 'sin vendedora')}${htmlCel10(it.tel) ? ' · ' + htmlCel10(it.tel) : ''}</div></div>
         <input type="date" min="${hoyISO()}" data-cd-fecha aria-label="Fecha de pago"><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}
     ${sec('v', 'Inscritas sin vendedora', 'Sin vendedora no salen en el panel de nadie. Elige quién vendió.', cd.sinVend, i=>`<div class="cd-fila" data-cd-k="v" data-cd-id="${escapeAttr(i.id)}">
-        <div><b>${escHtml(tituloCaso(i.personas?.nombre || ''))}</b><div class="sub">${escHtml((i.eventos?.ciudades?.nombre || '(ciudad?)') + ' · ' + fechaCorta(i.eventos?.fecha))} · pagó ${fmtMoney(i.anticipo)}</div></div>
+        <div><b>${escHtml(tituloCaso(i.personas?.nombre || ''))}</b><div class="sub">${escHtml((i.eventos?.ciudades?.nombre || '(ciudad?)') + ' · ' + fechaCorta(i.eventos?.fecha))} · pagó ${fmtMoney(i.anticipo)}${htmlCel10(i.personas?.telefono_principal) ? ' · ' + htmlCel10(i.personas?.telefono_principal) : ''}</div></div>
         <select data-cd-vend aria-label="Vendedora">${vendOpts}</select><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}
     ${sec('c', 'Leads sin curso', 'Sin curso ligado no cuentan en ningún embudo. Elige el curso que tomará.', cd.sinCurso, l=>`<div class="cd-fila" data-cd-k="c" data-cd-id="${escapeAttr(l.id)}">
-        <div><b>${escHtml(tituloCaso(l.personas?.nombre || ''))}</b><div class="sub">${escHtml([l.ciudades?.nombre || 'sin ciudad', 'capturado el ' + fechaCorta(String(l.creado_en).slice(0, 10)), nombreVendedor(l.asesor_id) || 'sin vendedora'].join(' · '))}</div></div>
+        <div><b>${escHtml(tituloCaso(l.personas?.nombre || ''))}</b><div class="sub">${escHtml([l.ciudades?.nombre || 'sin ciudad', 'capturado el ' + fechaCorta(String(l.creado_en).slice(0, 10)), nombreVendedor(l.asesor_id) || 'sin vendedora'].join(' · '))}${htmlCel10(l.personas?.telefono_principal) ? ' · ' + htmlCel10(l.personas?.telefono_principal) : ''}</div></div>
         <select data-cd-curso aria-label="Curso">${cursoOpts(l)}</select><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}`;
 }
 document.getElementById('cobVistaDatos').addEventListener('click', async e=>{
@@ -6883,7 +6887,7 @@ function filaCobranza(it, grupo){
   return `<div class="cob-fila" data-cob-tipo="${it.tipo}" data-cob-id="${it.id}">
     <div class="cob-main">
       <div class="cob-nombre">${escHtml(it.nombre)}<span class="cob-tipo ${it.tipo}">${it.tipo === 'lead' ? (it.yaInscrita ? 'Lead · ya inscrita' : 'Lead') : etiquetaCobInsc(it)}</span></div>
-      <div class="cob-meta">${escHtml(it.donde)}${vend ? ' · ' + escHtml(vend) : ' · <span style="color:var(--danger);">sin vendedor</span>'}</div>
+      <div class="cob-meta">${escHtml(it.donde)}${vend ? ' · ' + escHtml(vend) : ' · <span style="color:var(--danger);">sin vendedor</span>'}${htmlCel10(it.tel) ? ' · ' + htmlCel10(it.tel) : ''}</div>
       ${it.tipo === 'insc' ? `<div class="cob-meta ${it.pagado > 0 ? 'cob-pagado' : ''}">${it.pagado > 0 ? `Pagó ${fmtMoney(it.pagado)}${it.precio ? ' de ' + fmtMoney(it.precio) : ''}` : 'Sin pago'} · debe ${fmtMoney(it.debe)}${it.porConfirmar ? ` · ${fmtMoney(it.monto)} por confirmar` : ''}</div>` : ''}
       ${it.situacion === 'verificar' ? '<div class="cob-meta cob-verificar">Verificar antes de cobrar</div>' : ''}
       ${it.yaInscrita ? '<div class="cob-meta">Ya está inscrita en ese curso: al confirmar, el pago pasa a su ficha y el lead se cierra.</div>' : ''}

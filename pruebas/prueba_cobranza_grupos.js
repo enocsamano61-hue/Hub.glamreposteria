@@ -46,6 +46,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   const despues = await grupo('despues');
   check(despues.some(t => t.includes('Con Fecha De Pago')) && despues.some(t => t.includes('Lead Promesa Lejana')) && !despues.some(t => t.includes('Sin Pago Curso Lejano')),
         'con fecha de pago lejana: ' + despues.join(' | '));
+  check((await p.$$eval('#cobGrupos .cob-meta .tc-tel', xs => xs.map(x => x.textContent))).includes('5511111111'), 'cada renglón trae su celular a 10 dígitos para copiarlo (pedido de Jared)');
   check(await p.$eval('#cobG-despues summary .cob-punto', x => getComputedStyle(x).backgroundColor) === 'rgb(74, 125, 181)', 'punto azul, no blanco');
   check((await grupo('hoy')).some(t => t.includes('Curso Esta Semana')) && (await grupo('sinfecha')).some(t => t.includes('Lead Sin Fecha')) && (await grupo('sinfecha')).some(t => t.includes('Sin Pago Curso Lejano'))
         && (await grupo('confirmar')).some(t => t.includes('Lead Por Confirmar')), 'lo urgente sigue en su grupo de siempre');
