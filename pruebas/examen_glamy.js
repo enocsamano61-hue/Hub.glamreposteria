@@ -116,6 +116,12 @@ const CASOS_FASE1 = [
     revisar: t => /ficha/i.test(t) && /Acept[oó]/.test(t) },
   { nombre:'Kits: cancelar el kit y qué pasa con lo pagado (29 oct, Tamar)', pregunta:'una alumna ya no quiere su kit porque se gradúa el próximo año, ¿cómo lo quito y qué pasa con lo que pagó?',
     revisar: t => /Cancelar el kit/.test(t) && /(motivo|dinero|pag[oó])/i.test(t) && !/no (existe|hay) (forma|opci[oó]n)/i.test(t) },
+  { nombre:'Ceder su lugar lo hace cualquiera (30 oct)', pregunta:'soy vendedora, una alumna no puede ir y va su hermana, ¿puedo cederle su lugar o tiene que hacerlo cobranza?',
+    revisar: t => /Ceder su lugar/.test(t) && !/solo (los )?administrador/i.test(t) && /(Cobranza|aviso)/i.test(t) },
+  { nombre:'Vendedora: qué me toca cobrar hoy (30 oct)', pregunta:'¿dónde veo a quién me toca cobrar hoy?',
+    revisar: t => /Te toca cobrar hoy/.test(t) && /Inicio/.test(t) },
+  { nombre:'Cobranza: completar datos (30 oct)', pregunta:'hay inscritas que no tienen fecha de pago ni vendedora, ¿dónde las completo rápido?',
+    revisar: t => /Completar datos/.test(t) && /Cobranza/.test(t) },
   { nombre:'Gente nueva: le explica con calma y con botón (28 oct)', pregunta:'¿cómo registro un lead?', nueva_dias:1,
     revisar: t => /Nuevo lead/.test(t) && /⟦ir:board⟧/.test(t) && /(Glamy|asistente)/i.test(t) },
 ];

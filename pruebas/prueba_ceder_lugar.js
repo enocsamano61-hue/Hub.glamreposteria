@@ -33,7 +33,7 @@ const PERSONAS = [
   await abrir();
   check(await visible('#btnCederLugar'), 'Cobranza ve "Ceder su lugar"');
   await abrir({}, { id:'u3', nombre:'Ventas Prueba', rol:'Ventas', es_admin:false });
-  check(!(await visible('#btnCederLugar')), 'Ventas no lo ve');
+  check(await visible('#btnCederLugar'), 'Ventas también lo ve (abierto para todos, 30 oct)');
   await abrir({}, { id:'u1', nombre:'Cobranza Prueba', rol:'Cobranza', es_admin:false });
   await abrir({ eventos:{ ...INSC.eventos, fecha:mas(-3) } });
   check(!(await visible('#btnCederLugar')), 'si su curso ya pasó no sale');

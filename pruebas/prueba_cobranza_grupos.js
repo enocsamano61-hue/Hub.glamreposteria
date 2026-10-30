@@ -36,30 +36,29 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   await p.waitForTimeout(500);
   const grupo = g => p.$$eval(`#cobG-${g} .cob-fila .cob-nombre`, xs => xs.map(x => x.textContent));
 
-  h.paso('1. Las inscritas con anticipo que se cobran en el curso tienen su grupo verde');
-  const curso = await grupo('curso');
-  check(curso.length === 1 && curso[0].includes('Con Anticipo Curso Lejano'), 'van al grupo del curso (solo las que ya dieron anticipo): ' + curso.join(' | '));
-  check(await p.$eval('#cobG-curso summary .cob-punto', x => getComputedStyle(x).backgroundColor) === 'rgb(85, 116, 92)' && (await p.textContent('#cobG-curso summary')).includes('se cobra en el curso'), 'punto verde y el letrero "se cobra en el curso"');
-  check((await p.textContent('#cobAtajos')).includes('Con anticipo · se cobra en el curso'), 'también en los atajos de arriba');
+  h.paso('1. Por cobrar más simple (30 oct): 6 grupos, sin filtros de Leads/Inscritas ni de vendedora');
+  check((await p.$$eval('#cobGrupos > details', xs => xs.map(x => x.dataset.cobGrupo))).join() === 'confirmar,vencidos,hoy,sinfecha,despues,pasado', 'los grupos que quedan');
+  check(!(await p.$('#cobQuien')) && !(await p.$('#cobVendedor')) && !!(await p.$('#cobBuscar')), 'sin los filtros de Leads/Inscritas ni de vendedora; queda el buscador');
+  const curso = await grupo('despues');
+  check(curso.some(t => t.includes('Con Anticipo Curso Lejano')), 'con anticipo que se cobra el día de su curso: "Más adelante"');
 
-  h.paso('2. "Más adelante" ya no lleva círculo blanco y es para fechas de pago lejanas');
+  h.paso('2. "Más adelante" ya no lleva círculo blanco');
   const despues = await grupo('despues');
-  check(despues.some(t => t.includes('Con Fecha De Pago')) && despues.some(t => t.includes('Lead Promesa Lejana')) && !despues.some(t => t.includes('Sin Pago Curso Lejano'))
-        && !despues.some(t => t.includes('Con Anticipo Curso Lejano')),
+  check(despues.some(t => t.includes('Con Fecha De Pago')) && despues.some(t => t.includes('Lead Promesa Lejana')) && !despues.some(t => t.includes('Sin Pago Curso Lejano')),
         'con fecha de pago lejana: ' + despues.join(' | '));
   check(await p.$eval('#cobG-despues summary .cob-punto', x => getComputedStyle(x).backgroundColor) === 'rgb(74, 125, 181)', 'punto azul, no blanco');
-  check((await grupo('semana')).some(t => t.includes('Curso Esta Semana')) && (await grupo('sinfecha')).some(t => t.includes('Lead Sin Fecha'))
+  check((await grupo('hoy')).some(t => t.includes('Curso Esta Semana')) && (await grupo('sinfecha')).some(t => t.includes('Lead Sin Fecha')) && (await grupo('sinfecha')).some(t => t.includes('Sin Pago Curso Lejano'))
         && (await grupo('confirmar')).some(t => t.includes('Lead Por Confirmar')), 'lo urgente sigue en su grupo de siempre');
 
   h.paso('3. Cada inscrita dice cuánto pagó y cuánto debe');
-  await p.evaluate(() => { document.getElementById('cobG-curso').open = true; });
-  const fila = await p.textContent('#cobG-curso .cob-fila[data-cob-id="i1"]');
+  await p.evaluate(() => { document.getElementById('cobG-despues').open = true; });
+  const fila = await p.textContent('#cobG-despues .cob-fila[data-cob-id="i1"]');
   check(fila.includes('Inscrita · con anticipo') && fila.includes('Pagó $700 de $1,400 · debe $700'), 'con anticipo: "Pagó $700 de $1,400 · debe $700"');
   // La inscrita sin pago y sin fecha ya no se esconde en "Más adelante" (caso Miriam, 28 oct)
-  const f4 = await p.textContent('#cobG-sinpago .cob-fila[data-cob-id="i4"]');
+  const f4 = await p.textContent('#cobG-sinfecha .cob-fila[data-cob-id="i4"]');
   check(f4.includes('Inscrita · sin pago') && f4.includes('Sin pago · debe $1,400'), 'sin pago lo dice');
-  check(!(await p.textContent('#cobG-semana')).includes('Lead · Pagó'), 'los leads no traen esa línea');
-  await p.evaluate(() => document.getElementById('cobG-curso').scrollIntoView());
+  check(!(await p.textContent('#cobG-hoy')).includes('Lead · Pagó'), 'los leads no traen esa línea');
+  await p.evaluate(() => document.getElementById('cobG-despues').scrollIntoView());
   await h.captura('cobranza-grupo-curso.png');
 
   h.paso('4. Celular');
