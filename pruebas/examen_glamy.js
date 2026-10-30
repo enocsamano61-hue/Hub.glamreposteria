@@ -118,7 +118,7 @@ const CASOS_FASE1 = [
     revisar: t => /Cancelar el kit/.test(t) && /(motivo|dinero|pag[oó])/i.test(t) && !/no (existe|hay) (forma|opci[oó]n)/i.test(t) },
   { nombre:'Ceder su lugar lo hace cualquiera (30 oct)', pregunta:'soy vendedora, una alumna no puede ir y va su hermana, ¿puedo cederle su lugar o tiene que hacerlo cobranza?',
     revisar: t => /Ceder su lugar/.test(t) && !/solo (los )?administrador/i.test(t) && /(Cobranza|aviso)/i.test(t) },
-  { nombre:'Vendedora: qué me toca cobrar hoy (30 oct)', pregunta:'¿dónde veo a quién me toca cobrar hoy?',
+  { nombre:'Vendedora: qué me toca cobrar hoy (30 oct)', pregunta:'soy vendedora, ¿dónde veo en mi Inicio a quién me toca cobrar hoy?',
     revisar: t => /Te toca cobrar hoy/.test(t) && /Inicio/.test(t) },
   { nombre:'Cobranza: completar datos (30 oct)', pregunta:'hay inscritas que no tienen fecha de pago ni vendedora, ¿dónde las completo rápido?',
     revisar: t => /Completar datos/.test(t) && /Cobranza/.test(t) },
