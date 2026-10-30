@@ -45,3 +45,5 @@ Al tocar un color sale su lista (total, WhatsApp, Abrir; hasta 30 y avisa el res
 - `pruebas/historias/historias.sql`: H10 (con regalo no se regresa; se quita y entonces sí) y H6 quita el regalo antes del reembolso. Última corrida: fallas=0, bien=41.
 - `HUB_VERSION = '2026-10-30-semaforo'` (siempre ≥ la última actualización publicada).
 - Aviso `2026-10-30-semaforo`: **sin publicar** (espera "publica el aviso").
+
+- **Aviso publicado el 30 oct** (Enoc: "publica el aviso"), migración `publicar_aviso_2026_10_30_semaforo`. Publicado en main y verificado en producción.
