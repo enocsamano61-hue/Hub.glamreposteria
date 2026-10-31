@@ -1497,6 +1497,8 @@
   .tc-venc{ margin-top:12px; padding-top:8px; border-top:1px dashed var(--border); }
   .tc-venc h4{ margin:0 0 2px; color:var(--danger); font-size:13.5px; }
   .tc-vacio{ margin-top:8px; color:var(--success); font-weight:600; font-size:13.5px; }
+  .monto-ant{ display:flex; gap:8px; align-items:center; } .monto-ant input{ flex:1; min-width:0; } .monto-ant button{ width:auto; flex:none; }
+  .reg-menos{ color:#8A6D0B; font-weight:600; }
   .tc-tel{ font-weight:700; color:var(--ink); user-select:all; -webkit-user-select:all; white-space:nowrap; }
   .tc-sem{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px; }
   .tc-s{ flex:1 1 90px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:8px 6px; border-radius:12px; border:2px solid var(--border); background:var(--card); font-family:inherit; cursor:pointer; color:var(--ink); }
@@ -1513,6 +1515,7 @@
   .cd-fila > div:first-child{ flex:1 1 220px; min-width:0; }
   .cd-fila select, .cd-fila input[type=date]{ width:auto; max-width:230px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:13px; background:var(--card); color:var(--ink); }
   .cd-fila button{ width:auto; }
+  .cd-fila .monto-ant{ max-width:230px; } .cd-fila .monto-ant input{ padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:13px; background:var(--card); color:var(--ink); width:110px; }
   .cd-ok{ text-align:center; padding:16px; color:var(--success); font-weight:700; }
   .cc-lista{ margin-top:14px; }
   .cc-lista h4{ margin:0 0 6px; }
@@ -2560,6 +2563,7 @@
     <div class="aviso-corregir" id="leadAvisoInscrita" style="display:none;"></div>
     <div class="cf-ficha" id="leadCambioFecha"></div>
     <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="modalFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
+    <div class="modal-field"><label>Monto del anticipo</label><div class="monto-ant"><input type="number" id="modalMontoAnticipo" inputmode="decimal" min="0" step="50" placeholder="¿Cuánto dijo que da?"><button type="button" class="btn-outline small" data-monto-rapido="modalMontoAnticipo">$700</button></div><div class="vend-hint">Lo que dijo que va a dar ese día (no lo que ya pagó). Si todavía no lo sabe, déjalo vacío.</div></div>
     <div class="modal-field"><label>Estatus</label><select id="modalEstatusSelect"></select></div>
     <div class="modal-notas coment-caja"><div class="modal-notas-titulo">Comentarios</div>
       <textarea class="textarea" id="modalComentarioNuevo" placeholder="Agregar comentario: qué pasó en el último contacto…"></textarea>
@@ -2617,7 +2621,7 @@
         <button type="button" data-paq="VIP">VIP $1,900</button>
       </div>
     </div>
-    <div class="modal-field"><label>¿Cuánto pagó?</label><input type="number" id="regPagoMonto" inputmode="decimal" min="0" step="50"></div>
+    <div class="modal-field"><label>¿Cuánto pagó?</label><input type="number" id="regPagoMonto" inputmode="decimal" min="0" step="50"><div class="vend-hint" id="regPagoPrometido"></div></div>
     <div class="modal-field"><label>Fecha del pago</label><input type="date" id="regPagoFecha"></div>
     <div class="modal-field"><label>Banco</label><input id="regPagoBanco" placeholder="HEY BANCO, COPPEL, OXXO..."></div>
     <div class="modal-field" id="regPagoVendedorCampo" style="display:none;"><label>¿Quién vendió?</label><select id="regPagoVendedor"></select></div>
@@ -2640,6 +2644,7 @@
     <div class="modal-field" id="nuevoCiudadCampo"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
     <div class="modal-field" id="nuevoCursoCampo"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
     <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="nuevoFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
+    <div class="modal-field"><label>Monto del anticipo</label><div class="monto-ant"><input type="number" id="nuevoMontoAnticipo" inputmode="decimal" min="0" step="50" placeholder="¿Cuánto dijo que da?"><button type="button" class="btn-outline small" data-monto-rapido="nuevoMontoAnticipo">$700</button></div><div class="vend-hint">Lo que dijo que va a dar ese día (no lo que ya pagó). Si todavía no lo sabe, déjalo vacío.</div></div>
     <div class="modal-field"><label>Paquete</label>
       <div class="seg full seg-paquete" id="nuevoPaquete">
         <button type="button" data-paq="BASICO" class="active">Básico $1,400</button>
@@ -4397,6 +4402,22 @@ const esReporteDia = () => !!usuarioActual?.recibe_pedidos;
    ========================================================= */
 // Celular a 10 dígitos para copiar y pegar (pedido de Jared, 30 oct): sin +52, espacios ni guiones; un toque lo selecciona.
 // Lo usan "Te toca cobrar hoy", Por cobrar, el Calendario de Cobranza y Completar datos.
+// Monto del anticipo que prometió el lead (30 oct 2026, pedido de Jared). Casi siempre $700, pero a veces dan abonos:
+// es lo que dijo que va a dar, no lo que ya pagó (eso es Registrar pago). Vacío = todavía no lo sabe.
+const ANTICIPO_HABITUAL = 700;
+function leerMontoAnticipo(idInput){
+  const t = String(document.getElementById(idInput)?.value ?? '').trim();
+  if(!t) return { ok:true, valor:null };
+  const n = Number(t);
+  return n > 0 ? { ok:true, valor:n } : { ok:false };
+}
+// Botón "$700" junto a la casilla: un toque lo escribe (y avisa a quien escuche el cambio, p. ej. Completar datos).
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-monto-rapido]'); if(!b) return;
+  const inp = document.getElementById(b.dataset.montoRapido) || b.parentElement.querySelector('input'); if(!inp) return;
+  inp.value = ANTICIPO_HABITUAL;
+  inp.dispatchEvent(new Event('input', { bubbles:true })); inp.dispatchEvent(new Event('change', { bubbles:true }));
+});
 function htmlCel10(tel){
   const t = String(tel || '').replace(/\D/g, '').slice(-10);
   return t.length >= 10 ? `<span class="tc-tel" title="Toca para seleccionarlo y copiarlo">${escHtml(t)}</span>` : '';
@@ -5105,7 +5126,7 @@ function leadEnPuerta(l){
 // (así se borraba el teléfono adicional hasta el 23 sep).
 const LEAD_SELECT = `
     id, comentario, creado_en, ciudad_interes_id, asesor_id,
-    evento_id, fecha_compromiso_pago, paquete, estatus_antes_de_reporte,
+    evento_id, fecha_compromiso_pago, monto_anticipo, paquete, estatus_antes_de_reporte,
     pago_reportado_monto, pago_reportado_fecha, pago_reportado_banco, pago_reportado_por, pago_reportado_en,
     eventos ( id, fecha, ciudad_id, ciudades ( nombre ) ),
     personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra ),
@@ -5288,7 +5309,7 @@ function tarjetaLead(l){
   const evProx = l.eventos || (l.ciudad_interes_id ? eventosProximosPorCiudad[l.ciudad_interes_id] : null);
   const hoyISO = new Date().toLocaleDateString('en-CA');
   const anticipo = l.fecha_compromiso_pago && !pagoReportado(l)
-    ? `<div class="lead-anticipo ${l.fecha_compromiso_pago < hoyISO ? 'vencida' : ''}">Anticipo ${l.fecha_compromiso_pago === hoyISO ? 'hoy' : fechaCorta(l.fecha_compromiso_pago)}${l.fecha_compromiso_pago < hoyISO ? ' · vencido' : ''}</div>` : '';
+    ? `<div class="lead-anticipo ${l.fecha_compromiso_pago < hoyISO ? 'vencida' : ''}">Anticipo ${l.fecha_compromiso_pago === hoyISO ? 'hoy' : fechaCorta(l.fecha_compromiso_pago)}${Number(l.monto_anticipo) > 0 ? ' · ' + fmtMoney(l.monto_anticipo) : ''}${l.fecha_compromiso_pago < hoyISO ? ' · vencido' : ''}</div>` : '';
   const esNuevo = l.creado_en && (Date.now() - new Date(l.creado_en).getTime()) < 48*60*60*1000;
   return `
     <div class="lead-card" style="--card-accent:${e?.color_hex||'#ccc'}" data-lead-id="${l.id}">
@@ -5590,6 +5611,7 @@ async function abrirModalLead(leadId){
   document.getElementById('modalEventoSelect').innerHTML = opcionesEvento(lead.evento_id);
   sugerirPorLada(['modalEventoSelect', 'regPagoEvento', 'inscribirEvento'], lead.personas?.telefono_principal);
   document.getElementById('modalFechaAnticipo').value = lead.fecha_compromiso_pago || '';
+  document.getElementById('modalMontoAnticipo').value = lead.monto_anticipo ?? '';
   pintarVendedorLead(lead);
   pintarPagoLead(lead);
   marcarSegPaquete('leadPaquete', lead.paquete === 'VIP' ? 'VIP' : 'BASICO');
@@ -5802,6 +5824,8 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   const correoNuevo = document.getElementById('modalCorreoEdit').value.trim();
   const nacimientoNuevo = document.getElementById('modalNacimientoEdit').value || null;
   if(!nombreNuevo){ toast('Falta el nombre.', true); return; }
+  const montoAnt = leerMontoAnticipo('modalMontoAnticipo');
+  if(!montoAnt.ok){ toast('El monto del anticipo tiene que ser mayor a $0 (o déjalo vacío si no lo sabe).', true); return; }
   const antes = leadAbierto()?.personas || {};
   const problema = problemaContacto({ tel1: telNuevo, tel2: telAltNuevo, correo: correoNuevo, nacimiento: nacimientoNuevo }, antes);
   if(problema){ toast(problema, true); return; }
@@ -5825,7 +5849,7 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
   }).eq('id', leadAbiertoPersonaId);
 
   const { error: errUpd } = await sb.from('leads').update({ estatus_id: nuevoEstatusId, ciudad_interes_id: ciudadNueva,
-    evento_id: eventoNuevo, fecha_compromiso_pago: fechaAnticipo, actualizado_en: new Date().toISOString() }).eq('id', leadAbiertoId);
+    evento_id: eventoNuevo, fecha_compromiso_pago: fechaAnticipo, monto_anticipo: montoAnt.valor, actualizado_en: new Date().toISOString() }).eq('id', leadAbiertoId);
   let errInt = null;
   if(comentario){
     errInt = await guardarComentario({ personaId: leadAbiertoPersonaId, leadId: leadAbiertoId, texto: comentario, nombre: nombreNuevo });
@@ -6114,12 +6138,26 @@ function abrirRegistrarPago(){
   document.getElementById('regPagoEvento').value = eventoId;
   regPagoPaquete = lead.paquete === 'VIP' ? 'VIP' : 'BASICO';
   document.querySelectorAll('#regPagoPaquete button').forEach(b=>b.classList.toggle('active', b.dataset.paq === regPagoPaquete));
-  document.getElementById('regPagoMonto').value = rep ? (lead.pago_reportado_monto ?? '') : 700;
+  // Arranca con lo que prometió (si lo anotaron); si no, lo de siempre. Se puede cambiar: cuenta lo que de verdad pagó.
+  regPagoPrometido = Number(lead.monto_anticipo) > 0 ? Number(lead.monto_anticipo) : null;
+  document.getElementById('regPagoMonto').value = rep ? (lead.pago_reportado_monto ?? '') : (regPagoPrometido || ANTICIPO_HABITUAL);
+  pintarRegPagoPrometido();
   document.getElementById('regPagoFecha').value = rep && lead.pago_reportado_fecha ? lead.pago_reportado_fecha : new Date().toLocaleDateString('en-CA');
   document.getElementById('regPagoBanco').value = rep ? (lead.pago_reportado_banco || '') : '';
   document.getElementById('modalRegistrarPago').classList.add('open');
 }
 document.getElementById('btnRegistrarPago').addEventListener('click', abrirRegistrarPago);
+// Lo que prometió dar, debajo de "¿Cuánto pagó?": si registra menos, lo dice (no lo impide; lo que falte queda por cobrar).
+let regPagoPrometido = null;
+function pintarRegPagoPrometido(){
+  const caja = document.getElementById('regPagoPrometido'); if(!caja) return;
+  const monto = Number(document.getElementById('regPagoMonto').value);
+  if(!regPagoPrometido){ caja.innerHTML = ''; return; }
+  caja.innerHTML = monto > 0 && monto < regPagoPrometido
+    ? `<span class="reg-menos">Prometió ${fmtMoney(regPagoPrometido)}; estás registrando ${fmtMoney(monto)}.</span> Se puede: lo que falte queda por cobrar.`
+    : `Prometió dar ${fmtMoney(regPagoPrometido)}.`;
+}
+document.getElementById('regPagoMonto').addEventListener('input', pintarRegPagoPrometido);
 // Comprobante del pago reportado de un lead: verlo o adjuntarlo
 async function comprobantesDeLead(leadId){
   const { data } = await sb.from('comprobantes').select('id, ruta, estado, pago_id').eq('lead_id', leadId);
@@ -6173,7 +6211,9 @@ async function abrirInscribirACurso({ personaId, nombre, telefono, antes = '', a
   document.getElementById('regPagoEvento').value = ev?.id || '';
   regPagoPaquete = 'BASICO';
   document.querySelectorAll('#regPagoPaquete button').forEach(b=>b.classList.toggle('active', b.dataset.paq === regPagoPaquete));
-  document.getElementById('regPagoMonto').value = 700;
+  regPagoPrometido = null;
+  document.getElementById('regPagoMonto').value = ANTICIPO_HABITUAL;
+  pintarRegPagoPrometido();
   document.getElementById('regPagoFecha').value = hoyISO();
   document.getElementById('regPagoBanco').value = '';
   const porDefecto = VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '';
@@ -6559,7 +6599,7 @@ async function cargarCobranza(){
   // y sigue debiendo, va a "Curso ya pasó · debe".
   const desde = sumarDias(hoyISO(), -14);
   const finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
-  let qL = sb.from('leads').select(LEAD_SELECT + ', monto_anticipo, estatus_id, persona_id');
+  let qL = sb.from('leads').select(LEAD_SELECT + ', estatus_id, persona_id');
   if(finales.length) qL = qL.not('estatus_id', 'in', `(${finales.join(',')})`);
   // Se traen todos los abiertos y aquí se deja solo la gira que viene (leadEnPuerta): ligado a un curso
   // que viene, o sin curso pero de una ciudad que se visita. Es la misma regla que el Embudo.
@@ -6781,7 +6821,7 @@ document.getElementById('cobVistaCalendario').addEventListener('click', async e=
    Se llena ahí mismo, renglón por renglón, sin abrir fichas; al completarse el renglón sale. Nada se guarda aparte:
    se calcula de lo que hay hoy (las mismas reglas del vigilante).
    ========================================================= */
-const cd = { sinFecha:[], sinVend:[], sinCurso:[], cargado:false, limite:{ f:25, v:25, c:25 }, turno:0 };
+const cd = { sinFecha:[], sinVend:[], sinCurso:[], sinMonto:[], cargado:false, limite:{ f:25, v:25, c:25, m:25 }, turno:0 };
 async function cdCargar(){
   const turno = ++cd.turno, caja = document.getElementById('cobVistaDatos');
   if(!cd.cargado) caja.innerHTML = '<div class="empty-note">Cargando…</div>';
@@ -6796,13 +6836,16 @@ async function cdCargar(){
   cd.sinFecha = itemsCobranza(true).filter(it=>it.tipo === 'insc' && !it.porConfirmar && !it.cursoPasado && it.fechaEsCurso && !(it.pagado > 0));
   cd.sinVend = (ri.data || []).filter(i=>!i.asesor_id && !['no_va_al_curso', 'perdio_anticipo'].includes(i.estatus?.clave));
   cd.sinCurso = (rl.data || []).filter(l=>!l.evento_id);
+  // Leads con fecha de anticipo pero sin cuánto van a dar (de la misma lista de Cobranza): sin monto, el total del día no cuadra
+  cd.sinMonto = itemsCobranza(true).filter(it=>it.tipo === 'lead' && !it.porConfirmar && !it.yaInscrita && it.fecha && !(Number(it.raw?.monto_anticipo) > 0))
+    .sort((a, b)=>a.fecha.localeCompare(b.fecha));
   cd.cargado = true;
   cdPintar();
 }
 function cdPintar(){
   const caja = document.getElementById('cobVistaDatos');
-  const total = cd.sinFecha.length + cd.sinVend.length + cd.sinCurso.length;
-  if(!total){ caja.innerHTML = '<div class="cd-ok">Todo completo: nadie sin fecha, sin vendedora ni sin curso.</div>'; return; }
+  const total = cd.sinFecha.length + cd.sinVend.length + cd.sinCurso.length + cd.sinMonto.length;
+  if(!total){ caja.innerHTML = '<div class="cd-ok">Todo completo: nadie sin fecha, sin vendedora, sin curso ni sin monto.</div>'; return; }
   const sec = (clave, titulo, ayuda, lista, fila)=> !lista.length ? '' : `<div class="cd-sec"><h4>${titulo} · ${lista.length}</h4><div class="sub" style="margin:0 0 4px;">${ayuda}</div>
       ${lista.slice(0, cd.limite[clave]).map(fila).join('')}
       ${lista.length > cd.limite[clave] ? `<button type="button" class="btn-outline small" data-cd-mas="${clave}" style="width:auto;margin-top:8px;">Ver ${Math.min(25, lista.length - cd.limite[clave])} más</button>` : ''}</div>`;
@@ -6822,7 +6865,10 @@ function cdPintar(){
         <select data-cd-vend aria-label="Vendedora">${vendOpts}</select><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}
     ${sec('c', 'Leads sin curso', 'Sin curso ligado no cuentan en ningún embudo. Elige el curso que tomará.', cd.sinCurso, l=>`<div class="cd-fila" data-cd-k="c" data-cd-id="${escapeAttr(l.id)}">
         <div><b>${escHtml(tituloCaso(l.personas?.nombre || ''))}</b><div class="sub">${escHtml([l.ciudades?.nombre || 'sin ciudad', 'capturado el ' + fechaCorta(String(l.creado_en).slice(0, 10)), nombreVendedor(l.asesor_id) || 'sin vendedora'].join(' · '))}${htmlCel10(l.personas?.telefono_principal) ? ' · ' + htmlCel10(l.personas?.telefono_principal) : ''}</div></div>
-        <select data-cd-curso aria-label="Curso">${cursoOpts(l)}</select><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}`;
+        <select data-cd-curso aria-label="Curso">${cursoOpts(l)}</select><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}
+    ${sec('m', 'Leads con fecha de anticipo pero sin monto', 'Escribe cuánto dijo que va a dar (o toca $700). Así el total de cada día cuadra.', cd.sinMonto, it=>`<div class="cd-fila" data-cd-k="m" data-cd-id="${escapeAttr(it.id)}">
+        <div><b>${escHtml(tituloCaso(it.nombre))}</b><div class="sub">${escHtml(it.donde)} · anticipo ${it.fecha < hoyISO() ? 'venció ' : ''}${escHtml(fechaCorta(it.fecha))} · ${escHtml(nombreVendedor(it.vendedor) || 'sin vendedora')}${htmlCel10(it.tel) ? ' · ' + htmlCel10(it.tel) : ''}</div></div>
+        <div class="monto-ant"><input type="number" min="0" step="50" inputmode="decimal" placeholder="$" data-cd-monto aria-label="Monto del anticipo"><button type="button" class="btn-outline small" data-monto-rapido>$700</button></div><button type="button" class="btn-outline small" data-cd-abrir>Abrir</button></div>`)}`;
 }
 document.getElementById('cobVistaDatos').addEventListener('click', async e=>{
   const mas = e.target.closest('[data-cd-mas]');
@@ -6830,6 +6876,7 @@ document.getElementById('cobVistaDatos').addEventListener('click', async e=>{
   const ab = e.target.closest('[data-cd-abrir]'); if(!ab) return;
   const fila = ab.closest('[data-cd-k]'), k = fila.dataset.cdK, id = fila.dataset.cdId;
   if(k === 'c'){ const l = cd.sinCurso.find(x=>x.id === id); if(l && !leadsCache.some(x=>x.id === id)) leadsCache.push(l); await abrirModalLead(id); }
+  else if(k === 'm'){ const it = cd.sinMonto.find(x=>x.id === id); if(it && !leadsCache.some(x=>x.id === id)) leadsCache.push(it.raw); await abrirModalLead(id); }
   else { alCerrarFichaInscripcion = null; await abrirModalInscripcion(id); }
   alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'cobranza') renderCobranza(); });
 });
@@ -6847,6 +6894,13 @@ document.getElementById('cobVistaDatos').addEventListener('change', async e=>{
     const i = cd.sinVend.find(x=>x.id === id); nombre = i?.personas?.nombre;
     ({ error } = await sb.from('inscripciones').update({ asesor_id: v }).eq('id', id));
     if(!error){ registrarActividad('venta_asignada', `${nombre}: ${nombreVendedor(v)}`); texto = `a nombre de ${nombreVendedor(v)}`; cd.sinVend = cd.sinVend.filter(x=>x.id !== id); }
+  } else if(k === 'm'){
+    const it = cd.sinMonto.find(x=>x.id === id); nombre = it?.nombre;
+    const n = Number(v);
+    if(!(n > 0)){ toast('El monto tiene que ser mayor a $0.', true); e.target.value = ''; e.target.disabled = false; return; }
+    ({ error } = await sb.from('leads').update({ monto_anticipo:n, actualizado_en:new Date().toISOString() }).eq('id', id));
+    if(!error){ registrarActividad('lead_actualizado', `${nombre}: anticipo prometido ${fmtMoney(n)}`); texto = `anticipo de ${fmtMoney(n)}`;
+      if(it?.raw) it.raw.monto_anticipo = n; cd.sinMonto = cd.sinMonto.filter(x=>x.id !== id); }
   } else {
     const l = cd.sinCurso.find(x=>x.id === id); nombre = l?.personas?.nombre;
     const ev = eventoPorId(v);
@@ -7653,6 +7707,7 @@ function poblarSelectCursosCiudades(){
   document.getElementById('nuevoCiudad').innerHTML = opcionesCiudad(null);
   document.getElementById('nuevoEvento').innerHTML = opcionesEvento(null);
   document.getElementById('nuevoFechaAnticipo').value = '';
+  document.getElementById('nuevoMontoAnticipo').value = '';
   alternarCamposNuevoLead();
   // Arranca con quien lo captura, si vende; si no (Inbox, Sistemas), "Sin
   // asignar" y elige a mano. No pregunta nada: un lead nuevo no le quita
@@ -7707,6 +7762,8 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   const correo = document.getElementById('nuevoCorreo').value.trim();
   const nacimiento = document.getElementById('nuevoNacimiento').value || null;
   if(!nombre || telefono.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
+  const montoAnt = leerMontoAnticipo('nuevoMontoAnticipo');
+  if(!montoAnt.ok){ toast('El monto del anticipo tiene que ser mayor a $0 (o déjalo vacío si no lo sabe).', true); return; }
   const problema = problemaContacto({ correo, nacimiento });
   if(problema){ toast(problema, true); return; }
 
@@ -7781,7 +7838,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   const { error: errL } = await sb.from('leads').insert({
     persona_id: personaId, estatus_id: estatusInicial.id,
     curso_interes_id: cursoId, ciudad_interes_id: ciudadId,
-    evento_id: eventoId, fecha_compromiso_pago: fechaAnticipo,
+    evento_id: eventoId, fecha_compromiso_pago: fechaAnticipo, monto_anticipo: montoAnt.valor,
     asesor_id: vendedorId, paquete: valorSegPaquete('nuevoPaquete'),
   });
   btn.disabled = false; btn.textContent = 'Crear lead';
@@ -9244,7 +9301,7 @@ async function cargarRecepcion({ silencioso = false } = {}){
   if(!rec) return;
   const evId = rec.ev.id;
   const finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
-  let qL = sb.from('leads').select(LEAD_SELECT + ', monto_anticipo').eq('evento_id', evId);
+  let qL = sb.from('leads').select(LEAD_SELECT).eq('evento_id', evId);
   if(finales.length) qL = qL.not('estatus_id', 'in', `(${finales.join(',')})`);
   const [ri, rl, re] = await Promise.all([
     sb.from('inscripciones').select(`
@@ -16991,7 +17048,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-10-30-semaforo';
+const HUB_VERSION = '2026-10-31-monto-anticipo';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);

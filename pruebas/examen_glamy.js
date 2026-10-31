@@ -124,6 +124,8 @@ const CASOS_FASE1 = [
     revisar: t => /sem[aá]foro/i.test(t) && /(rojo|amarillo)/i.test(t) && /Inicio/.test(t) },
   { nombre:'Regalo ya dado: ¿por qué vuelven los botones? (30 oct)', pregunta:'a una alumna ya le registré su regalo y quiero regresarla a sin avisar, ¿cómo?',
     revisar: t => /Quitar regalo/.test(t) },
+  { nombre:'Monto del anticipo al dar de alta (31 oct)', pregunta:'al registrar un lead nuevo, ¿dónde pongo cuánto va a dar de anticipo? no siempre dan 700',
+    revisar: t => /Monto del anticipo/.test(t) && /(Nuevo lead|ficha)/i.test(t) },
   { nombre:'Cobranza: completar datos (30 oct)', pregunta:'hay inscritas que no tienen fecha de pago ni vendedora, ¿dónde las completo rápido?',
     revisar: t => /Completar datos/.test(t) && /Cobranza/.test(t) },
   { nombre:'Gente nueva: le explica con calma y con botón (28 oct)', pregunta:'¿cómo registro un lead?', nueva_dias:1,
