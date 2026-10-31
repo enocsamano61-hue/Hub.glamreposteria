@@ -201,5 +201,18 @@ begin
   end;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H10 vigilante: ' || rojos); end if;
 
+  -- ===== H11. Lead con fecha de anticipo y sin monto → el vigilante lo cuenta; con monto, ya no (31 oct) =====
+  -- (se compara la cuenta: la lista de casos del vigilante trae solo los primeros 50)
+  select (x ->> 'n')::int into ok_av from jsonb_array_elements(public.vigilante_calcular()) x where x ->> 'regla' = 'lead_fecha_sin_monto';
+  insert into public.personas (nombre, telefono_principal) values ('HISTORIA ONCE', '0000000111') returning id into p8;
+  insert into public.leads (persona_id, evento_id, estatus_id, asesor_id, ciudad_interes_id, fecha_compromiso_pago)
+  values (p8, e0, st_novence, v_vend, (select ciudad_id from public.eventos where id = e0), v_hoy + 2) returning id into l8;
+  if (select (x ->> 'n')::int from jsonb_array_elements(public.vigilante_calcular()) x where x ->> 'regla' = 'lead_fecha_sin_monto') = ok_av + 1 then ok := ok + 1;
+  else mal := mal || 'H11 el vigilante no cuenta el lead con fecha y sin monto'::text; end if;
+  update public.leads set monto_anticipo = 700 where id = l8;
+  if (select (x ->> 'n')::int from jsonb_array_elements(public.vigilante_calcular()) x where x ->> 'regla' = 'lead_fecha_sin_monto') = ok_av then ok := ok + 1;
+  else mal := mal || 'H11 con monto el vigilante lo sigue contando'::text; end if;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H11 vigilante: ' || rojos); end if;
+
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;
