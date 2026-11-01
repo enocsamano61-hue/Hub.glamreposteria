@@ -40,7 +40,8 @@ const SUSC = [
 ];
 const MENS = [
   { id:'mm1', suscripcion_id:'m1', numero:1, vence:mas(-50), monto:800, estado:'pagada', previa:true, pagado_en:mas(-50), monto_pagado:null, forma_pago:null, nota:null },
-  { id:'mm2', suscripcion_id:'m1', numero:2, vence:mas(-20), monto:800, estado:'pagada', previa:false, pagado_en:mas(-19), monto_pagado:800, forma_pago:'Efectivo', nota:null },
+  // Pagada este mes (el 1.º), para que "cobrado este mes" la cuente cualquier día del mes (con mas(-19) fallaba del 1 al 19)
+  { id:'mm2', suscripcion_id:'m1', numero:2, vence:mas(-20), monto:800, estado:'pagada', previa:false, pagado_en:inicioMes, monto_pagado:800, forma_pago:'Efectivo', nota:null },
   { id:'mm3', suscripcion_id:'m1', numero:3, vence:mas(10), monto:800, estado:'pendiente', previa:false, pagado_en:null, monto_pagado:null, forma_pago:null, nota:null },
 ];
 const PLANES = [
