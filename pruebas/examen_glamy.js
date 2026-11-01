@@ -126,6 +126,8 @@ const CASOS_FASE1 = [
     revisar: t => /Quitar regalo/.test(t) },
   { nombre:'Monto del anticipo al dar de alta (31 oct)', pregunta:'al registrar un lead nuevo, ¿dónde pongo cuánto va a dar de anticipo? no siempre dan 700',
     revisar: t => /Monto del anticipo/.test(t) && /(Nuevo lead|ficha)/i.test(t) },
+  { nombre:'Comentario al crear el lead (1 nov)', pregunta:'cuando doy de alta un lead nuevo, ¿puedo dejar un comentario ahí mismo o tengo que abrir su ficha después?',
+    revisar: t => /Comentario/.test(t) && /(Nuevo lead|al final|ah[ií] mismo|al crear)/i.test(t) && !/no (se puede|hay)/i.test(t) },
   { nombre:'Cobranza: completar datos (30 oct)', pregunta:'hay inscritas que no tienen fecha de pago ni vendedora, ¿dónde las completo rápido?',
     revisar: t => /Completar datos/.test(t) && /Cobranza/.test(t) },
   { nombre:'Gente nueva: le explica con calma y con botón (28 oct)', pregunta:'¿cómo registro un lead?', nueva_dias:1,

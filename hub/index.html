@@ -2627,6 +2627,9 @@
     <div class="modal-field" id="regPagoVendedorCampo" style="display:none;"><label>¿Quién vendió?</label><select id="regPagoVendedor"></select></div>
     <div class="modal-field"><label>Comprobante (opcional: foto o PDF)</label><input type="file" id="regPagoComprobante" accept="image/*,application/pdf">
       <div class="vend-hint">Cobranza lo ve al confirmar, sin pedirlo por WhatsApp.</div></div>
+    <div id="regPagoComentarioCampo" style="display:none;">
+    <div class="modal-field"><label>Comentario (opcional)</label><textarea class="textarea" id="regPagoComentario" placeholder="Algo que convenga saber desde hoy: de dónde viene, a qué hora contestarle…"></textarea><div class="vend-hint">Queda en su historial con la fecha y tu nombre, igual que la caja de comentarios de su ficha.</div></div>
+    </div>
     <button class="btn-reportar" id="guardarRegistrarPago" style="width:100%;">Registrar pago</button>
   </div>
 </div>
@@ -2651,6 +2654,7 @@
         <button type="button" data-paq="VIP">VIP $1,900</button>
       </div></div>
     <div class="modal-field"><label>¿Quién vendió?</label><select id="nuevoVendedor"></select></div>
+    <div class="modal-field"><label>Comentario (opcional)</label><textarea class="textarea" id="nuevoComentario" placeholder="Algo que convenga saber desde hoy: de dónde viene, a qué hora contestarle…"></textarea><div class="vend-hint">Queda en su historial con la fecha y tu nombre, igual que la caja de comentarios de su ficha.</div></div>
     <button class="btn-primary" id="guardarNuevoLead">Crear lead</button>
   </div>
 </div>
@@ -6125,6 +6129,12 @@ function modoRegistrarPago(persona){
   document.getElementById('regPagoTitulo').textContent = persona ? 'Inscribir a un curso' : 'Registrar pago';
   document.getElementById('regPagoVendedorCampo').style.display = persona ? '' : 'none';
   document.getElementById('regPagoAntes').style.display = 'none';
+  mostrarComentarioRegPago(!!persona);
+}
+// Comentario al inscribir a un curso (1 nov): solo en ese modo; en "Registrar pago" de un lead ya está su caja de comentarios.
+function mostrarComentarioRegPago(si){
+  document.getElementById('regPagoComentarioCampo').style.display = si ? '' : 'none';
+  document.getElementById('regPagoComentario').value = '';
 }
 function abrirRegistrarPago(){
   const lead = leadAbierto(); if(!lead) return;
@@ -6195,6 +6205,7 @@ async function abrirInscribirACurso({ personaId, nombre, telefono, antes = '', a
     leadAbiertoId = vigente.id; leadAbiertoPersonaId = personaId;
     abrirRegistrarPago();
     document.getElementById('regPagoTitulo').textContent = 'Inscribir a un curso';
+    mostrarComentarioRegPago(true);
     const antesTxt = `Ya es lead de ${nombreVendedor(vigente.asesor_id) || 'nadie'} (${vigente.estatus?.etiqueta || 'sin estatus'}): el pago se registra en ese lead.`;
     document.getElementById('regPagoAntes').textContent = antesTxt;
     document.getElementById('regPagoAntes').style.display = '';
@@ -6307,6 +6318,11 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
   const archComp = document.getElementById('regPagoComprobante').files?.[0];
   if(archComp) await subirComprobante(archComp, { personaId: lead.personas?.id, leadId }, `${alumno} · pago reportado de ${fmtMoney(monto)}`);
   await sb.from('interacciones').insert({ persona_id: lead.personas?.id, lead_id: leadId, asesor_id: usuarioActual?.id || null, nota, canal: 'otro' });
+  const comentInsc = document.getElementById('regPagoComentarioCampo').style.display !== 'none' ? document.getElementById('regPagoComentario').value.trim() : '';
+  if(comentInsc){
+    const errC = await guardarComentario({ personaId: lead.personas?.id, leadId, texto: comentInsc, nombre: alumno });
+    if(errC) toast('El pago quedó registrado, pero el comentario no se guardó: ' + errC.message + '. Agrégalo desde su ficha.', true);
+  }
   registrarActividad('pago_reportado', `${alumno} · ${fmtMoney(monto)} · ${donde}${per ? ' · inscribir a un curso' : ''}`);
   document.getElementById('modalRegistrarPago').classList.remove('open');
   document.getElementById('modalLead').classList.remove('open');
@@ -7708,6 +7724,7 @@ function poblarSelectCursosCiudades(){
   document.getElementById('nuevoEvento').innerHTML = opcionesEvento(null);
   document.getElementById('nuevoFechaAnticipo').value = '';
   document.getElementById('nuevoMontoAnticipo').value = '';
+  document.getElementById('nuevoComentario').value = '';
   alternarCamposNuevoLead();
   // Arranca con quien lo captura, si vende; si no (Inbox, Sistemas), "Sin
   // asignar" y elige a mano. No pregunta nada: un lead nuevo no le quita
@@ -7835,14 +7852,20 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   // pago) — antes caía en "Pago por confirmar", dentro de la categoría
   // "Pagos", donde nadie lo esperaba ver.
   const estatusInicial = ESTATUS.find(e=>e.clave==='no_vence_pago') || ESTATUS[0];
-  const { error: errL } = await sb.from('leads').insert({
+  const { data: leadNuevo, error: errL } = await sb.from('leads').insert({
     persona_id: personaId, estatus_id: estatusInicial.id,
     curso_interes_id: cursoId, ciudad_interes_id: ciudadId,
     evento_id: eventoId, fecha_compromiso_pago: fechaAnticipo, monto_anticipo: montoAnt.valor,
     asesor_id: vendedorId, paquete: valorSegPaquete('nuevoPaquete'),
-  });
+  }).select('id').single();
   btn.disabled = false; btn.textContent = 'Crear lead';
   if(errL){ toast('Error creando lead: ' + errL.message, true); return; }
+  // Comentario de cuando se creó (pedido de Jared, 1 nov): la misma caja de comentarios de la ficha
+  const comentNuevo = document.getElementById('nuevoComentario').value.trim();
+  if(comentNuevo){
+    const errC = await guardarComentario({ personaId, leadId: leadNuevo?.id, texto: comentNuevo, nombre });
+    if(errC) toast('El lead se creó, pero el comentario no se guardó: ' + errC.message + '. Agrégalo desde su ficha.', true);
+  }
   // Si la ciudad elegida no es parte de la gira activa, el tablero lo va a
   // filtrar y parecerá que "no se guardó" — se avisa aquí mismo en vez de
   // dejar que desaparezca en silencio.
@@ -17048,7 +17071,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-10-31-monto-anticipo';
+const HUB_VERSION = '2026-11-01-comentario-alta';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
