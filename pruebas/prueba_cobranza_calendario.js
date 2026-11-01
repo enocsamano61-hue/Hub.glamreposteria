@@ -8,7 +8,8 @@ const { abrirHub } = require('./arnes');
 const HOY = new Date().toLocaleDateString('en-CA');
 const mas = n => { const d = new Date(HOY + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); };
 const MES = HOY.slice(0, 7);
-// Días dentro de este mes para que la prueba no dependa de la fecha
+// Días dentro de este mes para que la prueba no dependa de la fecha (el último día del mes, la inscrita va al mes siguiente:
+// si cayera hoy, cambiaría la cuenta y el total del día)
 const finMes = (() => { const [a, m] = MES.split('-').map(Number); return new Date(a, m, 0).toLocaleDateString('en-CA'); })();
 const DIA_HOY = HOY, DIA_PASADO = HOY.slice(8) > '01' ? MES + '-01' : null, DIA_FUTURO = HOY < finMes ? finMes : null;
 const ev = (id, dias) => ({ id, fecha:mas(dias), curso_id:'cur1', ciudades:{ id:'c' + id, nombre:'Ciudad ' + id } });
@@ -29,7 +30,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   if(DIA_PASADO) leads.push(lead('l7', 'Lead Ya Vencio', { fecha_compromiso_pago:DIA_PASADO }));
   const h = await abrirHub({ tablas:{
       inscripciones:[
-        insc('i1', 'Inscrita Con Fecha', { eventos:ev('A', 60), fecha_proximo_pago:DIA_FUTURO || DIA_HOY }),
+        insc('i1', 'Inscrita Con Fecha', { eventos:ev('A', 60), fecha_proximo_pago:DIA_FUTURO || mas(1) }),
         insc('i2', 'Inscrita Sin Fecha', { eventos:ev('B', 60) }),
       ],
       leads, pagos:[],
