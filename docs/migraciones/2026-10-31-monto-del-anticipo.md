@@ -28,3 +28,5 @@ La base ya tenía `leads.monto_anticipo` y Cobranza ya lo leía (Te toca cobrar 
 - `pruebas/historias/historias.sql`: H11 (con fecha y sin monto el vigilante lo cuenta; con monto, ya no). Corrida: fallas=0, bien=44.
 - Glamy v32 (manual: alta del lead, Registrar pago, Completar datos) + caso nuevo en `examen_glamy.js`.
 - `HUB_VERSION = '2026-10-31-monto-anticipo'`. Aviso `2026-10-31-monto-anticipo`: **sin publicar**.
+
+- **Publicado el 1 nov** en main (verificado en producción) y **aviso publicado** (Enoc: "adelante con los 2"), migración `publicar_aviso_2026_10_31_monto_anticipo`.
