@@ -22,3 +22,5 @@ Autorizado por Enoc ("permitido generar, también en Inscribir a un curso").
 - `pruebas/prueba_comentario_alta.js` (13): con comentario (historial, último comentario, actividad), sin comentario, Inscribir a un curso (después del pago reportado), con lead abierto, Registrar pago de un lead existente (sin la casilla), celular. Capturas `comentario-alta-*.png`.
 - Glamy v33 (manual: alta del lead e Inscribir a un curso) + caso nuevo en `examen_glamy.js`.
 - `HUB_VERSION = '2026-11-01-comentario-alta'`. Aviso `2026-11-01-comentario-alta`: **sin publicar**.
+
+- **Publicado el 1 nov** en main (verificado en producción) y **aviso publicado** (Enoc: "sí, adelante"), migración `publicar_aviso_2026_11_01_comentario_alta`. Examen de Glamy: 49/49 en la segunda corrida (la primera, 47/49 por redacción en dos casos que no cambiaron).
