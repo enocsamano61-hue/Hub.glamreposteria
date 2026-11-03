@@ -42,8 +42,8 @@ const FUERA = { persona_id:'pF', nombre:'<img src=x onerror="window.__xss=1"> Fu
   await p.evaluate(() => setActiveSection('board'));
   await p.waitForTimeout(300);
   await nuevo();
-  const orden = await p.$$eval('#modalNuevo .modal-field input', xs => xs.slice(0, 2).map(x => x.id));
-  check(orden.join() === 'nuevoTelefono,nuevoNombre', 'el teléfono va antes que el nombre');
+  const orden = await p.$$eval('#modalNuevo .modal-field input', xs => xs.slice(0, 3).map(x => x.id));
+  check(orden.join() === 'nuevoTelefono,nuevoTelefonoAlt,nuevoNombre', 'el teléfono (y el alterno) van antes que el nombre');
   await p.fill('#nuevoTelefono', '551000000');
   await p.waitForTimeout(450);
   check(await p.textContent('#nuevoExiste') === '', 'con menos de 10 dígitos no busca');

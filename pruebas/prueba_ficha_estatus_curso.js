@@ -70,7 +70,7 @@ const EVENTOS = [
   check(await p.isVisible('#inscProximoPago'), 'la fecha de pago está a la vista (antes estaba escondida en "Más información")');
   await p.fill('#inscProximoPago', mas(20));
   await p.dispatchEvent('#inscProximoPago', 'change');
-  await p.waitForTimeout(300);
+  await p.waitForTimeout(1300);   // se guarda cuando terminan de escribirla
   check((await h.ops('inscripciones', 'update')).some(u => u.fecha_proximo_pago === mas(20)), 'guarda la fecha de pago');
   await h.captura('ficha-curso-y-fecha.png');
 

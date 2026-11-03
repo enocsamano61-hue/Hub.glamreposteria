@@ -214,5 +214,28 @@ begin
   else mal := mal || 'H11 con monto el vigilante lo sigue contando'::text; end if;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H11 vigilante: ' || rojos); end if;
 
+  -- ===== H12. Lead de una ciudad sin curso en la gira → a quien organiza la ruta (Gerente) le llega UNA tarea por ciudad (3 nov) =====
+  declare v_cs uuid; v_l1 uuid; v_l2 uuid; v_p uuid;
+  begin
+    perform set_config('request.jwt.claims', json_build_object('sub', (select auth_user_id from public.usuarios where rol = 'Ventas' and activo and auth_user_id is not null limit 1), 'role', 'authenticated')::text, true);
+    select c.id into v_cs from public.ciudades c
+     where not exists (select 1 from public.eventos e where e.ciudad_id = c.id and e.fecha >= v_hoy)
+       and not exists (select 1 from public.notas_usuario n where n.enlace ->> 'ciudad_sin_curso' = c.id::text) limit 1;
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA DOCE', '0000000112') returning id into v_p;
+    insert into public.leads (persona_id, estatus_id, asesor_id, ciudad_interes_id) values (v_p, st_novence, v_vend, v_cs) returning id into v_l1;
+    perform public.avisar_ciudad_sin_curso(v_l1);
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA DOCE B', '0000000113') returning id into v_p;
+    insert into public.leads (persona_id, estatus_id, asesor_id, ciudad_interes_id) values (v_p, st_novence, v_vend, v_cs) returning id into v_l2;
+    perform public.avisar_ciudad_sin_curso(v_l2);
+    if (select count(*) from public.notas_usuario n join public.usuarios u on u.id = n.usuario_id
+         where u.rol = 'Gerente' and n.enlace ->> 'ciudad_sin_curso' = v_cs::text and not n.completado) = (select count(*) from public.usuarios where rol = 'Gerente' and activo)
+       and (select count(*) from public.usuarios where rol = 'Gerente' and activo) > 0 then ok := ok + 1;
+    else mal := mal || 'H12 no le llegó (o le llegó repetida) la tarea de la ciudad sin curso a quien organiza la ruta'::text; end if;
+    if exists (select 1 from public.notas_usuario n where n.enlace ->> 'ciudad_sin_curso' = v_cs::text and n.texto ~ ' ([2-9]|[1-9][0-9]+) leads esperando') then ok := ok + 1;   -- (esa ciudad puede tener otros leads sin curso)
+    else mal := mal || 'H12 la tarea no lleva la cuenta de leads de esa ciudad'::text; end if;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+  end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H12 vigilante: ' || rojos); end if;
+
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;

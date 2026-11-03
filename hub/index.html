@@ -1498,6 +1498,7 @@
   .tc-venc h4{ margin:0 0 2px; color:var(--danger); font-size:13.5px; }
   .tc-vacio{ margin-top:8px; color:var(--success); font-weight:600; font-size:13.5px; }
   .monto-ant{ display:flex; gap:8px; align-items:center; } .monto-ant input{ flex:1; min-width:0; } .monto-ant button{ width:auto; flex:none; }
+  .aviso-sin-curso{ margin-top:6px; padding:8px 10px; border-radius:10px; background:rgba(201,162,39,.14); color:#6B5410; font-size:12.5px; line-height:1.4; }
   .reg-menos{ color:#8A6D0B; font-weight:600; }
   .tc-tel{ font-weight:700; color:var(--ink); user-select:all; -webkit-user-select:all; white-space:nowrap; }
   .tc-sem{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px; }
@@ -2640,11 +2641,12 @@
     <button class="close" id="closeModalNuevo">✕</button>
     <h3>Nuevo lead</h3>
     <div class="modal-field"><label>Teléfono</label><input id="nuevoTelefono" inputmode="tel" placeholder="10 dígitos (primero el teléfono: revisa si ya existe)"><div class="lada-sug" id="nuevoLadaSug"></div><div class="exi-caja aviso" id="nuevoExiste"></div></div>
+    <div class="modal-field"><label>Teléfono alterno (opcional)</label><input id="nuevoTelefonoAlt" inputmode="tel" placeholder="Otro número para localizarla (10 dígitos)"></div>
     <div class="modal-field"><label>Nombre</label><input id="nuevoNombre"></div>
     <div class="modal-field"><label>Correo</label><input id="nuevoCorreo" type="email" inputmode="email" placeholder="Opcional"></div>
     <div class="modal-field"><label>Fecha de nacimiento</label><input id="nuevoNacimiento" type="date"><div class="vend-hint" id="nuevoEdad"></div></div>
     <div class="modal-field"><label>Curso que tomará</label><select id="nuevoEvento"></select><div class="vend-hint">Busca por ciudad. Si todavía no decide, déjalo en “Aún no decide”.</div></div>
-    <div class="modal-field" id="nuevoCiudadCampo"><label>Ciudad de interés</label><select id="nuevoCiudad"></select></div>
+    <div class="modal-field" id="nuevoCiudadCampo"><label>Ciudad de interés</label><select id="nuevoCiudad"></select><div class="aviso-sin-curso" id="nuevoCiudadSinCurso" style="display:none;"></div></div>
     <div class="modal-field" id="nuevoCursoCampo"><label>Curso de interés</label><select id="nuevoCurso"></select></div>
     <div class="modal-field"><label>Fecha de anticipo</label><input type="date" id="nuevoFechaAnticipo"><div class="vend-hint">El día que dijo que da su anticipo. Cobranza le da seguimiento ese día.</div></div>
     <div class="modal-field"><label>Monto del anticipo</label><div class="monto-ant"><input type="number" id="nuevoMontoAnticipo" inputmode="decimal" min="0" step="50" placeholder="¿Cuánto dijo que da?"><button type="button" class="btn-outline small" data-monto-rapido="nuevoMontoAnticipo">$700</button></div><div class="vend-hint">Lo que dijo que va a dar ese día (no lo que ya pagó). Si todavía no lo sabe, déjalo vacío.</div></div>
@@ -4406,6 +4408,28 @@ const esReporteDia = () => !!usuarioActual?.recibe_pedidos;
    ========================================================= */
 // Celular a 10 dígitos para copiar y pegar (pedido de Jared, 30 oct): sin +52, espacios ni guiones; un toque lo selecciona.
 // Lo usan "Te toca cobrar hoy", Por cobrar, el Calendario de Cobranza y Completar datos.
+/* Fechas que se guardan solas (3 nov 2026): al teclear una fecha el navegador va soltando fechas a medias (el año
+   0002, 0020, 0202 o el mes 01 mientras se escribe 11), y cada una se guardaba: una alumna tenía 30 cambios de
+   "próximo pago" en 3 minutos. Ahora esas casillas esperan a que terminen (1 s sin cambios o al salir de la casilla)
+   y solo guardan una fecha completa y razonable (2020 a 2100) o vacía. Las demás fechas (formularios con botón
+   Guardar, filtros) no cambian. */
+const FECHAS_AUTOGUARDADO = '#inscProximoPago, input[type=date][data-cd-fecha], input[type=date][data-ag-campo], input[type=date][data-ag-grad]';
+function fechaRazonable(v){ return !v || (/^\d{4}-\d{2}-\d{2}$/.test(v) && v >= '2020-01-01' && v <= '2100-12-31'); }
+function soltarFecha(t){
+  clearTimeout(t._fechaEspera); t._fechaEspera = null;
+  if(!fechaRazonable(t.value)) return;
+  const ev = new Event('change', { bubbles:true }); ev._fechaLista = true;
+  t.dispatchEvent(ev);
+}
+document.addEventListener('change', e=>{
+  const t = e.target;
+  if(e._fechaLista || !(t instanceof HTMLInputElement) || t.type !== 'date' || !t.matches(FECHAS_AUTOGUARDADO)) return;
+  e.stopImmediatePropagation();   // se detiene aquí (fase de captura) y se suelta cuando terminen de escribir
+  clearTimeout(t._fechaEspera);
+  t._fechaEspera = setTimeout(()=>soltarFecha(t), 1000);
+}, true);
+document.addEventListener('focusout', e=>{ if(e.target?._fechaEspera) soltarFecha(e.target); }, true);
+
 // Monto del anticipo que prometió el lead (30 oct 2026, pedido de Jared). Casi siempre $700, pero a veces dan abonos:
 // es lo que dijo que va a dar, no lo que ya pagó (eso es Registrar pago). Vacío = todavía no lo sabe.
 const ANTICIPO_HABITUAL = 700;
@@ -5862,6 +5886,7 @@ document.getElementById('guardarLead').addEventListener('click', async ()=>{
 
   if(errPersona || errUpd || errInt){ toast('Error al guardar: ' + (errPersona||errUpd||errInt).message, true); return; }
   const fueraDeGira = ciudadNueva && CIUDADES_GIRA_ACTIVA.length && !CIUDADES_GIRA_ACTIVA.includes(ciudadNueva);
+  if(!eventoNuevo && ciudadNueva && ciudadNueva !== leadAntes?.ciudad_interes_id && ciudadSinCurso(ciudadNueva)) avisarCiudadSinCurso(leadAbiertoId);
   // Ya está inscrita en ese curso: la base pasó la fecha a su ficha y su lead sigue como "Inscrita"
   const yaInscrita = document.getElementById('leadAvisoInscrita').style.display !== 'none';
   toast(fueraDeGira ? 'Guardado — pero esa ciudad no es parte de la gira activa, este lead no se verá en el tablero hasta que lo sea.'
@@ -7724,6 +7749,8 @@ function poblarSelectCursosCiudades(){
   document.getElementById('nuevoEvento').innerHTML = opcionesEvento(null);
   document.getElementById('nuevoFechaAnticipo').value = '';
   document.getElementById('nuevoMontoAnticipo').value = '';
+  document.getElementById('nuevoTelefonoAlt').value = '';
+  document.getElementById('nuevoCiudadSinCurso').style.display = 'none';
   document.getElementById('nuevoComentario').value = '';
   alternarCamposNuevoLead();
   // Arranca con quien lo captura, si vende; si no (Inbox, Sistemas), "Sin
@@ -7755,8 +7782,27 @@ function alternarCamposNuevoLead(){
   const conCurso = !!document.getElementById('nuevoEvento').value;
   document.getElementById('nuevoCiudadCampo').style.display = conCurso ? 'none' : '';
   document.getElementById('nuevoCursoCampo').style.display  = conCurso ? 'none' : '';
+  pintarAvisoSinCurso();
 }
 document.getElementById('nuevoEvento').addEventListener('change', alternarCamposNuevoLead);
+/* Ciudad sin curso en la gira (ticket #7, 3 nov 2026): el lead se puede guardar igual, pero se avisa aquí y, al
+   guardar, a quien organiza la ruta (Jared) le llega una tarea por ciudad (función avisar_ciudad_sin_curso). */
+function ciudadSinCurso(ciudadId){
+  return !!ciudadId && !(EVENTOS_CAL || []).some(e=>e.ciudad_id === ciudadId);
+}
+function pintarAvisoSinCurso(){
+  const caja = document.getElementById('nuevoCiudadSinCurso'); if(!caja) return;
+  const ciudadId = !document.getElementById('nuevoEvento').value && document.getElementById('nuevoCiudad').value;
+  const nombre = (CIUDADES || []).find(c=>c.id === ciudadId)?.nombre || 'Esta ciudad';
+  caja.style.display = ciudadSinCurso(ciudadId) ? '' : 'none';
+  caja.innerHTML = ciudadSinCurso(ciudadId) ? `<b>${escHtml(nombre)}</b> todavía no tiene curso en la gira. Puedes guardar el lead: al guardarlo le avisamos a <b>Jared</b> (organiza la ruta). Cuando haya curso ahí, lo ligas en su ficha.` : '';
+}
+document.getElementById('nuevoCiudad').addEventListener('change', pintarAvisoSinCurso);
+async function avisarCiudadSinCurso(leadId){
+  const { data, error } = await sb.rpc('avisar_ciudad_sin_curso', { p_lead: leadId });
+  if(error){ console.warn('avisar_ciudad_sin_curso', error.message); return false; }
+  return !!data?.avisado;
+}
 
 /* El lead que alguien está trabajando ahorita: estatus abierto y de esta gira (su curso no ha pasado;
    sin curso, creado en esta gira). Los cerrados o de cursos pasados no estorban para venderle otro. */
@@ -7781,8 +7827,11 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   if(!nombre || telefono.length < 10){ toast('Falta nombre o el teléfono no tiene 10 dígitos.', true); return; }
   const montoAnt = leerMontoAnticipo('nuevoMontoAnticipo');
   if(!montoAnt.ok){ toast('El monto del anticipo tiene que ser mayor a $0 (o déjalo vacío si no lo sabe).', true); return; }
-  const problema = problemaContacto({ correo, nacimiento });
+  // Teléfono alterno (ticket #8, 1 nov): opcional, a 10 dígitos y distinto del principal
+  const telAlt = document.getElementById('nuevoTelefonoAlt').value.replace(/\D/g,'').slice(-10);
+  const problema = problemaContacto({ correo, nacimiento, tel2: telAlt });
   if(problema){ toast(problema, true); return; }
+  if(telAlt && telAlt === telefono.slice(-10)){ toast('El teléfono alterno es igual al principal: déjalo vacío o pon otro número.', true); return; }
 
   // ¿Ya está en el Hub? (si la revisión al escribir no alcanzó a terminar, se hace aquí)
   const existentes = exi.nuevo?.tel === telefono.slice(-10) ? exi.nuevo.personas : await buscarExistentes(telefono);
@@ -7837,6 +7886,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
     const extra = {};
     if(correo) extra.correo = correo;
     if(nacimiento) extra.fecha_nacimiento = nacimiento;
+    if(telAlt) extra.telefono_alternativo = telAlt;
     if(Object.keys(extra).length){
       const { error: errX } = await sb.from('personas').update({ ...extra, actualizado_en: new Date().toISOString() }).eq('id', personaId);
       if(errX){ btn.disabled=false; btn.textContent='Crear lead'; toast('No se pudo guardar el correo o la fecha: ' + errX.message, true); return; }
@@ -7844,7 +7894,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   }
   else {
     const { data: nueva, error: errP } = await sb.from('personas')
-      .insert({ nombre, telefono_principal: telefono, correo: correo || null, fecha_nacimiento: nacimiento }).select('id').single();
+      .insert({ nombre, telefono_principal: telefono, telefono_alternativo: telAlt || null, correo: correo || null, fecha_nacimiento: nacimiento }).select('id').single();
     if(errP){ btn.disabled=false; btn.textContent='Crear lead'; toast('Error creando persona: ' + errP.message, true); return; }
     personaId = nueva.id;
   }
@@ -7870,8 +7920,11 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   // filtrar y parecerá que "no se guardó" — se avisa aquí mismo en vez de
   // dejar que desaparezca en silencio.
   const fueraDeGira = ciudadId && CIUDADES_GIRA_ACTIVA.length && !CIUDADES_GIRA_ACTIVA.includes(ciudadId);
-  toast(fueraDeGira ? 'Lead creado — pero esa ciudad no es parte de la gira activa, no se verá en el tablero hasta que lo sea.'
-    : yaEstabaEnHub ? 'Lead creado. Ya estaba en el Hub: sus cursos y leads de antes siguen igual en su historial.' : 'Lead creado.', fueraDeGira);
+  const sinCurso = !eventoId && ciudadSinCurso(ciudadId) && leadNuevo?.id && await avisarCiudadSinCurso(leadNuevo.id);
+  const nombreCiudad = (CIUDADES || []).find(c=>c.id === ciudadId)?.nombre || 'Esa ciudad';
+  toast(sinCurso ? `Lead creado. ${nombreCiudad} todavía no tiene curso en la gira: ya le avisamos a Jared. Mientras, lo encuentras con el buscador del tablero o en Historial cliente.`
+    : fueraDeGira ? 'Lead creado — pero esa ciudad no es parte de la gira activa, no se verá en el tablero hasta que lo sea.'
+    : yaEstabaEnHub ? 'Lead creado. Ya estaba en el Hub: sus cursos y leads de antes siguen igual en su historial.' : 'Lead creado.', fueraDeGira && !sinCurso);
   registrarActividad('lead_creado', nombre);
   document.getElementById('modalNuevo').classList.remove('open');
   const catNueva = CATEGORIAS.find(c=>c.claves.includes(estatusInicial.clave));
@@ -17071,7 +17124,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-01-comentario-alta';
+const HUB_VERSION = '2026-11-03-tickets';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
