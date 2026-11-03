@@ -45,7 +45,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
   h.paso('2. Fecha de pago');
   await h.limpiarOps();
   await p.fill('[data-cd-id="i1"] [data-cd-fecha]', mas(5));
-  await p.waitForTimeout(500);
+  await p.waitForTimeout(1500);   // se guarda cuando terminan de escribirla (1 s sin cambios o al salir de la casilla)
   const up = (await h.ops('inscripciones', 'update')).pop();
   check(up && up.fecha_proximo_pago === mas(5), 'guarda la fecha en su ficha');
   check(!(await caja()).includes('Sin Fecha Uno') && (await caja()).includes('Inscritas sin fecha de pago · 1'), 'el renglón sale');
@@ -69,7 +69,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
 
   h.paso('5. Cuando todo está completo (menos la que queda sin fecha)');
   await p.fill('[data-cd-id="i2"] [data-cd-fecha]', mas(6));
-  await p.waitForTimeout(500);
+  await p.waitForTimeout(1500);   // sin salir de la casilla: se guarda solo al segundo
   check((await caja()).includes('Todo completo'), 'dice "Todo completo"');
   await h.captura('cobranza-completar-listo.png');
 

@@ -156,7 +156,8 @@ await p.evaluate(() => { document.getElementById('inscNotasFijas').open = true; 
   await p.click('#inscFichaMas > summary');
   await p.fill('#inscProximoPago', '2026-10-02');
   await p.dispatchEvent('#inscProximoPago', 'change');
-  await p.waitForTimeout(150);
+  // La fecha se guarda cuando terminan de escribirla (1 s sin cambios o al salir de la casilla)
+  await p.waitForTimeout(1300);
   check((await updates()).some(u => u.fecha_proximo_pago === '2026-10-02'), 'guardó la fecha');
   check((await txt('#inscProximoPagoEstado')).includes('✓ Guardado'), 'estado ✓ Guardado');
   await cerrar();
