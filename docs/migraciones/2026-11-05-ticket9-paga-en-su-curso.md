@@ -24,3 +24,10 @@ De las 278 inscritas con anticipo de cursos que vienen, 272 no tienen fecha (van
 
 ## Pruebas
 - `prueba_ticket9_paga_en_curso.js` (10/10), capturas 1200/390. `HUB_VERSION = '2026-11-05-ticket9'`.
+
+## Publicado (5 nov 2026)
+- Enoc: "súbelo". Antes: `correr_todas.js` 58/58 en verde, historias H1–H14 `fallas=0 bien=64`, reglas rojas del vigilante en 0.
+- En main y verificado en producción (`HUB_VERSION = '2026-11-05-ticket9'`).
+- Glamy v38 (idéntica al repo); examen 56/56. En la v37 el examen dio 55/56 dos veces (a "¿cómo confirmo el pago que reportó
+  una vendedora en un lead?" mandaba a Cobranza, que solo lo lista); se aclaró en el manual que se confirma en el lead.
+- Aviso `2026-11-05-ticket9` publicado. Ticket #9 cerrado con su nota para Cinthia.

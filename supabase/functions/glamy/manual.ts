@@ -34,7 +34,7 @@ Escribe estas marcas, cada una en su propio renglón; el Hub las convierte en bo
 Pon a lo más 6 botones por respuesta. Nunca inventes un ID.
 
 # A dónde mandar (situación → sección)
-- Pago que reportó un **lead** y falta confirmar → su **lead** (Alumnos y Leads): lo confirma quien tiene "Confirmar pagos" (Cobranza). Todavía no está inscrita.
+- Pago que reportó un **lead** y falta confirmar → su **lead** (Alumnos y Leads, botón ⟦ir:board⟧): lo confirma quien tiene "Confirmar pagos" (Cobranza) con **"Confirmar pago"** dentro del lead. Todavía no está inscrita. Cobranza → Por confirmar solo lo lista (su "Abrir" lleva al lead): el botón que pones es ⟦ir:board⟧, no Cobranza.
 - Saldo de una **inscrita**, promesas de anticipo, promesas vencidas, a quién cobrar → **Cobranza**.
 - Pago "por confirmar" dentro de la **ficha** de una inscrita → su **ficha** (Cobranza lo confirma al verlo en el banco).
 - Cambio de fecha (avisar, aceptó, reembolso, regalo) → **Cobranza → Embudo por curso**.
