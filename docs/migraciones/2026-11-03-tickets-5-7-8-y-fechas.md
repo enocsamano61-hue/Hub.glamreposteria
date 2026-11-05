@@ -40,3 +40,10 @@ Una alumna tenía ~30 cambios de "próximo pago" en 3 minutos (1 nov, sin fecha,
 - `pruebas/historias/historias.sql`: H12 (una tarea por ciudad para quien organiza la ruta, con la cuenta). H1–H11 pasaron en la corrida completa; H12 se corrigió (la ciudad puede tener otros leads) y se corrió aparte: bien.
 - Glamy v34 (manual: teléfono alterno y ciudad sin curso) + 2 casos en `examen_glamy.js`.
 - `HUB_VERSION = '2026-11-03-tickets'`. Aviso `2026-11-03-tickets`: **sin publicar**.
+
+## Publicado (5 nov 2026)
+- Enoc: "Ya puedes subirlo". Antes de subir: `correr_todas.js` 54/54 en verde, historias `fallas=0 bien=47`, reglas rojas del
+  vigilante en 0. Había 1 caso rojo ("promesa escondida": la promesa del 6 nov de una inscrita estaba en su lead y no en su
+  ficha); se pasó a su ficha, con su renglón respaldado en `respaldo.inscripciones_20261105`.
+- En main y verificado en producción (`HUB_VERSION = '2026-11-03-tickets'`). Aviso `2026-11-03-tickets` publicado.
+- Tickets #7 y #8 cerrados con su nota. A Jared le quedó la tarea de Naranjos (`avisar_ciudad_sin_curso` con el lead del ticket #7).
