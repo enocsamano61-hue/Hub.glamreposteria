@@ -2812,6 +2812,7 @@
       <div class="fc-fila" id="inscProximoPagoCaja">
         <label for="inscProximoPago">Fecha de pago (lo que le falta) <span class="guardado-estado" id="inscProximoPagoEstado"></span></label>
         <input type="date" id="inscProximoPago">
+        <button type="button" class="btn-outline small" id="inscPagaEnCurso">Lo paga en su curso</button>
       </div>
       <div class="vend-hint" id="inscProximoPagoHint"></div>
     </div>
@@ -6577,6 +6578,7 @@ document.getElementById('btnPagoNoEncontrado').addEventListener('click', async (
 // El precio de cada paquete vive en Precios → "Precio de cada curso" (antes fijo: $1,400 / $1,900).
 // Con dos giras a la vez, cada curso tiene el suyo. El anticipo estándar sigue siendo $700 y se puede cambiar.
 let inscribirPaquete = 'BASICO';
+let inscribirProximoSugerida = '';   // la fecha que prometió el lead (su anticipo)
 
 function estatusInicialInscripcion(pagado, precio){
   if(!(pagado > 0)) return ESTATUS.find(e=>e.clave==='pago_por_confirmar')?.id ?? ESTATUS[0]?.id;
@@ -6625,7 +6627,11 @@ function abrirModalInscribir(){
   document.getElementById('inscribirPagado').value = rep ? (lead.pago_reportado_monto ?? 700) : 700;
   document.getElementById('inscribirFecha').value = rep && lead.pago_reportado_fecha ? lead.pago_reportado_fecha : new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD local
   // Si ya prometió una fecha (su fecha de anticipo), se propone como fecha de pago
-  document.getElementById('inscribirProximo').value = lead.fecha_compromiso_pago && lead.fecha_compromiso_pago >= hoyISO() ? lead.fecha_compromiso_pago : '';
+  // La fecha que prometió es la de su ANTICIPO: solo se propone si no está pagando nada (entonces es la de su pago).
+  // Si ya paga algo, lo que falta queda sin fecha = se cobra el día del curso. Antes se quedaba con la fecha del
+  // anticipo y salía vencida ese mismo día (ticket #9, 5 nov).
+  inscribirProximoSugerida = lead.fecha_compromiso_pago && lead.fecha_compromiso_pago >= hoyISO() ? lead.fecha_compromiso_pago : '';
+  document.getElementById('inscribirProximo').value = Number(document.getElementById('inscribirPagado').value) > 0 ? '' : inscribirProximoSugerida;
   document.getElementById('inscribirBanco').value = rep ? (lead.pago_reportado_banco || '') : '';
   // Vendedor por defecto: el dueño del lead; si no tiene, quien inscribe (si vende).
   const porDefecto = lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '');
@@ -6640,6 +6646,10 @@ function abrirModalInscribir(){
 
 function actualizarPreviewInscribir(){
   const caja = document.getElementById('inscribirPreview');
+  // Si no paga nada, su fecha prometida sirve como fecha de pago; si sí paga, esa fecha ya se cumplió
+  const prox = document.getElementById('inscribirProximo'), pagoAhora = Number(document.getElementById('inscribirPagado').value);
+  if(!(pagoAhora > 0) && !prox.value && inscribirProximoSugerida) prox.value = inscribirProximoSugerida;
+  else if(pagoAhora > 0 && prox.value && prox.value === inscribirProximoSugerida) prox.value = '';
   const precio = precioPaquete(eventoPorId(document.getElementById('inscribirEvento').value)?.curso_id, inscribirPaquete);
   const pagado = Number(document.getElementById('inscribirPagado').value);
   if(!(pagado >= 0)){ caja.innerHTML = '<span class="malo">El monto pagado no puede ser negativo.</span>'; return; }
@@ -8871,13 +8881,16 @@ function pintarProximoPagoFicha(){
   caja.style.display = debe ? '' : 'none';
   if(!debe) return;
   document.getElementById('inscProximoPago').value = d.fecha_proximo_pago || '';
+  document.getElementById('inscPagaEnCurso').style.display = d.fecha_proximo_pago ? '' : 'none';
   document.getElementById('inscProximoPagoHint').textContent = d.fecha_proximo_pago
     ? `Cobranza le da seguimiento el ${fechaCorta(d.fecha_proximo_pago)}.`
     : `Sin fecha: Cobranza toma el día del curso${d.eventos?.fecha ? ' (' + fechaCorta(d.eventos.fecha) + ')' : ''} como límite.`;
 }
-document.getElementById('inscProximoPago').addEventListener('change', async ()=>{
+document.getElementById('inscProximoPago').addEventListener('change', ()=>guardarProximoPagoFicha(document.getElementById('inscProximoPago').value || null));
+// "Lo paga en su curso": sin fecha de pago = Cobranza la cobra el día del curso (va a "Más adelante", cerrado)
+document.getElementById('inscPagaEnCurso').addEventListener('click', ()=>guardarProximoPagoFicha(null));
+async function guardarProximoPagoFicha(fecha){
   const d = modalInscDatos; if(!d) return;
-  const fecha = document.getElementById('inscProximoPago').value || null;
   if(fecha === (d.fecha_proximo_pago || null)) return;
   marcarGuardado('inscProximoPagoEstado', 'Guardando…');
   const { error } = await sb.from('inscripciones').update({ fecha_proximo_pago: fecha }).eq('id', d.id);
@@ -8886,8 +8899,8 @@ document.getElementById('inscProximoPago').addEventListener('change', async ()=>
   registrarActividad('fecha_cobro_movida', `${d.personas?.nombre || 'inscrita'}: próximo pago ${fecha ? fechaCorta(fecha) : 'sin fecha (día del curso)'}`);
   d.fecha_proximo_pago = fecha;
   pintarProximoPagoFicha();
-  toast(fecha ? `Próximo pago: ${fechaCorta(fecha)}.` : 'Sin fecha: queda el día del curso como límite.');
-});
+  toast(fecha ? `Próximo pago: ${fechaCorta(fecha)}.` : 'Sin fecha: lo paga el día de su curso (en Cobranza queda en "Más adelante").');
+}
 
 /* Picklist "¿Quién vendió?" — el dato que manda para los cortes. */
 function pintarVendedorFicha(){
@@ -17776,7 +17789,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-05-telefono-alterno';
+const HUB_VERSION = '2026-11-05-ticket9';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
