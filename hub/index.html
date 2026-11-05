@@ -153,6 +153,15 @@
   /* ---------- CALENDARIO: mes interactivo con resumen y hoja de detalle ---------- */
   .cal-curso-tag{ display:inline-flex; align-items:center; gap:6px; background:rgba(197,166,107,.18); color:#8A6D2F; font-size:10.5px; font-weight:600; padding:5px 10px; border-radius:8px; margin-bottom:14px; }
   .cal-curso-tag b{ font-weight:700; }
+  .precio-curso{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:10px; }
+  .precio-curso-titulo{ font-weight:700; margin-bottom:6px; }
+  .precio-nombre-fijo{ font-weight:600; min-width:70px; }
+  /* Filtro de gira (Cobranza, Calendario, Embudo, Ventas y Reportes) y curso en cada día */
+  .gira-filtro{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+  .gira-pill{ border:1px solid var(--border); background:#fff; color:var(--ink-soft); border-radius:999px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .gira-pill.on{ background:var(--wine); border-color:var(--wine); color:#fff; }
+  .cal-gira{ display:block; font-size:9.5px; font-weight:700; color:var(--wine); text-transform:uppercase; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tag-gira{ display:inline-block; font-size:10.5px; font-weight:700; color:var(--wine-dark); background:rgba(197,166,107,.22); border-radius:6px; padding:1px 6px; margin-left:4px; vertical-align:middle; }
   .cal-resumen{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
   .cal-stat{ background:var(--bg); border:1px solid var(--border); border-radius:11px; padding:10px 6px; text-align:center; }
   .cal-stat .v{ font-family:'Newsreader',serif; font-size:19px; font-weight:600; font-variant-numeric:tabular-nums; }
@@ -2056,6 +2065,7 @@
     </div>
 
     <div class="view" id="view-ventas">
+      <div id="ventasFiltroGira"></div>
       <div class="subtabs" id="ventasSubtabs">
         <button class="subtab active" data-tab="ingresos">Ingresos</button>
         <button class="subtab" data-tab="pagos">Pagos recientes</button>
@@ -2067,7 +2077,7 @@
         <div class="kpis" id="ventasIngresosKpis"><div class="kpi"><div class="v">…</div><div class="l">Cargando</div></div></div>
         <div class="chart-card">
           <h4>Anticipo recaudado por ciudad</h4>
-          <div class="sub">Curso activo · ciudades con más recaudación</div>
+          <div class="sub">La gira elegida arriba · ciudades con más recaudación</div>
           <div class="chart-wrap"><canvas id="chartIngresosCiudad"></canvas></div>
         </div>
         <div class="chart-card">
@@ -2088,7 +2098,7 @@
       <div class="subview" id="ventas-embudo">
         <div class="chart-card">
           <h4>Embudo de conversión</h4>
-          <div class="sub">Curso activo · de registrada en la gira a liquidada, todas las ciudades</div>
+          <div class="sub">La gira elegida arriba · de registrada en la gira a liquidada, todas las ciudades</div>
           <div class="chart-wrap short"><canvas id="chartEmbudo"></canvas></div>
         </div>
       </div>
@@ -2096,7 +2106,7 @@
       <div class="subview" id="ventas-asesores">
         <div class="chart-card">
           <h4>Anticipo recaudado por asesor</h4>
-          <div class="sub" id="ventasAsesoresSub">Curso activo</div>
+          <div class="sub" id="ventasAsesoresSub">La gira elegida arriba</div>
           <div class="chart-wrap"><canvas id="chartAsesores"></canvas></div>
         </div>
         <div class="chart-card">
@@ -2106,6 +2116,7 @@
     </div>
 
     <div class="view" id="view-reportes">
+      <div id="reportesFiltroGira"></div>
       <div class="subtabs" id="reportesSubtabs">
         <button class="subtab active" data-tab="resumen">Resumen ejecutivo</button>
         <button class="subtab" data-tab="comparativa">Comparativa de ciudades</button>
@@ -2205,6 +2216,7 @@
       <div class="card">
         <h3>Cursos programados</h3>
         <div class="sub">Quiénes ya pagaron y quiénes faltan, por fecha</div>
+        <div id="calFiltroGira"></div>
         <div id="listaCalendario">Cargando…</div>
       </div>
     </div>
@@ -2228,6 +2240,11 @@
 
     <!-- PRECIOS — lo que se cobra aparte del curso -->
     <div class="view" id="view-precios">
+      <div class="card">
+        <h3 style="margin-bottom:2px;">Precio de cada curso</h3>
+        <div class="sub" style="margin:0 0 14px;">Básico y VIP de cada gira que se está vendiendo. De aquí salen los botones de paquete al inscribir y lo que debe cada alumna. Si una gira no tiene precio, se puede inscribir igual y, al capturarlo aquí, a sus inscritas se les calcula solo lo que deben.</div>
+        <div id="preciosCurso">Cargando…</div>
+      </div>
       <div class="card">
         <h3 style="margin-bottom:2px;">Precios</h3>
         <div class="sub" style="margin:0 0 14px;">Lo que se cobra aparte del curso. Cualquiera del equipo los puede ajustar: el cambio se guarda solo, lo ven todos y queda en Actividad del equipo.</div>
@@ -2390,6 +2407,7 @@
         <button class="subtab" data-cob-tab="embudo">Embudo por curso</button>
         <button class="subtab" data-cob-tab="datos">Completar datos</button>
       </div>
+      <div id="cobFiltroGira"></div>
       <div id="cobVistaCalendario" class="card"></div>
       <div id="cobVistaDatos" class="card" style="display:none;"></div>
       <div id="cobVistaCobrar" style="display:none;">
@@ -4361,17 +4379,17 @@ async function renderDashboard(){
   if(reporte) return renderReporteDia();
   // Solo la gira que viene (la misma regla que Cobranza y el Embudo). Antes "Leads totales" contaba
   // todos los leads de la historia y "Cursos próximos" los de cualquier curso.
-  const cursoId = await obtenerCursoActivoId();
+  const ids = await idsGiras();
   if(CIUDADES_GIRA_ACTIVA === null) await cargarCiudadesGiraActiva();
   const finales = ESTATUS.filter(e=>e.es_final).map(e=>e.id);
   const noVan = ESTATUS.filter(e=>['no_va_al_curso', 'perdio_anticipo'].includes(e.clave)).map(e=>e.id);
   let qL = sb.from('leads').select('id, evento_id, ciudad_interes_id, eventos ( fecha )');
   if(finales.length) qL = qL.not('estatus_id', 'in', `(${finales.join(',')})`);
   let qI = sb.from('inscripciones').select('id, eventos!inner ( curso_id, fecha )', {count:'exact', head:true})
-    .eq('eventos.curso_id', cursoId).gte('eventos.fecha', hoyISO());
+    .in('eventos.curso_id', ids).gte('eventos.fecha', hoyISO());
   if(noVan.length) qI = qI.not('estatus_id', 'in', `(${noVan.join(',')})`);
-  const [rL, {count:inscritas}, {count:cursosProx}] = cursoId ? await Promise.all([
-    qL, qI, sb.from('eventos').select('*', {count:'exact', head:true}).eq('curso_id', cursoId).gte('fecha', hoyISO()),
+  const [rL, {count:inscritas}, {count:cursosProx}] = ids.length ? await Promise.all([
+    qL, qI, sb.from('eventos').select('*', {count:'exact', head:true}).in('curso_id', ids).gte('fecha', hoyISO()),
   ]) : [{ data:[] }, { count:0 }, { count:0 }];
   const leadsGira = (rL.data || []).filter(l=>leadEnPuerta(l) && (l.eventos || l.ciudad_interes_id)).length;
   box.innerHTML = [
@@ -4498,7 +4516,7 @@ async function renderTocaCobrar(){
   const turno = ++tc.turno;
   if(!caja.innerHTML) caja.innerHTML = '<div class="tc-sub">Cargando lo que te toca cobrar…</div>';
   caja.style.display = '';
-  if(!await cargarCobranza()){ caja.style.display = 'none'; return; }
+  if(!await cargarCobranza({ todas:true })){ caja.style.display = 'none'; return; }
   if(turno !== tc.turno) return;
   const hoy = hoyISO();
   // Lo suyo, de la misma lista de Cobranza (sin lo que está por confirmar ni inscritas de cursos que ya pasaron)
@@ -4695,7 +4713,7 @@ async function renderPendientes(){
 let leadsCache = [];
 let eventosProximosPorCiudad = {};
 let ordenCategorias = [];       // orden actual de las 4 categorías (se actualiza al arrastrar)
-let inscritosCache = [];        // inscripciones del curso activo (segmento "Inscritos")
+let inscritosCache = [];        // inscripciones de las giras vigentes (segmento "Inscritos")
 let vistaActiva = 'estatus';    // cómo se agrupan los recuadros
 let poblacion   = 'leads';      // 'leads' | 'inscritos'
 // Cada vista recuerda por separado qué recuadros dejó abiertos el usuario; si
@@ -4727,23 +4745,23 @@ async function cargarEventosProximos(){
   });
 }
 
-/* Cursos del Calendario (curso activo). EVENTOS_CAL = de hoy en adelante: los
+/* Cursos del Calendario (todas las giras vigentes). EVENTOS_CAL = de hoy en adelante: los
    usa el orden de las ciudades y los valores por defecto ("el curso de su
    ciudad"). EVENTOS_CAL_PASADOS = los días de la gira que ya pasaron: nunca se
    pierden, se siguen pudiendo elegir y editar (salen al final, "ya pasó"). */
 let EVENTOS_CAL = [], EVENTOS_CAL_PASADOS = [];
 async function cargarEventosCalendario(){
-  const cursoId = await obtenerCursoActivoId();
-  if(!cursoId){ EVENTOS_CAL = []; EVENTOS_CAL_PASADOS = []; return; }
+  if(!PRECIOS) cargarPrecios();   // los botones de paquete dicen el precio de cada curso
+  const ids = await idsGiras();
+  if(!ids.length){ EVENTOS_CAL = []; EVENTOS_CAL_PASADOS = []; return; }
   const hoy = hoyISO();
   const { data, error } = await sb.from('eventos').select('id, fecha, ciudad_id, curso_id, sede, ciudades(nombre, estado)')
-    .eq('curso_id', cursoId).not('fecha', 'is', null).order('fecha', { ascending:true });
+    .in('curso_id', ids).not('fecha', 'is', null).order('fecha', { ascending:true });
   if(error){ console.warn('No se pudieron cargar los cursos del Calendario:', error.message); return; }
-  const inicio = inicioDeGira((data || []).map(e=>e.fecha));
-  inicioGiraCache = inicio;
+  // Todas las giras vigentes juntas, por fecha (cada curso sabe de qué gira es por su curso_id)
   EVENTOS_CAL = (data || []).filter(e=>e.fecha >= hoy);
-  // Sólo los de ESTA gira; el más reciente primero
-  EVENTOS_CAL_PASADOS = (data || []).filter(e=>e.fecha < hoy && e.fecha >= inicio).reverse();
+  // Sólo los de la vuelta actual de cada gira; el más reciente primero
+  EVENTOS_CAL_PASADOS = (data || []).filter(e=>e.fecha < hoy && enSuGira(e.curso_id, e.fecha)).reverse();
 }
 /* Un curso del Calendario por id, ya haya pasado o no. */
 function eventoPorId(id){
@@ -4899,6 +4917,7 @@ function listaBuscadora(inp, caja, { items, alElegir, alSalir, sugeridas }){
     return `<div class="bc-item ${i===activo?'activo':''} ${elegido?'elegido':''}" data-i="${i}">`
       + (it.fecha ? `<span class="bc-cal">${fechaCorta(it.fecha)}</span>` : '')
       + `${escHtml(it.nombre)}${it.estado ? `<span class="bc-edo">, ${escHtml(it.estado)}</span>` : ''}`
+      + (it.curso ? `<span class="tag-gira">${escHtml(it.curso)}</span>` : '')
       + (it.via ? `<span class="bc-via">escrita antes como “${escHtml(it.via)}”</span>` : '')
       + `</div>`;
   };
@@ -5003,7 +5022,8 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
     const o = [...sel.options].find(o=>o.value === valor);
     return o ? o.textContent : '';
   };
-  const mostrarElegida = ()=>{ if(document.activeElement !== inp) inp.value = textoDe(nativo.get.call(sel)); };
+  // (sel._alPoner: quien necesite enterarse de que cambió lo elegido, p.ej. el precio del paquete según el curso)
+  const mostrarElegida = ()=>{ if(document.activeElement !== inp) inp.value = textoDe(nativo.get.call(sel)); sel._alPoner?.(); };
   // Si el código asigna sel.value = …, el campo de texto lo refleja
   Object.defineProperty(sel, 'value', {
     configurable: true,
@@ -5028,6 +5048,7 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
         nombre: c ? c.nombre : ev ? (ev.ciudades?.nombre || '(ciudad?)') : o.textContent.trim(),
         estado: c?.estado || '', alias: c?.alias || [],
         fecha: ev ? ev.fecha : c ? (fechas.get(c.id) || null) : null,
+        curso: ev && variasGiras() ? (giraDe(ev.curso_id)?.corto || '') : '',
         pasado: !!(ev && pasados.has(o.value)),
       };
     });
@@ -5071,10 +5092,14 @@ function sugerenciasDeCiudad(inp){
 buscadorDeCiudad(document.getElementById('modalCiudadSelect'));
 buscadorDeCiudad(document.getElementById('nuevoCiudad'));
 
+/* "Ciudad · fecha" y, si se venden dos giras a la vez, "· curso" (Mesa de Postres, Pasteles). */
+function etiquetaEvento(e){
+  return `${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(e.fecha)}${variasGiras() && giraDe(e.curso_id) ? ' · ' + giraDe(e.curso_id).corto : ''}`;
+}
 /* Cursos del Calendario como opciones (value = id del evento). */
 function opcionesEvento(seleccionado, textoVacio = '— Aún no decide / otra ciudad —'){
   const lista = [...(EVENTOS_CAL||[])], pasados = [...(EVENTOS_CAL_PASADOS||[])];
-  const opt = (e, extra = '')=> `<option value="${e.id}" ${e.id === seleccionado ? 'selected' : ''}>${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(e.fecha)}${extra}</option>`;
+  const opt = (e, extra = '')=> `<option value="${e.id}" ${e.id === seleccionado ? 'selected' : ''}>${escHtml(etiquetaEvento(e))}${extra}</option>`;
   // Los días que ya pasaron van al final: nunca se pierden y se pueden elegir.
   // Si tenía un curso que ni siquiera es de la gira activa, tampoco se pierde.
   return `<option value="">${textoVacio}</option>`
@@ -5088,28 +5113,24 @@ buscadorDeCiudad(document.getElementById('regPagoEvento'), { placeholder:'Busca 
 buscadorDeCiudad(document.getElementById('inscribirEvento'), { placeholder:'Busca la ciudad del curso…' });
 
 /* =========================================================
-   GIRA ACTIVA — nombre exacto del curso que se está trabajando
-   ahora mismo. Cuando arranque una gira nueva, este es el ÚNICO
-   lugar que hay que actualizar. (La sección "Agregar gira" que
-   reemplazará esto por completo quedó pendiente — ver Roadmap.)
+   GIRAS VIGENTES — los cursos que tienen algún día de hoy en adelante (la
+   misma regla que cursos_vigentes() en la base). Antes había un solo curso
+   fijo por nombre; desde nov 2026 se venden dos giras a la vez (Pasteles y
+   Mesa de Postres). Nada de fotos: se calcula cada vez. Cuando se carga una
+   gira nueva en el Calendario entra sola, y cuando pasa su último día sale sola.
    ========================================================= */
-const CURSO_ACTIVO_NOMBRE = 'LOS PASTELES MAS SABROSOS DE LA CHEF';
-let cursoActivoIdCache; // undefined = no consultado todavía · null = se consultó y no existe · string = id real
+let GIRAS = null;   // null = no consultadas todavía · [{ id, nombre, corto, inicio, proxima }] ordenadas por su próximo día
+let girasPromesa = null;
 function normalizarNombreCurso(s){
-  return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+  return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().trim();
 }
-async function obtenerCursoActivoId(){
-  if(cursoActivoIdCache !== undefined) return cursoActivoIdCache;
-  // Comparación insensible a mayúsculas/acentos — si el curso se renombra
-  // (typos corregidos, etc.) esto sigue encontrándolo en vez de romper
-  // Calendario/Ventas/Reportes en silencio.
-  const { data } = await sb.from('cursos').select('id, nombre');
-  const objetivo = normalizarNombreCurso(CURSO_ACTIVO_NOMBRE);
-  const match = (data||[]).find(c => normalizarNombreCurso(c.nombre) === objetivo);
-  cursoActivoIdCache = match ? match.id : null;
-  return cursoActivoIdCache;
+/* Nombre corto para los selectores y filtros ("Pasteles", "Mesa de Postres"). */
+function nombreCortoCurso(nombre){
+  const n = normalizarNombreCurso(nombre);
+  if(/PASTELES/.test(n)) return 'Pasteles';
+  return tituloCaso(String(nombre || '').toLowerCase()) || 'Curso';
 }
-/* Dónde empieza la gira ACTUAL. El mismo curso se ha usado en varias giras
+/* Dónde empieza la gira ACTUAL de un curso. El mismo curso se ha usado en varias giras
    (ene–mar y desde sep 2026), así que "lo que ya pasó" no es todo el curso:
    desde el próximo día de la gira se camina hacia atrás mientras los días
    estén a menos de 30 días entre sí. El primer hueco grande separa giras. */
@@ -5122,24 +5143,91 @@ function inicioDeGira(fechas, hoy = hoyISO()){
   while(i > 0 && diasEntre(f[i-1], f[i]) <= DIAS_ENTRE_GIRAS) i--;
   return f[i] < hoy ? f[i] : hoy;
 }
-let inicioGiraCache = null;
-async function obtenerInicioGira(){
-  if(inicioGiraCache) return inicioGiraCache;
-  const cursoId = await obtenerCursoActivoId();
-  if(!cursoId) return hoyISO();
-  const { data } = await sb.from('eventos').select('fecha').eq('curso_id', cursoId).not('fecha', 'is', null);
-  inicioGiraCache = inicioDeGira((data || []).map(e=>e.fecha));
-  return inicioGiraCache;
+async function obtenerGiras(){
+  if(GIRAS && GIRAS.every(g=>g.inicio)) return GIRAS;
+  if(girasPromesa) return girasPromesa;
+  girasPromesa = (async ()=>{
+    const hoy = hoyISO();
+    if(!GIRAS){
+      const { data: prox, error } = await sb.from('eventos').select('curso_id, fecha').gte('fecha', hoy).order('fecha', { ascending:true });
+      if(error){ console.warn('No se pudieron leer las giras:', error.message); return []; }
+      const ids = [...new Set((prox || []).map(e=>e.curso_id).filter(Boolean))];
+      const { data: cursos } = ids.length ? await sb.from('cursos').select('id, nombre, activo').in('id', ids) : { data:[] };
+      GIRAS = ids.map(id=>({ id, c:(cursos || []).find(c=>c.id === id), proxima:(prox || []).find(e=>e.curso_id === id)?.fecha || null }))
+        .filter(g=>g.c && g.c.activo !== false)
+        .map(g=>({ id:g.id, nombre:g.c.nombre, corto:nombreCortoCurso(g.c.nombre), proxima:g.proxima }));
+    }
+    // Dónde empieza cada gira (lo que ya pasó de esta vuelta sigue contando)
+    const faltan = GIRAS.filter(g=>!g.inicio).map(g=>g.id);
+    if(faltan.length){
+      const { data: todas } = await sb.from('eventos').select('curso_id, fecha').in('curso_id', faltan).not('fecha', 'is', null);
+      GIRAS.forEach(g=>{ if(!g.inicio) g.inicio = inicioDeGira((todas || []).filter(e=>e.curso_id === g.id).map(e=>e.fecha), hoy); });
+    }
+    GIRAS.forEach(g=>{ g.corto = g.corto || nombreCortoCurso(g.nombre); });
+    return GIRAS;
+  })().finally(()=>{ girasPromesa = null; });
+  return girasPromesa;
 }
+async function idsGiras(){ return (await obtenerGiras()).map(g=>g.id); }
+function giraDe(cursoId){ return (GIRAS || []).find(g=>g.id === cursoId) || null; }
+function variasGiras(){ return (GIRAS || []).length > 1; }
+// ¿Este día es de la vuelta actual de su gira? (los de vueltas pasadas no se cuentan en la gira que viene)
+function enSuGira(cursoId, fecha){ const g = giraDe(cursoId); return !!g && (fecha || '') >= (g.inicio || ''); }
+// El día más antiguo de las giras actuales: para traer de la base y luego quedarse con enSuGira()
+async function obtenerInicioGira(){
+  const giras = await obtenerGiras();
+  return giras.length ? giras.map(g=>g.inicio).sort()[0] : hoyISO();
+}
+/* Filtro de gira (Cobranza, Calendario, Embudo y Reportes): '' = todas. Se recuerda por persona. */
+let GIRA_FILTRO = (()=>{ try{ return localStorage.getItem('giraFiltro') || ''; }catch(e){ return ''; } })();
+function giraFiltrada(){ return GIRAS?.some(g=>g.id === GIRA_FILTRO) ? GIRA_FILTRO : ''; }
+// ¿Esta fila (por el curso de su evento) pasa el filtro de gira?
+function pasaFiltroGira(cursoId){ const f = giraFiltrada(); return !f || cursoId === f; }
+/* Botones "Todas · Pasteles · Mesa de Postres". Solo salen si hay más de una gira.
+   sinTodas: Reportes (cada gira por separado; si no eligen, la que sigue en fecha). */
+function htmlFiltroGira({ sinTodas = false } = {}){
+  if(!variasGiras()) return '';
+  const f = giraFiltrada() || (sinTodas ? GIRAS[0].id : '');
+  const ops = (sinTodas ? [] : [['', 'Todas las giras']]).concat(GIRAS.map(g=>[g.id, g.corto]));
+  return `<div class="gira-filtro" role="group" aria-label="Gira">${ops.map(([id, l])=>
+    `<button type="button" class="gira-pill ${id === f ? 'on' : ''}" data-gira-filtro="${escapeAttr(id)}">${escHtml(l)}</button>`).join('')}</div>`;
+}
+// Gira de Reportes: la elegida o, si eligieron "todas", la que sigue en fecha
+function giraDeReportes(){ return giraFiltrada() || GIRAS?.[0]?.id || null; }
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-gira-filtro]'); if(!b) return;
+  GIRA_FILTRO = b.dataset.giraFiltro;
+  try{ localStorage.setItem('giraFiltro', GIRA_FILTRO); }catch(err){}
+  document.querySelectorAll('[data-gira-filtro]').forEach(x=>x.classList.toggle('on', x.dataset.giraFiltro === GIRA_FILTRO));
+  const vista = document.querySelector('.view.active')?.id?.replace('view-', '');
+  if(vista === 'cobranza') renderCobranza();
+  else if(vista === 'calendario') renderCalendario();
+  else if(vista === 'ventas' || vista === 'reportes'){
+    // Lo que se vea en Ventas y Reportes sale del Calendario: se vuelve a leer con la gira elegida
+    calendarioDias = {}; montoPorEventoCache = null;
+    Object.keys(ventasCargado).forEach(k=>ventasCargado[k] = false);
+    Object.keys(reportesCargado).forEach(k=>reportesCargado[k] = false);
+    const tab = document.querySelector(`#${vista}Subtabs .subtab.active`)?.dataset.tab;
+    if(vista === 'ventas') cargarVentasTab(tab || 'ingresos'); else cargarReportesTab(tab || 'resumen');
+  }
+});
 let CIUDADES_GIRA_ACTIVA = null; // null = no cargadas todavía; array (posiblemente vacío) ya cargado
-/* Lo que está "en puerta": las ciudades con un curso del curso activo de HOY EN ADELANTE (la misma regla
-   que ciudades_en_puerta() en la base). Antes eran las ciudades de TODOS sus cursos (120 en 2026) y se
-   colaban leads de ciudades que ya no se visitan. */
+/* Lo que está "en puerta": las ciudades con un curso de alguna gira vigente de HOY EN ADELANTE (la misma
+   regla que ciudades_en_puerta() en la base). */
 async function cargarCiudadesGiraActiva(){
-  const cursoId = await obtenerCursoActivoId();
-  if(!cursoId){ CIUDADES_GIRA_ACTIVA = []; return; }
-  const { data: eventos } = await sb.from('eventos').select('ciudad_id').eq('curso_id', cursoId).gte('fecha', hoyISO());
+  const ids = await idsGiras();
+  if(!ids.length){ CIUDADES_GIRA_ACTIVA = []; return; }
+  const { data: eventos } = await sb.from('eventos').select('ciudad_id, curso_id').in('curso_id', ids).gte('fecha', hoyISO());
   CIUDADES_GIRA_ACTIVA = [...new Set((eventos||[]).map(e=>e.ciudad_id).filter(Boolean))];
+  CIUDADES_POR_GIRA = {};
+  (eventos || []).forEach(e=>{ if(e.ciudad_id) (CIUDADES_POR_GIRA[e.curso_id] = CIUDADES_POR_GIRA[e.curso_id] || new Set()).add(e.ciudad_id); });
+}
+let CIUDADES_POR_GIRA = {};   // curso_id -> Set de ciudades que visita (de hoy en adelante)
+// ¿Este lead pasa el filtro de gira? Ligado a un curso: el de su curso. Sin curso: si su ciudad está en esa gira.
+function leadPasaFiltroGira(l){
+  const f = giraFiltrada(); if(!f) return true;
+  if(l.eventos) return l.eventos.curso_id === f;
+  return !!l.ciudad_interes_id && !!CIUDADES_POR_GIRA[f]?.has(l.ciudad_interes_id);
 }
 // ¿Este lead es de la gira que viene? Ligado a un curso que no ha pasado, o sin curso pero de una ciudad
 // que se visita. Los de cursos pasados o ciudades que no se visitan van a la Bandeja de limpieza.
@@ -5156,7 +5244,7 @@ const LEAD_SELECT = `
     id, comentario, creado_en, ciudad_interes_id, asesor_id,
     evento_id, fecha_compromiso_pago, monto_anticipo, paquete, estatus_antes_de_reporte,
     pago_reportado_monto, pago_reportado_fecha, pago_reportado_banco, pago_reportado_por, pago_reportado_en,
-    eventos ( id, fecha, ciudad_id, ciudades ( nombre ) ),
+    eventos ( id, fecha, ciudad_id, curso_id, ciudades ( nombre ) ),
     personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra ),
     cursos ( nombre ),
     ciudades ( nombre ),
@@ -5170,14 +5258,14 @@ async function cargarLeads(){
   // campaña que aún no se clasifican a una parada — p.ej. la bandeja de
   // Facebook Ads). Antes el filtro los excluía a todos por igual porque
   // `ciudad_interes_id` no hace match con `null`, dejando el tablero
-  // vacío para leads nuevos sin ciudad. Si no se encontró el curso activo
-  // (p.ej. cambió de nombre y no se actualizó CURSO_ACTIVO_NOMBRE arriba),
+  // vacío para leads nuevos sin ciudad. Si no hay ninguna gira vigente
+  // (p.ej. todavía no se cargan las fechas de la siguiente gira),
   // se falla VISIBLE — se muestran todos los leads sin filtrar y se avisa
   // — en vez de esconder en silencio a todo el mundo con un filtro vacío.
   if(CIUDADES_GIRA_ACTIVA.length){
     query = query.or(`ciudad_interes_id.in.(${CIUDADES_GIRA_ACTIVA.join(',')}),ciudad_interes_id.is.null`);
   } else {
-    toast('No se encontró el curso activo ("' + CURSO_ACTIVO_NOMBRE + '") — mostrando TODOS los leads sin filtrar por gira.', true);
+    toast('No hay giras con fechas de hoy en adelante: mostrando TODOS los leads sin filtrar por gira.', true);
   }
   const { data, error } = await query;
   if(error){ toast('Error cargando leads: ' + error.message, true); return []; }
@@ -5205,12 +5293,12 @@ const VISTAS = [
   { id:'vendedor', label:'Vendedor',   icon:'' },
 ];
 
-/* Inscritos = quienes ya pagaron anticipo y van al curso activo. Viven en
+/* Inscritos = quienes ya pagaron anticipo y van a una gira vigente. Viven en
    "inscripciones", no en "leads": son dos poblaciones distintas y el saldo
    pendiente solo existe de este lado. */
 async function cargarInscritos(){
-  const cursoId = await obtenerCursoActivoId();
-  if(!cursoId) return [];
+  const ids = await idsGiras();
+  if(!ids.length) return [];
   // Todas las inscritas de la gira actual, también las de días que ya pasaron:
   // no se quitan del tablero, quedan como histórico ("curso pasado") y se editan igual.
   const inicioGira = await obtenerInicioGira();
@@ -5220,10 +5308,10 @@ async function cargarInscritos(){
       estatus ( id, etiqueta, color_hex ),
       eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )
     `)
-    .eq('eventos.curso_id', cursoId)
+    .in('eventos.curso_id', ids)
     .gte('eventos.fecha', inicioGira);
   if(error){ toast('Error cargando inscritos: ' + error.message, true); return []; }
-  return data || [];
+  return (data || []).filter(i=>enSuGira(i.eventos?.curso_id, i.eventos?.fecha));
 }
 
 /* 'YYYY-MM-DD' a mediodía: new Date('2026-09-22') se interpreta como UTC y en
@@ -6112,7 +6200,7 @@ function hace(iso){
 }
 function eventoTexto(eventoId){
   const ev = eventoPorId(eventoId);
-  return ev ? `${ev.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(ev.fecha)}` : '';
+  return ev ? etiquetaEvento(ev) : '';
 }
 function pintarPagoLead(lead){
   const caja = document.getElementById('leadPagoReportado');
@@ -6121,7 +6209,7 @@ function pintarPagoLead(lead){
   const bNo  = document.getElementById('btnPagoNoEncontrado');
   const confirma = puede('confirmar_pagos');
   if(pagoReportado(lead)){
-    const donde = lead.eventos ? `${lead.eventos.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(lead.eventos.fecha)}` : eventoTexto(lead.evento_id);
+    const donde = lead.eventos ? etiquetaEvento(lead.eventos) : eventoTexto(lead.evento_id);
     caja.innerHTML = `<b>Pago por confirmar: ${fmtMoney(lead.pago_reportado_monto)}</b>`
       + `${lead.pago_reportado_banco ? ' · ' + escHtml(lead.pago_reportado_banco) : ''}`
       + `${lead.pago_reportado_fecha ? ' · pagó el ' + fechaCorta(lead.pago_reportado_fecha) : ''}`
@@ -6332,7 +6420,7 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
   if(per){
     // Si Cobranza no encuentra el pago, regresa a "Aún no vence su pago".
     const r = await sb.from('leads').insert({ ...cambios, persona_id: per.personaId,
-      curso_interes_id: ev?.curso_id || await obtenerCursoActivoId(),
+      curso_interes_id: ev?.curso_id || null,
       estatus_antes_de_reporte: ESTATUS.find(e=>e.clave === 'no_vence_pago')?.id ?? null }).select('id').single();
     error = r.error; leadId = r.data?.id;
   } else {
@@ -6399,13 +6487,13 @@ document.getElementById('btnPagoNoEncontrado').addEventListener('click', async (
    registraban la venta en el Excel y el lead se quedaba como lead, fuera
    del Calendario. Eso obligaba a cargas manuales cada día.
    ========================================================= */
-// Precios confirmados por Dirección el 22 sep. El anticipo estándar es $700;
-// $500 o $600 cuentan como abono, no como un precio distinto.
-const PRECIO_PAQUETE = { BASICO:1400, VIP:1900 };
+// El precio de cada paquete vive en Precios → "Precio de cada curso" (antes fijo: $1,400 / $1,900).
+// Con dos giras a la vez, cada curso tiene el suyo. El anticipo estándar sigue siendo $700 y se puede cambiar.
 let inscribirPaquete = 'BASICO';
 
 function estatusInicialInscripcion(pagado, precio){
   if(!(pagado > 0)) return ESTATUS.find(e=>e.clave==='pago_por_confirmar')?.id ?? ESTATUS[0]?.id;
+  if(precio == null) return ESTATUS.find(e=>e.clave==='anticipo_vigente')?.id ?? ESTATUS[0]?.id;   // curso sin precio todavía
   return estatusSegunPago(pagado, precio, null);
 }
 
@@ -6427,7 +6515,7 @@ function abrirModalInscribir(){
   // tiene que escoger a propósito, para no inscribirla en la ciudad equivocada.
   const suyos = EVENTOS_CAL.filter(e=>e.ciudad_id && e.ciudad_id === lead.ciudad_interes_id);
   const otros = EVENTOS_CAL.filter(e=>!suyos.includes(e));
-  const opt = e => `<option value="${e.id}">${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(e.fecha)}</option>`;
+  const opt = e => `<option value="${e.id}">${escHtml(etiquetaEvento(e))}</option>`;
   const sel = document.getElementById('inscribirEvento');
   sel.innerHTML = (suyos.length ? '' : '<option value="">— Elige el curso —</option>')
     + (suyos.length ? `<optgroup label="Su ciudad">${suyos.map(opt).join('')}</optgroup>` : '')
@@ -6458,14 +6546,24 @@ function abrirModalInscribir(){
   selV.innerHTML = opcionesVendedor(porDefecto);
   selV.value = porDefecto;
   actualizarPreviewInscribir();
+  // El precio del paquete sale de Precios: si todavía no se leen, se leen y se vuelve a calcular
+  if(!PRECIOS) cargarPrecios().then(actualizarPreviewInscribir);
   document.getElementById('modalInscribir').classList.add('open');
 }
 
 function actualizarPreviewInscribir(){
   const caja = document.getElementById('inscribirPreview');
-  const precio = PRECIO_PAQUETE[inscribirPaquete];
+  const precio = precioPaquete(eventoPorId(document.getElementById('inscribirEvento').value)?.curso_id, inscribirPaquete);
   const pagado = Number(document.getElementById('inscribirPagado').value);
   if(!(pagado >= 0)){ caja.innerHTML = '<span class="malo">El monto pagado no puede ser negativo.</span>'; return; }
+  if(precio == null){
+    // Curso sin precio todavía (Mesa de Postres, nov 2026): se inscribe igual; lo que debe se calcula solo cuando Jared lo capture
+    document.getElementById('inscribirProximoCampo').style.display = '';
+    document.getElementById('inscribirProximoLabel').textContent = pagado > 0 ? 'Fecha de pago de lo que falta' : 'Fecha de pago (obligatoria: no ha pagado nada)';
+    caja.innerHTML = `<span class="malo">Este curso todavía no tiene precio en Precios.</span> Se puede inscribir: queda con lo que pagó (${fmtMoney(pagado)}) y, en cuanto se capture el precio, se le calcula sola lo que debe.`
+      + (!document.getElementById('inscribirVendedor').value ? '<br><span class="malo">Sin vendedor: no le contará a nadie en el corte.</span>' : '');
+    return;
+  }
   const etiqueta = ESTATUS.find(e=>e.id === estatusInicialInscripcion(pagado, precio))?.etiqueta || '—';
   const restante = Math.max(precio - pagado, 0);
   // Fecha de pago: solo si queda debiendo; obligatoria si no pagó nada
@@ -6504,7 +6602,8 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   const rep = pagoReportado(lead);
   const personaId = lead.personas?.id;
   const eventoId  = document.getElementById('inscribirEvento').value;
-  const precio    = PRECIO_PAQUETE[inscribirPaquete];
+  if(!PRECIOS) await cargarPrecios();
+  const precio    = precioPaquete(eventoPorId(eventoId)?.curso_id, inscribirPaquete);   // null = su curso todavía no tiene precio
   const pagado    = Number(document.getElementById('inscribirPagado').value);
   const fecha     = document.getElementById('inscribirFecha').value;
   const banco     = document.getElementById('inscribirBanco').value.trim();
@@ -6514,7 +6613,7 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   if(!(pagado >= 0)){ toast('El monto pagado no puede ser negativo.', true); return; }
   if(pagado > 0 && !fecha){ toast('Pon la fecha del pago.', true); return; }
   // Fecha de pago de lo que falta: sin ella, Cobranza no sabe cuándo cobrarle (caso Miriam, 28 oct)
-  const proximo = pagado < precio ? (document.getElementById('inscribirProximo').value || null) : null;
+  const proximo = (precio == null || pagado < precio) ? (document.getElementById('inscribirProximo').value || null) : null;
   if(!(pagado > 0) && !proximo){ toast('Pon la fecha de pago: no ha pagado nada y Cobranza necesita saber cuándo cobrarle.', true); return; }
   if(proximo && proximo < hoyISO()){ toast('La fecha de pago ya pasó: pon la fecha que prometió pagar.', true); return; }
 
@@ -6540,7 +6639,7 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   }
 
   const ev = eventoPorId(eventoId);
-  const donde = `${ev?.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(ev?.fecha)}`;
+  const donde = ev ? etiquetaEvento(ev) : '(ciudad?)';
   const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
   const quien = usuarioActual?.nombre || 'alguien';
   let nota = `INSCRITA desde el Hub el ${hoy} por ${quien}. `
@@ -6551,8 +6650,9 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
 
   const { data: ins, error } = await sb.from('inscripciones').insert({
     persona_id: personaId, evento_id: eventoId,
+    // Sin precio del curso: precio y lo que falta quedan vacíos; la base los llena sola al capturar el precio
     precio_pactado: precio, paquete: inscribirPaquete,
-    anticipo: pagado, restante: Math.max(precio - pagado, 0), liquidado: pagado >= precio,
+    anticipo: pagado, restante: precio == null ? null : Math.max(precio - pagado, 0), liquidado: precio != null && pagado >= precio,
     estatus_id: estatusInicialInscripcion(pagado, precio),
     asesor_id: vendedorId, notas_migracion: nota, fecha_proximo_pago: proximo,
   }).select('id').single();
@@ -6633,8 +6733,10 @@ function etiquetaGrupoCob(id){
   }[id];
 }
 
-async function cargarCobranza(){
-  const cursoId = await obtenerCursoActivoId();
+// todas: sin el filtro de gira de arriba (el semáforo "Te toca cobrar" de cada vendedora ve todas sus giras)
+async function cargarCobranza({ todas = false } = {}){
+  const ids = await idsGiras();
+  const pasa = cursoId => todas || pasaFiltroGira(cursoId);
   if(CIUDADES_GIRA_ACTIVA === null) await cargarCiudadesGiraActiva();
   // Inscritas de cursos de la gira activa, incluyendo los de las últimas 2 semanas: si el curso ya pasó
   // y sigue debiendo, va a "Curso ya pasó · debe".
@@ -6646,19 +6748,20 @@ async function cargarCobranza(){
   // que viene, o sin curso pero de una ciudad que se visita. Es la misma regla que el Embudo.
   const [rl, ri] = await Promise.all([
     qL,
-    cursoId ? sb.from('inscripciones').select(`
+    ids.length ? sb.from('inscripciones').select(`
         id, persona_id, evento_id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago, asistencia, estatus_id,
         personas ( id, nombre, telefono_principal ),
         estatus ( id, clave, etiqueta ),
         pagos ( monto, verificacion ),
         eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )`)
-      .eq('eventos.curso_id', cursoId).gte('eventos.fecha', desde)
+      .in('eventos.curso_id', ids).gte('eventos.fecha', desde)
       : Promise.resolve({ data:[], error:null }),
   ]);
   if(rl.error || ri.error){ toast('Error cargando Cobranza: ' + (rl.error || ri.error).message, true); return false; }
-  const todas = ri.data || [];
+  // Solo las de la gira elegida arriba (Todas las giras = sin filtro)
+  const inscTodas = (ri.data || []).filter(i=>pasa(i.eventos?.curso_id));
   // Lo que se cobra: debe algo (o tiene un pago por confirmar, aunque ya no deba) y sí va al curso.
-  const inscritas = todas.filter(i=>{
+  const inscritas = inscTodas.filter(i=>{
     const sit = situacionPagoInsc(i);
     if(sit === 'no_va' || sit === 'no_llego') return false;
     return sit === 'por_confirmar' || (!i.liquidado && Number(i.restante) > 0);
@@ -6666,7 +6769,7 @@ async function cargarCobranza(){
   // Leads: solo los de la gira que viene. Uno de alguien que ya está inscrita en ese curso no cuenta
   // doble, salvo que traiga un pago por confirmar (ese dinero todavía no está en su ficha).
   // Es la misma regla que el Embudo (embudo_cursos), para que los dos cuadren.
-  let leads = (rl.data || []).filter(l=>leadEnPuerta(l) && (l.eventos || l.ciudad_interes_id));
+  let leads = (rl.data || []).filter(l=>leadEnPuerta(l) && (l.eventos || l.ciudad_interes_id) && (todas || leadPasaFiltroGira(l)));
   const personas = [...new Set(leads.map(l=>l.persona_id || l.personas?.id).filter(Boolean))];
   let yaInsc = [];
   if(personas.length){
@@ -6705,7 +6808,7 @@ function itemsCobranza(sinFiltros = false){
     items.push({
       tipo:'lead', id:l.id, nombre:l.personas?.nombre || '(sin nombre)', tel:l.personas?.telefono_principal || '',
       vendedor:l.asesor_id || '', porConfirmar:conf, reportadoEn:l.pago_reportado_en,
-      donde: l.eventos ? `${l.eventos.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(l.eventos.fecha)}` : (l.ciudades?.nombre || 'sin ciudad'),
+      donde: l.eventos ? etiquetaEvento(l.eventos) : (l.ciudades?.nombre || 'sin ciudad'),
       fecha: l.fecha_compromiso_pago || null,
       monto: conf ? (l.pago_reportado_monto ?? null) : (l.monto_anticipo ?? null),
       queEs: conf ? 'reportado' : 'anticipo', yaInscrita: !!l._yaInscrita,
@@ -6720,7 +6823,7 @@ function itemsCobranza(sinFiltros = false){
     items.push({
       tipo:'insc', id:i.id, nombre:i.personas?.nombre || '(sin nombre)', tel:i.personas?.telefono_principal || '',
       vendedor:i.asesor_id || '', situacion:sit, porConfirmar: sit === 'por_confirmar',
-      donde: `${i.eventos?.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(i.eventos?.fecha)}`,
+      donde: etiquetaEvento(i.eventos || {}),
       fecha: i.fecha_proximo_pago || i.eventos?.fecha || null, fechaEsCurso: !i.fecha_proximo_pago,
       cursoPasado: (i.eventos?.fecha || '') < hoyISO(),
       monto: sit === 'por_confirmar' ? porConf : Number(i.restante) || 0, queEs: sit === 'por_confirmar' ? 'por confirmar' : 'debe', nota:'', raw:i,
@@ -6894,7 +6997,7 @@ function cdPintar(){
   const cursoOpts = l=>{
     const evs = [...(EVENTOS_CAL || [])];
     const suyos = evs.filter(e=>l.ciudad_interes_id && e.ciudad_id === l.ciudad_interes_id), otros = evs.filter(e=>!suyos.includes(e));
-    const op = e=>`<option value="${escapeAttr(e.id)}">${escHtml(e.ciudades?.nombre || '(ciudad?)')} · ${escHtml(fechaCorta(e.fecha))}</option>`;
+    const op = e=>`<option value="${escapeAttr(e.id)}">${escHtml(etiquetaEvento(e))}</option>`;
     return '<option value="">Elige el curso…</option>' + (suyos.length ? `<optgroup label="De su ciudad">${suyos.map(op).join('')}</optgroup>` : '') + `<optgroup label="Otros cursos">${otros.map(op).join('')}</optgroup>`;
   };
   caja.innerHTML = `<div class="sub" style="margin:0 0 12px;"><b>${total}</b> por completar. Se guarda al elegir; el renglón desaparece.</div>
@@ -7145,7 +7248,9 @@ async function renderCobranza(){
   cargarBandejaCobranza();
   document.getElementById('cobDia').value = cobDia;
   if(!cobDatos.leads.length && !cobDatos.inscritas.length) document.getElementById('cobGrupos').innerHTML = 'Cargando…';
-  if(await cargarCobranza()){ pintarCobranza(); if(emb.tab === 'calendario') ccCargar(); if(emb.tab === 'datos') cdCargar(); }
+  await obtenerGiras();
+  document.getElementById('cobFiltroGira').innerHTML = htmlFiltroGira();
+  if(await cargarCobranza()){ pintarCobranza(); if(emb.tab === 'calendario') ccCargar(); if(emb.tab === 'datos') cdCargar(); if(emb.tab === 'embudo') embCargar(); }
 }
 
 // Cuando se cierran las fichas que se abrieron desde aquí (y las que se
@@ -7294,7 +7399,7 @@ async function buscarParaCobro(texto){
       const debe = debeDe(i);
       return `<button type="button" class="cobb-op" data-cobb-insc="${i.id}">
         <span>${escHtml(i.eventos?.ciudades?.nombre || '(ciudad?)')} · ${i.eventos?.fecha ? fechaCorta(i.eventos.fecha) : 'sin fecha'}</span>
-        ${debe > 0 ? `<span class="debe">debe ${fmtMoney(debe)}</span>` : '<span class="ok">liquidada</span>'}</button>`;
+        ${debe == null ? '<span class="debe">curso sin precio</span>' : debe > 0 ? `<span class="debe">debe ${fmtMoney(debe)}</span>` : '<span class="ok">liquidada</span>'}</button>`;
     }).concat(p.leads.map(l=>{
       const est = ESTATUS.find(e=>e.id === l.estatus_id);
       return `<button type="button" class="cobb-op" data-cobb-lead="${l.id}">
@@ -7819,7 +7924,7 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
   const telefono = document.getElementById('nuevoTelefono').value.replace(/\D/g,'');
   const eventoId = document.getElementById('nuevoEvento').value || null;
   const evento = eventoPorId(eventoId);
-  const cursoId = evento ? (evento.curso_id || await obtenerCursoActivoId()) : (document.getElementById('nuevoCurso').value || null);
+  const cursoId = evento ? (evento.curso_id || null) : (document.getElementById('nuevoCurso').value || null);
   const ciudadId = evento ? evento.ciudad_id : (document.getElementById('nuevoCiudad').value || null);
   const fechaAnticipo = document.getElementById('nuevoFechaAnticipo').value || null;
   const correo = document.getElementById('nuevoCorreo').value.trim();
@@ -7947,23 +8052,24 @@ function calMismoDia(a,b){ return a.getFullYear()===b.getFullYear() && a.getMont
 async function renderCalendario(preservarMes){
   const mesPrevio = (preservarMes && calendarioMeses[calendarioMesIdx]) ? { ...calendarioMeses[calendarioMesIdx] } : null;
   const cont = document.getElementById('listaCalendario');
-  const cursoId = await obtenerCursoActivoId();
-  if(!cursoId){
-    cont.innerHTML = '<div class="empty-note">No se encontró el curso activo ("' + CURSO_ACTIVO_NOMBRE + '") en el catálogo. Revisa que el nombre coincida exactamente.</div>';
+  const ids = await idsGiras();
+  document.getElementById('calFiltroGira').innerHTML = htmlFiltroGira();
+  if(!ids.length){
+    cont.innerHTML = '<div class="empty-note">No hay giras con fechas de hoy en adelante. Carga las fechas de la siguiente gira para verla aquí.</div>';
     return;
   }
-  // Solo eventos del curso en curso — antes traía eventos de CUALQUIER
-  // curso con fecha futura (incluía tarjetas ajenas a la gira actual).
-  // TODOS los días de la gira actual, también los que ya pasaron: nunca se
+  // Los días de las giras que se están vendiendo (solo de las que pasan el filtro de gira).
+  // TODOS los días de la vuelta actual de cada gira, también los que ya pasaron: nunca se
   // quita nada del Calendario, queda como histórico y se sigue pudiendo editar.
   const inicioGira = await obtenerInicioGira();
-  const { data: eventos, error } = await sb.from('eventos')
-    .select('id, fecha, ciudad_id, sede, recepcion_cerrada_en, ciudades(nombre), cursos(nombre)')
-    .eq('curso_id', cursoId)
+  const { data: eventosTodos, error } = await sb.from('eventos')
+    .select('id, fecha, ciudad_id, curso_id, sede, recepcion_cerrada_en, ciudades(nombre), cursos(nombre)')
+    .in('curso_id', ids)
     .not('fecha', 'is', null).gte('fecha', inicioGira)
     .order('fecha', {ascending:true});
   if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + error.message + '</div>'; return; }
-  if(!eventos || eventos.length===0){ cont.innerHTML = '<div class="empty-note">Sin eventos programados del curso activo todavía.</div>'; return; }
+  const eventos = (eventosTodos || []).filter(e=>enSuGira(e.curso_id, e.fecha) && pasaFiltroGira(e.curso_id));
+  if(!eventos.length){ cont.innerHTML = '<div class="empty-note">Sin días programados de esta gira todavía.</div>'; return; }
 
   // Antes esto se calculaba cruzando "leads" (bandeja de seguimiento,
   // ~165 filas) agrupado por CIUDAD completa — mezclaba fechas distintas
@@ -8019,7 +8125,7 @@ async function renderCalendario(preservarMes){
     if(!calendarioDias[e.fecha]) calendarioDias[e.fecha] = [];
     const res = resumenPorEvento[e.id] || { total: liquidados + conAnticipo + sinPago, llegaron:0, liquidadas: liquidados, deben: conAnticipo + sinPago, noLlegaron:0, cobrado:0, pendiente:0, debenLlegaron:0, porConfirmar:0 };
     calendarioDias[e.fecha].push({
-      id: e.id, ciudadId: e.ciudad_id, tieneInscripciones: eventosConInscripcion.has(e.id), fecha: e.fecha, sede: e.sede || '',
+      id: e.id, ciudadId: e.ciudad_id, cursoId: e.curso_id, curso: giraDe(e.curso_id)?.corto || '', tieneInscripciones: eventosConInscripcion.has(e.id), fecha: e.fecha, sede: e.sede || '',
       ciudad: e.ciudades?.nombre || '(ciudad?)', liq: liquidados, ant: conAnticipo, pend: sinPago,
       ...res, cerrada: !!e.recepcion_cerrada_en,
     });
@@ -8128,6 +8234,7 @@ function pintarCalendarioMes(){
         title="${escapeAttr(ev.ciudad)} · ${escapeAttr(av.txt)}${est ? ' · ' + escapeAttr(est.txt) : ''}">
       <span class="num">${c.dia}</span>
       <span class="cal-city">${escHtml(ev.ciudad)}</span>
+      ${variasGiras() && !giraFiltrada() ? `<span class="cal-gira">${escHtml([...new Set(eventosDelDia.map(x=>x.curso))].join(' · '))}</span>` : ''}
       <span class="cal-n">${ev.total} alumna${ev.total === 1 ? '' : 's'}</span>
       <span class="cal-av">${escHtml(av.txt)}</span>
       ${ev.cobrado ? `<span class="cal-cob">${fmtMoney(ev.cobrado)} cobrado</span>` : ''}
@@ -8138,7 +8245,7 @@ function pintarCalendarioMes(){
   }).join('');
 
   cont.innerHTML = `
-    <div class="cal-curso-tag">Curso activo · <b>${CURSO_ACTIVO_NOMBRE}</b></div>
+    <div class="cal-curso-tag">${giraFiltrada() ? 'Gira' : (variasGiras() ? 'Giras' : 'Gira')} · <b>${escHtml((GIRAS || []).filter(g=>pasaFiltroGira(g.id)).map(g=>g.nombre).join(' · '))}</b></div>
     <div class="cal-resumen">
       <div class="cal-stat tot"><div class="v">${totCursos}</div><div class="l">Cursos del mes</div></div>
       <div class="cal-stat"><div class="v">${fmtNum(totAlumnas)}</div><div class="l">Alumnas</div></div>
@@ -8187,7 +8294,7 @@ function abrirSheetCalendario(key){
       ? [[ev.llegaron, 'llegaron'], [Math.max(ev.total - ev.llegaron, 0), 'faltan']]
       : [[ev.liquidadas, 'liquidadas'], [ev.deben, 'deben']];
     return `<div class="sheet-evento">
-      <div class="sheet-curso">${escHtml(CURSO_ACTIVO_NOMBRE)}</div>
+      <div class="sheet-curso">${escHtml(giraDe(ev.cursoId)?.nombre || '')}</div>
       <div class="sheet-city">${escHtml(ev.ciudad)}</div>
       <div class="hoja-sub">${ev.total} alumna${ev.total === 1 ? '' : 's'}${ev.sede ? ' · ' + escHtml(ev.sede) : ''}</div>
       ${est ? `<span class="cal-est ${est.cls} hoja-est">${escHtml(est.txt)}</span>` : ''}
@@ -8439,7 +8546,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, asistencia, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, sede, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
+    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, asistencia, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, sede, curso_id, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -8515,6 +8622,26 @@ document.getElementById('btnInscContacto').addEventListener('click', ()=>{
   });
 });
 
+/* Cambio de curso ENTRE GIRAS (nov 2026): el precio pasa a ser el de la otra gira (con su mismo paquete)
+   y lo que debe se recalcula con lo que ya pagó. Dentro de la misma gira no cambia nada (como siempre).
+   Lo usan "Cambiar de curso" de la ficha y "Mover a otro curso" de No llegaron. */
+function precioAlCambiarDeCurso(insc, cursoAntes, cursoNuevo){
+  if(!cursoNuevo || !cursoAntes || cursoAntes === cursoNuevo) return null;
+  const paquete = insc.paquete === 'VIP' ? 'VIP' : 'BASICO';
+  const precio = precioPaquete(cursoNuevo, paquete);
+  const pagado = Number(insc.anticipo || 0);
+  const debia = Math.max(precioDeInsc(insc) - pagado, 0);
+  const gira = giraDe(cursoNuevo)?.corto || 'el otro curso';
+  if(precio == null) return {
+    cambios:{ precio_pactado:null, restante:null, liquidado:false, paquete },
+    aviso:`Cambia de gira: <b>${escHtml(gira)}</b> todavía no tiene precio. Conserva lo que pagó (${fmtMoney(pagado)}); lo que debe se calcula solo cuando capturen el precio.`,
+    nota:`precio ${fmtMoney(precioDeInsc(insc))} → sin precio (${gira})` };
+  const debe = Math.max(precio - pagado, 0);
+  return {
+    cambios:{ precio_pactado:precio, restante:debe, liquidado: pagado >= precio, paquete, estatus_id: estatusSegunPago(pagado, precio, insc.estatus_id) },
+    aviso:`Cambia de gira: en <b>${escHtml(gira)}</b> el ${paquete === 'VIP' ? 'VIP' : 'Básico'} cuesta <b>${fmtMoney(precio)}</b>. Antes debía <b>${fmtMoney(debia)}</b>, ahora debe <b>${fmtMoney(debe)}</b>.`,
+    nota:`precio ${fmtMoney(precioDeInsc(insc))} → ${fmtMoney(precio)} (${gira})` };
+}
 /* Curso de la inscrita y "Cambiar de curso" (el mismo movimiento que en No llegaron). */
 function pintarCursoFicha(){
   const d = modalInscDatos; if(!d) return;
@@ -8634,10 +8761,13 @@ document.getElementById('fichaCursoOk').addEventListener('click', async ()=>{
   if(ya && ya.id !== d.id){ toast(`${nombre} ya está inscrita en ese curso.`, true); return; }
   const antes = `${d.eventos?.ciudades?.nombre || ''} ${d.eventos?.fecha ? fechaCorta(d.eventos.fecha) : ''}`.trim();
   const despues = `${ev.ciudades?.nombre || ''} ${fechaCorta(ev.fecha)}`;
+  const otraGira = precioAlCambiarDeCurso(d, cursoDeInsc(d), ev.curso_id);
   const ok = await preguntarConfirmacion({ titulo:'¿Cambiar de curso?', textoSi:'Sí, cambiarla',
-    aviso:`${escHtml(nombre)}: <b>${escHtml(antes)}</b> → <b>${escHtml(despues)}</b>.<br>Conserva lo que pagó, su paquete y su vendedora.` });
+    aviso:`${escHtml(nombre)}: <b>${escHtml(antes)}</b> → <b>${escHtml(despues)}</b>.<br>Conserva lo que pagó, su paquete y su vendedora.`
+      + (otraGira ? '<br>' + otraGira.aviso : '') });
   if(ok === null) return;
-  const cambios = { evento_id: nuevo, notas_migracion: notaConRastro(d, `CAMBIÓ DE CURSO de ${antes} a ${despues}`) };
+  const cambios = { ...(otraGira?.cambios || {}), evento_id: nuevo,
+    notas_migracion: notaConRastro(d, `CAMBIÓ DE CURSO de ${antes} a ${despues}` + (otraGira ? ' · ' + otraGira.nota : '')) };
   const { error } = await sb.from('inscripciones').update(cambios).eq('id', d.id);
   if(error){ toast('No se pudo cambiar de curso: ' + error.message, true); return; }
   registrarActividad('inscripcion_movida', `${nombre}: ${antes} → ${despues}`);
@@ -8943,14 +9073,19 @@ document.getElementById('guardarInscCorreccion').addEventListener('click', async
 
 /* Cómo queda la inscrita con un abono. La usan la vista previa y el guardado,
    para que lo que se ve antes de guardar sea exactamente lo que se guarda. */
+/* Inscrita en un curso que todavía no tiene precio (Mesa de Postres, nov 2026): no se sabe cuánto debe.
+   No es "liquidada": lo que debe queda vacío hasta que capturen el precio (la base lo calcula sola). */
+function sinPrecioInsc(d){ return !!d && d.precio_pactado == null && d.restante == null && !d.liquidado; }
 function calcularAbono(d, monto){
   const nuevoAnticipo = Number(d.anticipo || 0) + monto;
+  if(sinPrecioInsc(d)) return { nuevoAnticipo, nuevoRestante:null, liquidado:false, precio:null, sobra:0, sinPrecio:true };
   const precio = d.precio_pactado != null ? Number(d.precio_pactado) : null;
   const nuevoRestante = precio != null ? Math.max(precio - nuevoAnticipo, 0) : Math.max(Number(d.restante || 0) - monto, 0);
   const liquidado = precio != null ? nuevoAnticipo >= precio : nuevoRestante <= 0;
   const sobra = precio != null ? Math.max(nuevoAnticipo - precio, 0) : Math.max(monto - Number(d.restante || 0), 0);
   return { nuevoAnticipo, nuevoRestante, liquidado, precio, sobra };
 }
+// null = su curso todavía no tiene precio (no cuenta como liquidada ni como "debe $0")
 function debeDe(d){ return d.liquidado ? 0 : calcularAbono(d, 0).nuevoRestante; }
 
 function pintarCobro(){
@@ -8958,7 +9093,10 @@ function pintarCobro(){
   const debe = debeDe(d);
   const precio = d.precio_pactado != null ? Number(d.precio_pactado) : null;
   const pagado = Number(d.anticipo || 0);
-  document.getElementById('cobroResumen').innerHTML = debe > 0
+  document.getElementById('cobroResumen').innerHTML = sinPrecioInsc(d)
+    ? `<div class="cobro-etq">Pagado</div><div class="cobro-grande">${fmtMoney(pagado)}</div>`
+      + `<div class="cobro-det">Su curso todavía no tiene precio en Precios: en cuanto lo capturen, aquí sale lo que debe.</div>`
+    : debe > 0
     ? `<div class="cobro-etq">Debe</div><div class="cobro-grande">${fmtMoney(debe)}</div>`
       + `<div class="cobro-det">Pagado ${fmtMoney(pagado)}${precio != null ? ' de ' + fmtMoney(precio) : ''}</div>`
     : `<div class="cobro-etq">Pagado</div><div class="cobro-grande ok">${fmtMoney(pagado)} · Liquidada</div>`
@@ -8968,9 +9106,12 @@ function pintarCobro(){
   // Monto vacío y con saldo = liquida todo: un solo clic para el caso de la fila.
   const monto = escrito === '' && debe > 0 ? debe : Number(escrito);
   const caja = document.getElementById('cobroPreview');
-  let quedaDebiendo = debe > 0;
+  let quedaDebiendo = debe > 0 || sinPrecioInsc(d);
   const btn = document.getElementById('guardarInscPago');
-  if(!(monto > 0)){
+  if(sinPrecioInsc(d)){
+    caja.innerHTML = monto > 0 ? `Queda con ${fmtMoney(pagado + monto)} pagados; lo que falta se calcula al capturar el precio.` : 'Escribe el monto del abono.';
+    if(!btn.disabled) btn.textContent = monto > 0 ? `Registrar abono de ${fmtMoney(monto)}` : 'Registrar pago';
+  } else if(!(monto > 0)){
     caja.innerHTML = debe > 0 ? `Escribe el monto. Debe <b>${fmtMoney(debe)}</b>.` : 'Ya no debe nada. Si pagó algo más, escribe el monto.';
     if(!btn.disabled) btn.textContent = 'Registrar pago';
   } else {
@@ -9003,19 +9144,26 @@ document.getElementById('cobroFormas').addEventListener('click', e=>{
 document.getElementById('cobroProximo').addEventListener('input', pintarCobro);
 /* Paquete en la ficha: si es Básico, se puede pasar a VIP antes del curso
    (sube el precio y le queda la diferencia por pagar). */
-function precioSubirVip(){ return Number(PRECIOS?.find(p=>p.clave === 'subir_vip')?.precio ?? 500); }
+/* Cuánto cuesta pasar a VIP: la diferencia entre VIP y Básico de su curso (Precio de cada curso);
+   si su curso no tiene los dos, lo de "Subir a VIP" del catálogo. */
+function precioSubirVip(cursoId){
+  const b = precioPaquete(cursoId, 'BASICO'), v = precioPaquete(cursoId, 'VIP');
+  if(b != null && v != null && v > b) return v - b;
+  return Number(PRECIOS?.find(p=>p.clave === 'subir_vip')?.precio ?? 500);
+}
+function cursoDeInsc(d){ return d?.eventos?.curso_id || eventoPorId(d?.evento_id)?.curso_id || null; }
 function pintarVipFicha(){
   const d = modalInscDatos; const cont = document.getElementById('cobroVipCaja');
   if(!d){ cont.innerHTML = ''; return; }
   cont.innerHTML = d.paquete === 'VIP'
     ? '<span class="rec-chip vip">Paquete VIP</span>'
-    : `<button type="button" class="btn-outline small" id="btnCambiarVip">Cambiar a VIP (+${fmtMoney(precioSubirVip())})</button>`;
+    : `<button type="button" class="btn-outline small" id="btnCambiarVip">Cambiar a VIP (+${fmtMoney(precioSubirVip(cursoDeInsc(d)))})</button>`;
 }
 document.getElementById('cobroVipCaja').addEventListener('click', async e=>{
   if(!e.target.closest('#btnCambiarVip')) return;
   const d = modalInscDatos; if(!d || d.paquete === 'VIP') return;
   if(!PRECIOS) await cargarPrecios();
-  const extra = precioSubirVip();
+  const extra = precioSubirVip(cursoDeInsc(d));
   const nombre = d.personas?.nombre || 'la alumna';
   const precio = precioDeInsc(d) + extra;
   const anticipo = Number(d.anticipo || 0);
@@ -9510,7 +9658,7 @@ function pintarListaRecepcion(){
       lleg = '<span class="rec-lleg tag">Lead</span>';
     } else {
       const d = debeDe(it.i);
-      din = d > 0 ? `<div class="din debe">$ Debe ${fmtMoney(d)}</div>` : '<div class="din ok">✓ Liquidada</div>';
+      din = d == null ? '<div class="din debe">Curso sin precio</div>' : d > 0 ? `<div class="din debe">$ Debe ${fmtMoney(d)}</div>` : '<div class="din ok">✓ Liquidada</div>';
       if(pagosPorConfirmar(it.i).length) din += '<div class="din pc">Por confirmar</div>';
       lleg = fueraDeRecepcion(it.i) ? `<span class="rec-lleg tag">${escHtml(ESTATUS.find(e=>e.id === it.i.estatus_id)?.etiqueta || '')}</span>`
         : llego(it.i) ? '<span class="rec-lleg si">● Llegó</span>'
@@ -10018,15 +10166,15 @@ function estadoNoLlegaron(i){
 }
 
 async function cargarNoLlegaron(){
-  const cursoId = await obtenerCursoActivoId();
+  const ids = await idsGiras();
   const cerradas = ESTATUS.filter(e=>['no_llego','perdio_anticipo'].includes(e.clave)).map(e=>e.id);
   const [rc, rr] = await Promise.all([
     // Casos ya marcados, de cualquier curso
     sb.from('inscripciones').select(NL_SELECT)
       .or(`estatus_id.in.(${cerradas.join(',') || 0}),acceso_online_en.not.is.null`),
-    // Por revisar: cursos del curso activo que ya pasaron
-    cursoId ? sb.from('inscripciones').select(NL_SELECT)
-      .eq('eventos.curso_id', cursoId).lt('eventos.fecha', hoyISO())
+    // Por revisar: cursos de las giras vigentes que ya pasaron
+    ids.length ? sb.from('inscripciones').select(NL_SELECT)
+      .in('eventos.curso_id', ids).lt('eventos.fecha', hoyISO())
       .eq('liquidado', false).gt('anticipo', 0).is('asistencia', null)
       : Promise.resolve({ data:[], error:null }),
   ]);
@@ -10199,7 +10347,7 @@ async function accionNoLlegaron(acc){
   if(acc === 'mover'){
     const sel = document.getElementById('nlMoverSelect');
     const futuros = (EVENTOS_CAL || []).filter(e=>e.id !== i.evento_id);
-    sel.innerHTML = '<option value="">— Elige el curso —</option>' + futuros.map(e=>`<option value="${e.id}">${escHtml(e.ciudades?.nombre || '(ciudad?)')} · ${fechaCorta(e.fecha)}</option>`).join('');
+    sel.innerHTML = '<option value="">— Elige el curso —</option>' + futuros.map(e=>`<option value="${e.id}">${escHtml(etiquetaEvento(e))}</option>`).join('');
     buscadorDeCiudad(sel, { placeholder:'Busca la ciudad del curso…' });
     sel.value = '';
     document.getElementById('nlMoverCaja').hidden = false;
@@ -10215,14 +10363,17 @@ async function moverNoLlegaron(){
   const nombre = i.personas?.nombre || 'la alumna';
   const antes = `${i.eventos?.ciudades?.nombre || ''} ${i.eventos?.fecha ? fechaCorta(i.eventos.fecha) : ''}`.trim();
   const despues = `${ev.ciudades?.nombre || ''} ${fechaCorta(ev.fecha)}`;
-  const ok = await preguntarConfirmacion({ titulo:'¿Mover de curso?', aviso:`${escHtml(nombre)}: <b>${escHtml(antes)}</b> → <b>${escHtml(despues)}</b>.<br>Conserva lo que pagó y regresa a Cobranza con lo que le falta.`, textoSi:'Sí, moverla' });
+  const otraGira = precioAlCambiarDeCurso(i, i.eventos?.curso_id, ev.curso_id);
+  const ok = await preguntarConfirmacion({ titulo:'¿Mover de curso?', aviso:`${escHtml(nombre)}: <b>${escHtml(antes)}</b> → <b>${escHtml(despues)}</b>.<br>Conserva lo que pagó y regresa a Cobranza con lo que le falta.`
+    + (otraGira ? '<br>' + otraGira.aviso : ''), textoSi:'Sí, moverla' });
   if(ok === null) return;
   const c = claveEstatus(i.estatus_id);
   const cambios = {
+    ...(otraGira?.cambios || {}),
     evento_id: nuevo, asistencia:null, asistencia_en:null, asistencia_por:null, estatus_antes_de_cierre:null,
     // Si estaba en "No llegó" o "Perdió anticipo", vuelve a su estatus de antes.
     estatus_id: (c === 'no_llego' || c === 'perdio_anticipo') ? (i.estatus_antes_de_cierre ?? estatusPorClave('anticipo_vigente')?.id) : i.estatus_id,
-    notas_migracion: notaConRastro(i, `MOVIDA de ${antes} a ${despues}`),
+    notas_migracion: notaConRastro(i, `MOVIDA de ${antes} a ${despues}` + (otraGira ? ' · ' + otraGira.nota : '')),
   };
   const { error } = await sb.from('inscripciones').update(cambios).eq('id', i.id);
   if(error){ toast('No se pudo mover: ' + error.message, true); return; }
@@ -11560,12 +11711,18 @@ const C_INSC_PAGO = 'liquidado, anticipo, restante, precio_pactado, pagos!pagos_
 function pagoCompletoCert(i){ return debeDe(i) === 0 && !pagosPorConfirmar(i).length; }
 
 async function cargarPlantillasCert(){
-  const { data, error } = await sb.from('certificado_plantillas').select('id, tipo, fondo_url, campos, textos, folio_prefijo, folio_siguiente, folio_digitos, ancho, alto, usa_folio');
+  const { data, error } = await sb.from('certificado_plantillas').select('id, tipo, fondo_url, campos, textos, folio_prefijo, folio_siguiente, folio_digitos, ancho, alto, usa_folio, curso_id');
   if(error){ toast('No se pudieron cargar las plantillas: ' + error.message, true); return false; }
   cc.plantillas = Object.fromEntries((data || []).map(p=>[p.tipo, p]));
   return true;
 }
 function plantillaCert(){ return cc.plantillas?.[cc.tipo] || null; }
+/* El diploma de la gira es de un curso (el fondo trae su nombre impreso). Un curso de otra gira
+   (Mesa de Postres, dic 2026) no tiene diseño todavía: no se genera con el de otro curso. */
+function faltaDisenoCert(g){
+  const pl = plantillaCert();
+  return cc.tipo === 'gira' && !!pl?.curso_id && !!g?.evento?.curso_id && g.evento.curso_id !== pl.curso_id;
+}
 function usaFolio(pl){ return pl?.usa_folio !== false; }
 function folioEjemplo(pl){ return pl?.folio_prefijo != null && pl?.folio_siguiente != null ? pl.folio_prefijo + String(pl.folio_siguiente).padStart(pl.folio_digitos || 6, '0') : null; }
 
@@ -11581,13 +11738,13 @@ async function renderCertificados(){
   if(cc.grupo) await abrirGrupoCert(cc.grupo);
 }
 
-/* Grupos: cursos ya pasados del curso activo (gira) o generaciones (academia). */
+/* Grupos: cursos ya pasados de las giras vigentes (gira) o generaciones (academia). */
 async function cargarGruposCert(){
   if(cc.tipo === 'gira'){
-    const cursoId = await obtenerCursoActivoId();
-    if(!cursoId){ cc.grupos = []; return true; }
-    const { data:evs, error } = await sb.from('eventos').select('id, fecha, sede, ciudades ( nombre )')
-      .eq('curso_id', cursoId).lt('fecha', hoyISO()).order('fecha', { ascending:false }).limit(80);
+    const giraIds = await idsGiras();
+    if(!giraIds.length){ cc.grupos = []; return true; }
+    const { data:evs, error } = await sb.from('eventos').select('id, fecha, sede, curso_id, ciudades ( nombre )')
+      .in('curso_id', giraIds).lt('fecha', hoyISO()).order('fecha', { ascending:false }).limit(80);
     if(error){ toast('No se pudieron cargar los cursos: ' + error.message, true); return false; }
     const ids = (evs || []).map(e=>e.id);
     const [ri, rc] = ids.length ? await Promise.all([
@@ -11601,7 +11758,7 @@ async function cargarGruposCert(){
       const llegaron = ri.data.filter(i=>i.evento_id === e.id && !fueraDeRecepcion(i));
       const listas = new Set([...llegaron.filter(pagoCompletoCert).map(i=>i.id), ...conCert]);
       const deben = llegaron.filter(i=>!pagoCompletoCert(i) && !conCert.has(i.id)).length;
-      return { id:e.id, titulo:e.ciudades?.nombre || '(ciudad?)', sub:fechaCorta(e.fecha) + (deben ? ` · ${deben} aún no` : ''), evento:e, total:listas.size, deben,
+      return { id:e.id, titulo:e.ciudades?.nombre || '(ciudad?)', sub:fechaCorta(e.fecha) + (variasGiras() ? ' · ' + (giraDe(e.curso_id)?.corto || '') : '') + (deben ? ` · ${deben} aún no` : ''), evento:e, total:listas.size, deben,
         generados:certs.filter(c=>c.estado !== 'pendiente').length, enviados:certs.filter(certEntregado).length };
     });
   } else {
@@ -11624,7 +11781,7 @@ async function cargarGruposCert(){
 function pintarGruposCert(){
   const caja = document.getElementById('cGrupos');
   if(!cc.grupos.length){
-    caja.innerHTML = `<div class="empty-note">${cc.tipo === 'gira' ? 'Todavía no hay cursos pasados del curso activo.' : 'Todavía no hay alumnas marcadas “Graduada”.'}</div>`;
+    caja.innerHTML = `<div class="empty-note">${cc.tipo === 'gira' ? 'Todavía no hay cursos pasados de las giras que se están vendiendo.' : 'Todavía no hay alumnas marcadas “Graduada”.'}</div>`;
     return;
   }
   caja.innerHTML = `<h3 style="margin:0 0 6px;">${cc.tipo === 'gira' ? 'Cursos que ya pasaron' : 'Graduadas por generación'}</h3>
@@ -11684,6 +11841,12 @@ function pintarListaCert(){
   const pendientes = cc.filas.filter(f=>(!f.cert || f.cert.estado === 'pendiente') && !f.cert?.descargado_en && f.pagoOk);
   const porMandar = cc.filas.filter(f=>f.cert?.estado === 'generado' && f.tel);
   const pl = plantillaCert();
+  if(faltaDisenoCert(g)){
+    document.getElementById('cLista').innerHTML = `<div class="c-cabeza-lista"><div><h3 style="margin:0;">${escHtml(g.titulo)}</h3>
+      <div class="sub" style="margin:0;">${escHtml(g.sub)} · ${cc.filas.length} alumna${cc.filas.length === 1 ? '' : 's'}</div></div></div>
+      <div class="aviso-sin-curso" style="display:block;"><b>Falta el diseño del diploma</b> de ${escHtml(tituloCaso(giraDe(g.evento.curso_id)?.nombre || 'este curso'))}. En cuanto se suba, aquí se generan y se mandan como siempre. Mientras, no se usa el de otro curso.</div>`;
+    return;
+  }
   const sinFolio = usaFolio(pl) && !folioEjemplo(pl);
   const bloque = (pl?.campos || []).find(c=>c.renglones && c.texto === '{nombre}');   // nombre en varios renglones
   document.getElementById('cLista').innerHTML = `
@@ -12023,17 +12186,45 @@ document.getElementById('cPlantilla').addEventListener('click', async e=>{
    Cualquiera lo ajusta y se guarda solo. PRECIOS queda en memoria para que
    Recepción y Cobranza lo usen sin volver a consultarlo.
    ========================================================= */
-let PRECIOS = null;
+let PRECIOS = null;         // lo que se cobra aparte (VIP, uniforme, kit…)
+let PRECIOS_CURSO = [];     // Básico y VIP de cada curso (precios con curso_id)
 async function cargarPrecios(){
-  const { data, error } = await sb.from('precios').select('id, nombre, clave, precio, activo, orden, area, descripcion, actualizado_por, actualizado_en').order('orden').order('nombre');
+  const { data, error } = await sb.from('precios').select('id, nombre, clave, precio, activo, orden, area, descripcion, actualizado_por, actualizado_en, curso_id, paquete').order('orden').order('nombre');
   if(error){ toast('No se pudieron cargar los precios: ' + error.message, true); PRECIOS = PRECIOS || []; return PRECIOS; }
-  PRECIOS = data || [];
+  PRECIOS = (data || []).filter(p=>!p.curso_id);
+  PRECIOS_CURSO = (data || []).filter(p=>p.curso_id);
+  pintarPaquetes();
   return PRECIOS;
 }
+/* Precio de un paquete de un curso (la misma regla que precio_paquete() en la base). null = todavía no tiene. */
+function precioPaquete(cursoId, paquete){
+  const p = PRECIOS_CURSO.find(x=>x.curso_id === cursoId && x.paquete === (paquete === 'VIP' ? 'VIP' : 'BASICO') && x.activo !== false);
+  return p && p.precio != null ? Number(p.precio) : null;
+}
+/* Los botones "Básico $… / VIP $…" dicen el precio del curso elegido en su formulario.
+   Sin curso elegido: solo el nombre del paquete. Curso sin precio: "(sin precio)". */
+const PAQUETE_SEGUN_CURSO = { nuevoPaquete:'nuevoEvento', regPagoPaquete:'regPagoEvento', inscribirPaquete:'inscribirEvento', leadPaquete:'modalEventoSelect' };
+function pintarPaquetes(){
+  Object.entries(PAQUETE_SEGUN_CURSO).forEach(([seg, sel])=>{
+    const cursoId = eventoPorId(document.getElementById(sel)?.value)?.curso_id;
+    document.querySelectorAll(`#${seg} [data-paq]`).forEach(b=>{
+      const nombre = b.dataset.paq === 'VIP' ? 'VIP' : 'Básico';
+      if(!cursoId){ b.textContent = nombre; return; }
+      const precio = precioPaquete(cursoId, b.dataset.paq);
+      b.textContent = precio == null ? `${nombre} (sin precio)` : `${nombre} ${fmtMoney(precio)}`;
+    });
+  });
+}
+Object.values(PAQUETE_SEGUN_CURSO).forEach(id=>{
+  const sel = document.getElementById(id); if(!sel) return;
+  sel._alPoner = pintarPaquetes;
+  sel.addEventListener('change', ()=>{ pintarPaquetes(); if(id === 'inscribirEvento') actualizarPreviewInscribir(); });
+});
 function textoPrecio(v){ return v == null ? 'sin precio' : fmtMoney(v); }
 
 async function renderPrecios(){
-  await cargarPrecios();
+  await Promise.all([cargarPrecios(), obtenerGiras()]);
+  pintarPreciosCurso();
   const lista = PRECIOS.slice().sort((a,b)=> (b.activo - a.activo) || (a.orden - b.orden) || a.nombre.localeCompare(b.nombre));
   document.getElementById('preciosLista').innerHTML = lista.length ? lista.map(pr=>{
     const quien = EQUIPO.find(u=>u.id === pr.actualizado_por)?.nombre;
@@ -12047,6 +12238,47 @@ async function renderPrecios(){
     </div>`;
   }).join('') : '<div class="empty-note">Todavía no hay precios. Agrega el primero abajo.</div>';
 }
+
+/* Precio de cada curso: una tarjeta por gira vigente con su Básico y su VIP. */
+function pintarPreciosCurso(){
+  const caja = document.getElementById('preciosCurso'); if(!caja) return;
+  if(!(GIRAS || []).length){ caja.innerHTML = '<div class="empty-note">No hay giras con fechas de hoy en adelante.</div>'; return; }
+  caja.innerHTML = GIRAS.map(g=>{
+    const fila = paq => {
+      const pr = PRECIOS_CURSO.find(x=>x.curso_id === g.id && x.paquete === paq);
+      const nombre = paq === 'VIP' ? 'VIP' : 'Básico';
+      return `<div class="precio-fila" data-precio-curso="${escapeAttr(g.id)}" data-precio-paq="${paq}">
+        <div class="precio-nombre-fijo">${nombre}</div>
+        <div class="precio-monto">$<input class="precio-curso-valor" type="number" min="0" step="50" inputmode="decimal" value="${pr?.precio ?? ''}" placeholder="Sin precio" aria-label="Precio ${nombre} de ${escapeAttr(g.nombre)}"></div>
+        <div class="precio-meta">${pr?.precio == null ? '<span class="precio-sin">Sin precio todavía.</span> ' : ''}${pr?.actualizado_por ? 'Último cambio: ' + escHtml(EQUIPO.find(u=>u.id === pr.actualizado_por)?.nombre || '') : ''} <span class="guardado-estado"></span></div>
+      </div>`;
+    };
+    return `<div class="precio-curso"><div class="precio-curso-titulo">${escHtml(tituloCaso(g.nombre))}${g.proxima ? ` <span class="sub">· próximo día ${escHtml(fechaCorta(g.proxima))}</span>` : ''}</div>${fila('BASICO')}${fila('VIP')}</div>`;
+  }).join('');
+}
+document.getElementById('preciosCurso').addEventListener('change', async e=>{
+  const inp = e.target.closest('.precio-curso-valor'); if(!inp) return;
+  const fila = inp.closest('[data-precio-curso]');
+  const cursoId = fila.dataset.precioCurso, paq = fila.dataset.precioPaq;
+  const estado = fila.querySelector('.guardado-estado');
+  const marcar = (t, c='') => { estado.textContent = t; estado.className = 'guardado-estado' + (c ? ' ' + c : ''); };
+  const txt = inp.value.trim();
+  const precio = txt === '' ? null : Number(txt);
+  const pr = PRECIOS_CURSO.find(x=>x.curso_id === cursoId && x.paquete === paq);
+  if(precio != null && !(precio > 0)){ inp.value = pr?.precio ?? ''; marcar('Escribe un precio mayor a $0', 'malo'); return; }
+  if(pr && (pr.precio == null ? null : Number(pr.precio)) === precio) return;
+  const g = giraDe(cursoId);
+  const nombre = `${tituloCaso(g?.nombre || 'Curso')} · ${paq === 'VIP' ? 'VIP' : 'Básico'}`;
+  marcar('Guardando…');
+  const datos = { precio, actualizado_por: usuarioActual?.id || null, actualizado_en: new Date().toISOString() };
+  const r = pr ? await sb.from('precios').update(datos).eq('id', pr.id)
+               : await sb.from('precios').insert({ ...datos, nombre, curso_id: cursoId, paquete: paq, area:'gira', activo:true, orden:100 });
+  if(r.error){ marcar('No se guardó', 'malo'); inp.value = pr?.precio ?? ''; toast('No se pudo guardar el precio: ' + r.error.message, true); return; }
+  registrarActividad('precio_cambiado', `${nombre}: ${textoPrecio(pr?.precio ?? null)} → ${textoPrecio(precio)}`);
+  await cargarPrecios();
+  pintarPreciosCurso();
+  toast(precio == null ? `${nombre}: sin precio.` : `${nombre}: ${fmtMoney(precio)}. Las inscritas de esa gira que no tenían precio ya saben cuánto deben.`);
+});
 
 /* Guarda un cambio de un precio. La usa esta sección y la usará Recepción
    cuando alguien ponga un precio al cobrar (queda de referencia para todos). */
@@ -12131,7 +12363,7 @@ document.getElementById('precioNuevoMonto').addEventListener('keydown', e=>{ if(
 /* =========================================================
    VENTAS / REPORTES — utilidades compartidas
    Todo se apoya en calendarioDias (ya cargado por el Calendario: un
-   evento del curso activo por ciudad, con conteos liq/ant/pend) más un
+   evento de las giras vigentes por ciudad, con conteos liq/ant/pend) más un
    único fetch adicional a "inscripciones" para tener el dinero real
    (anticipo) por evento. Así ninguna de las dos secciones repite las
    consultas pesadas que ya hace el Calendario.
@@ -12279,11 +12511,14 @@ async function obtenerMontoPorEvento(forzar){
   }
   return montoPorEventoCache;
 }
+/* Ventas y Reportes: cada gira por separado (con dos giras a la vez, la elegida arriba;
+   si no eligieron, la que sigue en fecha). */
+function eventoDeReportes(ev){ return !variasGiras() || ev.cursoId === giraDeReportes(); }
 /** Aplana calendarioDias (agrupado por fecha) a una fila por evento, con su dinero pegado. */
 function filasBaseReporte(montoMap){
   const filas = [];
   Object.entries(calendarioDias).forEach(([fecha, eventos])=>{
-    eventos.forEach(ev=>{
+    eventos.filter(eventoDeReportes).forEach(ev=>{
       const m = montoMap[ev.id] || { total:0, liq:0, ant:0 };
       filas.push({ eventoId: ev.id, ciudadId: ev.ciudadId, ciudad: ev.ciudad, fecha, liq: ev.liq, ant: ev.ant, pend: ev.pend, monto: m.total, montoLiq: m.liq, montoAnt: m.ant });
     });
@@ -12367,17 +12602,17 @@ async function renderVentasEmbudo(){
     ['Registradas en la gira', 'Con anticipo o más', 'Liquidadas'],
     [registradas, totalLiq+totalAnt, totalLiq],
     { formatter: v=>fmtNum(v)+' alumnos', colors: ['rgba(178,60,108,.32)','rgba(178,60,108,.62)','#B23C6C'], horizontal:false,
-      vacioTexto: 'Todavía no hay alumnas registradas en el curso activo.' });
+      vacioTexto: 'Todavía no hay alumnas registradas en esta gira.' });
 }
 
 async function renderVentasAsesores(){
   const sub = document.getElementById('ventasAsesoresSub');
-  const cursoId = await obtenerCursoActivoId();
-  if(!cursoId){ sub.textContent = 'No se encontró el curso activo.'; return; }
+  if(!(await idsGiras()).length){ sub.textContent = 'No hay giras con fechas de hoy en adelante.'; return; }
   if(Object.keys(calendarioDias).length === 0) await renderCalendario();
-  const eventoIds = [...new Set(Object.values(calendarioDias).flat().map(e=>e.id))];
+  const eventoIds = [...new Set(Object.values(calendarioDias).flat().filter(eventoDeReportes).map(e=>e.id))];
+  const nombreGira = giraDe(giraDeReportes())?.corto || 'Gira';
   if(!eventoIds.length){
-    sub.textContent = 'Curso activo · sin eventos programados todavía.';
+    sub.textContent = nombreGira + ' · sin eventos programados todavía.';
     pintarChartBarras('chartAsesores', [], [], {});
     crearTablaOrdenable(document.getElementById('tablaAsesores'), [
       { key:'nombre', label:'Vendedor' }, { key:'monto', label:'Recaudado', num:true }, { key:'alumnos', label:'Alumnos', num:true }, { key:'liquidados', label:'Liquidados', num:true },
@@ -12398,7 +12633,7 @@ async function renderVentasAsesores(){
     if(i.liquidado) porAsesor[key].liquidados += 1;
   });
   const filas = Object.values(porAsesor).sort((a,b)=>b.monto-a.monto);
-  sub.textContent = 'Curso activo · ' + filas.length + (filas.length===1 ? ' asesor con inscripciones' : ' asesores con inscripciones');
+  sub.textContent = nombreGira + ' · ' + filas.length + (filas.length===1 ? ' asesor con inscripciones' : ' asesores con inscripciones');
   pintarChartBarras('chartAsesores', filas.map(f=>f.nombre), filas.map(f=>f.monto), { formatter: fmtMoney, vacioTexto:'Todavía no hay inscripciones asignadas a un asesor.' });
   crearTablaOrdenable(document.getElementById('tablaAsesores'), [
     { key:'nombre', label:'Vendedor' },
@@ -12409,6 +12644,8 @@ async function renderVentasAsesores(){
 }
 
 async function cargarVentasTab(tab){
+  await obtenerGiras();
+  document.getElementById('ventasFiltroGira').innerHTML = htmlFiltroGira({ sinTodas:true });
   if(tab==='ingresos' && !ventasCargado.ingresos){ ventasCargado.ingresos=true; await renderVentasIngresos(); }
   else if(tab==='pagos' && !ventasCargado.pagos){ ventasCargado.pagos=true; await renderVentasPagos(); }
   else if(tab==='embudo' && !ventasCargado.embudo){ ventasCargado.embudo=true; await renderVentasEmbudo(); }
@@ -12527,6 +12764,8 @@ async function renderReportesConstructor(){
 }
 
 async function cargarReportesTab(tab){
+  await obtenerGiras();
+  document.getElementById('reportesFiltroGira').innerHTML = tab === 'glamybi' ? '' : htmlFiltroGira({ sinTodas:true });
   // Glamy BI solo para administradores
   document.getElementById('tabGlamyBI').style.display = usuarioActual?.es_admin ? '' : 'none';
   if(tab === 'glamybi'){ if(usuarioActual?.es_admin) await biAbrir(); return; }
@@ -13480,8 +13719,8 @@ async function renderCursos(){
   const cont = document.getElementById('listaCursos');
   const { data, error } = await sb.from('vista_cursos_explorador').select('*');
   if(error){ cont.innerHTML = '<div class="empty-note">Error: ' + escHtml(error.message) + '</div>'; return; }
-  const activo = normalizarNombreCurso(CURSO_ACTIVO_NOMBRE);
-  cx.cursos = (data || []).map(c=>({ ...c, activa: normalizarNombreCurso(c.curso) === activo }))
+  const vigentes = new Set(await idsGiras());
+  cx.cursos = (data || []).map(c=>({ ...c, activa: vigentes.has(c.curso_id) }))
     .sort((a,b)=> (b.activa - a.activa) || (b.proximos - a.proximos) || (b.hasta || '').localeCompare(a.hasta || '') || b.alumnas - a.alumnas);
   if(!cx.curso || !cx.cursos.some(c=>c.curso_id === cx.curso)) cx.curso = cx.cursos[0]?.curso_id || null;
   pintarCursosCx();
@@ -13930,16 +14169,21 @@ const EMB_NO_VAN = { k:'no_van', l:'No van', c:'#EEE7EA', e:'✖' };
 const emb = { tab:'calendario', filas:null, vend:'', abierto:'', turno:0, cal:{},
               rep:{ alcance:'curso', curso:'', porVend:false, numeros:true, nombres:true, tel:false, coment:false } };
 const embVend = id => EQUIPO.find(u=>u.id === id)?.nombre || 'Sin vendedora';
-// Trae el embudo de la gira activa (o de un solo curso) de 1,000 en 1,000.
+// Trae el embudo de las giras (las que pasan el filtro de gira, o la de un solo curso) de 1,000 en 1,000.
+// embudo_cursos es por gira: con dos giras se pide una vez por cada una y se juntan.
 async function embTraer(eventoId){
-  const cursoId = await obtenerCursoActivoId();
-  if(!cursoId) return { filas:[] };
+  const ids = await idsGiras();
+  const delCurso = eventoId ? eventoPorId(eventoId)?.curso_id : null;
+  const cursos = delCurso ? [delCurso] : ids.filter(pasaFiltroGira);
+  if(!cursos.length) return { filas:[] };
   const filas = [];
-  for(let desde = 0; ; desde += 1000){
-    const { data, error } = await sb.rpc('embudo_cursos', { p_curso:cursoId, p_desde:hoyISO(), p_evento:eventoId || null }).range(desde, desde + 999);
-    if(error) return { error };
-    filas.push(...(data || []));
-    if(!data || data.length < 1000) break;
+  for(const cursoId of cursos){
+    for(let desde = 0; ; desde += 1000){
+      const { data, error } = await sb.rpc('embudo_cursos', { p_curso:cursoId, p_desde:hoyISO(), p_evento:eventoId || null }).range(desde, desde + 999);
+      if(error) return { error };
+      filas.push(...(data || []));
+      if(!data || data.length < 1000) break;
+    }
   }
   return { filas };
 }
@@ -17124,7 +17368,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-03-tickets';
+const HUB_VERSION = '2026-11-05-varias-giras';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);

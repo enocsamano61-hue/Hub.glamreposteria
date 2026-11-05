@@ -36,6 +36,8 @@ alumnos.push({ ...al(92), persona_id:'pB', nombre:'María López', nombre_norm:'
     vista_alumnos:alumnos, vista_personas_busqueda:personas, personas_separadas:[],
     interacciones:[{ persona_id:'pA', fecha:'2026-09-12T10:00:00Z', canal:'whatsapp', nota:'Pidió fechas de Torreón', asesor_id:'u2' }],
     personas:[], leads:[],
+    // La gira activa = el curso con fechas de hoy en adelante (desde nov 2026 puede haber varias)
+    eventos:[{ id:'e1', curso_id:'k1', fecha:'2099-01-20' }], cursos:[{ id:'k1', nombre:ACTIVO, activo:true }],
     inscripciones:[{ id:'i91', anticipo:1900, restante:0, precio_pactado:1900, liquidado:true, estatus_id:12, paquete:'VIP', asesor_id:'u2', notas_migracion:null, personas:{ id:'pA', nombre:'María Guadalupe López Pérez', telefono_principal:'8711111111' }, eventos:{ fecha:'2025-05-10', sede:'S', ciudades:{ nombre:'Monterrey' } }, pagos:[] }],
   } });
   const { p, check } = h;
@@ -45,7 +47,7 @@ alumnos.push({ ...al(92), persona_id:'pB', nombre:'María López', nombre_norm:'
   const filasAl = () => p.$$eval('#cxAlumnas tr[data-cx-persona]', trs => trs.length);
 
   h.paso('1. Cursos: la gira activa arriba y seleccionada, todo en una pantalla');
-  await p.evaluate(async () => { cursoActivoIdCache = undefined; setActiveSection('cursos'); await renderCursos(); });
+  await p.evaluate(async () => { GIRAS = null; setActiveSection('cursos'); await renderCursos(); });
   await p.waitForTimeout(300);
   const cursos = await p.$$eval('#listaCursos [data-cx-curso]', els => els.map(e => e.dataset.cxCurso + (e.classList.contains('sel') ? '*' : '')));
   check(cursos[0] === 'k1*', 'el curso activo va primero y seleccionado: ' + cursos.join());

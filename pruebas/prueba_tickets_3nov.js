@@ -19,7 +19,7 @@ const CIUDADES_EJ = [{ id:'cA', nombre:'Ciudad Con Curso', estado:'Veracruz' }, 
     usuario:{ id:'u2', nombre:'Vendedora Prueba', rol:'Ventas', es_admin:false, es_vendedor:true },
     equipo:[{ id:'u2', nombre:'Vendedora Prueba', es_vendedor:true, rol:'Ventas' }] });
   const { p, check } = h;
-  const montar = () => p.evaluate(([e, cs]) => { cursoActivoIdCache = 'cur1'; CIUDADES = cs; CIUDADES_GIRA_ACTIVA = ['cA']; EVENTOS_CAL = [e];
+  const montar = () => p.evaluate(([e, cs]) => { GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; CIUDADES = cs; CIUDADES_GIRA_ACTIVA = ['cA']; EVENTOS_CAL = [e];
     window.__rpc.glamy_buscar_persona = () => ({ encontradas:0, personas:[] });
     // (el tablero de prueba avisa otras cosas encima: se guardan todos los avisos para revisarlos)
     if(!window.__toasts){ window.__toasts = []; const t0 = toast; window.toast = (m, ...r) => { window.__toasts.push(String(m)); return t0(m, ...r); }; }

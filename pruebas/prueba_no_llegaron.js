@@ -33,7 +33,7 @@ const base = () => ({
   const elegir = async id => { await p.click(`#nlBody tr[data-nl-id="${id}"]`); await p.waitForTimeout(80); };
   const accion = async a => { await p.click(`[data-nl-acc="${a}"]`); await p.waitForTimeout(150); };
   const abrir = async () => {
-    await p.evaluate(t => { window.__tablas = t; window.__ops = []; cursoActivoIdCache = undefined; EVENTOS_CAL = [t.__evF]; nl.estado = 'pendientes'; }, { ...base(), __evF:{ ...EV_F, ciudad_id:'c-evF' } });
+    await p.evaluate(t => { window.__tablas = t; window.__ops = []; GIRAS = null; EVENTOS_CAL = [t.__evF]; nl.estado = 'pendientes'; }, { ...base(), __evF:{ ...EV_F, ciudad_id:'c-evF' } });
     await p.evaluate(() => setActiveSection('nollegaron'));
     await p.waitForTimeout(250);
   };

@@ -91,7 +91,7 @@ const ACADEMIA = { id:'u3', nombre:'Academia Prueba', rol:'Academia e Inbox', es
   const esperarLibre = () => p.waitForFunction(() => !cc.ocupado, null, { timeout:15000 });
   const abrir = async (tablas = base()) => {
     await p.evaluate(t => {
-      window.__tablas = t; window.__ops = []; MENSAJES = null; cursoActivoIdCache = 'c1';
+      window.__tablas = t; window.__ops = []; MENSAJES = null; GIRAS = [{ id:'c1', nombre:'CURSO PRUEBA' }];
       CERT_FUENTES = { manuscrita:'https://prueba.local/greatvibes.ttf', nickainley:'https://prueba.local/nickainley.ttf', baskerville_italica:'https://prueba.local/baskerville.ttf' };
       usuarioActual = { id:'u3', nombre:'Academia Prueba', rol:'Academia e Inbox', es_admin:false }; PERMISOS_ROL_CACHE = {};
       PERMISOS_ACCION_CACHE = { 'Academia e Inbox':new Set(['cobrar_academia']) };

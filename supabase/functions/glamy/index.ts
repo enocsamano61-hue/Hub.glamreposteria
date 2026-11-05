@@ -117,7 +117,7 @@ const HERRAMIENTAS_BI: Anthropic.Tool[] = [
       "promesa_vigente (dijeron que pagan en cierta fecha y la fecha todavía no llega), promesas_vencidas (la fecha ya pasó y no pagan), " +
       "leads_promesa (todas las promesas: vigentes y vencidas), leads_por_confirmar (mandaron comprobante y falta verlo en el banco), " +
       "contactos (historial de contacto), cambio_fecha (por estado), cambio_aceptaron, regalos_academia. " +
-      "Sin curso ni fechas usa la gira activa. Regresa también la meta (si hay) y, para cobrado, la proyección al cierre. " +
+      "Sin curso ni fechas usa la gira que sigue en fecha (desde nov 2026 hay dos giras a la vez: Mesa de Postres en dic 2026 y Pasteles desde ene 2027; si no dicen cuál, consulta las dos por separado con curso='Mesa de Postres' y curso='Pasteles' y di de cuál es cada número). Regresa también la meta (si hay) y, para cobrado, la proyección al cierre. " +
       "Llámala hasta 3 veces por respuesta si necesitas varias vistas.",
     input_schema: {
       type: "object",
@@ -158,7 +158,7 @@ const HERRAMIENTAS_BI: Anthropic.Tool[] = [
   },
   {
     name: "bi_giras",
-    description: "Lista las giras (cursos) con sus fechas e inscritas, para saber cuál es la activa y cuál fue la pasada.",
+    description: "Lista las giras (cursos) con sus fechas e inscritas. activa = se está vendiendo (tiene fechas de hoy en adelante; puede haber varias); proxima = la que sigue en fecha.",
     input_schema: { type: "object", properties: {} },
   },
 ];

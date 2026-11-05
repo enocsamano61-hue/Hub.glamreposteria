@@ -32,7 +32,7 @@ const FILAS = [
     equipo:[...EQUIPO_EJEMPLO, { id:'u3', nombre:'Cobranza Prueba', es_vendedor:false, rol:'Cobranza' }] });
   const { p, check } = h;
   await p.evaluate(filas => {
-    cursoActivoIdCache = 'cur1';
+    GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }];
     window.__rpc.embudo_cursos = ({ p_evento }) => p_evento ? filas.filter(f => f.evento_id === p_evento) : filas;
     setActiveSection('cobranza');
   }, FILAS);

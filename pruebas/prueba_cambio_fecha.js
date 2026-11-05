@@ -37,7 +37,7 @@ const LISTA = [
   const { p, check } = h;
   await p.evaluate(([lista, ant]) => {
     window.open = () => null;
-    cursoActivoIdCache = 'cur1';
+    GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }];
     window.__rpc.cambio_fecha_lista = () => lista;
     window.__rpc.embudo_cursos = () => [{ evento_id:'e1', fecha:lista[0].fecha_nueva, ciudad:'Ciudad Prueba', grupo:'anticipo', persona_id:'pa1', lead_id:null,
       inscripcion_id:'ia1', nombre:'ALUMNA A1', telefono:'5510000001', asesor_id:'u2', monto:700, debe:700, fecha_promesa:null, comentario:null, reportado_en:null, sin_ligar:false }];

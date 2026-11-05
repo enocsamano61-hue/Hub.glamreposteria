@@ -27,7 +27,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
     usuario:{ id:'u2', nombre:'Vendedora Prueba', rol:'Ventas', es_admin:false, es_vendedor:true },
     equipo:[{ id:'u2', nombre:'Vendedora Prueba', es_vendedor:true, rol:'Ventas' }, { id:'u9', nombre:'Otra Vendedora', es_vendedor:true, rol:'Ventas' }] });
   const { p, check } = h;
-  await p.evaluate(() => { cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA']; window.__wa = null; abrirEnviarWhatsApp = o => { window.__wa = o; };
+  await p.evaluate(() => { GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; CIUDADES_GIRA_ACTIVA = ['cA']; window.__wa = null; abrirEnviarWhatsApp = o => { window.__wa = o; };
     try{ localStorage.clear(); }catch(_){} return renderDashboard(); });
   await p.waitForTimeout(700);
   const t = () => p.textContent('#tocaCobrar');
