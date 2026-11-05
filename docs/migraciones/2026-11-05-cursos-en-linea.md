@@ -119,3 +119,9 @@ para que nunca entren en los números, triggers ni reglas de la gira.
 - `prueba_cursos_en_linea.js` (28/28). Historias H14 (de punta a punta contra la base real, con el rol del equipo).
 - Glamy: manual (sección, camino, permisos, cupón) y 2 casos nuevos en el examen.
 - Pendiente (fase posterior): cargar el Excel de ventas en línea pasadas. Al publicar: cerrar el ticket #6.
+
+## Publicado (5 nov 2026)
+- Enoc: "Súbelo, main". Antes de subir: `correr_todas.js` 56/56 en verde, historias H1–H14 `fallas=0 bien=64`, reglas rojas del vigilante en 0.
+- En main y verificado en producción (`HUB_VERSION = '2026-11-05-varias-giras'`); certificados.glamreposteria.com al día.
+- Glamy v35 publicada (idéntica al repo); examen 56/56. Aviso `2026-11-05-varias-giras` (dos giras y cursos en línea) publicado.
+- Ticket #6 cerrado con su nota.
