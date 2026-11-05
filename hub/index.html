@@ -153,6 +153,30 @@
   /* ---------- CALENDARIO: mes interactivo con resumen y hoja de detalle ---------- */
   .cal-curso-tag{ display:inline-flex; align-items:center; gap:6px; background:rgba(197,166,107,.18); color:#8A6D2F; font-size:10.5px; font-weight:600; padding:5px 10px; border-radius:8px; margin-bottom:14px; }
   .cal-curso-tag b{ font-weight:700; }
+  /* Cursos en línea */
+  .cc-tag.linea{ background:#E6ECF7; color:#2D4E8A; }
+  .el-cabeza{ display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+  .el-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .el-chip{ border:1px solid var(--border); background:#fff; border-radius:999px; padding:6px 11px; font-size:12.5px; cursor:pointer; color:var(--ink-soft); }
+  .el-chip b{ color:var(--ink); margin-right:4px; }
+  .el-chip.on{ background:var(--wine); border-color:var(--wine); color:#fff; } .el-chip.on b{ color:#fff; }
+  .el-filtros{ display:flex; flex-wrap:wrap; gap:8px; }
+  .el-filtros input{ flex:1 1 200px; min-width:0; } .el-filtros select{ flex:0 1 180px; min-width:0; }
+  .el-fila{ display:grid; grid-template-columns:1fr auto; gap:4px 12px; padding:10px 4px; border-top:1px solid var(--border); cursor:pointer; }
+  .el-fila:hover{ background:rgba(197,166,107,.08); }
+  .el-fila .n{ font-weight:600; } .el-fila .s{ font-size:12px; color:var(--ink-soft); }
+  .el-fila .m{ text-align:right; font-weight:600; white-space:nowrap; }
+  .el-est{ display:inline-block; font-size:11px; font-weight:700; border-radius:6px; padding:2px 7px; margin-left:4px; vertical-align:middle; background:#eee; color:var(--ink-soft); }
+  .el-est.prometida{ background:#F6E3EA; color:var(--wine-dark); } .el-est.abonando{ background:#FBEBD2; color:#8A5A0B; }
+  .el-est.por_confirmar{ background:#E6ECF7; color:#2D4E8A; } .el-est.liquidada{ background:#E4F1E6; color:#2F6A3A; }
+  .el-est.con_acceso{ background:#DDEBDF; color:#2F6A3A; } .el-est.cancelada{ background:#EEE; color:#777; text-decoration:line-through; }
+  .el-caja{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-top:10px; }
+  .el-caja h4{ margin:0 0 6px; font-size:13px; }
+  .el-pago{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; padding:6px 0; border-top:1px dashed var(--border); font-size:13px; }
+  .el-pago:first-of-type{ border-top:0; }
+  .el-cat{ display:grid; grid-template-columns:1fr 120px 1fr; gap:8px; align-items:center; padding:6px 0; border-top:1px solid var(--border); }
+  .el-cat .cn{ font-weight:600; font-size:13px; } .el-cat input{ min-width:0; width:100%; }
+  @media (max-width:640px){ .el-cat{ grid-template-columns:1fr 100px; } .el-cat .cl{ grid-column:1 / -1; } }
   .precio-curso{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:10px; }
   .precio-curso-titulo{ font-weight:700; margin-bottom:6px; }
   .precio-nombre-fijo{ font-weight:600; min-width:70px; }
@@ -2258,6 +2282,30 @@
       </div>
     </div>
 
+    <!-- CURSOS EN LÍNEA — ventas de los cursos grabados de la Academia (aparte de la gira) -->
+    <div class="view" id="view-enlinea">
+      <div class="subtabs" id="elTabs">
+        <button class="subtab active" data-el-tab="ventas">Ventas</button>
+        <button class="subtab" data-el-tab="catalogo">Catálogo de cursos</button>
+      </div>
+      <div class="card" id="elVistaVentas">
+        <div class="el-cabeza">
+          <div class="el-chips" id="elChips"></div>
+          <div class="el-filtros">
+            <input id="elBuscar" type="search" placeholder="Buscar alumna, teléfono o curso…" autocomplete="off" aria-label="Buscar">
+            <select id="elVendedora" aria-label="Vendedora"></select>
+            <button type="button" class="btn-primary small" id="btnNuevaVentaLinea">+ Venta en línea</button>
+          </div>
+        </div>
+        <div id="elLista">Cargando…</div>
+      </div>
+      <div class="card" id="elVistaCatalogo" style="display:none;">
+        <h3 style="margin-bottom:2px;">Catálogo de cursos en línea</h3>
+        <div class="sub" style="margin:0 0 12px;">Precio público y link de cada curso en la plataforma. Los cambian los administradores; se guarda solo. Sin precio, al vender se escribe el que se acordó.</div>
+        <div id="elCatalogo">Cargando…</div>
+      </div>
+    </div>
+
     <!-- NO LLEGARON — alumnas con anticipo que no llegaron a su curso -->
     <div class="view" id="view-nollegaron">
       <div class="card nl-cabeza">
@@ -2406,6 +2454,7 @@
         <button class="subtab" data-cob-tab="cobrar">Por cobrar</button>
         <button class="subtab" data-cob-tab="embudo">Embudo por curso</button>
         <button class="subtab" data-cob-tab="datos">Completar datos</button>
+        <button class="subtab" data-cob-ir="enlinea">En línea</button>
       </div>
       <div id="cobFiltroGira"></div>
       <div id="cobVistaCalendario" class="card"></div>
@@ -3034,6 +3083,14 @@
 </div>
 
 <!-- ===================== MODAL: ENVIAR WHATSAPP ===================== -->
+<div class="modal-overlay" id="modalVentaLinea">
+  <div class="modal">
+    <button class="close" id="closeModalVentaLinea">✕</button>
+    <h3 id="vlTitulo">Venta en línea</h3>
+    <div class="sub" id="vlSub" style="margin-bottom:10px;"></div>
+    <div id="vlCuerpo"></div>
+  </div>
+</div>
 <div class="modal-overlay" id="modalWhats">
   <div class="modal">
     <button class="close" id="closeModalWhats">✕</button>
@@ -3430,12 +3487,13 @@ const SECCIONES = [
   { id:'giras', label:'Giras', sub:'Constructor de ruta y reactivación de alumnos', soon:false, icon:'<circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.2 17.8L15.8 6.2"/>' },
   { id:'logistica', label:'Logística', sub:'Sedes, hospedaje y negociación para cada gira', soon:false, icon:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/><path d="M8 7h.01M8 11h.01M12 7h.01M12 11h.01M16 7h.01M16 11h.01"/>' },
   { id:'ventas', label:'Ventas', sub:'Ingresos, pagos y conversión de la gira activa', soon:false, icon:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+  { id:'enlinea', label:'Cursos en línea', sub:'Cursos grabados de la Academia: promesa, pago, confirmación y acceso (aparte de la gira)', soon:false, icon:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="M10 8.5l4 1.5-4 1.5z"/>' },
   { id:'cobranza', label:'Cobranza', sub:'A quién cobrarle y cuándo: anticipos de leads y saldos de inscritas', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 13v5M10.5 14.2h2.3a1 1 0 0 1 0 2h-1.6a1 1 0 0 0 0 2h2.3"/>' },
   { id:'nollegaron', label:'No llegaron', sub:'Alumnas con anticipo que no llegaron a su curso: recuperarlas o cerrar su caso', soon:false, icon:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/>' },
   { id:'academia', label:'Academia', sub:'Egresadas por generación: qué decidió cada una, sus pagos y su ficha', soon:false, icon:'<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/>' },
   { id:'academia_glam', label:'Academia Glam', sub:'Alumnas de la academia (por mes o con abonos): quién paga, cuándo y de qué vendedora es', soon:false, icon:'<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><circle cx="19" cy="18" r="3"/><path d="M19 17v2"/>' },
   { id:'mensajes', label:'Mensajes', sub:'Mensajes predeterminados para WhatsApp', soon:false, icon:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/>' },
-  { id:'precios', label:'Precios', sub:'Lo que se cobra aparte del curso: VIP, uniforme…', soon:false, icon:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>' },
+  { id:'precios', label:'Precios', sub:'Precio de cada curso (Básico y VIP) y lo que se cobra aparte: uniforme, kit…', soon:false, icon:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>' },
   { id:'reportes', label:'Reportes', sub:'Resumen ejecutivo y constructor de reportes', soon:false, icon:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/>' },
   { id:'calendario', label:'Calendario', sub:'Cursos programados con resumen de pagos', soon:false, icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
   { id:'actividad', label:'Actividad del equipo', sub:'Checador de entradas/salidas y bitácora de acciones', soon:false, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
@@ -3466,6 +3524,7 @@ function setActiveSection(id){
   if(id==='actividad') renderActividad();
   if(id==='usuarios') renderUsuariosPermisos();
   if(id==='cobranza') renderCobranza();
+  if(id==='enlinea') renderEnLinea();
   if(id==='mensajes') renderMensajes();
   if(id==='precios') renderPrecios();
   if(id==='nollegaron') renderNoLlegaron();
@@ -3528,6 +3587,7 @@ const ACCIONES_POR_ROL = [
   { id:'confirmar_pagos', label:'Confirmar pagos', ayuda:'Convierte un pago reportado () en inscripción, o inscribe directo.' },
   { id:'ver_todo_academia_glam', label:'Ver todo en Academia Glam', ayuda:'Ve a todas las alumnas, cobros y vendedoras de Academia Glam, y las activa. Sin esto, cada vendedora ve solo las suyas.' },
   { id:'cobrar_academia', label:'Cobrar en Academia', ayuda:'Registra pagos de mensualidades de la academia y corrige los que vienen del Excel.' },
+  { id:'confirmar_pagos_en_linea', label:'Confirmar pagos en línea', ayuda:'Confirma en el banco los pagos de los cursos en línea y da el acceso con su cupón.' },
 ];
 let PERMISOS_ACCION_CACHE = null;   // { [rol]: Set(accion) }
 async function cargarPermisosAccion(){
@@ -3696,6 +3756,14 @@ async function registrarActividad(accion, detalle){
 
 /* ---------- Vista "Actividad del equipo" (admin, o con puede_ver_actividad) ---------- */
 const ACCION_LABEL = {
+  venta_en_linea_creada: 'Registró una venta en línea',
+  venta_en_linea_editada: 'Cambió una venta en línea',
+  pago_en_linea_registrado: 'Registró un pago en línea',
+  pago_en_linea_confirmado: 'Confirmó un pago en línea',
+  pago_en_linea_no_llego: 'Marcó que no llegó un pago en línea',
+  acceso_en_linea_dado: 'Dio acceso a un curso en línea',
+  venta_en_linea_cancelada: 'Canceló una venta en línea',
+  curso_en_linea_cambiado: 'Cambió un curso en línea del catálogo',
   usuario_creado: 'Creó un usuario',
   usuario_baja: 'Dio de baja a un usuario',
   usuario_reactivado: 'Reactivó a un usuario',
@@ -4486,7 +4554,7 @@ function tcFila(it, hoy){
   const marca = !it.fecha || it.fechaEsCurso ? '<span class="cc-tag">Sin fecha</span>'
     : venc ? `<span class="cc-tag venc">venció ${escHtml(fechaCorta(it.fecha))}</span>` : it.fecha > hoy ? `<span class="cc-tag">${escHtml(fechaCorta(it.fecha))}</span>` : '';
   return `<div class="cc-fila" data-tc-k="${it.tipo}" data-tc-id="${escapeAttr(it.id)}">
-    <div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b><span class="cc-tag">${it.tipo === 'lead' ? 'Anticipo prometido' : 'Fecha de pago'}</span>${marca}
+    <div><i class="cc-p ${it.tipo}"></i><b>${escHtml(tituloCaso(it.nombre))}</b><span class="cc-tag ${it.tipo === 'linea' ? 'linea' : ''}">${it.tipo === 'lead' ? 'Anticipo prometido' : it.tipo === 'linea' ? 'En línea' : 'Fecha de pago'}</span>${marca}
       <div class="sub">${escHtml(it.donde)}${htmlCel10(it.tel) ? ' · ' + htmlCel10(it.tel) : ''}</div></div>
     <div class="cc-monto">${it.monto ? fmtMoney(it.monto) : '—'}</div>
     <div class="acc">${it.tel ? '<button type="button" class="btn-outline small" data-tc-acc="wa">WhatsApp</button>' : ''}<button type="button" class="btn-outline small" data-tc-acc="abrir">Abrir</button></div></div>`;
@@ -4522,6 +4590,8 @@ async function renderTocaCobrar(){
   // Lo suyo, de la misma lista de Cobranza (sin lo que está por confirmar ni inscritas de cursos que ya pasaron)
   tc.hoy = hoy;
   tc.items = itemsCobranza(true).filter(it=>it.vendedor === usuarioActual.id && !it.porConfirmar && !(it.tipo === 'insc' && it.cursoPasado));
+  // Promesas de cursos en línea (ticket #6): en su mismo semáforo, marcadas "En línea"
+  if(await cargarVentasEnLinea({ silencio:true })){ if(turno !== tc.turno) return; tc.items = tc.items.concat(itemsEnLineaDe(usuarioActual.id)); }
   tcPintar();
   const sem = tcSemaforo(tc.items, hoy), nHoy = tc.items.filter(it=>it.fecha === hoy && !it.fechaEsCurso).length, vencidos = sem.rojo;
   // Aviso corto al entrar: una vez al día por persona (se recuerda en este navegador; si no se puede, no pasa nada)
@@ -4544,6 +4614,11 @@ document.getElementById('tocaCobrar').addEventListener('click', async e=>{
   const fila = b.closest('[data-tc-k]'), k = fila.dataset.tcK, id = fila.dataset.tcId;
   const it = tc.items.find(x=>x.tipo === k && x.id === id); if(!it) return;
   const r = it.raw;
+  if(k === 'linea'){
+    if(b.dataset.tcAcc === 'wa') return abrirEnviarWhatsApp({ nombre:it.nombre, telefono:it.tel, personaId:r.persona_id, debe:it.monto });
+    await abrirVentaLinea(id);
+    return alCerrarTodasLasFichas(()=>{ if(seccionActiva === 'inicio') renderTocaCobrar(); });
+  }
   if(b.dataset.tcAcc === 'wa'){
     const ev = k === 'lead' ? (r.eventos || (r.evento_id && eventoPorId(r.evento_id))) : r.eventos;
     return abrirEnviarWhatsApp({ nombre:it.nombre, telefono:it.tel, personaId:r.personas?.id, leadId:k === 'lead' ? id : null,
@@ -5125,10 +5200,12 @@ function normalizarNombreCurso(s){
   return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().trim();
 }
 /* Nombre corto para los selectores y filtros ("Pasteles", "Mesa de Postres"). */
+// "LOS PASTELES MAS SABROSOS…" → "Los Pasteles Mas Sabrosos…"; los que ya traen mayúsculas y minúsculas, igual
+function nombreBonitoCurso(n){ n = String(n || ''); return n === n.toUpperCase() ? tituloCaso(n.toLowerCase()) : n; }
 function nombreCortoCurso(nombre){
   const n = normalizarNombreCurso(nombre);
   if(/PASTELES/.test(n)) return 'Pasteles';
-  return tituloCaso(String(nombre || '').toLowerCase()) || 'Curso';
+  return nombreBonitoCurso(nombre) || 'Curso';
 }
 /* Dónde empieza la gira ACTUAL de un curso. El mismo curso se ha usado en varias giras
    (ene–mar y desde sep 2026), así que "lo que ya pasó" no es todo el curso:
@@ -11844,7 +11921,7 @@ function pintarListaCert(){
   if(faltaDisenoCert(g)){
     document.getElementById('cLista').innerHTML = `<div class="c-cabeza-lista"><div><h3 style="margin:0;">${escHtml(g.titulo)}</h3>
       <div class="sub" style="margin:0;">${escHtml(g.sub)} · ${cc.filas.length} alumna${cc.filas.length === 1 ? '' : 's'}</div></div></div>
-      <div class="aviso-sin-curso" style="display:block;"><b>Falta el diseño del diploma</b> de ${escHtml(tituloCaso(giraDe(g.evento.curso_id)?.nombre || 'este curso'))}. En cuanto se suba, aquí se generan y se mandan como siempre. Mientras, no se usa el de otro curso.</div>`;
+      <div class="aviso-sin-curso" style="display:block;"><b>Falta el diseño del diploma</b> de ${escHtml(nombreBonitoCurso(giraDe(g.evento.curso_id)?.nombre || 'este curso'))}. En cuanto se suba, aquí se generan y se mandan como siempre. Mientras, no se usa el de otro curso.</div>`;
     return;
   }
   const sinFolio = usaFolio(pl) && !folioEjemplo(pl);
@@ -12253,7 +12330,7 @@ function pintarPreciosCurso(){
         <div class="precio-meta">${pr?.precio == null ? '<span class="precio-sin">Sin precio todavía.</span> ' : ''}${pr?.actualizado_por ? 'Último cambio: ' + escHtml(EQUIPO.find(u=>u.id === pr.actualizado_por)?.nombre || '') : ''} <span class="guardado-estado"></span></div>
       </div>`;
     };
-    return `<div class="precio-curso"><div class="precio-curso-titulo">${escHtml(tituloCaso(g.nombre))}${g.proxima ? ` <span class="sub">· próximo día ${escHtml(fechaCorta(g.proxima))}</span>` : ''}</div>${fila('BASICO')}${fila('VIP')}</div>`;
+    return `<div class="precio-curso"><div class="precio-curso-titulo">${escHtml(nombreBonitoCurso(g.nombre))}${g.proxima ? ` <span class="sub">· próximo día ${escHtml(fechaCorta(g.proxima))}</span>` : ''}</div>${fila('BASICO')}${fila('VIP')}</div>`;
   }).join('');
 }
 document.getElementById('preciosCurso').addEventListener('change', async e=>{
@@ -12268,7 +12345,7 @@ document.getElementById('preciosCurso').addEventListener('change', async e=>{
   if(precio != null && !(precio > 0)){ inp.value = pr?.precio ?? ''; marcar('Escribe un precio mayor a $0', 'malo'); return; }
   if(pr && (pr.precio == null ? null : Number(pr.precio)) === precio) return;
   const g = giraDe(cursoId);
-  const nombre = `${tituloCaso(g?.nombre || 'Curso')} · ${paq === 'VIP' ? 'VIP' : 'Básico'}`;
+  const nombre = `${nombreBonitoCurso(g?.nombre || 'Curso')} · ${paq === 'VIP' ? 'VIP' : 'Básico'}`;
   marcar('Guardando…');
   const datos = { precio, actualizado_por: usuarioActual?.id || null, actualizado_en: new Date().toISOString() };
   const r = pr ? await sb.from('precios').update(datos).eq('id', pr.id)
@@ -12359,6 +12436,326 @@ document.getElementById('btnAgregarPrecio').addEventListener('click', async ()=>
   await renderPrecios();
 });
 document.getElementById('precioNuevoMonto').addEventListener('keydown', e=>{ if(e.key === 'Enter') document.getElementById('btnAgregarPrecio').click(); });
+
+/* =========================================================
+   CURSOS EN LÍNEA (5 nov 2026, ticket #6) — los cursos grabados de la Academia se venden sueltos,
+   con precio público. Unidad de negocio aparte de la gira: sus ventas y pagos viven en sus propias
+   tablas (ventas_en_linea, pagos_en_linea) y no cuentan en los números de la gira.
+   Camino: promesa → registrar pago (queda por confirmar) → quien tiene "Confirmar pagos en línea"
+   lo confirma en el banco → liquidada → "Dar acceso": se escribe el cupón de ese curso y se manda
+   por WhatsApp el link de la Academia, el link del curso y el cupón.
+   Lo que debe y su estado NO se guardan: se calculan de sus pagos (venta_en_linea_resumen en la base).
+   ========================================================= */
+const LINK_ACADEMIA = 'https://academiaglamr.cursosdereposteria.com.mx/#/';
+const EL_ESTADOS = {
+  prometida:     'Prometida',
+  abonando:      'Pagando · debe',
+  por_confirmar: 'Pagado · falta confirmar',
+  liquidada:     'Liquidada · falta dar acceso',
+  con_acceso:    'Con acceso',
+  cancelada:     'Cancelada',
+};
+const enl = { tab:'ventas', filas:null, cursos:null, filtro:'abiertas', abierta:null, pagos:[] };
+const puedeConfirmarLinea = () => puede('confirmar_pagos_en_linea');
+
+async function cargarCursosEnLinea(){
+  const { data, error } = await sb.from('cursos_en_linea').select('id, nombre, precio, link, activo, orden, actualizado_por, actualizado_en').order('orden').order('nombre');
+  if(error){ toast('No se pudo leer el catálogo de cursos en línea: ' + error.message, true); enl.cursos = enl.cursos || []; return enl.cursos; }
+  enl.cursos = data || [];
+  return enl.cursos;
+}
+// La misma lista para la sección, Cobranza y el semáforo de cada vendedora (ventas_en_linea_lista en la base)
+async function cargarVentasEnLinea({ silencio = false } = {}){
+  const { data, error } = await sb.rpc('ventas_en_linea_lista');
+  if(error){ if(!silencio) toast('No se pudieron leer las ventas en línea: ' + error.message, true); return false; }
+  enl.filas = data || [];
+  return true;
+}
+const elAbierta = v => !['con_acceso', 'cancelada'].includes(v.estado);
+// Para el semáforo "Te toca cobrar": las ventas en línea de una vendedora que todavía deben (promesa o abonando)
+function itemsEnLineaDe(uid){
+  return (enl.filas || []).filter(v=>v.asesor_id === uid && ['prometida', 'abonando'].includes(v.estado)).map(v=>({
+    tipo:'linea', id:v.id, nombre:v.nombre || '', tel:v.telefono || '', fecha:v.fecha_promesa || null, fechaEsCurso:false,
+    monto: v.debe ?? v.precio ?? 0, donde:'En línea · ' + v.curso, vendedor:v.asesor_id, raw:v }));
+}
+function elEstadoHtml(v){
+  const t = v.estado === 'abonando' && v.debe != null ? `Pagando · debe ${fmtMoney(v.debe)}` : (EL_ESTADOS[v.estado] || v.estado);
+  return `<span class="el-est ${escapeAttr(v.estado)}">${escHtml(t)}</span>`;
+}
+
+async function renderEnLinea(){
+  document.querySelectorAll('#elTabs [data-el-tab]').forEach(b=>b.classList.toggle('active', b.dataset.elTab === enl.tab));
+  document.getElementById('elVistaVentas').style.display = enl.tab === 'ventas' ? '' : 'none';
+  document.getElementById('elVistaCatalogo').style.display = enl.tab === 'catalogo' ? '' : 'none';
+  if(enl.tab === 'catalogo'){ await cargarCursosEnLinea(); return pintarCatalogoEnLinea(); }
+  const selV = document.getElementById('elVendedora');
+  const antes = selV.value;
+  selV.innerHTML = '<option value="">Todas las vendedoras</option>' + VENDEDORES.map(u=>`<option value="${escapeAttr(u.id)}">${escHtml(u.nombre)}</option>`).join('');
+  selV.value = antes;
+  if(!enl.filas) document.getElementById('elLista').innerHTML = 'Cargando…';
+  await Promise.all([cargarVentasEnLinea(), enl.cursos ? null : cargarCursosEnLinea()]);
+  pintarEnLinea();
+}
+function pintarEnLinea(){
+  const filas = enl.filas || [];
+  const q = normTexto(document.getElementById('elBuscar').value || '');
+  const vend = document.getElementById('elVendedora').value;
+  const base = filas.filter(v=>(!vend || v.asesor_id === vend)
+    && (!q || q.split(' ').every(w=>normTexto(`${v.nombre} ${v.telefono} ${v.curso}`).includes(w))));
+  const grupos = [['abiertas', 'Por cerrar', v=>elAbierta(v)], ['por_confirmar', 'Por confirmar', v=>v.por_confirmar > 0 && v.estado !== 'cancelada'],
+    ['liquidada', 'Falta dar acceso', v=>v.estado === 'liquidada'], ['con_acceso', 'Con acceso', v=>v.estado === 'con_acceso'],
+    ['cancelada', 'Canceladas', v=>v.estado === 'cancelada'], ['todas', 'Todas', ()=>true]];
+  document.getElementById('elChips').innerHTML = grupos.map(([k, l, f])=>
+    `<button type="button" class="el-chip ${enl.filtro === k ? 'on' : ''}" data-el-filtro="${k}"><b>${base.filter(f).length}</b>${l}</button>`).join('');
+  const f = (grupos.find(g=>g[0] === enl.filtro) || grupos[0])[2];
+  const lista = base.filter(f);
+  const hoy = hoyISO();
+  document.getElementById('elLista').innerHTML = lista.length ? lista.map(v=>{
+    const venc = elAbierta(v) && v.fecha_promesa && v.fecha_promesa < hoy;
+    return `<div class="el-fila" data-el-venta="${escapeAttr(v.id)}" role="button" tabindex="0">
+      <div><span class="n">${escHtml(tituloCaso(v.nombre || '(sin nombre)'))}</span>${elEstadoHtml(v)}
+        <div class="s">${escHtml(v.curso)} · ${escHtml(nombreVendedor(v.asesor_id) || 'sin vendedora')}${htmlCel10(v.telefono) ? ' · ' + htmlCel10(v.telefono) : ''}</div>
+        ${v.fecha_promesa && elAbierta(v) ? `<div class="s" style="${venc ? 'color:var(--danger);font-weight:600;' : ''}">${venc ? 'Promesa vencida' : 'Promesa'}: ${escHtml(fechaCorta(v.fecha_promesa))}</div>` : ''}</div>
+      <div class="m">${v.precio == null ? 'sin precio' : fmtMoney(v.precio)}<div class="s">pagado ${fmtMoney(v.pagado)}</div></div>
+    </div>`;
+  }).join('') : '<div class="empty-note">Nadie en este grupo.</div>';
+}
+document.getElementById('elTabs').addEventListener('click', e=>{
+  const b = e.target.closest('[data-el-tab]'); if(!b) return;
+  enl.tab = b.dataset.elTab; renderEnLinea();
+});
+document.getElementById('elChips').addEventListener('click', e=>{
+  const b = e.target.closest('[data-el-filtro]'); if(!b) return;
+  enl.filtro = b.dataset.elFiltro; pintarEnLinea();
+});
+document.getElementById('elBuscar').addEventListener('input', ()=>pintarEnLinea());
+document.getElementById('elVendedora').addEventListener('change', ()=>pintarEnLinea());
+document.getElementById('elLista').addEventListener('click', e=>{
+  const f = e.target.closest('[data-el-venta]'); if(f) abrirVentaLinea(f.dataset.elVenta);
+});
+document.getElementById('elLista').addEventListener('keydown', e=>{
+  const f = e.target.closest('[data-el-venta]'); if(f && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); abrirVentaLinea(f.dataset.elVenta); }
+});
+
+/* Catálogo: precio y link de cada curso (administradores) */
+function pintarCatalogoEnLinea(){
+  const admin = !!usuarioActual?.es_admin;
+  document.getElementById('elCatalogo').innerHTML = (enl.cursos || []).map(c=>`
+    <div class="el-cat" data-el-curso="${escapeAttr(c.id)}">
+      <div class="cn">${escHtml(c.nombre)}${c.activo ? '' : ' <span class="sub">(oculto)</span>'}</div>
+      <div class="precio-monto">$<input class="el-cat-precio" type="number" min="0" step="10" inputmode="decimal" value="${c.precio ?? ''}" placeholder="Sin precio" ${admin ? '' : 'disabled'} aria-label="Precio de ${escapeAttr(c.nombre)}"></div>
+      <div class="cl"><input class="el-cat-link" type="url" value="${escapeAttr(c.link || '')}" placeholder="Link del curso en la plataforma" ${admin ? '' : 'disabled'} aria-label="Link de ${escapeAttr(c.nombre)}"> <span class="guardado-estado"></span></div>
+    </div>`).join('') || '<div class="empty-note">Todavía no hay cursos en el catálogo.</div>';
+}
+document.getElementById('elCatalogo').addEventListener('change', async e=>{
+  const fila = e.target.closest('[data-el-curso]'); if(!fila) return;
+  const c = (enl.cursos || []).find(x=>x.id === fila.dataset.elCurso); if(!c) return;
+  const estado = fila.querySelector('.guardado-estado');
+  let cambios;
+  if(e.target.classList.contains('el-cat-precio')){
+    const t = e.target.value.trim(), precio = t === '' ? null : Number(t);
+    if(precio != null && !(precio > 0)){ e.target.value = c.precio ?? ''; estado.textContent = 'Precio mayor a $0'; estado.className = 'guardado-estado malo'; return; }
+    cambios = { precio };
+  } else if(e.target.classList.contains('el-cat-link')){
+    const link = e.target.value.trim();
+    if(link && !/^https?:\/\//i.test(link)){ e.target.value = c.link || ''; estado.textContent = 'El link empieza con https://'; estado.className = 'guardado-estado malo'; return; }
+    cambios = { link: link || null };
+  } else return;
+  estado.textContent = 'Guardando…'; estado.className = 'guardado-estado';
+  const { error } = await sb.from('cursos_en_linea').update({ ...cambios, actualizado_por: usuarioActual?.id || null, actualizado_en: new Date().toISOString() }).eq('id', c.id);
+  if(error){ estado.textContent = 'No se guardó'; estado.className = 'guardado-estado malo'; toast('No se pudo guardar: ' + error.message, true); return; }
+  registrarActividad('curso_en_linea_cambiado', `${c.nombre}: ${'precio' in cambios ? 'precio ' + textoPrecio(c.precio) + ' → ' + textoPrecio(cambios.precio) : 'link actualizado'}`);
+  Object.assign(c, cambios);
+  estado.textContent = '✓ Guardado'; estado.className = 'guardado-estado ok';
+});
+
+/* Ficha de una venta (o el alta de una nueva) */
+function abrirNuevaVentaLinea(){
+  enl.abierta = null;
+  document.getElementById('vlTitulo').textContent = 'Nueva venta en línea';
+  document.getElementById('vlSub').textContent = 'Se registra con su promesa de pago; el pago se registra cuando lo mande.';
+  const cursos = (enl.cursos || []).filter(c=>c.activo);
+  const yo = VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '';
+  document.getElementById('vlCuerpo').innerHTML = `
+    <div class="modal-field"><label>Teléfono (10 dígitos)</label><input id="vlTel" inputmode="tel" maxlength="16" placeholder="Ej. 8711234567"><div class="vend-hint" id="vlTelHint"></div></div>
+    <div class="modal-field"><label>Nombre completo</label><input id="vlNombre" maxlength="120"></div>
+    <div class="modal-field"><label>Curso</label><select id="vlCurso"><option value="">Elige el curso…</option>${cursos.map(c=>`<option value="${escapeAttr(c.id)}">${escHtml(c.nombre)}${c.precio != null ? ' · ' + fmtMoney(c.precio) : ''}</option>`).join('')}</select></div>
+    <div class="modal-field"><label>Precio</label><input id="vlPrecio" type="number" min="0" step="10" inputmode="decimal" placeholder="Precio que se le dio"><div class="vend-hint">Arranca con el del catálogo; se puede cambiar.</div></div>
+    <div class="modal-field"><label>Fecha en que promete pagar</label><input type="date" id="vlPromesa"></div>
+    <div class="modal-field"><label>¿Quién vendió?</label><select id="vlVendedora">${opcionesVendedor(yo)}</select></div>
+    <div class="modal-field"><label>Comentario (opcional)</label><textarea id="vlNota" rows="2" maxlength="500"></textarea></div>
+    <button type="button" class="btn-primary" id="vlGuardarNueva" style="width:100%;">Registrar venta</button>`;
+  document.getElementById('vlVendedora').value = yo;
+  document.getElementById('modalVentaLinea').classList.add('open');
+  document.getElementById('vlTel').focus();
+}
+document.getElementById('btnNuevaVentaLinea').addEventListener('click', async ()=>{ if(!enl.cursos) await cargarCursosEnLinea(); abrirNuevaVentaLinea(); });
+document.getElementById('closeModalVentaLinea').addEventListener('click', ()=>document.getElementById('modalVentaLinea').classList.remove('open'));
+// Persona por teléfono (principal o alterno): si ya está en el Hub se usa la misma
+async function personaPorTelefono(tel){
+  const { data } = await sb.from('personas').select('id, nombre, telefono_principal')
+    .or(`telefono_principal.eq.${tel},telefono_alternativo.eq.${tel}`).limit(1);
+  return (data || [])[0] || null;
+}
+
+async function abrirVentaLinea(id){
+  if(!enl.filas) await cargarVentasEnLinea();
+  const v = (enl.filas || []).find(x=>x.id === id); if(!v) return;
+  enl.abierta = id;
+  const { data: pagos } = await sb.from('pagos_en_linea').select('id, monto, fecha, banco, forma_pago, verificacion, registrado_por, confirmado_por').eq('venta_id', id).order('fecha');
+  enl.pagos = pagos || [];
+  pintarVentaLinea();
+  document.getElementById('modalVentaLinea').classList.add('open');
+}
+function pintarVentaLinea(){
+  const v = (enl.filas || []).find(x=>x.id === enl.abierta); if(!v) return;
+  document.getElementById('vlTitulo').innerHTML = escHtml(tituloCaso(v.nombre || '(sin nombre)')) + ' ' + elEstadoHtml(v);
+  document.getElementById('vlSub').innerHTML = `${escHtml(v.curso)}${htmlCel10(v.telefono) ? ' · ' + htmlCel10(v.telefono) : ''} · vendió ${escHtml(nombreVendedor(v.asesor_id) || 'nadie')}`;
+  const cerrada = !elAbierta(v);
+  const conf = puedeConfirmarLinea();
+  const pagos = enl.pagos.map(p=>`<div class="el-pago" data-el-pago="${escapeAttr(p.id)}">
+      <span><b>${fmtMoney(p.monto)}</b> · ${escHtml(fechaCorta(p.fecha))}${p.banco ? ' · ' + escHtml(p.banco) : ''}${p.forma_pago ? ' · ' + escHtml(p.forma_pago) : ''}</span>
+      <span>${p.verificacion === 'confirmado' ? '<span class="el-est liquidada">Confirmado</span>' : p.verificacion === 'no_llego' ? '<span class="el-est cancelada">No llegó</span>'
+        : (conf ? '<button type="button" class="btn-outline small" data-el-conf="si">Ya llegó</button> <button type="button" class="btn-outline small" data-el-conf="no">No llegó</button>' : '<span class="el-est por_confirmar">Por confirmar</span>')}</span>
+    </div>`).join('') || '<div class="sub">Todavía no hay pagos.</div>';
+  document.getElementById('vlCuerpo').innerHTML = `
+    <div class="cobro-det" style="margin-bottom:6px;">Precio <b>${v.precio == null ? 'sin precio' : fmtMoney(v.precio)}</b> · pagado <b>${fmtMoney(v.pagado)}</b>${v.por_confirmar > 0 ? ` (${fmtMoney(v.por_confirmar)} por confirmar)` : ''}${v.debe != null && v.debe > 0 ? ` · debe <b>${fmtMoney(v.debe)}</b>` : ''}</div>
+    ${v.estado === 'cancelada' ? `<div class="aviso-sin-curso" style="display:block;">Cancelada: ${escHtml(v.cancelada_motivo || '')}</div>` : ''}
+    <div class="el-caja"><h4>Pagos</h4>${pagos}</div>
+    ${cerrada || v.debe === 0 ? '' : `<div class="el-caja"><h4>Registrar pago</h4>
+      <div class="monto-ant"><input type="number" id="vlPagoMonto" min="0" step="10" inputmode="decimal" placeholder="Monto" value="${v.debe != null && v.debe > 0 ? v.debe : ''}"><input type="date" id="vlPagoFecha" value="${hoyISO()}"></div>
+      <input id="vlPagoBanco" placeholder="Banco o forma de pago" maxlength="60" style="margin-top:6px;width:100%;">
+      <button type="button" class="btn-outline" id="vlRegistrarPago" style="width:100%;margin-top:8px;">Registrar pago</button>
+      <div class="vend-hint">Queda <b>por confirmar</b>: lo confirma quien tiene "Confirmar pagos en línea" al verlo en el banco.</div></div>
+      <div class="el-caja"><h4>Promesa de pago</h4><input type="date" id="vlPromesaEdit" value="${escapeAttr(v.fecha_promesa || '')}"> <span class="guardado-estado" id="vlPromesaEstado"></span></div>`}
+    ${v.estado === 'liquidada' ? (conf ? `<div class="el-caja"><h4>Dar acceso</h4>
+      <input id="vlCupon" placeholder="Cupón de ${escapeAttr(v.curso)} (lo baja a $0)" maxlength="60" style="width:100%;">
+      <button type="button" class="btn-primary" id="vlDarAcceso" style="width:100%;margin-top:8px;">Dar acceso y mandar WhatsApp</button>
+      <div class="vend-hint">Le llega el link de la Academia, el link de su curso${v.link ? '' : ' (todavía no está en el catálogo: pídelo a un administrador)'} y su cupón.</div></div>`
+      : '<div class="el-caja"><h4>Dar acceso</h4><div class="sub">Ya está liquidada: el acceso lo da quien confirma los pagos en línea.</div></div>') : ''}
+    ${v.estado === 'con_acceso' ? `<div class="el-caja"><h4>Acceso</h4><div class="sub">Se le dio el ${escHtml(fechaCorta(String(v.acceso_dado_en).slice(0, 10)))} por ${escHtml(nombreVendedor(v.acceso_dado_por) || 'alguien')} · cupón <b>${escHtml(v.cupon || '')}</b></div>
+      <button type="button" class="btn-outline small" id="vlReenviar" style="margin-top:6px;">Volver a mandar el WhatsApp</button></div>` : ''}
+    ${v.telefono ? '<button type="button" class="btn-outline small" id="vlWhats" style="margin-top:10px;">WhatsApp</button>' : ''}
+    ${usuarioActual?.es_admin && v.estado !== 'cancelada' ? ' <button type="button" class="btn-outline small" id="vlCancelar" style="margin-top:10px;">Cancelar venta</button>' : ''}`;
+}
+// Texto del acceso: link de la Academia + link del curso + cupón
+function textoAccesoLinea(v){
+  return `¡Hola ${tituloCaso((v.nombre || '').split(' ')[0])}! Ya está confirmado tu pago de *${v.curso}*.\n\n`
+    + `1. Entra a la Academia: ${LINK_ACADEMIA}\n`
+    + (v.link ? `2. Abre tu curso: ${v.link}\n3. ` : '2. ')
+    + `Al pagar, escribe el cupón *${v.cupon}* y el precio baja a $0.\n\nCualquier duda aquí estamos.`;
+}
+function whatsAccesoLinea(v){
+  return abrirEnviarWhatsApp({ nombre:v.nombre, telefono:v.telefono, personaId:v.persona_id, link:v.link || LINK_ACADEMIA,
+    plantilla:'Acceso a curso en línea', textoSinPlantilla:textoAccesoLinea(v) });
+}
+document.getElementById('modalVentaLinea').addEventListener('click', async e=>{
+  const v = (enl.filas || []).find(x=>x.id === enl.abierta);
+  const t = e.target;
+  if(t.id === 'vlGuardarNueva') return guardarNuevaVentaLinea(t);
+  if(!v) return;
+  const listo = async (msj)=>{ if(msj) toast(msj); await cargarVentasEnLinea(); await abrirVentaLinea(v.id); pintarEnLinea(); };
+  if(t.id === 'vlWhats') return abrirEnviarWhatsApp({ nombre:v.nombre, telefono:v.telefono, personaId:v.persona_id, link:v.link || LINK_ACADEMIA });
+  if(t.id === 'vlReenviar') return whatsAccesoLinea(v);
+  if(t.id === 'vlRegistrarPago'){
+    const monto = Number(document.getElementById('vlPagoMonto').value);
+    const fecha = document.getElementById('vlPagoFecha').value || hoyISO();
+    const banco = document.getElementById('vlPagoBanco').value.trim();
+    if(!(monto > 0)){ toast('Escribe el monto del pago.', true); return; }
+    t.disabled = true;
+    const { error } = await sb.rpc('pago_en_linea_registrar', { p_venta:v.id, p_monto:monto, p_fecha:fecha, p_banco:banco || null, p_forma:null });
+    t.disabled = false;
+    if(error){ toast('No se pudo registrar el pago: ' + error.message, true); return; }
+    registrarActividad('pago_en_linea_registrado', `${v.nombre} · ${v.curso} · ${fmtMoney(monto)}`);
+    return listo('Pago registrado: queda por confirmar.');
+  }
+  const conf = t.closest('[data-el-conf]');
+  if(conf){
+    const pagoId = t.closest('[data-el-pago]').dataset.elPago;
+    const llego = conf.dataset.elConf === 'si';
+    const p = enl.pagos.find(x=>x.id === pagoId);
+    const { error } = await sb.rpc('pago_en_linea_confirmar', { p_pago:pagoId, p_llego:llego });
+    if(error){ toast('No se pudo: ' + error.message, true); return; }
+    registrarActividad(llego ? 'pago_en_linea_confirmado' : 'pago_en_linea_no_llego', `${v.nombre} · ${v.curso} · ${fmtMoney(p?.monto)}`);
+    return listo(llego ? 'Pago confirmado.' : 'Marcado: no llegó. Ya no cuenta como pagado.');
+  }
+  if(t.id === 'vlDarAcceso'){
+    const cupon = document.getElementById('vlCupon').value.trim();
+    if(cupon.length < 3){ toast('Escribe el cupón de su curso.', true); return; }
+    t.disabled = true;
+    const { error } = await sb.rpc('venta_en_linea_dar_acceso', { p_venta:v.id, p_cupon:cupon });
+    t.disabled = false;
+    if(error){ toast('No se pudo dar el acceso: ' + error.message, true); return; }
+    registrarActividad('acceso_en_linea_dado', `${v.nombre} · ${v.curso} · cupón ${cupon}`);
+    await listo('Acceso registrado. Mándale el WhatsApp.');
+    return whatsAccesoLinea({ ...v, cupon });
+  }
+  if(t.id === 'vlCancelar'){
+    const motivo = await preguntarConfirmacion({ titulo:'¿Cancelar la venta?', fuerte:true, pedirMotivo:true, textoSi:'Sí, cancelarla',
+      aviso:`${escHtml(v.nombre)} · ${escHtml(v.curso)}. No se borra: queda como cancelada con su motivo.${v.estado === 'con_acceso' ? ' Ya tenía acceso: a Cobranza le llega una tarea para quitárselo en la plataforma.' : ''}` });
+    if(motivo === null) return;
+    const { error } = await sb.rpc('venta_en_linea_cancelar', { p_venta:v.id, p_motivo:motivo || 'sin motivo' });
+    if(error){ toast('No se pudo cancelar: ' + error.message, true); return; }
+    registrarActividad('venta_en_linea_cancelada', `${v.nombre} · ${v.curso} · ${motivo}`);
+    return listo('Venta cancelada.');
+  }
+});
+document.getElementById('modalVentaLinea').addEventListener('change', async e=>{
+  if(e.target.id === 'vlCurso'){
+    const c = (enl.cursos || []).find(x=>x.id === e.target.value);
+    document.getElementById('vlPrecio').value = c?.precio ?? '';
+    return;
+  }
+  if(e.target.id === 'vlTel'){
+    const tel = e.target.value.replace(/\D/g, '').slice(-10);
+    const hint = document.getElementById('vlTelHint');
+    if(tel.length !== 10){ hint.textContent = ''; return; }
+    const p = await personaPorTelefono(tel);
+    hint.textContent = p ? `Ya está en el Hub: ${tituloCaso(p.nombre || '')}. Se le agrega esta venta.` : 'Persona nueva.';
+    if(p && !document.getElementById('vlNombre').value) document.getElementById('vlNombre').value = tituloCaso(p.nombre || '');
+    return;
+  }
+  if(e.target.id === 'vlPromesaEdit'){
+    const v = (enl.filas || []).find(x=>x.id === enl.abierta); if(!v) return;
+    const fecha = e.target.value || null;
+    const { error } = await sb.rpc('venta_en_linea_editar', { p_venta:v.id, p_fecha_promesa:fecha, p_precio:v.precio, p_asesor:v.asesor_id, p_nota:v.nota });
+    if(error){ toast('No se guardó la promesa: ' + error.message, true); return; }
+    registrarActividad('venta_en_linea_editada', `${v.nombre} · ${v.curso}: promesa ${fecha ? fechaCorta(fecha) : 'sin fecha'}`);
+    v.fecha_promesa = fecha;
+    marcarGuardado('vlPromesaEstado', '✓ Guardado', 'ok');
+    pintarEnLinea();
+  }
+});
+async function guardarNuevaVentaLinea(btn){
+  const tel = document.getElementById('vlTel').value.replace(/\D/g, '').slice(-10);
+  const nombre = document.getElementById('vlNombre').value.trim();
+  const cursoId = document.getElementById('vlCurso').value;
+  const txtPrecio = document.getElementById('vlPrecio').value.trim();
+  const precio = txtPrecio === '' ? null : Number(txtPrecio);
+  const promesa = document.getElementById('vlPromesa').value || null;
+  const vendedora = document.getElementById('vlVendedora').value || null;
+  const nota = document.getElementById('vlNota').value.trim();
+  if(tel.length !== 10){ toast('El teléfono tiene que ser de 10 dígitos.', true); return; }
+  if(!cursoId){ toast('Elige el curso.', true); return; }
+  if(precio != null && !(precio > 0)){ toast('El precio tiene que ser mayor a $0 (o déjalo vacío si todavía no se sabe).', true); return; }
+  let persona = await personaPorTelefono(tel);
+  if(!persona){
+    if(nombre.length < 3){ toast('Escribe su nombre completo.', true); return; }
+    const { data, error } = await sb.from('personas').insert({ nombre: nombre.toUpperCase(), telefono_principal: tel }).select('id, nombre').single();
+    if(error){ toast('No se pudo dar de alta a la persona: ' + error.message, true); return; }
+    persona = data;
+  }
+  btn.disabled = true;
+  const { data: id, error } = await sb.rpc('venta_en_linea_crear', { p_persona:persona.id, p_curso:cursoId, p_precio:precio, p_fecha_promesa:promesa, p_asesor:vendedora, p_nota:nota || null });
+  btn.disabled = false;
+  if(error){ toast('No se pudo registrar la venta: ' + error.message, true); return; }
+  const curso = (enl.cursos || []).find(c=>c.id === cursoId);
+  registrarActividad('venta_en_linea_creada', `${tituloCaso(persona.nombre || nombre)} · ${curso?.nombre || 'curso'}${precio ? ' · ' + fmtMoney(precio) : ''}`);
+  toast('Venta registrada.');
+  await cargarVentasEnLinea();
+  pintarEnLinea();
+  if(id) await abrirVentaLinea(id); else document.getElementById('modalVentaLinea').classList.remove('open');
+}
 
 /* =========================================================
    VENTAS / REPORTES — utilidades compartidas
@@ -14334,6 +14731,7 @@ function embPintar(){
     </div>`;
 }
 document.getElementById('cobTabs').addEventListener('click', e=>{
+  if(e.target.closest('[data-cob-ir]')) return setActiveSection('enlinea');   // los cursos en línea van aparte de la gira
   const b = e.target.closest('[data-cob-tab]'); if(!b) return;
   emb.tab = b.dataset.cobTab;
   document.querySelectorAll('#cobTabs [data-cob-tab]').forEach(x=>x.classList.toggle('active', x === b));

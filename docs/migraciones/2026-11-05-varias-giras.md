@@ -95,3 +95,44 @@ constante `CURSO_ACTIVO_NOMBRE` y la función `bi_curso_activo()` de la base.
 ## Por decidir (Enoc)
 - **Diploma de Mesa de Postres.** El fondo de hoy (`diploma-gira.jpg`) dice "LOS PASTELES MÁS SABROSOS DE LA CHEF". Hace falta la imagen del diploma de Mesa de Postres. Mientras no llegue, el botón de diploma de esa gira dice "Falta el diseño del diploma" en lugar de imprimir el de Pasteles.
 - **Curso sin precio.** Propuesta: se puede inscribir y el vigilante lo marca en rojo, para no frenar la venta.
+
+---
+
+## Lo que se hizo (5 nov 2026, "permitido generar" de Enoc)
+Decisiones de Enoc: el diploma de Mesa de Postres dice "Falta el diseño del diploma" hasta que llegue el suyo; con curso sin
+precio se puede inscribir, el vigilante lo marca y a Jared le queda un recordatorio; el cupón de cursos en línea solo lo da
+quien confirma; Cobranza trae su pestaña "En línea".
+
+### Base (migraciones aplicadas)
+- `varias_giras_base`: respaldos `respaldo.funciones_20261105`, `respaldo.precios_20261105`, `respaldo.eventos_20261105`.
+  `cursos_vigentes()` (cursos activos con fechas de hoy en adelante). `bi_curso_activo()` = la gira vigente que sigue en fecha.
+  `ciudades_en_puerta`, `bandeja_limpieza`, `bi_alertas` y `bi_giras` (activa / proxima) ven todas las giras vigentes.
+- `varias_giras_precios_y_mesa_de_postres`:
+  - `precios.curso_id` y `precios.paquete` (Básico/VIP por curso; índice único por curso y paquete).
+  - `precio_paquete(curso, paquete)`: la única regla del precio (Hub, vigilante y resumen semanal).
+  - Disparador `precio_curso_al_dia`: al capturar el precio de un curso, a sus inscritas sin precio se les calcula lo que deben
+    (precio, restante, liquidado) y, con Básico y VIP, se cierra la tarea de Jared.
+  - Pasteles $1,400 / $1,900; Mesa de Postres vacío. Las 9 fechas de Mesa de Postres (dic 2026), sin sede.
+  - Vigilante: roja `inscrita_curso_sin_precio`, amarilla `curso_sin_precio`.
+  - `bi_resumen_semanal`: una sección por gira vigente.
+  - Tarea a Jared (Gerente): "Captura el precio de Mesa de Postres (Básico y VIP)".
+  - Efecto en datos: una inscrita de Pasteles sin precio ni paquete quedó en Básico debiendo $1,400 (respaldada en
+    `respaldo.inscripciones_20261105`).
+- `diploma_por_curso`: `certificado_plantillas.curso_id` (el de gira es de Pasteles; respaldo `respaldo.certificado_plantillas_20261105`);
+  `diploma_datos` regresa `falta_diseno` si el curso es otro.
+
+### Hub
+- `GIRAS` / `obtenerGiras()` / `idsGiras()` / `enSuGira()` reemplazan a `CURSO_ACTIVO_NOMBRE` y `obtenerCursoActivoId()`.
+- `etiquetaEvento()`: "Ciudad · fecha · curso" en todos los selectores y en la lista con buscador.
+- Filtro de gira (`htmlFiltroGira`, se recuerda por persona) en Cobranza (y su Embudo) y Calendario; Ventas y Reportes, una gira a la vez.
+  "Te toca cobrar" ve siempre las dos.
+- `precioPaquete()` y `pintarPaquetes()`: los botones de paquete dicen el precio del curso elegido. Inscribir sin precio deja
+  `precio_pactado` y `restante` vacíos (`sinPrecioInsc`: no se ve como liquidada en la ficha ni en Recepción).
+- Precios → "Precio de cada curso". "Cambiar a VIP" cuesta la diferencia VIP − Básico de su curso.
+- `precioAlCambiarDeCurso()`: Cambiar de curso (ficha) y Mover a otro curso (No llegaron) entre giras recalculan lo que debe y lo avisan.
+- Certificados: "Falta el diseño del diploma" en los cursos de una gira sin diseño (`faltaDisenoCert`); certificados.glamreposteria.com lo dice igual.
+
+### Pruebas
+- `prueba_varias_giras.js` (25/25) y las 20 pruebas que fijaban el curso activo, adaptadas a `GIRAS`.
+- Historias: H13 (inscrita en gira sin precio → vigilante rojo y Embudo "anticipo"; al capturar el precio se calcula lo que debe y se cierra la tarea).
+- Glamy: manual (dos giras, precio por curso, Mesa de Postres sin precio, cambio entre giras, diploma) y 3 casos nuevos en el examen.

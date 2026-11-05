@@ -83,6 +83,17 @@ const CASOS_CF = [
 /* Fase 1 (27 oct 2026): cómo se usa lo nuevo, sin datos. Se revisa el texto: el nombre del botón, sin los emojis que el Hub ya no tiene. */
 const SIN_EMOJIS_HUB = t => !/[✅💜❌➕🎁💬📅🏦🧹📊]/u.test(t);
 const CASOS_FASE1 = [
+  // Dos giras a la vez y cursos en línea (5 nov 2026)
+  { nombre:'Dos giras: cuánto cuesta Mesa de Postres (todavía sin precio)', pregunta:'¿cuánto cuesta el curso de mesa de postres de diciembre?',
+    revisar: t => /(no tiene precio|todavía no|aún no|sin precio)/i.test(t) && /Jared/.test(t) && !/\$1,?400/.test(t) },
+  { nombre:'Dos giras: en Monterrey hay dos cursos, cuál elegir', pregunta:'una clienta de monterrey quiere el curso de diciembre, en el selector me salen dos de monterrey, ¿cuál elijo?',
+    revisar: t => /Mesa de Postres/i.test(t) },
+  { nombre:'Dos giras: cambiar de gira y lo que debe', pregunta:'una alumna de pasteles se quiere pasar a mesa de postres, ¿se puede? ¿qué pasa con lo que pagó?',
+    revisar: t => /Cambiar de curso/i.test(t) && /(pag[oó]|conserva)/i.test(t) },
+  { nombre:'En línea: cómo vendo un curso en línea', pregunta:'¿cómo registro la venta de un curso en línea, por ejemplo rosca de reyes?',
+    revisar: t => /⟦ir:enlinea⟧/.test(t) && /Venta en l[ií]nea/i.test(t) },
+  { nombre:'En línea: quién da el cupón', pregunta:'ya pagó su curso en línea, ¿le mando yo el cupón?',
+    revisar: t => /(confirma|confirmar)/i.test(t) && /(Dar acceso|cup[oó]n)/i.test(t) },
   { nombre:'Fase 1: dónde escribir un comentario', pregunta:'¿dónde escribo un comentario en la ficha de una alumna inscrita?',
     revisar: t => /Agregar comentario/.test(t) && SIN_EMOJIS_HUB(t) },
   { nombre:'Fase 1: le avisé desde mi celular', pregunta:'le avisé del cambio de fecha a una alumna desde mi celular, ¿cómo lo marco en el hub?',

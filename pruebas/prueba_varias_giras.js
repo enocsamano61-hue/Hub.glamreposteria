@@ -93,7 +93,7 @@ const INSC = { id:'i1', persona_id:'p01', evento_id:'p1', anticipo:700, restante
   await p.waitForTimeout(500);
   await montar(); await p.evaluate(() => pintarPreciosCurso());
   const tarjetas = await p.$$eval('#preciosCurso .precio-curso-titulo', xs => xs.map(x => x.textContent));
-  check(tarjetas.length === 2 && tarjetas[0].includes('Mesa De Postres') && tarjetas[1].includes('Pasteles'), 'las dos giras, la que sigue primero: ' + tarjetas.join(' | '));
+  check(tarjetas.length === 2 && tarjetas[0].includes('Mesa de Postres') && tarjetas[1].includes('Pasteles'), 'las dos giras, la que sigue primero: ' + tarjetas.join(' | '));
   check(!(await p.textContent('#preciosLista')).includes('Pasteles · Básico'), 'los precios de curso no se mezclan con lo que se cobra aparte');
   await h.limpiarOps();
   await p.fill('[data-precio-curso="curM"][data-precio-paq="BASICO"] .precio-curso-valor', '1600');
@@ -101,7 +101,7 @@ const INSC = { id:'i1', persona_id:'p01', evento_id:'p1', anticipo:700, restante
   await p.waitForTimeout(500);
   const up = (await h.ops('precios', 'update'))[0];
   check(up && up.precio === 1600, 'se guarda el precio en su renglón (Mesa de Postres · Básico)');
-  check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'precio_cambiado' && a.detalle.includes('Mesa De Postres · Básico')), 'queda en la actividad');
+  check((await h.ops('actividad_usuario', 'insert')).some(a => a.accion === 'precio_cambiado' && a.detalle.includes('Mesa de Postres · Básico')), 'queda en la actividad');
   await h.captura('varias-giras-precios.png');
   await p.fill('[data-precio-curso="curM"][data-precio-paq="VIP"] .precio-curso-valor', '0');
   await p.dispatchEvent('[data-precio-curso="curM"][data-precio-paq="VIP"] .precio-curso-valor', 'change');

@@ -7,7 +7,7 @@
    Las escrituras imitan las del Hub (hub/index.html): Registrar pago, Confirmar pago (inscribir desde el
    lead), No se encontró, Cambiar de curso, Ceder su lugar (ceder_lugar) y Reembolso
    (cambio_fecha_marcar + cambio_fecha_cerrar_reembolso), la promesa de una inscrita puesta en su lead (H7) y la baja de
-   una vendedora con un lead abierto, con los candados de Usuarios (H8), y dos giras a la vez con una sin precio (H13).
+   una vendedora con un lead abierto, con los candados de Usuarios (H8), dos giras a la vez con una sin precio (H13) y una venta de curso en línea de punta a punta (H14).
    Personas de prueba inventadas. */
 do $historias$
 declare
@@ -265,6 +265,45 @@ begin
       else mal := mal || 'H13 con Básico y VIP la tarea de capturar el precio sigue abierta'::text; end if;
     end if;
   end;
+
+  -- ===== H14. Curso en línea (5 nov): vende la vendedora → registra el pago (por confirmar) → ella no lo puede confirmar ni meterlo
+  --       directo → "no llegó" lo regresa a Prometida → pago nuevo confirmado → liquidada → acceso con cupón. La gira no lo cuenta =====
+  declare v_vauth uuid; v_p uuid; v_v uuid; v_pg1 uuid; v_pg2 uuid; v_k uuid; v_gira numeric;
+  begin
+    select auth_user_id into v_vauth from public.usuarios where rol = 'Ventas' and activo and not es_admin and auth_user_id is not null limit 1;
+    select id into v_k from public.cursos_en_linea order by orden limit 1;
+    select coalesce(sum(monto), 0) into v_gira from public.pagos;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_vauth, 'role', 'authenticated')::text, true);
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA CATORCE', '0000000115') returning id into v_p;
+    v_v := public.venta_en_linea_crear(v_p, v_k, 900, v_hoy + 2, null, 'historia');
+    if (select estado from public.venta_en_linea_resumen(v_v)) = 'prometida' then ok := ok + 1; else mal := mal || 'H14 recién vendida no es Prometida'::text; end if;
+    v_pg1 := public.pago_en_linea_registrar(v_v, 900, v_hoy, 'BANCO PRUEBA', null);
+    if (select estado from public.venta_en_linea_resumen(v_v)) = 'por_confirmar' then ok := ok + 1; else mal := mal || 'H14 pagada y sin confirmar no es Por confirmar'::text; end if;
+    begin perform public.pago_en_linea_confirmar(v_pg1, true); mal := mal || 'H14 una vendedora sin permiso pudo confirmar'::text;
+    exception when insufficient_privilege then ok := ok + 1; end;
+    execute 'set local role authenticated';   -- como el Hub: con el rol del equipo, no como dueño de la base
+    begin insert into public.pagos_en_linea (venta_id, monto, fecha, verificacion) values (v_v, 1, v_hoy, 'confirmado'); mal := mal || 'H14 se pudo meter un pago confirmado directo a la tabla'::text;
+    exception when others then ok := ok + 1; end;
+    begin update public.ventas_en_linea set acceso_dado_en = now() where id = v_v;
+      if (select acceso_dado_en from public.ventas_en_linea where id = v_v) is null then ok := ok + 1; else mal := mal || 'H14 se pudo dar acceso directo en la tabla'::text; end if;
+    exception when others then ok := ok + 1; end;
+    execute 'reset role';
+    perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+    begin perform public.venta_en_linea_dar_acceso(v_v, 'CUPON1'); mal := mal || 'H14 dio acceso sin estar confirmada'::text;
+    exception when others then ok := ok + 1; end;
+    perform public.pago_en_linea_confirmar(v_pg1, false);
+    if (select estado from public.venta_en_linea_resumen(v_v)) = 'prometida' then ok := ok + 1; else mal := mal || 'H14 con el pago que no llegó no regresó a Prometida'::text; end if;
+    v_pg2 := public.pago_en_linea_registrar(v_v, 900, v_hoy, 'BANCO PRUEBA', null);
+    perform public.pago_en_linea_confirmar(v_pg2, true);
+    if (select estado from public.venta_en_linea_resumen(v_v)) = 'liquidada' then ok := ok + 1; else mal := mal || 'H14 confirmada no quedó Liquidada'::text; end if;
+    perform public.venta_en_linea_dar_acceso(v_v, 'CUPON1');
+    if (select estado from public.venta_en_linea_resumen(v_v)) = 'con_acceso' and (select cupon from public.ventas_en_linea where id = v_v) = 'CUPON1' then ok := ok + 1;
+    else mal := mal || 'H14 no quedó Con acceso con su cupón'::text; end if;
+    if (select coalesce(sum(monto), 0) from public.pagos) = v_gira then ok := ok + 1; else mal := mal || 'H14 el pago en línea se metió a los pagos de la gira'::text; end if;
+    begin delete from public.ventas_en_linea where id = v_v; mal := mal || 'H14 se pudo borrar una venta en línea'::text;
+    exception when others then ok := ok + 1; end;
+  end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H14 vigilante: ' || rojos); end if;
 
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;
