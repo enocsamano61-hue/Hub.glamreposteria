@@ -136,3 +136,9 @@ quien confirma; Cobranza trae su pestaña "En línea".
 - `prueba_varias_giras.js` (25/25) y las 20 pruebas que fijaban el curso activo, adaptadas a `GIRAS`.
 - Historias: H13 (inscrita en gira sin precio → vigilante rojo y Embudo "anticipo"; al capturar el precio se calcula lo que debe y se cierra la tarea).
 - Glamy: manual (dos giras, precio por curso, Mesa de Postres sin precio, cambio entre giras, diploma) y 3 casos nuevos en el examen.
+
+## Publicado (5 nov 2026)
+- Enoc: "Súbelo, main". Antes de subir: `correr_todas.js` 56/56 en verde, historias H1–H14 `fallas=0 bien=64`, reglas rojas del vigilante en 0.
+- En main y verificado en producción (`HUB_VERSION = '2026-11-05-varias-giras'`); certificados.glamreposteria.com al día.
+- Glamy v35 publicada (idéntica al repo); examen 56/56. Aviso `2026-11-05-varias-giras` (dos giras y cursos en línea) publicado.
+- Ticket #6 cerrado con su nota.
