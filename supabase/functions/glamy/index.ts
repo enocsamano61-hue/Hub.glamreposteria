@@ -387,7 +387,7 @@ Deno.serve(async (req) => {
       { type: "text", text: MANUAL + await faq(), cache_control: { type: "ephemeral" } },
       { type: "text", text: "# Quién te escribe\nPrueba técnica del sistema (modo prueba: las herramientas regresan datos de ejemplo). "
         + (enBI ? `Rol: Dirección, administrador. Está en la sección "reportes".` + INSTRUCCIONES_BI
-                : `Rol: Cobranza. Está en la sección "${corto(cuerpo.seccion, 30) || "inicio"}". Secciones que puede abrir: inicio, board, historial, cursos, cobranza, nollegaron, calendario, academia, mensajes.`)
+                : `Rol: Cobranza. Está en la sección "${corto(cuerpo.seccion, 30) || "inicio"}". Secciones que puede abrir: inicio, board, historial, cursos, cobranza, enlinea, nollegaron, calendario, academia, mensajes, precios.`)
         // nueva_dias: para probar cómo trata a alguien que se acaba de dar de alta.
         + (typeof cuerpo.nueva_dias === "number" ? nuevaEnElEquipo({ creado_en: new Date(Date.now() - cuerpo.nueva_dias * 86_400_000).toISOString() } as Usuario) : "") },
     ];

@@ -89,3 +89,33 @@ Las tablas son nuevas, así que no hay datos que respaldar. Las funciones se res
 ## Por decidir (Enoc)
 - **El cupón.** ¿Lo escribe quien da el acceso (Enoc, Eliab, Jared…) o cualquier vendedora? Propuesta: quien tenga el permiso de confirmar pagos, porque así el acceso no sale antes de que el dinero esté confirmado.
 - **Pagos en línea en Cobranza.** Propuesta: sí, con una pestaña "En línea" separada de la gira.
+
+---
+
+## Lo que se hizo (5 nov 2026, "permitido generar" de Enoc)
+Decisiones: el cupón y el acceso solo los da quien confirma los pagos en línea; Cobranza tiene su pestaña "En línea" (lleva a la sección).
+
+Cambio contra el plan: los pagos en línea viven en su propia tabla **`pagos_en_linea`** (no en `pagos` con una columna nueva),
+para que nunca entren en los números, triggers ni reglas de la gira.
+
+### Base (migraciones `cursos_en_linea` y `vigilante_cursos_en_linea`)
+- Tablas nuevas `cursos_en_linea` (55 cursos de la lista de Eliab, sin precio ni link), `ventas_en_linea`, `pagos_en_linea`,
+  con candado de no borrar. Leer: todo el equipo con sesión. Catálogo: lo editan los administradores. Ventas y pagos: solo con funciones.
+- `venta_en_linea_resumen(venta)`: precio, pagado, confirmado, por confirmar, debe y estado (prometida, abonando, por_confirmar,
+  liquidada, con_acceso, cancelada). Se calcula de sus pagos: nada se guarda.
+- `ventas_en_linea_lista()`, `venta_en_linea_crear`, `venta_en_linea_editar`, `pago_en_linea_registrar` (queda por confirmar),
+  `pago_en_linea_confirmar` (permiso `confirmar_pagos_en_linea` o administradores; si ya tenía acceso y no llegó, tarea a Cobranza),
+  `venta_en_linea_dar_acceso` (mismo permiso, solo liquidada, con cupón), `venta_en_linea_cancelar` (administradores; tarea si tenía acceso).
+- Sección `enlinea` para Ventas, Ventas coordinadora, Cobranza, Gerente, Dueña, Sistemas y Academia e Inbox.
+- Vigilante: roja `linea_acceso_sin_liquidar`; amarillas `linea_sin_acceso` (más de 2 días) y `linea_sin_precio`.
+
+### Hub
+- Sección "Cursos en línea": Ventas (grupos, buscador, vendedora, "+ Venta en línea") y Catálogo de cursos (precio y link).
+- Ficha de la venta: pagos ("Ya llegó" / "No llegó" para quien tiene el permiso), registrar pago, promesa, "Dar acceso" con cupón
+  y WhatsApp (link de la Academia + link del curso + cupón), cancelar (administradores).
+- "Te toca cobrar": las promesas en línea de la vendedora, marcadas "En línea". Permiso nuevo en Usuarios: "Confirmar pagos en línea".
+
+### Pruebas
+- `prueba_cursos_en_linea.js` (28/28). Historias H14 (de punta a punta contra la base real, con el rol del equipo).
+- Glamy: manual (sección, camino, permisos, cupón) y 2 casos nuevos en el examen.
+- Pendiente (fase posterior): cargar el Excel de ventas en línea pasadas. Al publicar: cerrar el ticket #6.
