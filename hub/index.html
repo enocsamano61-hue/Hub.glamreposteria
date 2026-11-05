@@ -154,6 +154,7 @@
   .cal-curso-tag{ display:inline-flex; align-items:center; gap:6px; background:rgba(197,166,107,.18); color:#8A6D2F; font-size:10.5px; font-weight:600; padding:5px 10px; border-radius:8px; margin-bottom:14px; }
   .cal-curso-tag b{ font-weight:700; }
   /* Cursos en línea */
+  .ficha-alterno{ font-size:12px; color:var(--ink-soft); }
   .cc-tag.linea{ background:#E6ECF7; color:#2D4E8A; }
   .el-cabeza{ display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
   .el-chips{ display:flex; flex-wrap:wrap; gap:6px; }
@@ -2595,6 +2596,13 @@
     </div>
     <div class="ficha-tabs" id="ftabsLead"></div>
     <div class="ficha-contactos" id="fcontLead"></div>
+    <!-- Teléfonos a la vista (5 nov 2026): el alterno estaba escondido en "Datos de contacto" y no lo encontraban -->
+    <div class="modal-vendedor" id="leadTelefonos">
+      <div class="modal-notas-titulo">Teléfonos</div>
+      <div class="modal-field"><label>Teléfono principal</label><input id="modalTelefonoEdit" inputmode="tel" placeholder="10 dígitos"></div>
+      <div class="modal-field" style="margin-bottom:4px;"><label>Teléfono alterno (opcional)</label><input id="modalTelefonoAltEdit" inputmode="tel" placeholder="Otro número para localizarla (10 dígitos)"></div>
+      <div class="vend-hint">Se guardan con "Guardar cambios". El alterno tiene que ser de 10 dígitos y distinto al principal.</div>
+    </div>
     <div class="pago-lead" id="leadPagoCaja">
       <div class="pago-reportado" id="leadPagoReportado" style="display:none;"></div>
       <div class="pago-botones">
@@ -2619,10 +2627,8 @@
       </div>
       <div class="vend-hint">Si es VIP, en Recepción sale hasta arriba para pasar primero al salón.</div>
     </div>
-    <details class="ficha-mas" id="leadDatosContacto"><summary>Datos de contacto: nombre, teléfonos, correo y nacimiento</summary>
+    <details class="ficha-mas" id="leadDatosContacto"><summary>Más datos de contacto: nombre, correo y nacimiento</summary>
     <div class="modal-field"><label>Nombre</label><input id="modalNombreEdit"></div>
-    <div class="modal-field"><label>Teléfono principal</label><input id="modalTelefonoEdit" placeholder="10 dígitos"></div>
-    <div class="modal-field"><label>Teléfono adicional</label><input id="modalTelefonoAltEdit" placeholder="Opcional"></div>
     <div class="modal-field"><label>Correo</label><input id="modalCorreoEdit" type="email" inputmode="email" placeholder="Opcional"></div>
     <div class="modal-field"><label>Fecha de nacimiento</label><input id="modalNacimientoEdit" type="date"></div>
     <div class="vend-hint">Se guardan con "Guardar cambios".</div></details>
@@ -3169,8 +3175,8 @@
     <h3>Datos de contacto</h3>
     <div class="sub" id="contactoSub" style="margin-bottom:12px;">—</div>
     <div class="modal-field"><label>Nombre</label><input id="contactoNombre"></div>
-    <div class="modal-field"><label>Teléfono 1</label><input id="contactoTel1" inputmode="tel" placeholder="10 dígitos"></div>
-    <div class="modal-field"><label>Teléfono 2</label><input id="contactoTel2" inputmode="tel" placeholder="Opcional"></div>
+    <div class="modal-field"><label>Teléfono principal</label><input id="contactoTel1" inputmode="tel" placeholder="10 dígitos"></div>
+    <div class="modal-field"><label>Teléfono alterno (opcional)</label><input id="contactoTel2" inputmode="tel" placeholder="Otro número para localizarla (10 dígitos)"></div>
     <div class="modal-field"><label>Correo</label><input id="contactoCorreo" type="email" inputmode="email" placeholder="Opcional"></div>
     <div class="modal-field"><label>Fecha de nacimiento</label><input id="contactoNacimiento" type="date"><div class="vend-hint" id="contactoEdad"></div></div>
     <button class="btn-primary" id="guardarContacto">Guardar</button>
@@ -5788,6 +5794,7 @@ async function abrirModalLead(leadId){
   document.getElementById('modalLeadNombre').textContent = lead.personas?.nombre || '(sin nombre)';
   document.getElementById('modalLeadAvatar').textContent = iniciales(lead.personas?.nombre);
   document.getElementById('modalLeadTelefono').innerHTML = `<span>${escHtml(lead.personas?.telefono_principal || '')}</span>`
+    + (lead.personas?.telefono_alternativo ? `<span class="ficha-alterno">· alterno ${escHtml(lead.personas.telefono_alternativo)}</span>` : '')
     + (lead.paquete === 'VIP' ? '<span class="ficha-badge vip">VIP</span>' : '')
     + (lead.personas?.en_lista_negra ? '<span class="ficha-badge negra">Lista negra</span>' : '')
     + (lead.personas?.telefono_principal ? '<button type="button" class="btn-wa-mini" id="btnLeadWhats">WhatsApp</button>' : '');
@@ -6134,8 +6141,11 @@ function edadDe(iso){
 function problemaContacto({ tel1, tel2, correo, nacimiento }, antes = {}){
   const digitos = v => String(v || '').replace(/\D/g, '');
   const cambio = (nuevo, previo) => nuevo !== undefined && String(nuevo || '') !== String(previo || '');
-  if(cambio(tel1, digitos(antes.telefono_principal)) && tel1.length < 10) return 'El teléfono 1 no tiene 10 dígitos.';
-  if(cambio(tel2, digitos(antes.telefono_alternativo)) && tel2 && tel2.length < 10) return 'El teléfono 2 no tiene 10 dígitos (o déjalo vacío).';
+  if(cambio(tel1, digitos(antes.telefono_principal)) && tel1.length < 10) return 'El teléfono principal no tiene 10 dígitos.';
+  if(cambio(tel2, digitos(antes.telefono_alternativo)) && tel2 && tel2.length < 10) return 'El teléfono alterno no tiene 10 dígitos (o déjalo vacío).';
+  const principal = tel1 !== undefined ? tel1 : digitos(antes.telefono_principal);
+  if(cambio(tel2, digitos(antes.telefono_alternativo)) && tel2 && principal && tel2.slice(-10) === String(principal).slice(-10))
+    return 'El teléfono alterno es igual al principal: déjalo vacío o pon otro número.';
   if(cambio(correo, String(antes.correo || '').trim()) && correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return 'El correo no se ve bien escrito.';
   if(cambio(nacimiento, antes.fecha_nacimiento) && nacimiento){
     const e = edadDe(nacimiento);
@@ -17766,7 +17776,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-05-varias-giras';
+const HUB_VERSION = '2026-11-05-telefono-alterno';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
