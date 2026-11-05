@@ -26,4 +26,8 @@ Mockup aprobado y "permitido generar" dado el 5 nov.
 
 ## Pruebas
 - `prueba_telefono_alterno_ficha.js` (12/12), capturas 1200/390. `correr_todas.js` en verde antes de publicar.
-- `HUB_VERSION = '2026-11-05-telefono-alterno'`. Aviso `2026-11-05-telefono-alterno`: sin publicar.
+- `HUB_VERSION = '2026-11-05-telefono-alterno'`. Aviso `2026-11-05-telefono-alterno`.
+
+## Publicado (5 nov 2026)
+- Enoc: "súbelo". `correr_todas.js` 57/57 en verde y reglas rojas del vigilante en 0 (no hubo cambios en la base).
+- En main y verificado en producción. Glamy v36 (idéntica al repo), examen 56/56. Aviso publicado.
