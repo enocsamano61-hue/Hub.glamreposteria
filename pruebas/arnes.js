@@ -46,6 +46,13 @@ const ESTATUS_EJEMPLO = [
    select con eq, insert, update y delete sobre filas guardadas por tabla.
    Cada operación queda en window.__ops para revisarla después. */
 function instalarStub({ tablas, usuario, equipo, estatus, permisosAccion }){
+  // Precio de cada curso (Básico y VIP): si la prueba no trae, los de siempre para sus cursos
+  if(!tablas.precios){
+    const cursos = new Set(['cur1', 'c1', ...(tablas.eventos || []).map(e => e.curso_id).filter(Boolean)]);
+    tablas.precios = [...cursos].flatMap(c => [
+      { id:'pb-' + c, nombre:'Básico ' + c, curso_id:c, paquete:'BASICO', precio:1400, activo:true, area:'gira', orden:100 },
+      { id:'pv-' + c, nombre:'VIP ' + c, curso_id:c, paquete:'VIP', precio:1900, activo:true, area:'gira', orden:101 }]);
+  }
   window.__tablas = tablas;
   window.__ops = [];
   window.__fallar = null;   // (op) => true para simular un error de la base

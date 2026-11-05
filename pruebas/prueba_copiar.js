@@ -30,7 +30,7 @@ const al = (pp, i) => ({ inscripcion_id:'i' + i, persona_id:pp.id, nombre:pp.nom
   const seccion = () => p.evaluate(() => document.querySelector('.view.active, section.active')?.id || [...document.querySelectorAll('[id^="view-"]')].find(v => v.offsetParent)?.id);
 
   h.paso('1. Cursos: junto al nombre y al teléfono');
-  await p.evaluate(async () => { cursoActivoIdCache = undefined; setActiveSection('cursos'); await renderCursos(); });
+  await p.evaluate(async () => { GIRAS = null; setActiveSection('cursos'); await renderCursos(); });
   await p.waitForTimeout(400);
   const fila = '#cxAlumnas tr[data-cx-persona="pA"]';
   check(await p.$$eval(fila + ' [data-copiar]', els => els.length) === 2, 'dos en la fila (nombre y teléfono)');

@@ -52,7 +52,7 @@ const PERSONAS_RPC = {
   await p.evaluate(([ciudades, eventos, rpc]) => {
     CIUDADES = ciudades; EVENTOS_CAL = eventos; EVENTOS_CAL_PASADOS = [];
     CIUDADES_GIRA_ACTIVA = ciudades.map(c => c.id);
-    cursoActivoIdCache = 'cur1'; inicioGiraCache = '2026-09-01';
+    GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; (GIRAS || []).forEach(g=>{ g.inicio = '2026-09-01'; });
     window.__rpc.glamy_buscar_persona = ({ p_texto }) => {
       const dig = p_texto.replace(/\D/g, '').slice(-10);
       return rpc[dig] ? { encontradas:1, personas:[rpc[dig]] } : { encontradas:0, personas:[] };

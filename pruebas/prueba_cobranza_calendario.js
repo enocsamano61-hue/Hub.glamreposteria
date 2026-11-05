@@ -41,7 +41,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
     usuario:{ id:'u1', nombre:'Cobranza Prueba', rol:'Cobranza', es_admin:true } });
   const { p, check } = h;
   await p.evaluate(async () => {
-    cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA'];
+    GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; CIUDADES_GIRA_ACTIVA = ['cA'];
     window.__wa = null; abrirEnviarWhatsApp = o => { window.__wa = o; };
     setActiveSection('cobranza');
     await renderCobranza();

@@ -20,7 +20,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
     usuario:{ id:'u1', nombre:'Cobranza Prueba', rol:'Cobranza', es_admin:true },
     equipo:[{ id:'u1', nombre:'Cobranza Prueba', es_vendedor:false, rol:'Cobranza' }, { id:'u2', nombre:'Vendedora Prueba', es_vendedor:true, rol:'Ventas' }] });
   const { p, check } = h;
-  await p.evaluate(e => { cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA']; EVENTOS_CAL = [e];
+  await p.evaluate(e => { GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; CIUDADES_GIRA_ACTIVA = ['cA']; EVENTOS_CAL = [e];
     window.__rpc.glamy_buscar_persona = () => ({ encontradas:0, personas:[] }); }, ev);
 
   h.paso('1. Nuevo lead: casilla con botón $700');

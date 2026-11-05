@@ -16,7 +16,7 @@ const ev = { id:'A', fecha:mas(60), curso_id:'cur1', ciudad_id:'cA', ciudades:{ 
     usuario:{ id:'u2', nombre:'Vendedora Prueba', rol:'Ventas', es_admin:false, es_vendedor:true },
     equipo:[{ id:'u2', nombre:'Vendedora Prueba', es_vendedor:true, rol:'Ventas' }] });
   const { p, check } = h;
-  await p.evaluate(e => { cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA']; EVENTOS_CAL = [e];
+  await p.evaluate(e => { GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; CIUDADES_GIRA_ACTIVA = ['cA']; EVENTOS_CAL = [e];
     window.__rpc.glamy_buscar_persona = () => ({ encontradas:0, personas:[] }); }, ev);
   const notas = async () => (await h.ops('interacciones', 'insert')).map(x => x.nota);
 

@@ -53,7 +53,7 @@ const BANDEJA = [
   const { p, check } = h;
   await p.evaluate(async bandeja => {
     window.__rpc.bandeja_limpieza = () => bandeja;
-    cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA', 'cB'];
+    GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; CIUDADES_GIRA_ACTIVA = ['cA', 'cB'];
     setActiveSection('cobranza'); document.querySelector('#cobTabs [data-cob-tab="cobrar"]').click();
     await renderCobranza();
   }, BANDEJA);
@@ -135,7 +135,7 @@ const BANDEJA = [
   check((await h.ops('pagos', 'insert')).length === 1, 'otro día sí se registra sin preguntar');
 
   h.paso('8. Calendario: misma clasificación');
-  await p.evaluate(async () => { inicioGiraCache = null; window.__tablas.inscripciones = window.__tablas.inscripciones.filter(i => i.id !== 'i6' && i.id !== 'i7'); setActiveSection('calendario'); await renderCalendario(); });
+  await p.evaluate(async () => { (GIRAS || []).forEach(g=>{ delete g.inicio; }); window.__tablas.inscripciones = window.__tablas.inscripciones.filter(i => i.id !== 'i6' && i.id !== 'i7'); setActiveSection('calendario'); await renderCalendario(); });
   await p.waitForTimeout(300);
   const dA = await p.evaluate(f => { const e = (calendarioDias[f] || [])[0]; return e && [e.liq, e.ant, e.pend].join('/'); }, EVENTOS[0].fecha);
   check(dA === '0/2/0', 'la que no va no cuenta y la liquidada con pago por confirmar no sale liquidada (' + dA + ')');

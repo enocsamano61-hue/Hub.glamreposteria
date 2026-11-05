@@ -156,11 +156,10 @@ const base = () => ({
 
   h.paso('11. Calendario marca en el curso');
   await p.evaluate(async hoy => {
-    window.__tablas.cursos = [{ id:'cur1', nombre:CURSO_ACTIVO_NOMBRE }];
     window.__tablas.eventos = [{ id:'ev1', fecha:hoy, ciudad_id:'c1', curso_id:'cur1', sede:'S', recepcion_cerrada_en:null, ciudades:{ nombre:'Ciudad Prueba' }, cursos:{ nombre:'x' } }];
     window.__tablas.inscripciones = [{ id:'a', evento_id:'ev1', anticipo:1900, restante:0, precio_pactado:1900, liquidado:true, estatus_id:12, asistencia:'llego' }];
     window.__tablas.pagos = [{ id:'z1', verificacion:'por_confirmar', inscripciones:{ evento_id:'ev1' } }];
-    cursoActivoIdCache = undefined; inicioGiraCache = null;
+    GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }];
     setActiveSection('calendario'); await renderCalendario();
   }, HOY);
   await p.waitForTimeout(200);

@@ -31,7 +31,7 @@ const inscripciones = [
 (async () => {
   const h = await abrirHub({ tablas:{ cursos:[{ id:'cur1', nombre:'LOS PASTELES MAS SABROSOS DE LA CHEF' }], eventos, inscripciones, leads:[] } });
   const { p, check } = h;
-  await p.evaluate(async () => { cursoActivoIdCache = undefined; inicioGiraCache = null; setActiveSection('calendario'); await renderCalendario(); });
+  await p.evaluate(async () => { GIRAS = null; (GIRAS || []).forEach(g=>{ delete g.inicio; }); setActiveSection('calendario'); await renderCalendario(); });
   await p.waitForTimeout(200);
   const irA = fecha => p.evaluate(f => {
     const [y, m] = f.split('-').map(Number);

@@ -22,7 +22,7 @@ const lead = (id, nombre, extra) => ({ id, persona_id:'p' + id, estatus_id:2, es
     usuario:{ id:'u1', nombre:'Cobranza Prueba', rol:'Cobranza', es_admin:true }, equipo:[{ id:'u1', nombre:'Cobranza Prueba', es_vendedor:false, rol:'Cobranza' }, { id:'u2', nombre:'Vendedora Prueba', es_vendedor:true, rol:'Ventas' }] });
   const { p, check } = h;
   await p.evaluate(async () => {
-    cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA'];
+    GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; CIUDADES_GIRA_ACTIVA = ['cA'];
     EVENTOS_CAL = [{ id:'A', fecha:window.__f60, ciudad_id:'cA', ciudades:{ nombre:'Ciudad A' } }, { id:'B', fecha:window.__f90, ciudad_id:'cB', ciudades:{ nombre:'Ciudad B' } }];
     setActiveSection('cobranza'); await renderCobranza();
   }).catch(() => {});

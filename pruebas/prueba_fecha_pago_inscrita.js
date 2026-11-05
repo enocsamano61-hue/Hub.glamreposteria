@@ -28,7 +28,7 @@ const lead = (id, pid, nombre, extra) => ({ id, persona_id:pid, evento_id:'ev1',
       pagos:[], interacciones:[], eventos:[{ id:'ev1', recepcion_cerrada_en:null }] },
     usuario:{ id:'u1', nombre:'Cobranza Prueba', rol:'Cobranza', es_admin:true } });
   const { p, check } = h;
-  await p.evaluate(async () => { cursoActivoIdCache = 'cur1'; CIUDADES_GIRA_ACTIVA = ['cA']; setActiveSection('cobranza'); await renderCobranza(); });
+  await p.evaluate(async () => { GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }]; CIUDADES_GIRA_ACTIVA = ['cA']; setActiveSection('cobranza'); await renderCobranza(); });
   await p.waitForTimeout(500);
   const grupo = g => p.$$eval(`#cobG-${g} .cob-fila .cob-nombre`, xs => xs.map(x => x.textContent));
 

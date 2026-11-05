@@ -7,7 +7,7 @@
    Las escrituras imitan las del Hub (hub/index.html): Registrar pago, Confirmar pago (inscribir desde el
    lead), No se encontró, Cambiar de curso, Ceder su lugar (ceder_lugar) y Reembolso
    (cambio_fecha_marcar + cambio_fecha_cerrar_reembolso), la promesa de una inscrita puesta en su lead (H7) y la baja de
-   una vendedora con un lead abierto, con los candados de Usuarios (H8).
+   una vendedora con un lead abierto, con los candados de Usuarios (H8), y dos giras a la vez con una sin precio (H13).
    Personas de prueba inventadas. */
 do $historias$
 declare
@@ -236,6 +236,35 @@ begin
     perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
   end;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H12 vigilante: ' || rojos); end if;
+
+  -- ===== H13. Dos giras a la vez (5 nov): inscrita en una gira sin precio → el vigilante la marca en rojo y el Embudo la cuenta
+  --       en su gira; al capturar el precio, la base le calcula lo que debe y, con Básico y VIP, la tarea de Jared se cierra =====
+  declare v_em uuid; v_cm uuid; v_p uuid; v_i uuid; v_pb numeric; v_pv numeric;
+  begin
+    select e.id, e.curso_id into v_em, v_cm from public.eventos e
+     where e.fecha > v_hoy and e.curso_id in (select public.cursos_vigentes()) and public.precio_paquete(e.curso_id, 'BASICO') is null
+     order by e.fecha limit 1;
+    if v_em is null then ok := ok + 5;   -- todas las giras ya tienen precio: no hay qué probar
+    else
+      insert into public.personas (nombre, telefono_principal) values ('HISTORIA TRECE', '0000000114') returning id into v_p;
+      insert into public.inscripciones (persona_id, evento_id, precio_pactado, paquete, anticipo, restante, liquidado, estatus_id, asesor_id, notas_migracion)
+      values (v_p, v_em, null, 'BASICO', 700, null, false, st_anticipo, v_vend, 'HISTORIA') returning id into v_i;
+      insert into public.pagos (inscripcion_id, monto, fecha, banco) values (v_i, 700, v_hoy, 'BANCO PRUEBA');
+      if exists (select 1 from jsonb_array_elements(public.vigilante_calcular()) x, jsonb_array_elements(x -> 'casos') c
+                  where x ->> 'regla' = 'inscrita_curso_sin_precio' and c ->> 'inscripcion_id' = v_i::text) then ok := ok + 1;
+      else mal := mal || 'H13 el vigilante no marca a la inscrita de una gira sin precio'::text; end if;
+      t := pg_temp.grupos(v_em, v_p); if t = 'anticipo(i)' then ok := ok + 1; else mal := mal || ('H13 Embudo (sin precio no es liquidada): ' || t); end if;
+      select precio into v_pb from public.precios where curso_id = v_cm and paquete = 'BASICO';
+      select precio into v_pv from public.precios where curso_id = v_cm and paquete = 'VIP';
+      update public.precios set precio = 1500 where curso_id = v_cm and paquete = 'BASICO';
+      if (select precio_pactado = 1500 and restante = 800 and not liquidado from public.inscripciones where id = v_i) then ok := ok + 1;
+      else mal := mal || 'H13 al capturar el precio no se le calculó lo que debe'::text; end if;
+      rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H13 vigilante: ' || rojos); end if;
+      update public.precios set precio = 2000 where curso_id = v_cm and paquete = 'VIP';
+      if not exists (select 1 from public.notas_usuario n where n.de_sistema and not n.completado and n.enlace ->> 'curso_sin_precio' = v_cm::text) then ok := ok + 1;
+      else mal := mal || 'H13 con Básico y VIP la tarea de capturar el precio sigue abierta'::text; end if;
+    end if;
+  end;
 
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;

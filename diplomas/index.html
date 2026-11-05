@@ -197,6 +197,8 @@ async function prepararDiploma(){
   $('cargando').hidden = false; $('previa').hidden = true; $('btnDescargar').hidden = true; $('btnCompartir').hidden = true; aviso('avisoDiploma');
   try{
     const d = await rpc('diploma_datos', { p_telefono:estado.tel, p_inscripcion:estado.elegido.id });
+    // Curso sin diseño de diploma todavía (Mesa de Postres, dic 2026): no se arma con el de otro curso
+    if(d.falta_diseno){ throw new Error('Tu diploma de este curso todavía no está listo: estamos terminando su diseño. Vuelve a entrar en unos días.'); }
     if(!d.listo){ throw new Error('Todavía tienes un pago pendiente o por confirmar. Pasa con Recepción y vuelve a entrar.'); }
     const pl = d.plantilla, nombre = nombreDe(d);
     const valores = { nombre, mes:(String(pl.textos?.mes || '').trim() || mesCert(d.fecha)).toUpperCase() };

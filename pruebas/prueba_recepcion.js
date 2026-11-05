@@ -220,7 +220,7 @@ const base = () => ({
 
   h.paso('15. Cobranza ya no muestra a No llegó ni Perdió anticipo');
   const cob = await p.evaluate(async () => {
-    window.__tablas.cursos = [{ id:'cur1', nombre:CURSO_ACTIVO_NOMBRE }]; cursoActivoIdCache = undefined;
+    GIRAS = [{ id:'cur1', nombre:'CURSO PRUEBA' }];
     window.__tablas.inscripciones = [
       { id:'x1', liquidado:false, restante:500, estatus:{ id:11, clave:'anticipo_vigente' }, personas:{ nombre:'Uno' }, eventos:{ fecha:'2026-09-30', curso_id:'cur1' } },
       { id:'x2', liquidado:false, restante:500, estatus:{ id:14, clave:'no_llego' }, personas:{ nombre:'Dos' }, eventos:{ fecha:'2026-09-30', curso_id:'cur1' } },
