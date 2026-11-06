@@ -305,5 +305,30 @@ begin
   end;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H14 vigilante: ' || rojos); end if;
 
+  /* H15 (6 nov 2026) Segundo pago prometido: la vendedora anota cuándo y cuánto va a dar después del anticipo;
+     si paga menos, la promesa se queda con lo que falta de ella; si la cumple, la base la quita sola;
+     el anticipo con el que se inscribe no la toca; al ceder su lugar, la promesa se quita. */
+  declare v_p uuid; v_p2 uuid; v_i uuid;
+  begin
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA QUINCE', '0000000116') returning id into v_p;
+    insert into public.inscripciones (persona_id, evento_id, precio_pactado, paquete, anticipo, restante, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago, monto_proximo_pago)
+    values (v_p, e0, 1400, 'BASICO', 700, 700, false, st_anticipo, v_vend, 'HISTORIA', v_hoy + 6, 500) returning id into v_i;
+    insert into public.pagos (inscripcion_id, monto, fecha, banco) values (v_i, 700, v_hoy, 'BANCO PRUEBA');
+    if (select fecha_proximo_pago = v_hoy + 6 and monto_proximo_pago = 500 from public.inscripciones where id = v_i) then ok := ok + 1;
+    else mal := mal || 'H15 el anticipo con el que se inscribió le quitó su promesa'::text; end if;
+    update public.inscripciones set creado_en = now() - interval '1 day' where id = v_i;
+    insert into public.pagos (inscripcion_id, monto, fecha, banco) values (v_i, 200, v_hoy, 'BANCO PRUEBA');
+    if (select fecha_proximo_pago = v_hoy + 6 and monto_proximo_pago = 300 from public.inscripciones where id = v_i) then ok := ok + 1;
+    else mal := mal || 'H15 pagó menos de lo prometido y la promesa no quedó con lo que falta'::text; end if;
+    insert into public.pagos (inscripcion_id, monto, fecha, banco) values (v_i, 300, v_hoy, 'BANCO PRUEBA');
+    if (select fecha_proximo_pago is null and monto_proximo_pago is null from public.inscripciones where id = v_i) then ok := ok + 1;
+    else mal := mal || 'H15 cumplió su promesa y siguió con fecha (saldría vencida)'::text; end if;
+    update public.inscripciones set fecha_proximo_pago = v_hoy + 9, monto_proximo_pago = 100 where id = v_i;
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA QUINCE B', '0000000117') returning id into v_p2;
+    perform public.ceder_lugar(v_i, v_p2, 'Historia: promesa al ceder');
+    if (select fecha_proximo_pago is null and monto_proximo_pago is null from public.inscripciones where id = v_i) then ok := ok + 1;
+    else mal := mal || 'H15 al ceder el lugar se quedó la promesa de quien cedió'::text; end if;
+  end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H15 vigilante: ' || rojos); end if;
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;

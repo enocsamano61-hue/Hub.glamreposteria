@@ -1455,8 +1455,9 @@
   .ficha-curso{ border:1px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:10px; background:var(--card); font-size:12.5px; }
   .ficha-curso .fc-fila{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
   .ficha-curso .fc-fila + .fc-fila, .ficha-curso .fc-mover{ margin-top:6px; }
+  .ficha-curso #inscProximoMonto{ width:150px; }
   .ficha-curso .btn-outline.small, .ficha-curso .btn-primary.small{ width:auto; padding:4px 10px; font-size:11.5px; }
-  .ficha-curso input[type=date]{ padding:4px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
+  .ficha-curso input[type=date], .ficha-curso #inscProximoMonto{ padding:4px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
   .ficha-curso label{ font-weight:600; color:var(--ink-soft); }
   .ficha-curso .fc-botones{ display:flex; gap:6px; flex-wrap:wrap; }
   #fichaCeder input{ width:100%; box-sizing:border-box; margin-top:6px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
@@ -1532,6 +1533,9 @@
   .tc-venc h4{ margin:0 0 2px; color:var(--danger); font-size:13.5px; }
   .tc-vacio{ margin-top:8px; color:var(--success); font-weight:600; font-size:13.5px; }
   .monto-ant{ display:flex; gap:8px; align-items:center; } .monto-ant input{ flex:1; min-width:0; } .monto-ant button{ width:auto; flex:none; }
+  /* Segundo pago en "Registrar pago" (6 nov 2026) */
+  .segundo-pago{ border:1px solid var(--border); border-radius:10px; padding:10px 12px 2px; margin:4px 0 12px; background:rgba(198,166,107,.08); }
+  .segundo-pago-tit{ font-weight:700; font-size:13px; margin-bottom:6px; color:var(--wine-dark); }
   .aviso-sin-curso{ margin-top:6px; padding:8px 10px; border-radius:10px; background:rgba(201,162,39,.14); color:#6B5410; font-size:12.5px; line-height:1.4; }
   .reg-menos{ color:#8A6D0B; font-weight:600; }
   .tc-tel{ font-weight:700; color:var(--ink); user-select:all; -webkit-user-select:all; white-space:nowrap; }
@@ -2671,7 +2675,8 @@
     <div class="modal-field"><label>Fecha del pago</label><input type="date" id="inscribirFecha"></div>
     <div class="modal-field"><label>Banco</label><input id="inscribirBanco" placeholder="HEY BANCO, COPPEL, OXXO..."></div>
     <div class="modal-field" id="inscribirProximoCampo"><label id="inscribirProximoLabel">Fecha de pago de lo que falta</label><input type="date" id="inscribirProximo">
-      <div class="vend-hint">El día que dijo que paga. Cobranza le da seguimiento ese día.</div></div>
+      <div class="vend-hint" id="inscribirProximoHint">El día que dijo que paga. Cobranza le da seguimiento ese día.</div></div>
+    <div class="modal-field" id="inscribirProximoMontoCampo"><label>¿Cuánto va a dar ese día?</label><input type="number" id="inscribirProximoMonto" inputmode="decimal" min="0" step="50" placeholder="Todo lo que le falta"></div>
     <div class="modal-field"><label>¿Quién vendió?</label><select id="inscribirVendedor"></select></div>
     <div class="corr-preview" id="inscribirPreview">—</div>
     <button class="btn-primary" id="guardarInscribir">Inscribir</button>
@@ -2698,6 +2703,16 @@
     <div class="modal-field"><label>¿Cuánto pagó?</label><input type="number" id="regPagoMonto" inputmode="decimal" min="0" step="50"><div class="vend-hint" id="regPagoPrometido"></div></div>
     <div class="modal-field"><label>Fecha del pago</label><input type="date" id="regPagoFecha"></div>
     <div class="modal-field"><label>Banco</label><input id="regPagoBanco" placeholder="HEY BANCO, COPPEL, OXXO..."></div>
+    <!-- Segundo pago (6 nov 2026, sugerencia de una vendedora): lo que prometió para después, aquí mismo,
+         para que Cobranza lo tenga listo al confirmar y no haya que preguntarlo otra vez. -->
+    <div class="segundo-pago" id="regPagoSegundo">
+      <div class="segundo-pago-tit">Su segundo pago <span class="sub" style="margin:0;">(opcional)</span></div>
+      <div class="modal-field"><label>Fecha de su segundo pago</label>
+        <div class="monto-ant"><input type="date" id="regPagoFecha2"><button type="button" class="btn-outline small" id="regPagoEnCurso">Lo paga en su curso</button></div>
+        <div class="vend-hint" id="regPagoFecha2Hint">El día que dijo que paga lo que sigue. Vacío = lo paga el día de su curso.</div></div>
+      <div class="modal-field"><label>¿Cuánto va a dar ese día?</label><input type="number" id="regPagoMonto2" inputmode="decimal" min="0" step="50" placeholder="Todo lo que le falta">
+        <div class="vend-hint" id="regPagoFalta2"></div></div>
+    </div>
     <div class="modal-field" id="regPagoVendedorCampo" style="display:none;"><label>¿Quién vendió?</label><select id="regPagoVendedor"></select></div>
     <div class="modal-field"><label>Comprobante (opcional: foto o PDF)</label><input type="file" id="regPagoComprobante" accept="image/*,application/pdf">
       <div class="vend-hint">Cobranza lo ve al confirmar, sin pedirlo por WhatsApp.</div></div>
@@ -2813,6 +2828,10 @@
         <label for="inscProximoPago">Fecha de pago (lo que le falta) <span class="guardado-estado" id="inscProximoPagoEstado"></span></label>
         <input type="date" id="inscProximoPago">
         <button type="button" class="btn-outline small" id="inscPagaEnCurso">Lo paga en su curso</button>
+      </div>
+      <div class="fc-fila" id="inscProximoMontoCaja">
+        <label for="inscProximoMonto">Va a dar <span class="guardado-estado" id="inscProximoMontoEstado"></span></label>
+        <input type="number" id="inscProximoMonto" inputmode="decimal" min="0" step="50" placeholder="Todo lo que le falta">
       </div>
       <div class="vend-hint" id="inscProximoPagoHint"></div>
     </div>
@@ -3805,6 +3824,7 @@ const ACCION_LABEL = {
   usuario_cambiado: 'Cambió el rol o los permisos de una persona',
   rol_creado: 'Creó un rol nuevo',
   fecha_cobro_movida: 'Movió una fecha de cobro',
+  promesa_monto_movida: 'Cambió cuánto va a dar en su próximo pago',
   contacto_editado: 'Editó datos de contacto',
   whatsapp_enviado: 'Mandó un WhatsApp',
   mensaje_creado: 'Creó un mensaje predeterminado',
@@ -5326,7 +5346,7 @@ function leadEnPuerta(l){
 // (así se borraba el teléfono adicional hasta el 23 sep).
 const LEAD_SELECT = `
     id, comentario, creado_en, ciudad_interes_id, asesor_id,
-    evento_id, fecha_compromiso_pago, monto_anticipo, paquete, estatus_antes_de_reporte,
+    evento_id, fecha_compromiso_pago, monto_anticipo, segundo_pago_fecha, segundo_pago_monto, paquete, estatus_antes_de_reporte,
     pago_reportado_monto, pago_reportado_fecha, pago_reportado_banco, pago_reportado_por, pago_reportado_en,
     eventos ( id, fecha, ciudad_id, curso_id, ciudades ( nombre ) ),
     personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra ),
@@ -6327,6 +6347,8 @@ let regPagoPersona = null;
 function modoRegistrarPago(persona){
   regPagoPersona = persona;
   document.getElementById('regPagoComprobante').value = '';
+  document.getElementById('regPagoFecha2').value = '';
+  document.getElementById('regPagoMonto2').value = '';
   document.getElementById('regPagoTitulo').textContent = persona ? 'Inscribir a un curso' : 'Registrar pago';
   document.getElementById('regPagoVendedorCampo').style.display = persona ? '' : 'none';
   document.getElementById('regPagoAntes').style.display = 'none';
@@ -6355,6 +6377,10 @@ function abrirRegistrarPago(){
   pintarRegPagoPrometido();
   document.getElementById('regPagoFecha').value = rep && lead.pago_reportado_fecha ? lead.pago_reportado_fecha : new Date().toLocaleDateString('en-CA');
   document.getElementById('regPagoBanco').value = rep ? (lead.pago_reportado_banco || '') : '';
+  // Su segundo pago: lo que ya se había anotado (si Cobranza no encontró el pago, la promesa sigue en su lead)
+  document.getElementById('regPagoFecha2').value = lead.segundo_pago_fecha || '';
+  document.getElementById('regPagoMonto2').value = lead.segundo_pago_monto ?? '';
+  pintarRegPagoSegundo();
   document.getElementById('modalRegistrarPago').classList.add('open');
 }
 document.getElementById('btnRegistrarPago').addEventListener('click', abrirRegistrarPago);
@@ -6369,6 +6395,38 @@ function pintarRegPagoPrometido(){
     : `Prometió dar ${fmtMoney(regPagoPrometido)}.`;
 }
 document.getElementById('regPagoMonto').addEventListener('input', pintarRegPagoPrometido);
+/* Segundo pago (6 nov 2026): cuánto le falta con lo que está pagando, según el precio de su curso y paquete.
+   Si deja vacío "¿Cuánto va a dar?", es todo lo que le falta. */
+function regPagoFalta(){
+  const ev = eventoPorId(document.getElementById('regPagoEvento').value);
+  const precio = ev ? precioPaquete(ev.curso_id, regPagoPaquete) : null;
+  const pagado = Number(document.getElementById('regPagoMonto').value) || 0;
+  return precio == null ? null : Math.max(precio - pagado, 0);
+}
+function pintarRegPagoSegundo(){
+  const falta = regPagoFalta();
+  // Si con este pago liquida, no hay segundo pago
+  document.getElementById('regPagoSegundo').style.display = falta === 0 ? 'none' : '';
+  const m2 = Number(document.getElementById('regPagoMonto2').value);
+  const f2 = document.getElementById('regPagoFecha2').value;
+  document.getElementById('regPagoEnCurso').style.display = f2 ? '' : 'none';
+  document.getElementById('regPagoFecha2Hint').textContent = f2
+    ? `Cobranza le da seguimiento el ${fechaCorta(f2)}.`
+    : 'El día que dijo que paga lo que sigue. Vacío = lo paga el día de su curso.';
+  document.getElementById('regPagoMonto2').placeholder = falta != null ? `Todo lo que le falta (${fmtMoney(falta)})` : 'Todo lo que le falta';
+  document.getElementById('regPagoFalta2').innerHTML = falta == null ? 'Su curso todavía no tiene precio: si lo dejas vacío, es todo lo que le falte.'
+    : m2 > 0 && m2 < falta ? `Le faltan ${fmtMoney(falta)}: ese día da ${fmtMoney(m2)} y le quedan ${fmtMoney(falta - m2)}.`
+    : m2 > falta ? `<span class="reg-menos">Le faltan ${fmtMoney(falta)}: es más de lo que debe.</span>`
+    : `Le faltan ${fmtMoney(falta)} con lo que está pagando.`;
+}
+['regPagoMonto', 'regPagoMonto2', 'regPagoFecha2', 'regPagoEvento'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', pintarRegPagoSegundo);
+  document.getElementById(id).addEventListener('change', pintarRegPagoSegundo);
+});
+document.getElementById('regPagoPaquete').addEventListener('click', ()=>setTimeout(pintarRegPagoSegundo));
+document.getElementById('regPagoEnCurso').addEventListener('click', ()=>{
+  document.getElementById('regPagoFecha2').value = ''; document.getElementById('regPagoMonto2').value = ''; pintarRegPagoSegundo();
+});
 // Comprobante del pago reportado de un lead: verlo o adjuntarlo
 async function comprobantesDeLead(leadId){
   const { data } = await sb.from('comprobantes').select('id, ruta, estado, pago_id').eq('lead_id', leadId);
@@ -6456,6 +6514,15 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
   if(!eventoId){ toast('Elige a qué curso va.', true); return; }
   if(!(monto > 0)){ toast('Pon cuánto pagó.', true); return; }
   if(!fecha){ toast('Pon la fecha del pago.', true); return; }
+  // Su segundo pago (opcional): fecha que no haya pasado y cantidad que no pase de lo que le falta
+  const falta2 = regPagoFalta();
+  const fecha2 = falta2 === 0 ? null : (document.getElementById('regPagoFecha2').value || null);
+  const escrito2 = falta2 === 0 ? '' : document.getElementById('regPagoMonto2').value.trim();
+  const monto2 = escrito2 === '' ? null : Number(escrito2);
+  if(fecha2 && fecha2 < hoyISO()){ toast('La fecha de su segundo pago ya pasó: pon la que prometió.', true); return; }
+  if(monto2 != null && !(monto2 > 0)){ toast('¿Cuánto va a dar en su segundo pago? Pon una cantidad o déjalo vacío (= todo lo que le falta).', true); return; }
+  if(monto2 != null && falta2 != null && monto2 > falta2){ toast(`En su segundo pago no puede dar más de lo que le falta (${fmtMoney(falta2)}).`, true); return; }
+  if(monto2 != null && !fecha2){ toast('Pon la fecha de su segundo pago (o deja vacía la cantidad si lo paga en su curso).', true); return; }
   const ev = eventoPorId(eventoId);
   const donde = eventoTexto(eventoId) || '(curso)';
   const alumno = lead.personas?.nombre || 'este lead';
@@ -6463,7 +6530,8 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
   const porConfirmar = ESTATUS_POR_CONFIRMAR();
   const hoy = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
   const quien = usuarioActual?.nombre || 'alguien';
-  const nota = `${yaEstaba ? 'PAGO REPORTADO CORREGIDO' : 'PAGO REPORTADO'} ${hoy} por ${quien}: ${fmtMoney(monto)}${banco ? ' ' + banco : ''} (${fecha}) · ${donde} · ${regPagoPaquete === 'VIP' ? 'VIP' : 'Básico'}. Por confirmar.`;
+  const nota = `${yaEstaba ? 'PAGO REPORTADO CORREGIDO' : 'PAGO REPORTADO'} ${hoy} por ${quien}: ${fmtMoney(monto)}${banco ? ' ' + banco : ''} (${fecha}) · ${donde} · ${regPagoPaquete === 'VIP' ? 'VIP' : 'Básico'}. Por confirmar.`
+    + (fecha2 ? ` Segundo pago: ${monto2 != null ? fmtMoney(monto2) : 'lo que falta'} el ${fechaCorta(fecha2)}.` : ' Lo que falta: en su curso.');
   // Un lead sin dueño queda a nombre de quien reporta, si vende (no le quita la venta a nadie)
   const asesor = per ? (document.getElementById('regPagoVendedor').value || null)
     : lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : null);
@@ -6500,6 +6568,7 @@ document.getElementById('guardarRegistrarPago').addEventListener('click', async 
     evento_id: eventoId, ciudad_interes_id: ev?.ciudad_id || lead.ciudad_interes_id, paquete: regPagoPaquete,
     pago_reportado_monto: monto, pago_reportado_fecha: fecha, pago_reportado_banco: banco || null,
     pago_reportado_por: usuarioActual?.id || null, pago_reportado_en: new Date().toISOString(),
+    segundo_pago_fecha: fecha2, segundo_pago_monto: fecha2 ? monto2 : null,
     // Para regresarlo a donde estaba si Cobranza no lo encuentra
     estatus_antes_de_reporte: yaEstaba ? (lead.estatus_antes_de_reporte ?? null) : (lead.estatus?.id !== porConfirmar ? lead.estatus?.id : null),
     estatus_id: porConfirmar, asesor_id: asesor, comentario: nota, actualizado_en: new Date().toISOString(),
@@ -6578,7 +6647,9 @@ document.getElementById('btnPagoNoEncontrado').addEventListener('click', async (
 // El precio de cada paquete vive en Precios → "Precio de cada curso" (antes fijo: $1,400 / $1,900).
 // Con dos giras a la vez, cada curso tiene el suyo. El anticipo estándar sigue siendo $700 y se puede cambiar.
 let inscribirPaquete = 'BASICO';
-let inscribirProximoSugerida = '';   // la fecha que prometió el lead (su anticipo)
+let inscribirProximoSugerida = '';   // la fecha que prometió el lead (su anticipo): solo si no paga nada
+let inscribirSegundaSugerida = '';   // la fecha de su segundo pago (la anotó la vendedora en "Registrar pago")
+let inscribirUltimoPaga = null;      // ¿pagaba algo la última vez? (para no reescribir lo que Cobranza borró a propósito)
 
 function estatusInicialInscripcion(pagado, precio){
   if(!(pagado > 0)) return ESTATUS.find(e=>e.clave==='pago_por_confirmar')?.id ?? ESTATUS[0]?.id;
@@ -6631,7 +6702,14 @@ function abrirModalInscribir(){
   // Si ya paga algo, lo que falta queda sin fecha = se cobra el día del curso. Antes se quedaba con la fecha del
   // anticipo y salía vencida ese mismo día (ticket #9, 5 nov).
   inscribirProximoSugerida = lead.fecha_compromiso_pago && lead.fecha_compromiso_pago >= hoyISO() ? lead.fecha_compromiso_pago : '';
-  document.getElementById('inscribirProximo').value = Number(document.getElementById('inscribirPagado').value) > 0 ? '' : inscribirProximoSugerida;
+  // Si paga algo, lo que falta va con la fecha y la cantidad de su SEGUNDO pago (6 nov 2026), si la vendedora las anotó.
+  inscribirSegundaSugerida = lead.segundo_pago_fecha && lead.segundo_pago_fecha >= hoyISO() ? lead.segundo_pago_fecha : '';
+  inscribirUltimoPaga = Number(document.getElementById('inscribirPagado').value) > 0;
+  document.getElementById('inscribirProximo').value = inscribirUltimoPaga ? inscribirSegundaSugerida : inscribirProximoSugerida;
+  document.getElementById('inscribirProximoMonto').value = inscribirUltimoPaga && inscribirSegundaSugerida ? (lead.segundo_pago_monto ?? '') : '';
+  document.getElementById('inscribirProximoHint').textContent = inscribirSegundaSugerida
+    ? `Su segundo pago lo anotó ${nombreVendedor(lead.pago_reportado_por) || 'su vendedora'} al registrar el pago.`
+    : 'El día que dijo que paga. Cobranza le da seguimiento ese día.';
   document.getElementById('inscribirBanco').value = rep ? (lead.pago_reportado_banco || '') : '';
   // Vendedor por defecto: el dueño del lead; si no tiene, quien inscribe (si vende).
   const porDefecto = lead.asesor_id || (VENDEDORES.some(u=>u.id === usuarioActual?.id) ? usuarioActual.id : '');
@@ -6648,8 +6726,15 @@ function actualizarPreviewInscribir(){
   const caja = document.getElementById('inscribirPreview');
   // Si no paga nada, su fecha prometida sirve como fecha de pago; si sí paga, esa fecha ya se cumplió
   const prox = document.getElementById('inscribirProximo'), pagoAhora = Number(document.getElementById('inscribirPagado').value);
-  if(!(pagoAhora > 0) && !prox.value && inscribirProximoSugerida) prox.value = inscribirProximoSugerida;
-  else if(pagoAhora > 0 && prox.value && prox.value === inscribirProximoSugerida) prox.value = '';
+  // Solo cuando cambia de "no paga" a "paga" (o al revés): así no se reescribe lo que borraron a propósito
+  const paga = pagoAhora > 0;
+  if(paga !== inscribirUltimoPaga){
+    const sug = paga ? inscribirSegundaSugerida : inscribirProximoSugerida, otra = paga ? inscribirProximoSugerida : inscribirSegundaSugerida;
+    if(!prox.value || prox.value === otra) prox.value = sug;
+    if(!paga) document.getElementById('inscribirProximoMonto').value = '';
+    inscribirUltimoPaga = paga;
+  }
+  document.getElementById('inscribirProximoMontoCampo').style.display = paga && prox.value ? '' : 'none';
   const precio = precioPaquete(eventoPorId(document.getElementById('inscribirEvento').value)?.curso_id, inscribirPaquete);
   const pagado = Number(document.getElementById('inscribirPagado').value);
   if(!(pagado >= 0)){ caja.innerHTML = '<span class="malo">El monto pagado no puede ser negativo.</span>'; return; }
@@ -6665,6 +6750,7 @@ function actualizarPreviewInscribir(){
   const restante = Math.max(precio - pagado, 0);
   // Fecha de pago: solo si queda debiendo; obligatoria si no pagó nada
   document.getElementById('inscribirProximoCampo').style.display = restante > 0 ? '' : 'none';
+  if(!(restante > 0)) document.getElementById('inscribirProximoMontoCampo').style.display = 'none';
   document.getElementById('inscribirProximoLabel').textContent = pagado > 0 ? 'Fecha de pago de lo que falta' : 'Fecha de pago (obligatoria: no ha pagado nada)';
   let html = restante > 0 ? `Queda debiendo <b>${fmtMoney(restante)}</b> · ${etiqueta}` : `Queda <b>liquidada</b> · ${etiqueta}`;
   if(pagado > precio) html += ` · <span class="malo">pagó ${fmtMoney(pagado - precio)} de más</span>`;
@@ -6688,7 +6774,7 @@ document.querySelectorAll('#inscribirPaquete button').forEach(b=>b.addEventListe
   document.querySelectorAll('#inscribirPaquete button').forEach(x=>x.classList.toggle('active', x === b));
   actualizarPreviewInscribir();
 }));
-['inscribirPagado','inscribirVendedor','inscribirProximo'].forEach(id=>{
+['inscribirPagado','inscribirVendedor','inscribirProximo','inscribirProximoMonto'].forEach(id=>{
   document.getElementById(id).addEventListener('input', actualizarPreviewInscribir);
   document.getElementById(id).addEventListener('change', actualizarPreviewInscribir);
 });
@@ -6713,6 +6799,11 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
   const proximo = (precio == null || pagado < precio) ? (document.getElementById('inscribirProximo').value || null) : null;
   if(!(pagado > 0) && !proximo){ toast('Pon la fecha de pago: no ha pagado nada y Cobranza necesita saber cuándo cobrarle.', true); return; }
   if(proximo && proximo < hoyISO()){ toast('La fecha de pago ya pasó: pon la fecha que prometió pagar.', true); return; }
+  // Cuánto va a dar ese día (vacío = todo lo que le falte). Solo con fecha y si ya paga algo.
+  const escritoProx = document.getElementById('inscribirProximoMonto').value.trim();
+  const montoProx = proximo && pagado > 0 && escritoProx !== '' ? Number(escritoProx) : null;
+  if(montoProx != null && !(montoProx > 0)){ toast('¿Cuánto va a dar ese día? Pon una cantidad o déjalo vacío (= todo lo que le falta).', true); return; }
+  if(montoProx != null && precio != null && montoProx > precio - pagado){ toast(`Ese día no puede dar más de lo que le falta (${fmtMoney(precio - pagado)}).`, true); return; }
 
   // Si el vendedor elegido no es el dueño del lead, es una reasignación:
   // misma confirmación que en cualquier ficha, o este botón serviría para
@@ -6751,7 +6842,7 @@ document.getElementById('guardarInscribir').addEventListener('click', async ()=>
     precio_pactado: precio, paquete: inscribirPaquete,
     anticipo: pagado, restante: precio == null ? null : Math.max(precio - pagado, 0), liquidado: precio != null && pagado >= precio,
     estatus_id: estatusInicialInscripcion(pagado, precio),
-    asesor_id: vendedorId, notas_migracion: nota, fecha_proximo_pago: proximo,
+    asesor_id: vendedorId, notas_migracion: nota, fecha_proximo_pago: proximo, monto_proximo_pago: montoProx,
   }).select('id').single();
   if(error){ listo(); toast('No se pudo inscribir: ' + error.message, true); return; }
 
@@ -6846,7 +6937,7 @@ async function cargarCobranza({ todas = false } = {}){
   const [rl, ri] = await Promise.all([
     qL,
     ids.length ? sb.from('inscripciones').select(`
-        id, persona_id, evento_id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago, asistencia, estatus_id,
+        id, persona_id, evento_id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago, monto_proximo_pago, asistencia, estatus_id,
         personas ( id, nombre, telefono_principal ),
         estatus ( id, clave, etiqueta ),
         pagos ( monto, verificacion ),
@@ -6894,6 +6985,14 @@ async function cargarCobranza({ todas = false } = {}){
   return true;
 }
 
+/* Lo que va a dar en su próximo pago (6 nov 2026): lo que prometió para su fecha, sin pasar de lo que debe hoy
+   (si cambió de curso o pagó de más, manda lo que debe). Sin fecha o sin cantidad = todo lo que debe.
+   Cobranza, el semáforo de la vendedora y la ficha lo leen de aquí. */
+function montoPromesaInsc(i){
+  const debe = Number(i?.restante) || 0;
+  const prom = Number(i?.monto_proximo_pago);
+  return i?.fecha_proximo_pago && prom > 0 ? Math.min(prom, debe) : debe;
+}
 function itemsCobranza(sinFiltros = false){
   const q = sinFiltros ? '' : normTexto(document.getElementById('cobBuscar').value);
   const qTel = sinFiltros ? '' : document.getElementById('cobBuscar').value.replace(/\D/g, '');
@@ -6923,7 +7022,9 @@ function itemsCobranza(sinFiltros = false){
       donde: etiquetaEvento(i.eventos || {}),
       fecha: i.fecha_proximo_pago || i.eventos?.fecha || null, fechaEsCurso: !i.fecha_proximo_pago,
       cursoPasado: (i.eventos?.fecha || '') < hoyISO(),
-      monto: sit === 'por_confirmar' ? porConf : Number(i.restante) || 0, queEs: sit === 'por_confirmar' ? 'por confirmar' : 'debe', nota:'', raw:i,
+      // Con promesa de cuánto va a dar ese día (6 nov 2026): eso es lo que se le cobra en su fecha; si no, todo lo que debe
+      monto: sit === 'por_confirmar' ? porConf : montoPromesaInsc(i),
+      queEs: sit === 'por_confirmar' ? 'por confirmar' : (montoPromesaInsc(i) < (Number(i.restante) || 0) ? 'va a dar' : 'debe'), nota:'', raw:i,
       debe: Number(i.restante) || 0, pagado: Number(i.anticipo) || 0, precio: precioDeInsc(i),
     });
   });
@@ -8643,7 +8744,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, asistencia, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, sede, curso_id, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
+    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, monto_proximo_pago, asistencia, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, sede, curso_id, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -8882,8 +8983,13 @@ function pintarProximoPagoFicha(){
   if(!debe) return;
   document.getElementById('inscProximoPago').value = d.fecha_proximo_pago || '';
   document.getElementById('inscPagaEnCurso').style.display = d.fecha_proximo_pago ? '' : 'none';
+  // "Va a dar": cuánto prometió para esa fecha (vacío = todo lo que debe). Solo con fecha.
+  document.getElementById('inscProximoMontoCaja').style.display = d.fecha_proximo_pago ? '' : 'none';
+  document.getElementById('inscProximoMonto').value = d.monto_proximo_pago ?? '';
+  document.getElementById('inscProximoMonto').placeholder = `Todo lo que le falta (${fmtMoney(Number(d.restante) || 0)})`;
+  const vaADar = montoPromesaInsc(d);
   document.getElementById('inscProximoPagoHint').textContent = d.fecha_proximo_pago
-    ? `Cobranza le da seguimiento el ${fechaCorta(d.fecha_proximo_pago)}.`
+    ? `Cobranza le da seguimiento el ${fechaCorta(d.fecha_proximo_pago)}: va a dar ${fmtMoney(vaADar)}${vaADar < (Number(d.restante) || 0) ? ` de los ${fmtMoney(Number(d.restante) || 0)} que debe` : ''}.`
     : `Sin fecha: Cobranza toma el día del curso${d.eventos?.fecha ? ' (' + fechaCorta(d.eventos.fecha) + ')' : ''} como límite.`;
 }
 document.getElementById('inscProximoPago').addEventListener('change', ()=>guardarProximoPagoFicha(document.getElementById('inscProximoPago').value || null));
@@ -8893,14 +8999,34 @@ async function guardarProximoPagoFicha(fecha){
   const d = modalInscDatos; if(!d) return;
   if(fecha === (d.fecha_proximo_pago || null)) return;
   marcarGuardado('inscProximoPagoEstado', 'Guardando…');
-  const { error } = await sb.from('inscripciones').update({ fecha_proximo_pago: fecha }).eq('id', d.id);
+  // Sin fecha ("Lo paga en su curso"), la cantidad prometida tampoco aplica
+  const cambios = fecha ? { fecha_proximo_pago: fecha } : { fecha_proximo_pago: null, monto_proximo_pago: null };
+  const { error } = await sb.from('inscripciones').update(cambios).eq('id', d.id);
   if(error){ marcarGuardado('inscProximoPagoEstado', 'No se guardó', 'malo'); toast('No se pudo guardar: ' + error.message, true); return; }
   marcarGuardado('inscProximoPagoEstado', '✓ Guardado', 'ok');
   registrarActividad('fecha_cobro_movida', `${d.personas?.nombre || 'inscrita'}: próximo pago ${fecha ? fechaCorta(fecha) : 'sin fecha (día del curso)'}`);
-  d.fecha_proximo_pago = fecha;
+  d.fecha_proximo_pago = fecha; if(!fecha) d.monto_proximo_pago = null;
   pintarProximoPagoFicha();
   toast(fecha ? `Próximo pago: ${fechaCorta(fecha)}.` : 'Sin fecha: lo paga el día de su curso (en Cobranza queda en "Más adelante").');
 }
+
+// "Va a dar" (6 nov 2026): cuánto prometió dar en su próximo pago. Vacío = todo lo que debe.
+document.getElementById('inscProximoMonto').addEventListener('change', async ()=>{
+  const d = modalInscDatos; if(!d) return;
+  const escrito = document.getElementById('inscProximoMonto').value.trim();
+  const monto = escrito === '' ? null : Number(escrito);
+  const debe = Number(d.restante) || 0;
+  if(monto != null && !(monto > 0)){ toast('Pon una cantidad o déjalo vacío (= todo lo que le falta).', true); pintarProximoPagoFicha(); return; }
+  if(monto != null && monto > debe){ toast(`No puede dar más de lo que debe (${fmtMoney(debe)}).`, true); pintarProximoPagoFicha(); return; }
+  if(monto === (d.monto_proximo_pago == null ? null : Number(d.monto_proximo_pago))) return;
+  marcarGuardado('inscProximoMontoEstado', 'Guardando…');
+  const { error } = await sb.from('inscripciones').update({ monto_proximo_pago: monto }).eq('id', d.id);
+  if(error){ marcarGuardado('inscProximoMontoEstado', 'No se guardó', 'malo'); toast('No se pudo guardar: ' + error.message, true); return; }
+  marcarGuardado('inscProximoMontoEstado', '✓ Guardado', 'ok');
+  registrarActividad('promesa_monto_movida', `${d.personas?.nombre || 'inscrita'}: el ${fechaCorta(d.fecha_proximo_pago)} va a dar ${monto != null ? fmtMoney(monto) : 'todo lo que debe'}`);
+  d.monto_proximo_pago = monto;
+  pintarProximoPagoFicha();
+});
 
 /* Picklist "¿Quién vendió?" — el dato que manda para los cortes. */
 function pintarVendedorFicha(){
@@ -17789,7 +17915,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-05-ticket9';
+const HUB_VERSION = '2026-11-06-segundo-pago';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
