@@ -140,7 +140,8 @@ const CASOS_FASE1 = [
   { nombre:'Comentario al crear el lead (1 nov)', pregunta:'cuando doy de alta un lead nuevo, ¿puedo dejar un comentario ahí mismo o tengo que abrir su ficha después?',
     revisar: t => /Comentario/.test(t) && /(Nuevo lead|al final|ah[ií] mismo|al crear)/i.test(t) && !/no (se puede|hay)/i.test(t) },
   { nombre:'Lead de ciudad sin curso (3 nov)', pregunta:'soy vendedora, tengo una clienta de una ciudad que no sale en los cursos, ¿la puedo dar de alta?',
-    revisar: t => /(s[ií]|puedes)/i.test(t) && /Jared/.test(t) && /(ciudad|curso)/i.test(t) },
+    // Desde el 10 nov también vale "fecha por definir" (curso de esa ciudad sin fecha; a Jared le llega la tarea)
+    revisar: t => /(s[ií]|puedes)/i.test(t) && /(Jared|fecha por definir)/i.test(t) && /(ciudad|curso)/i.test(t) },
   { nombre:'Teléfono alterno al dar de alta (3 nov)', pregunta:'al dar de alta un lead, ¿dónde pongo un segundo teléfono?',
     revisar: t => /Tel[eé]fono alterno/i.test(t) && /Nuevo lead/.test(t) },
   { nombre:'Cobranza: completar datos (30 oct)', pregunta:'hay inscritas que no tienen fecha de pago ni vendedora, ¿dónde las completo rápido?',

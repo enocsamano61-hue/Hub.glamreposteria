@@ -35,3 +35,10 @@
 
 ## Pruebas
 - `prueba_fecha_por_definir.js` (15/15), capturas 1200/390. Historia H16 (A y B contra la base real). Historias: fallas=0.
+
+## Publicado (10 nov 2026)
+- Enoc: "súbelo". Antes: `correr_todas.js` 60/60 en verde, historias H1–H16 `fallas=0 bien=76`, reglas rojas del vigilante en 0.
+- En main y verificado en producción (`HUB_VERSION = '2026-11-10-por-definir'`), junto con el otro cambio del día.
+- Glamy v39 (idéntica al repo); examen 56/56. La pregunta "ciudad que no sale en los cursos" ahora acepta "fecha por definir"
+  además de Jared (el primer examen dio 53/56: esa, y dos que pasaron al repetirlo).
+- Avisos `2026-11-06-segundo-pago` y `2026-11-10-por-definir` publicados.
