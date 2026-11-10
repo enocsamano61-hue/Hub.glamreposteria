@@ -5291,9 +5291,14 @@ async function obtenerGiras(){
   girasPromesa = (async ()=>{
     const hoy = hoyISO();
     if(!GIRAS){
-      const { data: prox, error } = await sb.from('eventos').select('curso_id, fecha').gte('fecha', hoy).order('fecha', { ascending:true });
+      // Una gira se vende si tiene fechas de hoy en adelante o ciudades con "fecha por definir" (10 nov 2026: la gira
+      // del centro 2027 de Mesa de Postres no tiene fechas y no debe desaparecer al pasar diciembre). Misma regla que cursos_vigentes().
+      const [{ data: prox, error }, { data: pd }] = await Promise.all([
+        sb.from('eventos').select('curso_id, fecha').gte('fecha', hoy).order('fecha', { ascending:true }),
+        sb.from('eventos').select('curso_id').eq('fecha_por_definir', true),
+      ]);
       if(error){ console.warn('No se pudieron leer las giras:', error.message); return []; }
-      const ids = [...new Set((prox || []).map(e=>e.curso_id).filter(Boolean))];
+      const ids = [...new Set((prox || []).concat(pd || []).map(e=>e.curso_id).filter(Boolean))];
       const { data: cursos } = ids.length ? await sb.from('cursos').select('id, nombre, activo').in('id', ids) : { data:[] };
       GIRAS = ids.map(id=>({ id, c:(cursos || []).find(c=>c.id === id), proxima:(prox || []).find(e=>e.curso_id === id)?.fecha || null }))
         .filter(g=>g.c && g.c.activo !== false)
@@ -18078,7 +18083,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-10-por-definir';
+const HUB_VERSION = '2026-11-10-gira-centro';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);

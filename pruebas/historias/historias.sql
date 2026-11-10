@@ -368,5 +368,15 @@ begin
     else mal := mal || 'H16 al ponerle fecha no quedó fechado o la tarea siguió abierta'::text; end if;
   end;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H16 vigilante: ' || rojos); end if;
+  /* H17 (10 nov 2026) Una gira con ciudades "por definir" sigue vigente aunque no tenga fechas (gira del centro 2027). */
+  declare v_cur uuid; v_ciu uuid;
+  begin
+    insert into public.cursos (nombre, linea, activo) select 'HISTORIA GIRA SIN FECHAS', linea, true from public.cursos limit 1 returning id into v_cur;
+    select id into v_ciu from public.ciudades limit 1;
+    insert into public.eventos (ciudad_id, curso_id, fecha, fecha_por_definir) values (v_ciu, v_cur, null, true);
+    if v_cur in (select public.cursos_vigentes()) then ok := ok + 1;
+    else mal := mal || 'H17 la gira con ciudades por definir dejó de estar vigente'::text; end if;
+  end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H17 vigilante: ' || rojos); end if;
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;

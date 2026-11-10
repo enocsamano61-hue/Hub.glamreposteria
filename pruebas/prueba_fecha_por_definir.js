@@ -97,5 +97,15 @@ const persona = (id, nombre) => ({ id, nombre, telefono_principal:'55500000' + i
   check(await p.evaluate(() => document.documentElement.scrollWidth <= 392), 'sin scroll de lado');
   await h.captura('por-definir-celular.png');
 
+  h.paso('6. Una gira solo con ciudades por definir sigue vigente (gira del centro 2027)');
+  const g = await p.evaluate(async () => {
+    window.__tablas.cursos = [{ id:'cur2', nombre:'Mesa de Postres', activo:true }];
+    window.__tablas.eventos = [{ id:'evC', curso_id:'cur2', ciudad_id:'cB', fecha:null, fecha_por_definir:true }];
+    window.__ops = []; GIRAS = null;
+    const giras = await obtenerGiras();
+    return { ids:giras.map(x => x.id), pregunto:window.__ops.some(o => o.tabla === 'eventos' && o.filtros.some(f => f[0] === 'fecha_por_definir' && f[1] === true)) };
+  });
+  check(g.ids.includes('cur2') && g.pregunto, 'Mesa de Postres sale en las giras aunque no tenga fechas');
+
   await h.terminar();
 })();
