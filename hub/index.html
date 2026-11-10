@@ -1535,6 +1535,13 @@
   .monto-ant{ display:flex; gap:8px; align-items:center; } .monto-ant input{ flex:1; min-width:0; } .monto-ant button{ width:auto; flex:none; }
   /* Segundo pago en "Registrar pago" (6 nov 2026) */
   .segundo-pago{ border:1px solid var(--border); border-radius:10px; padding:10px 12px 2px; margin:4px 0 12px; background:rgba(198,166,107,.08); }
+  /* Cursos con fecha por definir en el Calendario (10 nov 2026) */
+  .pd-caja{ border:1px dashed var(--champagne); border-radius:12px; padding:10px 12px; margin:10px 0 14px; background:rgba(198,166,107,.08); }
+  .pd-caja h4{ margin:0 0 6px; font-size:14px; color:var(--wine-dark); }
+  .pd-fila{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; padding:7px 0; border-top:1px solid var(--border); }
+  .pd-fila:first-of-type{ border-top:none; }
+  .pd-acc{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .pd-acc input[type=date]{ padding:5px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:13px; background:var(--card); color:var(--ink); }
   .segundo-pago-tit{ font-weight:700; font-size:13px; margin-bottom:6px; color:var(--wine-dark); }
   .aviso-sin-curso{ margin-top:6px; padding:8px 10px; border-radius:10px; background:rgba(201,162,39,.14); color:#6B5410; font-size:12.5px; line-height:1.4; }
   .reg-menos{ color:#8A6D0B; font-weight:600; }
@@ -2246,6 +2253,7 @@
         <h3>Cursos programados</h3>
         <div class="sub">Quiénes ya pagaron y quiénes faltan, por fecha</div>
         <div id="calFiltroGira"></div>
+        <div id="calPorDefinir"></div>
         <div id="listaCalendario">Cargando…</div>
       </div>
     </div>
@@ -2720,6 +2728,18 @@
     <div class="modal-field"><label>Comentario (opcional)</label><textarea class="textarea" id="regPagoComentario" placeholder="Algo que convenga saber desde hoy: de dónde viene, a qué hora contestarle…"></textarea><div class="vend-hint">Queda en su historial con la fecha y tu nombre, igual que la caja de comentarios de su ficha.</div></div>
     </div>
     <button class="btn-reportar" id="guardarRegistrarPago" style="width:100%;">Registrar pago</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CURSO CON FECHA POR DEFINIR (10 nov 2026) ===================== -->
+<div class="modal-overlay" id="modalPorDefinir">
+  <div class="modal">
+    <button class="close" id="closeModalPorDefinir">✕</button>
+    <h3>Curso con fecha por definir</h3>
+    <div class="sub" style="margin-bottom:10px;">Para vender en una ciudad que todavía no tiene fecha en la gira. Se cobra e inscribe igual; cuando Jared le ponga fecha en el Calendario, sus alumnas pasan solas a ese día.</div>
+    <div class="modal-field"><label>Ciudad</label><select id="pdCiudad"></select></div>
+    <div class="modal-field" id="pdGiraCampo"><label>Gira</label><div class="seg full" id="pdGira"></div></div>
+    <button class="btn-primary" id="pdGuardar" style="width:100%;">Usar esta ciudad</button>
   </div>
 </div>
 
@@ -3824,6 +3844,8 @@ const ACCION_LABEL = {
   usuario_cambiado: 'Cambió el rol o los permisos de una persona',
   rol_creado: 'Creó un rol nuevo',
   fecha_cobro_movida: 'Movió una fecha de cobro',
+  curso_por_definir: 'Abrió un curso con fecha por definir',
+  curso_fecha_puesta: 'Le puso fecha a un curso por definir',
   promesa_monto_movida: 'Cambió cuánto va a dar en su próximo pago',
   contacto_editado: 'Editó datos de contacto',
   whatsapp_enviado: 'Mandó un WhatsApp',
@@ -4857,14 +4879,27 @@ async function cargarEventosCalendario(){
   const ids = await idsGiras();
   if(!ids.length){ EVENTOS_CAL = []; EVENTOS_CAL_PASADOS = []; return; }
   const hoy = hoyISO();
-  const { data, error } = await sb.from('eventos').select('id, fecha, ciudad_id, curso_id, sede, ciudades(nombre, estado)')
-    .in('curso_id', ids).not('fecha', 'is', null).order('fecha', { ascending:true });
+  const [r1, r2] = await Promise.all([
+    sb.from('eventos').select('id, fecha, fecha_por_definir, ciudad_id, curso_id, sede, ciudades(nombre, estado)')
+      .in('curso_id', ids).not('fecha', 'is', null).order('fecha', { ascending:true }),
+    // Cursos vendidos sin fecha todavía (10 nov 2026): se eligen igual, al final de la lista
+    sb.from('eventos').select('id, fecha, fecha_por_definir, ciudad_id, curso_id, sede, ciudades(nombre, estado)')
+      .in('curso_id', ids).eq('fecha_por_definir', true),
+  ]);
+  const { data, error } = r1;
   if(error){ console.warn('No se pudieron cargar los cursos del Calendario:', error.message); return; }
-  // Todas las giras vigentes juntas, por fecha (cada curso sabe de qué gira es por su curso_id)
-  EVENTOS_CAL = (data || []).filter(e=>e.fecha >= hoy);
+  const porDefinir = (r2.data || []).map(e=>({ ...e, porDefinir:true }))
+    .sort((a, b)=>(a.ciudades?.nombre || '').localeCompare(b.ciudades?.nombre || '', 'es'));
+  // Todas las giras vigentes juntas, por fecha (cada curso sabe de qué gira es por su curso_id); los "por definir" al final
+  EVENTOS_CAL = (data || []).filter(e=>e.fecha >= hoy).concat(porDefinir);
   // Sólo los de la vuelta actual de cada gira; el más reciente primero
   EVENTOS_CAL_PASADOS = (data || []).filter(e=>e.fecha < hoy && enSuGira(e.curso_id, e.fecha)).reverse();
 }
+/* Fecha de un curso para mostrar: los vendidos sin fecha dicen "fecha por definir" (10 nov 2026). */
+function esPorDefinir(e){ return !!(e && (e.porDefinir || e.fecha_por_definir)); }
+function fechaCursoTxt(e){ return e?.fecha ? fechaCorta(e.fecha) : esPorDefinir(e) ? 'fecha por definir' : 'sin fecha'; }
+/* ¿El curso todavía no pasa? Uno "por definir" nunca ha pasado. */
+function cursoPorVenir(e){ return !!e && (esPorDefinir(e) || (e.fecha || '') >= hoyISO()); }
 /* Un curso del Calendario por id, ya haya pasado o no. */
 function eventoPorId(id){
   if(!id) return undefined;
@@ -4884,7 +4919,7 @@ function opcionesCiudad(seleccionada){
     const c = CIUDADES.find(x=>x.id === e.ciudad_id);
     if(!c) return;
     vistos.add(c.id);
-    arriba.push(opt(c.id, `${nombre(c)} · ${fechaCorta(e.fecha)}`));
+    arriba.push(opt(c.id, `${nombre(c)} · ${fechaCursoTxt(e)}`));
   });
   // Las hojas del Excel que se colaron como "ciudades" (Online, Cancelados…) no se
   // ofrecen; sólo se muestran si ya es la ciudad guardada, para no perderla.
@@ -5117,7 +5152,7 @@ function buscadorDeCiudad(sel, { placeholder = 'Escribe la ciudad…' } = {}){
     const ev = eventoDe(valor);
     if(ev){
       const c = porId().get(ev.ciudad_id);
-      return `${c?.nombre || ev.ciudades?.nombre || '(ciudad?)'}${c?.estado ? ', ' + c.estado : ''} · ${fechaCorta(ev.fecha)}${ev.fecha < hoyISO() ? ' (ya pasó)' : ''}`;
+      return `${c?.nombre || ev.ciudades?.nombre || '(ciudad?)'}${c?.estado ? ', ' + c.estado : ''} · ${fechaCursoTxt(ev)}${ev.fecha && ev.fecha < hoyISO() ? ' (ya pasó)' : ''}`;
     }
     const c = porId().get(valor);
     if(c) return c.nombre + (c.estado ? ', ' + c.estado : '');
@@ -5196,8 +5231,10 @@ buscadorDeCiudad(document.getElementById('nuevoCiudad'));
 
 /* "Ciudad · fecha" y, si se venden dos giras a la vez, "· curso" (Mesa de Postres, Pasteles). */
 function etiquetaEvento(e){
-  return `${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCorta(e.fecha)}${variasGiras() && giraDe(e.curso_id) ? ' · ' + giraDe(e.curso_id).corto : ''}`;
+  return `${e.ciudades?.nombre || '(ciudad?)'} · ${fechaCursoTxt(e)}${variasGiras() && giraDe(e.curso_id) ? ' · ' + giraDe(e.curso_id).corto : ''}`;
 }
+/* Vender en una ciudad sin fecha todavía: abre "Curso con fecha por definir" (10 nov 2026, pedido de Jared). */
+const OPCION_POR_DEFINIR = '<option value="__pordefinir">+ Otra ciudad · fecha por definir…</option>';
 /* Cursos del Calendario como opciones (value = id del evento). */
 function opcionesEvento(seleccionado, textoVacio = '— Aún no decide / otra ciudad —'){
   const lista = [...(EVENTOS_CAL||[])], pasados = [...(EVENTOS_CAL_PASADOS||[])];
@@ -5206,6 +5243,7 @@ function opcionesEvento(seleccionado, textoVacio = '— Aún no decide / otra ci
   // Si tenía un curso que ni siquiera es de la gira activa, tampoco se pierde.
   return `<option value="">${textoVacio}</option>`
     + lista.map(e=>opt(e)).join('')
+    + OPCION_POR_DEFINIR
     + pasados.map(e=>opt(e, ' (ya pasó)')).join('')
     + (seleccionado && !eventoPorId(seleccionado) ? `<option value="${seleccionado}" selected>(curso anterior)</option>` : '');
 }
@@ -5321,7 +5359,11 @@ let CIUDADES_GIRA_ACTIVA = null; // null = no cargadas todavía; array (posiblem
 async function cargarCiudadesGiraActiva(){
   const ids = await idsGiras();
   if(!ids.length){ CIUDADES_GIRA_ACTIVA = []; return; }
-  const { data: eventos } = await sb.from('eventos').select('ciudad_id, curso_id').in('curso_id', ids).gte('fecha', hoyISO());
+  const [ra, rb] = await Promise.all([
+    sb.from('eventos').select('ciudad_id, curso_id').in('curso_id', ids).gte('fecha', hoyISO()),
+    sb.from('eventos').select('ciudad_id, curso_id').in('curso_id', ids).eq('fecha_por_definir', true),   // también las "por definir"
+  ]);
+  const eventos = (ra.data || []).concat(rb.data || []);
   CIUDADES_GIRA_ACTIVA = [...new Set((eventos||[]).map(e=>e.ciudad_id).filter(Boolean))];
   CIUDADES_POR_GIRA = {};
   (eventos || []).forEach(e=>{ if(e.ciudad_id) (CIUDADES_POR_GIRA[e.curso_id] = CIUDADES_POR_GIRA[e.curso_id] || new Set()).add(e.ciudad_id); });
@@ -5336,7 +5378,7 @@ function leadPasaFiltroGira(l){
 // ¿Este lead es de la gira que viene? Ligado a un curso que no ha pasado, o sin curso pero de una ciudad
 // que se visita. Los de cursos pasados o ciudades que no se visitan van a la Bandeja de limpieza.
 function leadEnPuerta(l){
-  if(l.eventos) return (l.eventos.fecha || '') >= hoyISO();
+  if(l.eventos) return cursoPorVenir(l.eventos);
   if(l.evento_id) return false;
   return !l.ciudad_interes_id || (CIUDADES_GIRA_ACTIVA || []).includes(l.ciudad_interes_id);
 }
@@ -5348,7 +5390,7 @@ const LEAD_SELECT = `
     id, comentario, creado_en, ciudad_interes_id, asesor_id,
     evento_id, fecha_compromiso_pago, monto_anticipo, segundo_pago_fecha, segundo_pago_monto, paquete, estatus_antes_de_reporte,
     pago_reportado_monto, pago_reportado_fecha, pago_reportado_banco, pago_reportado_por, pago_reportado_en,
-    eventos ( id, fecha, ciudad_id, curso_id, ciudades ( nombre ) ),
+    eventos ( id, fecha, fecha_por_definir, ciudad_id, curso_id, ciudades ( nombre ) ),
     personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra ),
     cursos ( nombre ),
     ciudades ( nombre ),
@@ -5939,7 +5981,7 @@ async function pintarFichaTabs(donde, { personaId, leadId = null, inscId = null 
   const turno = ++ficha.turno;
   const traer = () => Promise.all([
     sb.from('leads').select(LEAD_SELECT).eq('persona_id', personaId).order('creado_en', { ascending:false }).limit(10),
-    sb.from('inscripciones').select('id, evento_id, estatus_id, eventos(fecha, ciudades(nombre))').eq('persona_id', personaId).limit(30),
+    sb.from('inscripciones').select('id, evento_id, estatus_id, eventos(fecha, fecha_por_definir, ciudades(nombre))').eq('persona_id', personaId).limit(30),
   ]);
   let [rl, ri] = await traer();
   // Toda inscrita es lead: si es alumna de antes y nunca tuvo lead en el Hub, se le crea (cerrado, como "Inscrita").
@@ -5954,7 +5996,7 @@ async function pintarFichaTabs(donde, { personaId, leadId = null, inscId = null 
   if(!leads.length && (rl.data || []).length) leads = [rl.data[0]];
   leads.forEach(l=>{ ficha.leads[l.id] = l; });
   const hoy = hoyISO();
-  const inscs = (ri.data || []).filter(i=>i.id === inscId || (![6, 15].includes(i.estatus_id) && (i.eventos?.fecha || '') >= hoy))
+  const inscs = (ri.data || []).filter(i=>i.id === inscId || (![6, 15].includes(i.estatus_id) && cursoPorVenir(i.eventos)))
     .sort((a, b)=>String(a.eventos?.fecha || '').localeCompare(String(b.eventos?.fecha || ''))).slice(0, 3);
   const corta = f => f ? new Date(f + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
   // Lead de alguien ya inscrita en ese curso: su fecha de pago y su seguimiento van en su ficha
@@ -6679,7 +6721,7 @@ function abrirModalInscribir(){
   const sel = document.getElementById('inscribirEvento');
   sel.innerHTML = (suyos.length ? '' : '<option value="">— Elige el curso —</option>')
     + (suyos.length ? `<optgroup label="Su ciudad">${suyos.map(opt).join('')}</optgroup>` : '')
-    + `<optgroup label="${suyos.length ? 'Otras ciudades del Calendario' : 'Cursos del Calendario'}">${otros.map(opt).join('')}</optgroup>`
+    + `<optgroup label="${suyos.length ? 'Otras ciudades del Calendario' : 'Cursos del Calendario'}">${otros.map(opt).join('')}${OPCION_POR_DEFINIR}</optgroup>`
     + (EVENTOS_CAL_PASADOS.length ? `<optgroup label="Ya pasaron">${EVENTOS_CAL_PASADOS.map(opt).join('')}</optgroup>` : '');
   const elegido = (lead.evento_id && eventoPorId(lead.evento_id)) ? lead.evento_id : (suyos[0]?.id || '');
   sel.value = elegido;
@@ -6922,6 +6964,21 @@ function etiquetaGrupoCob(id){
 }
 
 // todas: sin el filtro de gira de arriba (el semáforo "Te toca cobrar" de cada vendedora ve todas sus giras)
+/* Inscritas de las giras vigentes para Cobranza: las de cursos desde "desde" y las de cursos con fecha por definir. */
+async function inscritasDeCobranza(ids, desde){
+  const sel = `
+        id, persona_id, evento_id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago, monto_proximo_pago, asistencia, estatus_id,
+        personas ( id, nombre, telefono_principal ),
+        estatus ( id, clave, etiqueta ),
+        pagos ( monto, verificacion ),
+        eventos!inner ( id, fecha, fecha_por_definir, curso_id, ciudades ( id, nombre ) )`;
+  const [a, b] = await Promise.all([
+    sb.from('inscripciones').select(sel).in('eventos.curso_id', ids).gte('eventos.fecha', desde),
+    sb.from('inscripciones').select(sel).in('eventos.curso_id', ids).eq('eventos.fecha_por_definir', true),
+  ]);
+  const vistos = new Set();   // una inscrita nunca sale dos veces
+  return { data:(a.data || []).concat(b.data || []).filter(i=>!vistos.has(i.id) && vistos.add(i.id)), error:a.error || b.error };
+}
 async function cargarCobranza({ todas = false } = {}){
   const ids = await idsGiras();
   const pasa = cursoId => todas || pasaFiltroGira(cursoId);
@@ -6936,14 +6993,7 @@ async function cargarCobranza({ todas = false } = {}){
   // que viene, o sin curso pero de una ciudad que se visita. Es la misma regla que el Embudo.
   const [rl, ri] = await Promise.all([
     qL,
-    ids.length ? sb.from('inscripciones').select(`
-        id, persona_id, evento_id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago, monto_proximo_pago, asistencia, estatus_id,
-        personas ( id, nombre, telefono_principal ),
-        estatus ( id, clave, etiqueta ),
-        pagos ( monto, verificacion ),
-        eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )`)
-      .in('eventos.curso_id', ids).gte('eventos.fecha', desde)
-      : Promise.resolve({ data:[], error:null }),
+    ids.length ? inscritasDeCobranza(ids, desde) : Promise.resolve({ data:[], error:null }),
   ]);
   if(rl.error || ri.error){ toast('Error cargando Cobranza: ' + (rl.error || ri.error).message, true); return false; }
   // Solo las de la gira elegida arriba (Todas las giras = sin filtro)
@@ -6961,9 +7011,11 @@ async function cargarCobranza({ todas = false } = {}){
   const personas = [...new Set(leads.map(l=>l.persona_id || l.personas?.id).filter(Boolean))];
   let yaInsc = [];
   if(personas.length){
-    const { data } = await sb.from('inscripciones').select('persona_id, evento_id, eventos!inner ( fecha, ciudad_id )')
-      .in('persona_id', personas).gte('eventos.fecha', hoyISO());
-    yaInsc = data || [];
+    const [ya1, ya2] = await Promise.all([
+      sb.from('inscripciones').select('persona_id, evento_id, eventos!inner ( fecha, ciudad_id )').in('persona_id', personas).gte('eventos.fecha', hoyISO()),
+      sb.from('inscripciones').select('persona_id, evento_id, eventos!inner ( fecha, ciudad_id )').in('persona_id', personas).eq('eventos.fecha_por_definir', true),
+    ]);
+    yaInsc = (ya1.data || []).concat(ya2.data || []);
   }
   leads = leads.filter(l=>{
     const pid = l.persona_id || l.personas?.id;
@@ -7021,7 +7073,7 @@ function itemsCobranza(sinFiltros = false){
       vendedor:i.asesor_id || '', situacion:sit, porConfirmar: sit === 'por_confirmar',
       donde: etiquetaEvento(i.eventos || {}),
       fecha: i.fecha_proximo_pago || i.eventos?.fecha || null, fechaEsCurso: !i.fecha_proximo_pago,
-      cursoPasado: (i.eventos?.fecha || '') < hoyISO(),
+      cursoPasado: !cursoPorVenir(i.eventos), porDefinir: esPorDefinir(i.eventos),
       // Con promesa de cuánto va a dar ese día (6 nov 2026): eso es lo que se le cobra en su fecha; si no, todo lo que debe
       monto: sit === 'por_confirmar' ? porConf : montoPromesaInsc(i),
       queEs: sit === 'por_confirmar' ? 'por confirmar' : (montoPromesaInsc(i) < (Number(i.restante) || 0) ? 'va a dar' : 'debe'), nota:'', raw:i,
@@ -7258,6 +7310,8 @@ document.getElementById('cobVistaDatos').addEventListener('change', async e=>{
 function grupoCobranza(it){
   if(it.porConfirmar) return 'confirmar';
   if(it.tipo === 'insc' && it.cursoPasado) return 'pasado';
+  // Curso con fecha por definir y ya pagó algo: lo que falta se cobra cuando haya fecha (o en su fecha de pago)
+  if(it.tipo === 'insc' && it.porDefinir && it.fechaEsCurso && it.pagado > 0) return 'despues';
   if(it.tipo === 'insc' && it.fechaEsCurso && !(it.pagado > 0)) return 'sinfecha';
   if(!it.fecha) return 'sinfecha';
   if(it.fecha < cobDia) return 'vencidos';
@@ -7276,7 +7330,8 @@ function filaCobranza(it, grupo){
   else if(grupo === 'vencidos'){ const n = diasEntre(it.fecha, cobDia); cuando = `venció ${fechaCorta(it.fecha)} · ${n === 1 ? 'hace 1 día' : 'hace ' + n + ' días'}`; }
   else if(grupo === 'hoy') cuando = it.fecha === hoyISO() ? 'hoy' : fechaCorta(it.fecha);
   else cuando = fechaCorta(it.fecha);
-  if(it.fechaEsCurso && grupo !== 'confirmar') cuando += ' (día del curso)';
+  if(it.porDefinir && it.fechaEsCurso && grupo !== 'confirmar') cuando = 'curso con fecha por definir';
+  else if(it.fechaEsCurso && grupo !== 'confirmar') cuando += ' (día del curso)';
   const vend = nombreVendedor(it.vendedor);
   const monto = it.monto != null && it.monto !== '' ? `${fmtMoney(it.monto)}` : '—';
   const tel = it.tel.replace(/\D/g, '');
@@ -7718,12 +7773,12 @@ async function buscarExistentes(texto){
   if(error || !data || data.error) return [];
   return data.personas || [];
 }
-function cursoProximo(c){ return !!c.fecha && c.fecha >= hoyISO(); }
+function cursoProximo(c){ return !!c.fecha_por_definir || (!!c.fecha && c.fecha >= hoyISO()); }
 function htmlExistentes(personas, titulo){
   if(!personas.length) return '';
   return `<div class="exi-titulo">${escHtml(titulo)}</div>` + personas.map(p=>{
     const cursos = (p.cursos || []).slice(0, 3).map(c=>`<div class="exi-fila ${cursoProximo(c) ? 'proximo' : ''}">
-        <span>${cursoProximo(c) ? 'Inscrita' : 'Fue alumna'} · ${escHtml(c.ciudad || '')} · ${fechaCorta(c.fecha)}${c.debe > 0 ? ' · debe ' + fmtMoney(c.debe) : (c.debe === 0 ? ' · liquidada' : '')}</span>
+        <span>${cursoProximo(c) ? 'Inscrita' : 'Fue alumna'} · ${escHtml(c.ciudad || '')} · ${c.fecha ? fechaCorta(c.fecha) : c.fecha_por_definir ? 'fecha por definir' : ''}${c.debe > 0 ? ' · debe ' + fmtMoney(c.debe) : (c.debe === 0 ? ' · liquidada' : '')}</span>
         <button type="button" data-exi-insc="${escapeAttr(c.inscripcion_id)}">Abrir ficha</button></div>`).join('');
     const leads = (p.leads || []).map(l=>`<div class="exi-fila">
         <span>Lead${l.vendedora ? ' de ' + escHtml(l.vendedora) : ''} · ${escHtml(l.estatus || 'sin estatus')}${l.ciudad_interes ? ' · ' + escHtml(l.ciudad_interes) : ''}</span>
@@ -8115,7 +8170,7 @@ async function leadVigenteDe(personaId){
   const finales = new Set(ESTATUS.filter(e=>e.es_final).map(e=>e.id));
   const inicio = await obtenerInicioGira();
   return (data || []).find(l=>!finales.has(l.estatus?.id)
-    && (l.eventos?.fecha ? l.eventos.fecha >= hoyISO() : String(l.creado_en || '').slice(0, 10) >= inicio)) || null;
+    && (esPorDefinir(l.eventos) || (l.eventos?.fecha ? l.eventos.fecha >= hoyISO() : String(l.creado_en || '').slice(0, 10) >= inicio))) || null;
 }
 document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>{
   const nombre = document.getElementById('nuevoNombre').value.trim();
@@ -8247,6 +8302,112 @@ let calendarioMesIdx = 0;
 function calPad(n){ return String(n).padStart(2,'0'); }
 function calMismoDia(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
 
+/* "Fecha por definir" (10 nov 2026): ciudades vendidas sin fecha, con cuántas inscritas y leads; un administrador
+   le pone fecha y el curso pasa al Calendario con todas sus alumnas (función curso_poner_fecha). */
+async function renderPorDefinir(ids){
+  const caja = document.getElementById('calPorDefinir'); if(!caja) return;
+  const { data: evs } = await sb.from('eventos').select('id, curso_id, ciudad_id, creado_en, ciudades(nombre)').in('curso_id', ids).eq('fecha_por_definir', true);
+  const lista = (evs || []).filter(e=>pasaFiltroGira(e.curso_id)).sort((a, b)=>(a.ciudades?.nombre || '').localeCompare(b.ciudades?.nombre || '', 'es'));
+  if(!lista.length){ caja.innerHTML = ''; return; }
+  const idsEv = lista.map(e=>e.id);
+  const finales = new Set(ESTATUS.filter(e=>e.es_final).map(e=>e.id));
+  const [ri, rl] = await Promise.all([
+    sb.from('inscripciones').select('evento_id, anticipo, estatus_id').in('evento_id', idsEv),
+    sb.from('leads').select('evento_id, estatus_id').in('evento_id', idsEv),
+  ]);
+  const cuenta = id => {
+    const ins = (ri.data || []).filter(i=>i.evento_id === id && ![6, 15].includes(i.estatus_id));
+    return { insc:ins.length, conPago:ins.filter(i=>Number(i.anticipo) > 0).length,
+             leads:(rl.data || []).filter(l=>l.evento_id === id && !finales.has(l.estatus_id)).length };
+  };
+  const admin = !!usuarioActual?.es_admin;
+  caja.innerHTML = `<div class="pd-caja"><h4>Fecha por definir · ${lista.length}</h4>
+    <div class="sub" style="margin:0 0 4px;">Ciudades que ya se están vendiendo sin fecha. ${admin ? 'Cuando la decidas, ponla aquí: sus alumnas pasan solas a ese día.' : 'La fecha la pone un administrador.'}</div>
+    ${lista.map(e=>{ const c = cuenta(e.id); return `<div class="pd-fila" data-pd-ev="${escapeAttr(e.id)}">
+      <div><b>${escHtml(e.ciudades?.nombre || '(ciudad?)')}</b>${giraDe(e.curso_id) ? ' · ' + escHtml(giraDe(e.curso_id).corto) : ''}
+        <div class="sub" style="margin:0;">${c.insc} inscrita${c.insc === 1 ? '' : 's'} (${c.conPago} con pago) · ${c.leads} lead${c.leads === 1 ? '' : 's'} · desde el ${escHtml(fechaCorta(String(e.creado_en || '').slice(0, 10)))}</div></div>
+      ${admin ? `<div class="pd-acc"><input type="date" data-pd-fecha min="${hoyISO()}" aria-label="Fecha del curso"><button type="button" class="btn-outline small" data-pd-poner>Poner fecha</button></div>` : ''}
+    </div>`; }).join('')}</div>`;
+}
+document.getElementById('calPorDefinir').addEventListener('click', async e=>{
+  const b = e.target.closest('[data-pd-poner]'); if(!b) return;
+  const fila = b.closest('[data-pd-ev]'), id = fila.dataset.pdEv, fecha = fila.querySelector('[data-pd-fecha]').value;
+  if(!fecha){ toast('Elige la fecha del curso.', true); return; }
+  if(fecha < hoyISO()){ toast('Pon una fecha de hoy en adelante.', true); return; }
+  const ciudad = fila.querySelector('b')?.textContent || 'esa ciudad';
+  const ok = await preguntarConfirmacion({ titulo:`¿${ciudad} el ${fechaLarga(fecha)}?`,
+    aviso:`Su curso deja de estar "por definir": sus inscritas y leads pasan a ese día (Calendario, Cobranza, Recepción y diplomas). No cuenta como cambio de fecha.`,
+    textoSi:'Sí, poner fecha' });
+  if(ok === null) return;
+  b.disabled = true;
+  const { data, error } = await sb.rpc('curso_poner_fecha', { p_evento:id, p_fecha:fecha });
+  b.disabled = false;
+  if(error){ toast('No se pudo: ' + error.message, true); return; }
+  registrarActividad('curso_fecha_puesta', `${ciudad}: ${fechaCorta(fecha)} · ${data?.inscritas ?? 0} inscritas`);
+  toast(`${ciudad} ya tiene fecha: ${fechaCorta(fecha)}.`);
+  await cargarEventosCalendario();
+  await renderCalendario(true);
+});
+
+/* "+ Otra ciudad · fecha por definir…" en cualquier selector de curso: elige la ciudad (y la gira) y el Hub crea o usa
+   su curso por definir (función curso_por_definir, que avisa a Jared la primera vez). */
+let pdSelect = null, pdGira = '';
+buscadorDeCiudad(document.getElementById('pdCiudad'), { placeholder:'Busca la ciudad…' });
+async function abrirPorDefinir(sel){
+  pdSelect = sel;
+  const giras = await obtenerGiras();
+  if(!giras.length){ toast('No hay giras que se estén vendiendo.', true); return cancelarPorDefinir(); }
+  pdGira = giras.some(g=>g.id === giraFiltrada()) ? giraFiltrada() : giras[0].id;
+  document.getElementById('pdGiraCampo').style.display = giras.length > 1 ? '' : 'none';
+  document.getElementById('pdGira').innerHTML = giras.map(g=>`<button type="button" data-pd-gira="${escapeAttr(g.id)}" class="${g.id === pdGira ? 'active' : ''}">${escHtml(g.corto)}</button>`).join('');
+  const ciudadLead = leadAbierto?.()?.ciudad_interes_id || '';
+  const s = document.getElementById('pdCiudad');
+  s.innerHTML = opcionesCiudad(ciudadLead);
+  s.value = ciudadLead;
+  s.dispatchEvent(new Event('change'));
+  document.getElementById('modalPorDefinir').classList.add('open');
+}
+function cancelarPorDefinir(){
+  document.getElementById('modalPorDefinir').classList.remove('open');
+  if(pdSelect && pdSelect.value === '__pordefinir'){ pdSelect.value = ''; pdSelect.dispatchEvent(new Event('change', { bubbles:true })); }
+  pdSelect = null;
+}
+document.addEventListener('change', e=>{
+  const t = e.target;
+  if(t instanceof HTMLSelectElement && t.value === '__pordefinir' && t.id !== 'pdCiudad') abrirPorDefinir(t);
+}, true);
+document.getElementById('closeModalPorDefinir').addEventListener('click', cancelarPorDefinir);
+document.getElementById('pdGira').addEventListener('click', e=>{
+  const b = e.target.closest('[data-pd-gira]'); if(!b) return;
+  pdGira = b.dataset.pdGira;
+  document.querySelectorAll('#pdGira button').forEach(x=>x.classList.toggle('active', x === b));
+});
+document.getElementById('pdGuardar').addEventListener('click', async ()=>{
+  const ciudad = document.getElementById('pdCiudad').value;
+  if(!ciudad){ toast('Elige la ciudad.', true); return; }
+  const btn = document.getElementById('pdGuardar'); btn.disabled = true;
+  const { data: id, error } = await sb.rpc('curso_por_definir', { p_ciudad:ciudad, p_curso:pdGira });
+  btn.disabled = false;
+  if(error){ toast(error.message, true); return; }
+  const nuevo = !eventoPorId(id);
+  await cargarEventosCalendario();
+  const ev = eventoPorId(id);
+  const etiqueta = ev ? etiquetaEvento(ev) : 'Curso por definir';
+  if(pdSelect){
+    if(![...pdSelect.options].some(o=>o.value === id)){
+      const especial = pdSelect.querySelector('option[value="__pordefinir"]');
+      const op = `<option value="${escapeAttr(id)}">${escHtml(etiqueta)}</option>`;
+      if(especial) especial.insertAdjacentHTML('beforebegin', op); else pdSelect.insertAdjacentHTML('beforeend', op);
+    }
+    pdSelect.value = id;
+    pdSelect.dispatchEvent(new Event('change', { bubbles:true }));
+  }
+  pdSelect = null;
+  document.getElementById('modalPorDefinir').classList.remove('open');
+  if(nuevo) registrarActividad('curso_por_definir', etiqueta);
+  toast(nuevo ? `${etiqueta}: listo. A Jared le llegó la tarea de ponerle fecha.` : `${etiqueta} (ya existía).`);
+});
+
 async function renderCalendario(preservarMes){
   const mesPrevio = (preservarMes && calendarioMeses[calendarioMesIdx]) ? { ...calendarioMeses[calendarioMesIdx] } : null;
   const cont = document.getElementById('listaCalendario');
@@ -8256,6 +8417,7 @@ async function renderCalendario(preservarMes){
     cont.innerHTML = '<div class="empty-note">No hay giras con fechas de hoy en adelante. Carga las fechas de la siguiente gira para verla aquí.</div>';
     return;
   }
+  renderPorDefinir(ids);
   // Los días de las giras que se están vendiendo (solo de las que pasan el filtro de gira).
   // TODOS los días de la vuelta actual de cada gira, también los que ya pasaron: nunca se
   // quita nada del Calendario, queda como histórico y se sigue pudiendo editar.
@@ -8744,7 +8906,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, monto_proximo_pago, asistencia, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, sede, curso_id, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
+    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, monto_proximo_pago, asistencia, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, fecha_por_definir, sede, curso_id, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -8844,11 +9006,11 @@ function precioAlCambiarDeCurso(insc, cursoAntes, cursoNuevo){
 function pintarCursoFicha(){
   const d = modalInscDatos; if(!d) return;
   const ev = d.eventos;
-  document.getElementById('fichaCursoTxt').textContent = ev ? `${ev.ciudades?.nombre || '(ciudad?)'} · ${ev.fecha ? fechaLarga(ev.fecha) : 'sin fecha'}` : 'sin curso';
+  document.getElementById('fichaCursoTxt').textContent = ev ? `${ev.ciudades?.nombre || '(ciudad?)'} · ${ev.fecha ? fechaLarga(ev.fecha) : esPorDefinir(ev) ? 'fecha por definir' : 'sin fecha'}` : 'sin curso';
   document.getElementById('fichaCursoMover').hidden = true;
   document.getElementById('fichaCeder').hidden = true;
   // Ceder su lugar: todo el equipo, solo si su curso no ha pasado y no ha llegado.
-  document.getElementById('btnCederLugar').style.display = puedeCederLugar() && ev?.fecha && ev.fecha >= hoyISO() && d.asistencia !== 'llego' ? '' : 'none';
+  document.getElementById('btnCederLugar').style.display = puedeCederLugar() && ev && cursoPorVenir(ev) && d.asistencia !== 'llego' ? '' : 'none';
 }
 
 /* CEDER SU LUGAR: la inscrita no puede ir y va otra persona (la que diga la clienta) con lo que ya pagó.
@@ -14737,10 +14899,11 @@ async function embTraer(eventoId){
 function embCursos(filas){
   const m = new Map();
   filas.forEach(f=>{ if(!m.has(f.evento_id)) m.set(f.evento_id, { id:f.evento_id, fecha:f.fecha, ciudad:f.ciudad, filas:[] }); m.get(f.evento_id).filas.push(f); });
-  return [...m.values()].sort((a, b)=>(a.fecha || '').localeCompare(b.fecha || ''));
+  return [...m.values()].sort((a, b)=>(a.fecha || '9999').localeCompare(b.fecha || '9999'));   // los "por definir" al final
 }
 const embCuenta = (filas, k) => filas.filter(f=>f.grupo === k).length;
 function embCuando(fecha){
+  if(!fecha) return 'fecha por definir';
   const d = diasEntre(hoyISO(), fecha);
   return d === 0 ? 'hoy' : d === 1 ? 'mañana' : `en ${d} días`;
 }
@@ -14789,7 +14952,7 @@ function embReporte(filas){
   if(r.alcance === 'curso') cursos = cursos.filter(c=>c.id === r.curso);
   const bloque = c => {
     const n = k => embCuenta(c.filas, k);
-    const lineas = [`*${c.ciudad} · ${fechaCorta(c.fecha)}*`];
+    const lineas = [`*${c.ciudad} · ${c.fecha ? fechaCorta(c.fecha) : 'fecha por definir'}*`];
     if(r.numeros){
       // Inscritas = todas las que tienen inscripción (menos las que no van), pagaran o no.
       const insc = c.filas.filter(f=>f.inscripcion_id && f.grupo !== 'no_van');
@@ -14859,12 +15022,12 @@ function embPintar(){
     ${alertas ? `<div class="emb-alertas">${alertas}</div>` : ''}
     <div class="emb-dos">
       <div>${cursos.map(c=>`<div class="emb-curso">
-          <div class="emb-cab"><b>${escHtml(c.ciudad)} · ${escHtml(fechaCorta(c.fecha))}</b><span class="sub">${escHtml(embCuando(c.fecha))} · ${c.filas.filter(f=>f.grupo !== 'no_van').length} en total</span></div>
+          <div class="emb-cab"><b>${escHtml(c.ciudad)}${c.fecha ? ' · ' + escHtml(fechaCorta(c.fecha)) : ''}</b><span class="sub">${escHtml(embCuando(c.fecha))} · ${c.filas.filter(f=>f.grupo !== 'no_van').length} en total</span></div>
           ${embHtmlCurso(c, emb.abierto, 'emb')}<div class="cf-caja" data-cf-ev="${escapeAttr(c.id)}">${cfHtml(c.id)}</div></div>`).join('') || '<div class="empty-note">No hay cursos de la gira activa de hoy en adelante.</div>'}</div>
       <div class="emb-rep"><h3>Copiar reporte</h3>
         <div class="emb-titulo">De qué</div>
         <label><input type="radio" name="embAlcance" value="curso" ${r.alcance === 'curso' ? 'checked' : ''}> Un curso</label>
-        ${r.alcance === 'curso' ? `<select class="select" id="embRepCurso" aria-label="Curso del reporte">${cursos.map(c=>`<option value="${escapeAttr(c.id)}" ${c.id === r.curso ? 'selected' : ''}>${escHtml(c.ciudad)} · ${escHtml(fechaCorta(c.fecha))}</option>`).join('')}</select>` : ''}
+        ${r.alcance === 'curso' ? `<select class="select" id="embRepCurso" aria-label="Curso del reporte">${cursos.map(c=>`<option value="${escapeAttr(c.id)}" ${c.id === r.curso ? 'selected' : ''}>${escHtml(c.ciudad)} · ${escHtml(c.fecha ? fechaCorta(c.fecha) : 'fecha por definir')}</option>`).join('')}</select>` : ''}
         <label><input type="radio" name="embAlcance" value="gira" ${r.alcance === 'gira' ? 'checked' : ''}> Toda la gira (${cursos.length} cursos)</label>
         <div class="emb-titulo">Para quién</div>
         <label><input type="radio" name="embPorVend" value="no" ${r.porVend ? '' : 'checked'}> Todas las vendedoras juntas</label>
@@ -17915,7 +18078,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-06-segundo-pago';
+const HUB_VERSION = '2026-11-10-por-definir';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
