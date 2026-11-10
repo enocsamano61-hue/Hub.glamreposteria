@@ -330,5 +330,43 @@ begin
     else mal := mal || 'H15 al ceder el lugar se quedó la promesa de quien cedió'::text; end if;
   end;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H15 vigilante: ' || rojos); end if;
+  /* H16 (10 nov 2026) a) Cobranza cambia la fecha de pago en la ficha: la promesa vieja de su lead se quita (caso Karina).
+     b) Curso con fecha por definir: se crea una sola vez por ciudad y gira, avisa a Jared, cuenta en el Embudo y,
+        al ponerle fecha un administrador, la tarea se cierra y el curso deja de estar "por definir". */
+  declare v_p uuid; v_l uuid; v_i uuid; v_cur uuid; v_ciu uuid; v_ev uuid; v_ev2 uuid;
+  begin
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA DIECISEIS', '0000000118') returning id into v_p;
+    insert into public.inscripciones (persona_id, evento_id, precio_pactado, paquete, anticipo, restante, liquidado, estatus_id, asesor_id, notas_migracion, fecha_proximo_pago)
+    values (v_p, e0, 1400, 'BASICO', 0, 1400, false, st_anticipo, v_vend, 'HISTORIA', v_hoy + 3) returning id into v_i;
+    select id into v_l from public.leads where persona_id = v_p and evento_id = e0 limit 1;
+    if v_l is null then
+      insert into public.leads (persona_id, evento_id, estatus_id, asesor_id, ciudad_interes_id) values (v_p, e0, st_anticipo, v_vend, (select ciudad_id from public.eventos where id = e0)) returning id into v_l;
+    end if;
+    update public.leads set fecha_compromiso_pago = v_hoy + 3, estatus_id = st_anticipo where id = v_l;
+    update public.inscripciones set fecha_proximo_pago = v_hoy + 20 where id = v_i;
+    if (select fecha_compromiso_pago from public.leads where id = v_l) is null then ok := ok + 1;
+    else mal := mal || 'H16 Cobranza cambió la fecha en la ficha y la promesa vieja se quedó en su lead'::text; end if;
+    select c into v_cur from public.cursos_vigentes() c limit 1;
+    select ci.id into v_ciu from public.ciudades ci
+     where not exists (select 1 from public.eventos e where e.ciudad_id = ci.id and e.curso_id = v_cur and (e.fecha >= v_hoy or e.fecha_por_definir)) limit 1;
+    v_ev := public.curso_por_definir(v_ciu, v_cur);
+    v_ev2 := public.curso_por_definir(v_ciu, v_cur);
+    if v_ev = v_ev2 and (select fecha is null and fecha_por_definir from public.eventos where id = v_ev) then ok := ok + 1;
+    else mal := mal || 'H16 curso por definir duplicado o con fecha'::text; end if;
+    if (select count(*) from public.notas_usuario where enlace ->> 'curso_por_definir' = v_ev::text and not completado) = (select count(*) from public.usuarios where rol = 'Gerente' and activo) then ok := ok + 1;
+    else mal := mal || 'H16 a Jared no le llegó (o le llegó repetida) la tarea de ponerle fecha'::text; end if;
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA DIECISEIS B', '0000000119') returning id into v_p;
+    insert into public.inscripciones (persona_id, evento_id, precio_pactado, paquete, anticipo, restante, liquidado, estatus_id, asesor_id, notas_migracion)
+    values (v_p, v_ev, 1400, 'BASICO', 700, 700, false, st_anticipo, v_vend, 'HISTORIA') returning id into v_i;
+    insert into public.pagos (inscripcion_id, monto, fecha, banco) values (v_i, 700, v_hoy, 'BANCO PRUEBA');
+    if exists (select 1 from public.embudo_cursos(v_cur, v_hoy, v_ev) x where x.inscripcion_id = v_i and x.grupo = 'anticipo') then ok := ok + 1;
+    else mal := mal || 'H16 el Embudo no cuenta a la inscrita del curso por definir'::text; end if;
+    rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H16 vigilante (por definir): ' || rojos); end if;
+    perform public.curso_poner_fecha(v_ev, v_hoy + 40);
+    if (select fecha = v_hoy + 40 and not fecha_por_definir from public.eventos where id = v_ev)
+       and not exists (select 1 from public.notas_usuario where enlace ->> 'curso_por_definir' = v_ev::text and not completado) then ok := ok + 1;
+    else mal := mal || 'H16 al ponerle fecha no quedó fechado o la tarea siguió abierta'::text; end if;
+  end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H16 vigilante: ' || rojos); end if;
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;
