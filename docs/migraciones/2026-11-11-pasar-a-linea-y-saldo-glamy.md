@@ -71,3 +71,10 @@ a mano es la fila de los exámenes viejos, que es un registro de algo que pasó 
 - Funciones probadas con el caso real dentro de una transacción que se deshizo (pasa liquidada $1,500; al regresar,
   vuelve liquidada y la venta cancelada).
 - Examen corto (`--tema="(11 nov)"`): 10/10 · US$0.0128, anotado en `glamy_uso` como prueba (10 filas).
+
+## Publicado (11 nov 2026)
+- Producción con `HUB_VERSION = '2026-11-11-pasar-a-linea'` (verificado contra hub/index.html). Glamy v42 (igual al repo).
+- Aviso `2026-11-11-pasar-a-linea` publicado.
+- Caso de Comalcalco: pasado a "Los Pasteles más sabrosos de la chef" en línea ($1,500, liquidada, falta dar acceso);
+  su lugar presencial quedó "No va" con la liga a su venta. Respaldo previo en `respaldo.inscripciones_20261111` y
+  `respaldo.pagos_20261111`. Vigilante 0 rojas después.
