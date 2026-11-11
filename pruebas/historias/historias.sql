@@ -379,5 +379,28 @@ begin
     else mal := mal || 'H17 la gira con ciudades por definir dejó de estar vigente'::text; end if;
   end;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H17 vigilante: ' || rojos); end if;
+  /* H18 (11 nov 2026) Pasar a curso en línea: su lugar se cierra (No va, sin dinero en la gira), sus pagos pasan a la
+     venta en línea (liquidada) sin borrarse, no cuadra mal en el vigilante; un administrador la regresa y todo vuelve. */
+  declare v_p uuid; v_i uuid; v_cl uuid; v_r jsonb; v_v uuid;
+  begin
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA DIECIOCHO', '0000000120') returning id into v_p;
+    insert into public.inscripciones (persona_id, evento_id, precio_pactado, paquete, anticipo, restante, liquidado, estatus_id, asesor_id, notas_migracion)
+    values (v_p, e0, 1400, 'BASICO', 1400, 0, true, (select id from public.estatus where clave = 'pagado'), v_vend, 'HISTORIA') returning id into v_i;
+    insert into public.pagos (inscripcion_id, monto, fecha, banco, verificacion) values (v_i, 700, v_hoy - 5, 'BANCO PRUEBA', 'confirmado'), (v_i, 700, v_hoy, 'BANCO PRUEBA', 'confirmado');
+    select id into v_cl from public.cursos_en_linea where activo limit 1;
+    v_r := public.inscripcion_pasar_a_linea(v_i, v_cl, 1500, 'Historia: lo toma en línea');
+    v_v := (v_r ->> 'venta')::uuid;
+    if (select s.clave = 'no_va_al_curso' and i.anticipo = 0 and i.venta_en_linea_id = v_v from public.inscripciones i join public.estatus s on s.id = i.estatus_id where i.id = v_i) then ok := ok + 1;
+    else mal := mal || 'H18 su lugar presencial no quedó cerrado y sin dinero'::text; end if;
+    if (select confirmado = 1400 and debe = 100 and estado = 'abonando' from public.venta_en_linea_resumen(v_v))
+       and not exists (select 1 from public.pagos where inscripcion_id = v_i and verificacion <> 'paso_a_linea') then ok := ok + 1;
+    else mal := mal || 'H18 lo pagado no pasó completo a la venta en línea'::text; end if;
+    rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H18 vigilante (en línea): ' || rojos); end if;
+    perform public.inscripcion_regresar_a_presencial(v_i, 'Historia: siempre sí va');
+    if (select s.clave = 'pagado' and i.anticipo = 1400 and i.liquidado and i.venta_en_linea_id is null from public.inscripciones i join public.estatus s on s.id = i.estatus_id where i.id = v_i)
+       and (select estado = 'cancelada' from public.venta_en_linea_resumen(v_v)) then ok := ok + 1;
+    else mal := mal || 'H18 al regresarla no volvió a su curso con lo pagado'::text; end if;
+  end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H18 vigilante: ' || rojos); end if;
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;

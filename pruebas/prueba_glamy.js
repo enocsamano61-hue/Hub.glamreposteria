@@ -25,7 +25,7 @@ const PEDIDOS = [
     { usuario_id:'u2', fecha:HOY, creado_en:HOY + 'T17:00:00Z', costo_usd:0.0008, herramientas:['buscar_persona', 'curso'], error:null },
     { usuario_id:'u1', fecha:HOY, creado_en:HOY + 'T16:00:00Z', costo_usd:0.0002, herramientas:[], error:'falla' },
   ];
-  const h = await abrirHub({ tablas:{ inscripciones:[INSC], hub_pedidos:PEDIDOS, glamy_uso:USO } });
+  const h = await abrirHub({ tablas:{ inscripciones:[INSC], hub_pedidos:PEDIDOS, glamy_uso:USO, glamy_recargas:[{ fecha:'2026-10-19', monto_usd:10 }] } });
   const { p, check } = h;
   // La función glamy simulada: guarda lo que recibe y responde lo que pida la prueba.
   await p.evaluate(() => {
@@ -138,8 +138,8 @@ const PEDIDOS = [
   await p.click('#desktopNav [data-view="glamy"]');
   await p.waitForTimeout(250);
   const kpis = await p.$$eval('.gu-kpi', ks => ks.map(k => k.textContent.replace(/\s+/g, ' ')));
-  check(kpis.length === 4 && kpis[0].includes('3') && kpis[0].includes('$0.002'), 'hoy: 3 preguntas y su costo (' + kpis[0] + ')');
-  check(kpis[3].includes('$10'), 'proyección contra el saldo');
+  check(kpis.length === 4 && kpis[1].includes('3') && kpis[1].includes('$0.002'), 'hoy: 3 preguntas y su costo (' + kpis[1] + ')');
+  check(kpis[0].includes('$10.00') && kpis[0].includes('Saldo'), 'saldo desde la recarga (' + kpis[0] + ')');
   const usoTxt = await p.textContent('#glTabUso');
   check(usoTxt.includes('buscar persona') && usoTxt.includes('errores: 1'), 'lo más consultado y los errores');
   const filasUso = await p.$$eval('.gu-tabla tr', tr => tr.slice(1).map(r => r.textContent.replace(/\s+/g, ' ').trim()));

@@ -1,7 +1,7 @@
 /* EXAMEN DE GLAMY — preguntas típicas contra la función real (modo prueba, datos de ejemplo).
    Revisa que mande a la sección correcta (p. ej. un pago de lead sin confirmar NO va a Calendario/Recepción).
    No corre en correr_todas.js: llama a la IA (cuesta unos centavos). Se corre antes de publicar Glamy:
-     GLAMY_LLAVE=<llave temporal> node pruebas/examen_glamy.js
+     GLAMY_LLAVE=<llave temporal> node pruebas/examen_glamy.js [--tema=palabra,palabra | --repetir]
    La llave temporal se da de alta en glamy_prueba_llave (huella sha256 y caducidad corta).
    Datos inventados: nadie real. */
 const URL = 'https://bomlszsnixazhnsegeik.supabase.co/functions/v1/glamy';
@@ -144,6 +144,10 @@ const CASOS_FASE1 = [
     revisar: t => /(s[ií]|puedes)/i.test(t) && /(Jared|fecha por definir)/i.test(t) && /(ciudad|curso)/i.test(t) },
   { nombre:'Teléfono alterno al dar de alta (3 nov)', pregunta:'al dar de alta un lead, ¿dónde pongo un segundo teléfono?',
     revisar: t => /Tel[eé]fono alterno/i.test(t) && /Nuevo lead/.test(t) },
+  { nombre:'En línea: pasar a una inscrita del presencial a en línea (11 nov)', pregunta:'una alumna ya liquidó su curso presencial pero ya no va a ir, lo va a tomar en línea, ¿qué hago para que no me salga en el conteo del curso?',
+    revisar: t => /Pasar a curso en l[ií]nea/i.test(t) && /ficha/i.test(t) && !/No va a ir al curso/.test(t) },
+  { nombre:'Glamy: saldo desde la recarga (11 nov)', pregunta:'¿dónde veo cuánto saldo le queda a Glamy desde la recarga?',
+    revisar: t => /saldo/i.test(t) && /(⟦ir:glamy⟧|secci[oó]n Glamy|Glamy)/.test(t) },
   { nombre:'Cobranza: completar datos (30 oct)', pregunta:'hay inscritas que no tienen fecha de pago ni vendedora, ¿dónde las completo rápido?',
     revisar: t => /Completar datos/.test(t) && /Cobranza/.test(t) },
   { nombre:'Gente nueva: le explica con calma y con botón (28 oct)', pregunta:'¿cómo registro un lead?', nueva_dias:1,
@@ -180,49 +184,62 @@ const CASOS_BI = [
     revisar: r => metricasDe(r).includes('inscritas_sin_pago') && prox(r) },
 ];
 
+/* Qué se corre (para no gastar de más; cada pregunta cuesta menos de un centavo de dólar):
+   - sin nada: el examen completo. Va cuando cambia cómo trabaja Glamy (index.ts, el modelo, las herramientas)
+     o cuando el manual cambia mucho.
+   - --tema=palabra,palabra: las BÁSICAS + las preguntas cuyo nombre o texto traiga alguna palabra. Es el examen
+     corto de un cambio chico del manual (p. ej. --tema=alterno,teléfono).
+   - --repetir: solo las que fallaron la última vez (se guardan en la carpeta temporal del sistema).
+   Las pruebas quedan anotadas en glamy_uso como "prueba" (la función lo hace sola) y se ven en el panel de Glamy. */
+const os = require('os'), fs = require('fs'), path = require('path');
+const ARCHIVO_FALLAS = path.join(os.tmpdir(), 'examen_glamy_fallas.json');
+const arg = n => (process.argv.find(a => a.startsWith('--' + n + '=')) || '').split('=').slice(1).join('=');
+const TEMAS = arg('tema').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+const REPETIR = process.argv.includes('--repetir');
+// Las básicas: a dónde mandar, pago de lead, cobrar, día del curso, sin datos, botones sin emojis, cambio de fecha y una de BI.
+const BASICAS = ['Pago de lead sin confirmar (caso Jazmín)', 'Inscrita que debe (curso futuro)', 'Su curso es hoy', 'No llegó a su curso',
+  'Sin datos: confirmar pago de un lead', 'Fase 1: nombra los botones sin emojis', 'Cambio de fecha: ¿cuántos faltan? (Jared)',
+  'BI: "cuánto nos deben de los cursos que vienen"'];
+const TODOS = [...CASOS.map(c => ({ ...c, tipo:'persona' })), ...CASOS_CF.map(c => ({ ...c, tipo:'cf' })),
+  ...CASOS_FASE1.map(c => ({ ...c, tipo:'fase1' })), ...CASOS_BI.map(c => ({ ...c, tipo:'bi' }))];
+function elegir(){
+  if(REPETIR){
+    let fallas = [];
+    try { fallas = JSON.parse(fs.readFileSync(ARCHIVO_FALLAS, 'utf8')); } catch(e) {}
+    return TODOS.filter(c => fallas.includes(c.nombre));
+  }
+  if(!TEMAS.length) return TODOS;
+  return TODOS.filter(c => BASICAS.includes(c.nombre) || TEMAS.some(t => (c.nombre + ' ' + c.pregunta).toLowerCase().includes(t)));
+}
+const pedir = cuerpo => fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
+  body: JSON.stringify({ accion:'prueba', llave:LLAVE, ...cuerpo }) }).then(x => x.json());
+
 (async () => {
   let ok = 0, mal = 0, costo = 0;
-  for(const c of CASOS){
-    const simular = c.datos ? { buscar_persona:c.datos } : {};
-    const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
-      body: JSON.stringify({ accion:'prueba', llave:LLAVE, pregunta:c.pregunta, seccion:'inicio', simular }) }).then(x => x.json());
+  const fallas = [];
+  const casos = elegir();
+  if(!casos.length){ console.log(REPETIR ? 'No hay fallas pendientes de la última vez.' : 'Ninguna pregunta coincide con ese tema.'); return; }
+  console.log(REPETIR ? `Repitiendo las ${casos.length} que fallaron` : TEMAS.length ? `Examen corto (${TEMAS.join(', ')}): ${casos.length} preguntas` : `Examen completo: ${casos.length} preguntas`);
+  for(const c of casos){
+    let r, bien;
+    if(c.tipo === 'persona'){
+      r = await pedir({ pregunta:c.pregunta, seccion:'inicio', simular:c.datos ? { buscar_persona:c.datos } : {} });
+      // Igual que el Hub: una marca mal cerrada (⟦ir:board⟦) también cuenta como botón.
+      const t = String(r.texto || '').replace(/⟦((?:ir|ficha|lead):[^⟧⟦\]\s]{1,60})[⟦\]]/g, '⟦$1⟧');
+      bien = c.debe.some(b => t.includes(b)) && !c.noDebe.some(b => t.includes(b)) && !r.error;
+      if(!bien) console.log('✗ ' + c.nombre + '\n   esperaba alguno de', c.debe.join(' '), c.noDebe.length ? '· sin ' + c.noDebe.join(' ') : '', '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
+    } else {
+      r = c.tipo === 'cf' ? await pedir({ pregunta:c.pregunta, seccion:'calendario', simular:{ curso:CURSO_CF } })
+        : c.tipo === 'fase1' ? await pedir({ pregunta:c.pregunta, seccion:'inicio', simular:{}, nueva_dias:c.nueva_dias })
+        : await pedir({ modo:'bi', pregunta:c.pregunta, simular:{ bi_tabla:MATRIZ_EJ, bi_consulta:CONSULTA_EJ, bi_giras:[] } });
+      const t = String(r.texto || '');
+      bien = !r.error && (c.tipo === 'cf' ? c.revisar(r, t) : c.tipo === 'fase1' ? c.revisar(t) : c.revisar(r));
+      if(!bien) console.log('✗ ' + c.nombre + '\n   llamó:', JSON.stringify(r.llamadas || []), '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
+    }
     costo += r.costo_usd || 0;
-    // Igual que el Hub: una marca mal cerrada (⟦ir:board⟦) también cuenta como botón.
-    const t = String(r.texto || '').replace(/⟦((?:ir|ficha|lead):[^⟧⟦\]\s]{1,60})[⟦\]]/g, '⟦$1⟧');
-    const bien = c.debe.some(b => t.includes(b)) && !c.noDebe.some(b => t.includes(b)) && !r.error;
-    bien ? ok++ : mal++;
-    console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
-    if(!bien) console.log('   esperaba alguno de', c.debe.join(' '), c.noDebe.length ? '· sin ' + c.noDebe.join(' ') : '', '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
+    if(bien){ ok++; console.log('✓ ' + c.nombre); } else { mal++; fallas.push(c.nombre); }
   }
-  for(const c of CASOS_CF){
-    const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
-      body: JSON.stringify({ accion:'prueba', llave:LLAVE, pregunta:c.pregunta, seccion:'calendario', simular:{ curso:CURSO_CF } }) }).then(x => x.json());
-    costo += r.costo_usd || 0;
-    const t = String(r.texto || '');
-    const bien = !r.error && c.revisar(r, t);
-    bien ? ok++ : mal++;
-    console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
-    if(!bien) console.log('   llamó:', JSON.stringify(r.llamadas || []), '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
-  }
-  for(const c of CASOS_FASE1){
-    const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
-      body: JSON.stringify({ accion:'prueba', llave:LLAVE, pregunta:c.pregunta, seccion:'inicio', simular:{}, nueva_dias:c.nueva_dias }) }).then(x => x.json());
-    costo += r.costo_usd || 0;
-    const t = String(r.texto || '');
-    const bien = !r.error && c.revisar(t);
-    bien ? ok++ : mal++;
-    console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
-    if(!bien) console.log('   llamó:', JSON.stringify(r.llamadas || []), '\n   ' + t.replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
-  }
-  for(const c of CASOS_BI){
-    const r = await fetch(URL, { method:'POST', headers:{ 'content-type':'application/json' },
-      body: JSON.stringify({ accion:'prueba', modo:'bi', llave:LLAVE, pregunta:c.pregunta, simular:{ bi_tabla:MATRIZ_EJ, bi_consulta:CONSULTA_EJ, bi_giras:[] } }) }).then(x => x.json());
-    costo += r.costo_usd || 0;
-    const bien = !r.error && c.revisar(r);
-    bien ? ok++ : mal++;
-    console.log(`${bien ? '✓' : '✗'} ${c.nombre}`);
-    if(!bien) console.log('   llamó:', JSON.stringify(r.llamadas || []), '\n   ' + String(r.texto || '').replace(/\n/g, '\n   ') + (r.error ? '\n   error: ' + r.error : ''));
-  }
-  console.log(`\nexamen_glamy: ${ok}/${ok + mal} · costo US$${costo.toFixed(4)}`);
+  try { fs.writeFileSync(ARCHIVO_FALLAS, JSON.stringify(fallas)); } catch(e) {}
+  console.log(`\nexamen_glamy: ${ok}/${ok + mal} · costo US$${costo.toFixed(4)}` + (fallas.length ? ' · para repetir solo esas: --repetir' : ''));
   process.exitCode = mal ? 1 : 0;
 })();

@@ -396,7 +396,14 @@ Deno.serve(async (req) => {
       llamadas.push({ nombre, entrada });
       return simular[nombre] ?? { modo_prueba: true, herramienta: nombre, nota: "Sin datos en modo prueba." };
     }, enBI ? [...HERRAMIENTAS, ...HERRAMIENTAS_BI] : HERRAMIENTAS, enBI ? "medium" : "low");
-    return responder({ ...r, llamadas, costo_usd: Number(costoUSD(r.uso).toFixed(6)) });
+    // También se anota (como prueba, sin usuario): así el saldo del panel de Glamy cuadra con la consola de Anthropic.
+    const costoPrueba = Number(costoUSD(r.uso).toFixed(6));
+    await servicio.from("glamy_uso").insert({
+      usuario_id: null, prueba: true, fecha: hoyMX(), tokens_entrada: r.uso.entrada, tokens_salida: r.uso.salida,
+      tokens_cache_lectura: r.uso.cacheLectura, tokens_cache_escritura: r.uso.cacheEscritura,
+      costo_usd: costoPrueba, herramientas: r.usadas, error: r.error,
+    });
+    return responder({ ...r, llamadas, costo_usd: costoPrueba });
   }
 
   // Sesión de quien pregunta.
