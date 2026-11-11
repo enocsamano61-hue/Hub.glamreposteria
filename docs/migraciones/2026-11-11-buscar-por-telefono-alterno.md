@@ -22,3 +22,9 @@ principal. ("Fuera del tablero también existe", Recepción, Historial, Glamy y 
 
 ## Pruebas
 - `prueba_buscar_alterno.js` (8/8), capturas 1200/390.
+
+## Publicado (11 nov 2026)
+- `correr_todas` 61/61; historias `fallas=0 bien=78`; vigilante 0 reglas rojas.
+- Producción con `HUB_VERSION = '2026-11-11-buscar-alterno'` (verificado contra hub/index.html).
+- Glamy v41 (manual con "por el principal o por el alterno"), igual al repo; examen 54/56 y 56/56 al repetir.
+- Aviso `2026-11-11-buscar-alterno` publicado.
