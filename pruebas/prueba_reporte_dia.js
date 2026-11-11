@@ -25,7 +25,7 @@ const VIG = [
       vigilante_resultados:VIG,
       hub_pedidos:[{ numero:7, titulo:'Botón para exportar', seccion:'cobranza', estado:'nuevo' }, { numero:6, titulo:'Ya hecho', seccion:'board', estado:'hecho' }],
       glamy_comentarios:[{ pregunta:'¿Cuántas faltan en Xalapa?', nota:'Que me diera los nombres', usuario_id:'u2', creado_en:new Date().toISOString() }],
-      glamy_uso:[{ id:'g1', fecha:AYER, error:'API 500' }],
+      glamy_uso:[{ id:'g1', fecha:AYER, error:'API 500', prueba:false }, { id:'g2', fecha:AYER, error:'API 500', prueba:true }],
       hub_novedades:[{ id:'nov1', titulo:'Fichas más claras', publicada:true, creado_en:'2026-10-27T10:00:00Z' }],
       hub_novedades_leidas:[{ novedad_id:'nov1', usuario_id:'u1' }],
       usuarios:[{ id:'u1', nombre:'Enoc Prueba' }, { id:'u2', nombre:'Vendedora Prueba' }],
@@ -49,7 +49,7 @@ const VIG = [
   check(t.includes('Datos por limpiar') && t.includes('Inscritas sin vendedora') && t.includes('−3 desde ayer') && t.includes('Lo limpia: Cobranza') && !t.includes('Regla pago_doble'), 'datos por limpiar, con el cambio desde ayer y quién');
   check(t.includes('Tickets nuevos sin revisar') && t.includes('#7 Botón para exportar') && !t.includes('Ya hecho'), 'tickets nuevos (solo los nuevos)');
   check(t.includes('"No me sirvió" · Vendedora Prueba') && t.includes('Esperaba: Que me diera los nombres'), 'los "No me sirvió" de Glamy');
-  check(t.includes('Veces que Glamy no pudo contestar ayer'), 'errores de Glamy de ayer');
+  check(t.includes('Veces que Glamy no pudo contestar ayer') && /rd-n">1<\/span>\s*<div class="rd-txt"><b>Veces que Glamy/.test(await p.innerHTML('#view-inicio') || ''), 'errores de Glamy de ayer (sin contar los exámenes)');
   check(t.includes('Falta leerla') && t.includes('Vendedora Prueba') && t.includes('Fichas más claras'), 'quién falta de leer la actualización');
   check(!t.includes('Todo en orden'), 'con pendientes no dice "Todo en orden"');
   await h.captura('reporte-dia.png');

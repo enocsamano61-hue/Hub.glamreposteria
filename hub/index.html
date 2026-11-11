@@ -1461,6 +1461,13 @@
   .ficha-curso input[type=date], .ficha-curso #inscProximoMonto{ padding:4px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
   .ficha-curso label{ font-weight:600; color:var(--ink-soft); }
   .ficha-curso .fc-botones{ display:flex; gap:6px; flex-wrap:wrap; }
+  #fichaPasarLinea select, #fichaPasarLinea input{ width:100%; box-sizing:border-box; margin:4px 0 6px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
+  .fc-enlinea{ margin-top:8px; padding:8px 10px; border-radius:9px; background:rgba(var(--wine-rgb),.07); border:1px solid rgba(var(--wine-rgb),.25); color:var(--ink); }
+  .fc-enlinea b{ color:var(--wine-dark); }
+  .fc-enlinea .fc-botones{ margin-top:6px; }
+  .fc-enlinea input{ width:100%; box-sizing:border-box; margin-top:6px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
+  #modalInscripcion.en-linea #panelInscPago, #modalInscripcion.en-linea #inscProximoPagoCaja, #modalInscripcion.en-linea #inscProximoMontoCaja,
+  #modalInscripcion.en-linea #inscProximoPagoHint, #modalInscripcion.en-linea #inscFichaMas{ display:none; }
   #fichaCeder input{ width:100%; box-sizing:border-box; margin-top:6px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px; background:var(--bg); color:var(--ink); }
   #cederEncontradas .ceder-op{ display:flex; width:100%; justify-content:space-between; gap:8px; margin-top:6px; padding:6px 8px; border:1px solid var(--border);
     border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px; text-align:left; cursor:pointer; }
@@ -1716,6 +1723,15 @@
   .gu-kpi span{ font-size:11.5px; color:var(--ink-soft); }
   .gu-saldo{ height:8px; background:var(--border); border-radius:10px; overflow:hidden; margin-top:8px; }
   .gu-saldo i{ display:block; height:100%; background:var(--success); }
+  .gu-alcanza{ display:block; margin-top:6px; }
+  .gu-recarga{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin-bottom:14px; padding:12px 16px; }
+  .gu-recarga-txt{ flex:1; min-width:220px; font-size:12.5px; color:var(--ink); }
+  .gu-recarga-txt small{ display:block; color:var(--ink-soft); font-size:11.5px; margin-top:2px; }
+  .gu-recarga-form{ display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; width:100%; }
+  .gu-recarga-form[hidden]{ display:none; }
+  .gu-recarga-form label{ display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--ink-soft); font-weight:600; }
+  .gu-recarga-form input{ padding:9px 10px; border:1px solid var(--border); border-radius:9px; font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); }
+  .gu-recarga-form .btn-primary{ width:auto; }
   .gu-grid{ display:grid; grid-template-columns:1.1fr 1fr; gap:12px; }
   .gu-barras{ display:flex; align-items:flex-end; gap:6px; height:130px; border-bottom:1px solid var(--border); padding-top:18px; }
   .gu-barra{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
@@ -2827,7 +2843,21 @@
     <div class="ficha-curso" id="fichaCurso">
       <div class="fc-fila"><span>Curso: <b id="fichaCursoTxt">—</b></span>
         <span class="fc-botones"><button type="button" class="btn-outline small" id="btnCederLugar">Ceder su lugar</button>
-        <button type="button" class="btn-outline small" id="btnCambiarCurso">Cambiar de curso</button></span></div>
+        <button type="button" class="btn-outline small" id="btnCambiarCurso">Cambiar de curso</button>
+        <button type="button" class="btn-outline small" id="btnPasarLinea">Pasar a curso en línea</button></span></div>
+      <!-- Ya se pasó a un curso en línea: su lugar presencial quedó cerrado y lo que pagó está en su venta en línea -->
+      <div class="fc-enlinea" id="fichaEnLinea" hidden></div>
+      <!-- Pasar a curso en línea: ya no irá al presencial; lo pagado pasa a una venta en línea (base: inscripcion_pasar_a_linea) -->
+      <div class="fc-mover" id="fichaPasarLinea" hidden>
+        <label for="plCurso">Curso en línea</label>
+        <select id="plCurso"></select>
+        <label for="plPrecio">Precio en línea</label>
+        <input id="plPrecio" type="number" inputmode="decimal" min="1" step="50">
+        <input id="plMotivo" maxlength="300" placeholder="Motivo (ej.: lo tomará en línea, no puede viajar)">
+        <div class="vend-hint" id="plResumen"></div>
+        <div class="fc-fila"><button type="button" class="btn-outline small" id="plCancelar">Cancelar</button>
+          <button type="button" class="btn-primary small" id="plOk">Pasar a en línea</button></div>
+      </div>
       <div class="fc-mover" id="fichaCursoMover" hidden>
         <select id="fichaCursoSelect"></select>
         <div class="fc-fila"><button type="button" class="btn-outline small" id="fichaCursoCancelar">Cancelar</button>
@@ -3810,6 +3840,9 @@ const ACCION_LABEL = {
   pago_en_linea_no_llego: 'Marcó que no llegó un pago en línea',
   acceso_en_linea_dado: 'Dio acceso a un curso en línea',
   venta_en_linea_cancelada: 'Canceló una venta en línea',
+  glamy_recarga: 'Anotó una recarga del saldo de Glamy',
+  paso_a_linea: 'Pasó a una alumna de su curso presencial a uno en línea',
+  regreso_a_presencial: 'Regresó a una alumna de en línea a su curso presencial',
   curso_en_linea_cambiado: 'Cambió un curso en línea del catálogo',
   usuario_creado: 'Creó un usuario',
   usuario_baja: 'Dio de baja a un usuario',
@@ -4689,7 +4722,7 @@ async function renderReporteDia(){
     sb.from('vigilante_resultados').select('fecha, regla, tipo, titulo, quien, n, casos, creado_en').order('fecha', { ascending:false }).limit(80),
     sb.from('hub_pedidos').select('numero, titulo, seccion').eq('estado', 'nuevo').order('numero', { ascending:false }).limit(10),
     sb.from('glamy_comentarios').select('pregunta, nota, usuario_id, creado_en').gte('creado_en', desdeAyer).order('creado_en', { ascending:false }).limit(10),
-    sb.from('glamy_uso').select('id').eq('fecha', ayer).not('error', 'is', null),
+    sb.from('glamy_uso').select('id').eq('fecha', ayer).eq('prueba', false).not('error', 'is', null),
     sb.from('hub_novedades').select('id, titulo, tipo, creado_en').eq('publicada', true).neq('tipo', 'bienvenida').order('creado_en', { ascending:false }).limit(1),
     sb.from('usuarios').select('id, nombre, rol, activo, creado_en, bienvenida_pendiente').order('nombre'),
     sb.from('hub_novedades').select('rol').eq('publicada', true).eq('tipo', 'bienvenida'),
@@ -8937,7 +8970,7 @@ async function abrirModalInscripcion(inscId, { soloCobro = false } = {}){
   cambiarTabInsc('estatus');
 
   const { data, error } = await sb.from('inscripciones')
-    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, monto_proximo_pago, asistencia, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, fecha_por_definir, sede, curso_id, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
+    .select('id, evento_id, anticipo, restante, precio_pactado, liquidado, estatus_id, paquete, asesor_id, notas_migracion, fecha_proximo_pago, monto_proximo_pago, asistencia, venta_en_linea_id, paso_a_linea_en, personas(id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra), eventos(fecha, fecha_por_definir, sede, curso_id, ciudades(nombre)), pagos!pagos_inscripcion_id_fkey(id, monto, fecha, hora, banco, forma_pago, concepto, verificacion)')
     .eq('id', inscId).single();
   if(error){ toast('Error cargando alumno: ' + error.message, true); cerrarModalInscripcion(); return; }
   modalInscDatos = data;
@@ -9040,8 +9073,14 @@ function pintarCursoFicha(){
   document.getElementById('fichaCursoTxt').textContent = ev ? `${ev.ciudades?.nombre || '(ciudad?)'} · ${ev.fecha ? fechaLarga(ev.fecha) : esPorDefinir(ev) ? 'fecha por definir' : 'sin fecha'}` : 'sin curso';
   document.getElementById('fichaCursoMover').hidden = true;
   document.getElementById('fichaCeder').hidden = true;
+  document.getElementById('fichaPasarLinea').hidden = true;
+  const enLinea = !!d.venta_en_linea_id;
+  document.getElementById('modalInscripcion').classList.toggle('en-linea', enLinea);
   // Ceder su lugar: todo el equipo, solo si su curso no ha pasado y no ha llegado.
-  document.getElementById('btnCederLugar').style.display = puedeCederLugar() && ev && cursoPorVenir(ev) && d.asistencia !== 'llego' ? '' : 'none';
+  document.getElementById('btnCederLugar').style.display = !enLinea && puedeCederLugar() && ev && cursoPorVenir(ev) && d.asistencia !== 'llego' ? '' : 'none';
+  document.getElementById('btnCambiarCurso').style.display = enLinea ? 'none' : '';
+  document.getElementById('btnPasarLinea').style.display = puedePasarALinea(d) ? '' : 'none';
+  pintarEnLineaFicha();
 }
 
 /* CEDER SU LUGAR: la inscrita no puede ir y va otra persona (la que diga la clienta) con lo que ya pagó.
@@ -9130,6 +9169,125 @@ document.getElementById('cederOk').addEventListener('click', async ()=>{
     if(document.getElementById('view-calendario')?.classList.contains('active')) renderCalendario(true);
   } finally { ceder.ocupado = false; btn.disabled = false; }
 });
+/* PASAR A CURSO EN LÍNEA (11 nov 2026, caso de Comalcalco): una inscrita que ya no irá al presencial y lo toma en línea.
+   Lo hace la base de una sola vez (inscripcion_pasar_a_linea): crea su venta en línea con la misma vendedora,
+   pasa sus pagos confirmados a esa venta (los originales quedan marcados "pasó a en línea", no se borran) y su lugar
+   presencial queda cerrado: sale del curso, de Recepción, de Cobranza, del cambio de fecha y de los números de la gira.
+   Un administrador lo puede regresar (inscripcion_regresar_a_presencial) mientras no se le dé el acceso. */
+const plEstado = { ocupado:false };
+function puedePasarALinea(d){
+  if(!usuarioActual?.id || !d || d.venta_en_linea_id) return false;
+  const ev = d.eventos;
+  const cerrados = ['no_va_al_curso', 'perdio_anticipo'].map(c=>estatusPorClave(c)?.id);
+  return !!ev && cursoPorVenir(ev) && d.asistencia !== 'llego' && !cerrados.includes(d.estatus_id);
+}
+// Lo que ya pagó (solo pagos confirmados: los "por confirmar" se revisan antes de pasarla).
+const pagadoConfirmadoInsc = d => (d?.pagos || []).filter(p=>p.verificacion === 'confirmado' || !p.verificacion).reduce((t, p)=> t + Number(p.monto || 0), 0);
+function resumenPasarLinea(){
+  const d = modalInscDatos; if(!d) return;
+  const pagado = pagadoConfirmadoInsc(d);
+  const precio = Number(document.getElementById('plPrecio').value) || 0;
+  document.getElementById('plResumen').innerHTML = precio
+    ? `Pasa lo que pagó: <b>${fmtMoney(pagado)}</b>. ${precio > pagado ? `En línea le quedaría debiendo <b>${fmtMoney(precio - pagado)}</b>.` : 'Queda <b>liquidada</b> en línea, lista para "Dar acceso".'}`
+      + ' Su lugar presencial se cierra y lo pagado deja de contar en la gira.'
+    : 'Escribe el precio del curso en línea.';
+}
+document.getElementById('btnPasarLinea').addEventListener('click', async ()=>{
+  const d = modalInscDatos; if(!d) return;
+  if((d.pagos || []).some(p=>p.verificacion === 'por_confirmar')){ toast('Tiene un pago por confirmar: primero confírmalo o márcalo como que no llegó.', true); return; }
+  const cursos = (enl.cursos || await cargarCursosEnLinea()).filter(c=>c.activo);
+  if(!cursos.length){ toast('No hay cursos en línea en el catálogo.', true); return; }
+  // De entrada, el mismo curso que iba a tomar presencial (por nombre).
+  const giraNombre = normTexto(giraDe(d.eventos?.curso_id)?.nombre || '');
+  const igual = cursos.find(c=>normTexto(c.nombre) === giraNombre) || cursos.find(c=>giraNombre && normTexto(c.nombre).includes(giraNombre.split(' ').slice(0, 3).join(' ')));
+  const sel = document.getElementById('plCurso');
+  sel.innerHTML = '<option value="">Elige el curso en línea…</option>' + cursos.map(c=>`<option value="${escapeAttr(c.id)}" ${igual?.id === c.id ? 'selected' : ''}>${escHtml(c.nombre)}${c.precio ? ' · ' + fmtMoney(Number(c.precio)) : ''}</option>`).join('');
+  const pagado = pagadoConfirmadoInsc(d);
+  document.getElementById('plPrecio').value = igual?.precio ? Math.max(Number(igual.precio), pagado) : (pagado || '');
+  document.getElementById('plMotivo').value = '';
+  document.getElementById('fichaCursoMover').hidden = true;
+  document.getElementById('fichaCeder').hidden = true;
+  document.getElementById('fichaPasarLinea').hidden = false;
+  resumenPasarLinea();
+});
+document.getElementById('plCurso').addEventListener('change', ()=>{
+  const c = (enl.cursos || []).find(x=>x.id === document.getElementById('plCurso').value);
+  if(c?.precio) document.getElementById('plPrecio').value = Math.max(Number(c.precio), pagadoConfirmadoInsc(modalInscDatos));
+  resumenPasarLinea();
+});
+document.getElementById('plPrecio').addEventListener('input', resumenPasarLinea);
+document.getElementById('plCancelar').addEventListener('click', ()=>{ document.getElementById('fichaPasarLinea').hidden = true; });
+document.getElementById('plOk').addEventListener('click', async ()=>{
+  const d = modalInscDatos; if(!d || plEstado.ocupado) return;
+  const cursoId = document.getElementById('plCurso').value;
+  const precio = Number(document.getElementById('plPrecio').value);
+  const motivo = document.getElementById('plMotivo').value.trim();
+  const pagado = pagadoConfirmadoInsc(d);
+  if(!cursoId){ toast('Elige el curso en línea.', true); return; }
+  if(!(precio > 0)){ toast('Escribe el precio del curso en línea.', true); return; }
+  if(precio < pagado){ toast(`Ya pagó ${fmtMoney(pagado)}: el precio en línea no puede ser menor.`, true); return; }
+  if(motivo.length < 3){ toast('Escribe el motivo.', true); return; }
+  const curso = (enl.cursos || []).find(c=>c.id === cursoId)?.nombre || 'el curso en línea';
+  const donde = `${d.eventos?.ciudades?.nombre || 'su curso'}${d.eventos?.fecha ? ' · ' + fechaCorta(d.eventos.fecha) : ''}`;
+  const ok = await preguntarConfirmacion({ titulo:'¿Pasar a curso en línea?', textoSi:'Sí, pasar a en línea',
+    aviso:`<b>${escHtml(tituloCaso(d.personas?.nombre || 'La alumna'))}</b> ya no irá a <b>${escHtml(donde)}</b>: su lugar se cierra.<br>`
+      + `Se crea su venta en línea de <b>${escHtml(curso)}</b> (${fmtMoney(precio)}) con lo que pagó (${fmtMoney(pagado)}) y su misma vendedora.` });
+  if(ok === null) return;
+  plEstado.ocupado = true;
+  const btn = document.getElementById('plOk'); btn.disabled = true;
+  try{
+    const { data, error } = await sb.rpc('inscripcion_pasar_a_linea', { p_insc: d.id, p_curso: cursoId, p_precio: precio, p_motivo: motivo });
+    if(error){ toast('No se pudo pasar a en línea: ' + error.message, true); return; }
+    registrarActividad('paso_a_linea', `${tituloCaso(d.personas?.nombre || '')} · ${donde} → ${curso} · pagado ${fmtMoney(data?.pagado ?? pagado)} · ${motivo}`);
+    toast('Listo: ya está en Cursos en línea.');
+    enl.filas = null;
+    await abrirModalInscripcion(d.id);
+    if(document.getElementById('view-calendario')?.classList.contains('active')) renderCalendario(true);
+  } finally { plEstado.ocupado = false; btn.disabled = false; }
+});
+// El aviso en su ficha cuando ya se pasó: a qué curso, cuánto y botones para abrir su venta o (administrador) regresarla.
+async function pintarEnLineaFicha(){
+  const d = modalInscDatos, caja = document.getElementById('fichaEnLinea');
+  if(!d?.venta_en_linea_id){ caja.hidden = true; caja.innerHTML = ''; return; }
+  caja.hidden = false; caja.innerHTML = 'Pasó a un curso en línea…';
+  const { data: v } = await sb.from('ventas_en_linea').select('id, precio_pactado, acceso_dado_en, cancelada_en, cursos_en_linea(nombre)').eq('id', d.venta_en_linea_id).maybeSingle();
+  if(modalInscDatos !== d) return;
+  const pasado = (d.pagos || []).filter(p=>p.verificacion === 'paso_a_linea').reduce((t, p)=> t + Number(p.monto || 0), 0);
+  const verLinea = seccionesPermitidas().includes('enlinea');
+  const regresar = usuarioActual?.es_admin && v && !v.acceso_dado_en && !v.cancelada_en;
+  caja.innerHTML = `<b>Pasó a curso en línea</b>${d.paso_a_linea_en ? ' el ' + escHtml(fechaCorta(String(d.paso_a_linea_en).slice(0, 10))) : ''}:
+      ${escHtml(v?.cursos_en_linea?.nombre || 'curso en línea')}${v?.precio_pactado ? ' · ' + fmtMoney(Number(v.precio_pactado)) : ''}${v?.acceso_dado_en ? ' · ya tiene acceso' : ''}.
+      <div class="vend-hint">Su lugar en este curso quedó cerrado (ya no cuenta en la gira) y lo que pagó (${fmtMoney(pasado)}) está en su venta en línea.</div>
+    <div class="fc-botones">${verLinea ? '<button type="button" class="btn-outline small" id="plAbrirVenta">Abrir su venta en línea</button>' : ''}
+      ${regresar ? '<button type="button" class="btn-outline small" id="plRegresar">Regresar a presencial</button>' : ''}</div>
+    ${regresar ? `<div id="plRegresarCaja" hidden><input id="plRegresarMotivo" maxlength="300" placeholder="Motivo (ej.: se equivocaron, siempre sí va)">
+      <div class="fc-fila"><button type="button" class="btn-outline small" id="plRegresarCancelar">Cancelar</button>
+      <button type="button" class="btn-primary small" id="plRegresarOk">Regresarla a su curso</button></div></div>` : ''}`;
+  document.getElementById('plAbrirVenta')?.addEventListener('click', async ()=>{
+    cerrarModalInscripcion();
+    setActiveSection('enlinea');
+    enl.filas = null;
+    await cargarVentasEnLinea();
+    abrirVentaLinea(d.venta_en_linea_id);
+  });
+  document.getElementById('plRegresar')?.addEventListener('click', ()=>{ document.getElementById('plRegresarCaja').hidden = false; document.getElementById('plRegresarMotivo').focus(); });
+  document.getElementById('plRegresarCancelar')?.addEventListener('click', ()=>{ document.getElementById('plRegresarCaja').hidden = true; });
+  document.getElementById('plRegresarOk')?.addEventListener('click', async e=>{
+    const motivo = document.getElementById('plRegresarMotivo').value.trim();
+    if(motivo.length < 3){ toast('Escribe el motivo.', true); return; }
+    const ok = await preguntarConfirmacion({ titulo:'¿Regresarla a su curso presencial?', textoSi:'Sí, regresarla',
+      aviso:'Se cancela su venta en línea y lo que pagó vuelve a su lugar en este curso (vuelve a contar en la gira).' });
+    if(ok === null) return;
+    e.target.disabled = true;
+    const { error } = await sb.rpc('inscripcion_regresar_a_presencial', { p_insc: d.id, p_motivo: motivo });
+    e.target.disabled = false;
+    if(error){ toast('No se pudo regresar: ' + error.message, true); return; }
+    registrarActividad('regreso_a_presencial', `${tituloCaso(d.personas?.nombre || '')} · ${d.eventos?.ciudades?.nombre || ''} · ${motivo}`);
+    toast('Regresó a su curso presencial.');
+    enl.filas = null;
+    await abrirModalInscripcion(d.id);
+  });
+}
 document.getElementById('btnCambiarCurso').addEventListener('click', async ()=>{
   const d = modalInscDatos; if(!d) return;
   const sel = document.getElementById('fichaCursoSelect');
@@ -9825,7 +9983,7 @@ function pintarPagosFicha(){
   if(!pagos.length){ cont.innerHTML = ''; return; }
   const abierto = !!fpEditando || cont.querySelector('details')?.open;
   const corrige = puedeCorregirPagos();
-  const estado = p => p.verificacion === 'por_confirmar' ? 'por confirmar' : p.verificacion === 'no_llego' ? '✕ no llegó (anulado)' : '';
+  const estado = p => p.verificacion === 'por_confirmar' ? 'por confirmar' : p.verificacion === 'no_llego' ? '✕ no llegó (anulado)' : p.verificacion === 'paso_a_linea' ? 'pasó a en línea' : '';
   cont.innerHTML = `<details ${abierto ? 'open' : ''}><summary>Pagos registrados (${pagos.length})${corrige ? ' · ver o corregir' : ''}</summary>`
     + pagos.map(p=> p.id === fpEditando ? `<div class="fp-fila"><div class="fp-edit">
         <label class="sub">Fecha<input type="date" data-fp-fecha value="${escapeAttr(p.fecha || '')}"></label>
@@ -9840,7 +9998,7 @@ function pintarPagosFicha(){
           ${estado(p) ? `<span class="tag">${estado(p)}</span>` : ''}</span>
           <span class="fp-comp">${botonesComprobante((d.comprobantes || []).filter(c=>c.pago_id === p.id))}
             <button type="button" data-fp-comp-subir="${escapeAttr(p.id)}" title="Adjuntar comprobante">${(d.comprobantes || []).some(c=>c.pago_id === p.id) ? 'Otro comprobante' : 'Adjuntar comprobante'}</button></span>
-          ${corrige ? `<button type="button" data-fp-editar="${escapeAttr(p.id)}">Corregir</button>` : ''}</div>`).join('')
+          ${corrige && p.verificacion !== 'paso_a_linea' ? `<button type="button" data-fp-editar="${escapeAttr(p.id)}">Corregir</button>` : ''}</div>`).join('')
     + '</details>';
 }
 document.getElementById('fichaPagos').addEventListener('click', async e=>{
@@ -17911,7 +18069,6 @@ glamyTexto.addEventListener('input', ()=>{ glamyTexto.style.height = ''; glamyTe
    hub_pedidos; antes se llamaban "pedidos"). Al cambiar el estado, el aviso a
    quien lo levantó lo manda la base (trigger), con la nota. */
 const gl = { tab:'uso' };
-const GLAMY_SALDO_USD = 10;   // saldo cargado en Anthropic, para la barra de la proyección
 const GLAMY_HERRAMIENTA = {
   buscar_persona:'buscar persona', curso:'curso', proximos_cursos:'próximos cursos', mis_tareas:'sus tareas',
   mis_tickets:'tickets', buscar_tickets_abiertos:'tickets', crear_ticket:'tickets',
@@ -17937,22 +18094,35 @@ async function renderUsoGlamy(){
   const hoy = fechaMX(ahora);
   const dias = [...Array(14)].map((_, i)=> fechaMX(new Date(ahora.getTime() - (13 - i) * 86400000)));
   const inicioMes = hoy.slice(0, 8) + '01';
-  const desde = dias[0] < inicioMes ? dias[0] : inicioMes;
+  // Recargas de la cuenta de Anthropic: el saldo se cuenta desde la primera (nada de "proyección del mes").
+  const { data: recData, error: recErr } = await sb.from('glamy_recargas').select('fecha, monto_usd, nota').order('fecha');
+  const recargas = recErr ? [] : (recData || []);
+  const desdeRecarga = recargas[0]?.fecha || inicioMes;
+  const desde = [dias[0], inicioMes, desdeRecarga].sort()[0];
   const { data, error } = await sb.from('glamy_uso')
-    .select('usuario_id, fecha, creado_en, costo_usd, herramientas, error')
+    .select('usuario_id, fecha, creado_en, costo_usd, herramientas, error, prueba')
     .gte('fecha', desde).order('creado_en', { ascending:false });
   if(error){ caja.innerHTML = `<div class="empty-note">No se pudo cargar el uso: ${escHtml(error.message)}</div>`; return; }
-  const filas = data || [];
+  const todo = data || [];
+  // Lo del equipo (preguntas de verdad) y las pruebas (exámenes de Glamy) por separado; el saldo cuenta las dos.
+  const filas = todo.filter(f=>!f.prueba);
+  const pruebasMes = todo.filter(f=>f.prueba && f.fecha >= inicioMes);
   const semana = new Set(dias.slice(-7));
   const suma = arr => ({ n: arr.length, costo: arr.reduce((t, f)=> t + Number(f.costo_usd || 0), 0) });
   const hoyT = suma(filas.filter(f=>f.fecha === hoy));
   const semT = suma(filas.filter(f=>semana.has(f.fecha)));
   const mesF = filas.filter(f=>f.fecha >= inicioMes);
   const mesT = suma(mesF);
-  const [a, m, d] = hoy.split('-').map(Number);
-  const diasMes = new Date(a, m, 0).getDate();
-  const proyeccion = mesT.costo / d * diasMes;
-  const pct = Math.min(100, proyeccion / GLAMY_SALDO_USD * 100);
+  const pruT = suma(pruebasMes);
+  const recargado = recargas.reduce((t, r)=> t + Number(r.monto_usd || 0), 0);
+  const gastado = suma(todo.filter(f=>f.fecha >= desdeRecarga)).costo;
+  const saldo = recargado - gastado;
+  // Al ritmo de los últimos 14 días (equipo + pruebas), ¿para cuántos días alcanza?
+  const ritmo = suma(todo.filter(f=>f.fecha >= dias[0])).costo / 14;
+  const alcanza = ritmo > 0 ? Math.floor(saldo / ritmo) : null;
+  const pctQueda = recargado > 0 ? Math.max(0, Math.min(100, saldo / recargado * 100)) : 0;
+  const ultima = recargas[recargas.length - 1];
+  const fechaTxt = f => new Date(f + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' });
   // Barras de los últimos 14 días.
   const porDia = dias.map(f=> filas.filter(x=>x.fecha === f).length);
   const max = Math.max(1, ...porDia);
@@ -17981,17 +18151,34 @@ async function renderUsoGlamy(){
   const lista = Object.values(personas).sort((x, y)=> y.n - x.n || String(x.nombre).localeCompare(y.nombre));
   const kpi = (t, v, sub, extra = '') => `<div class="gu-kpi"><small>${t}</small><b>${v}</b><span>${sub}</span>${extra}</div>`;
   const preg = n => n === 1 ? '1 pregunta' : `${n} preguntas`;
+  const saldoKpi = recargas.length
+    ? kpi('Saldo (desde la recarga)', usd(saldo, 2), `USD · recargado ${usd(recargado, 2)} · gastado ${usd(gastado, 2)} desde el ${fechaTxt(desdeRecarga)}`,
+        `<div class="gu-saldo" title="Queda ${pctQueda.toFixed(0)}%"><i style="width:${Math.max(pctQueda, 1).toFixed(1)}%;${pctQueda < 20 ? ' background:var(--danger);' : ''}"></i></div>`
+        + `<span class="gu-alcanza">${alcanza === null ? 'Sin uso en los últimos 14 días' : `Al ritmo de los últimos 14 días alcanza para ~${alcanza} días`}</span>`)
+    : kpi('Saldo', '—', 'Anota la recarga para ver el saldo');
   caja.innerHTML = `
     <div class="gu-kpis">
+      ${saldoKpi}
       ${kpi('Hoy', hoyT.n, (hoyT.n === 1 ? 'pregunta' : 'preguntas') + ' · ' + usd(hoyT.costo) + ' USD')}
       ${kpi('Últimos 7 días', semT.n, (semT.n === 1 ? 'pregunta' : 'preguntas') + ' · ' + usd(semT.costo) + ' USD')}
       ${kpi('Este mes', mesT.n, (mesT.n === 1 ? 'pregunta' : 'preguntas') + ' · ' + usd(mesT.costo) + ' USD')}
-      ${kpi('Al cierre del mes (proyección)', usd(proyeccion, 2), `USD · de tus ${usd(GLAMY_SALDO_USD, 0)} de saldo`,
-            `<div class="gu-saldo" title="${pct.toFixed(1)}% del saldo"><i style="width:${Math.max(pct, 1).toFixed(1)}%;${pct > 70 ? ' background:var(--danger);' : ''}"></i></div>`)}
+    </div>
+    <div class="gu-recarga card">
+      <div class="gu-recarga-txt">
+        <b>Exámenes de Glamy este mes:</b> ${pruT.n === 1 ? '1 registro' : pruT.n + ' registros'} · ${usd(pruT.costo, 2)} USD
+        <small>Son las pruebas antes de publicar; cuentan en el saldo, no en el uso del equipo.</small>
+        <small>Última recarga anotada: ${ultima ? `${fechaTxt(ultima.fecha)} · ${usd(ultima.monto_usd, 2)} USD` : 'ninguna'}. Si la consola de Anthropic recargó sola, anótala aquí.</small>
+      </div>
+      <button class="btn-ghost" id="guRecargaAbrir" type="button">Registrar recarga</button>
+      <div class="gu-recarga-form" id="guRecargaForm" hidden>
+        <label>Fecha <input type="date" id="guRecargaFecha" value="${escapeAttr(hoy)}" max="${escapeAttr(hoy)}"></label>
+        <label>Monto (USD) <input type="number" id="guRecargaMonto" min="1" step="0.01" placeholder="10.00"></label>
+        <button class="btn-primary" id="guRecargaGuardar" type="button">Guardar recarga</button>
+      </div>
     </div>
     <div class="gu-grid">
       <div class="card">
-        <h3>Preguntas por día</h3><div class="sub">Últimos 14 días</div>
+        <h3>Preguntas por día</h3><div class="sub">Últimos 14 días · del equipo</div>
         <div class="gu-barras">${porDia.map((n, i)=> `<div class="gu-barra" title="${dias[i]}: ${preg(n)}">${n ? `<em>${n}</em>` : ''}<i style="height:${(n / max * 100).toFixed(0)}%"></i></div>`).join('')}</div>
         <div class="gu-dias">${dias.map(f=>`<span>${Number(f.slice(8))}</span>`).join('')}</div>
         <div class="sub" style="margin-top:12px;">${mesT.n ? 'Lo más consultado este mes: ' + temasTxt : 'Todavía nadie le pregunta nada este mes.'}${mesT.n ? ` · errores: ${errores}` : ''}</div>
@@ -18007,6 +18194,26 @@ async function renderUsoGlamy(){
         </table></div>
       </div>
     </div>`;
+  document.getElementById('guRecargaAbrir').addEventListener('click', ()=>{
+    const f = document.getElementById('guRecargaForm'); f.hidden = !f.hidden;
+    if(!f.hidden) document.getElementById('guRecargaMonto').focus();
+  });
+  document.getElementById('guRecargaGuardar').addEventListener('click', guardarRecargaGlamy);
+}
+
+// Anota una recarga de saldo (la cuenta de Anthropic puede recargar sola). No se borra: queda en el historial.
+async function guardarRecargaGlamy(){
+  const fecha = document.getElementById('guRecargaFecha').value;
+  const monto = Number(document.getElementById('guRecargaMonto').value);
+  if(!fecha){ toast('Escribe la fecha de la recarga', true); return; }
+  if(!(monto > 0)){ toast('Escribe cuánto se recargó (en dólares)', true); return; }
+  const btn = document.getElementById('guRecargaGuardar'); btn.disabled = true;
+  const { error } = await sb.from('glamy_recargas').insert({ fecha, monto_usd: monto, creado_por: usuarioActual?.id || null });
+  btn.disabled = false;
+  if(error){ toast('No se pudo guardar la recarga: ' + error.message, true); return; }
+  registrarActividad('glamy_recarga', `${usd(monto, 2)} USD · ${fecha}`);
+  toast('Recarga anotada');
+  renderUsoGlamy();
 }
 
 const ped = { lista:[], abierto:null, abrirNumero:null };
@@ -18110,7 +18317,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-11-buscar-alterno';
+const HUB_VERSION = '2026-11-11-pasar-a-linea';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
