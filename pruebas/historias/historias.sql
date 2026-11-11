@@ -220,6 +220,7 @@ begin
     perform set_config('request.jwt.claims', json_build_object('sub', (select auth_user_id from public.usuarios where rol = 'Ventas' and activo and auth_user_id is not null limit 1), 'role', 'authenticated')::text, true);
     select c.id into v_cs from public.ciudades c
      where not exists (select 1 from public.eventos e where e.ciudad_id = c.id and e.fecha >= v_hoy)
+       and not exists (select 1 from public.eventos e where e.ciudad_id = c.id and e.fecha_por_definir)   -- con curso por definir ya no es "sin curso"
        and not exists (select 1 from public.notas_usuario n where n.enlace ->> 'ciudad_sin_curso' = c.id::text) limit 1;
     insert into public.personas (nombre, telefono_principal) values ('HISTORIA DOCE', '0000000112') returning id into v_p;
     insert into public.leads (persona_id, estatus_id, asesor_id, ciudad_interes_id) values (v_p, st_novence, v_vend, v_cs) returning id into v_l1;
