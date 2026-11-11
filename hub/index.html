@@ -126,6 +126,7 @@
   .col-count{ margin-left:auto; font-size:10.5px; color:var(--ink-soft); font-weight:600; }
   .col-body{ padding:8px; display:flex; flex-direction:column; gap:7px; min-height:30px; }
   .lead-card{ background:var(--bg); border:1px solid var(--border); border-top:3px solid var(--card-accent, var(--border)); border-radius:9px; padding:9px 10px; cursor:pointer; }
+  .lead-alterno{ font-size:11px; color:var(--wine-dark); background:rgba(198,166,107,.16); border-radius:6px; padding:2px 6px; margin:3px 0; display:inline-block; }
   .lead-card:hover{ box-shadow:0 3px 10px rgba(43,35,32,.07); }
   .lead-name{ font-size:12.5px; font-weight:600; }
   .lead-meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; line-height:1.45; }
@@ -5382,6 +5383,24 @@ function leadPasaFiltroGira(l){
 }
 // ¿Este lead es de la gira que viene? Ligado a un curso que no ha pasado, o sin curso pero de una ciudad
 // que se visita. Los de cursos pasados o ciudades que no se visitan van a la Bandeja de limpieza.
+/* ¿Este número es de esta persona? (11 nov 2026, pedido de una vendedora: buscaba por el segundo número y no salía).
+   Regresa 'principal', 'alterno' o null. Sin importar espacios, guiones ni el 52; con 7 o más dígitos se compara contra
+   los últimos 10. La usan los buscadores del tablero, de Cobranza y de "Ceder su lugar": todos buscan igual. */
+function telCoincide(persona, texto){
+  const dq = String(texto || '').replace(/\D/g, '');
+  if(dq.length < 3) return null;
+  const busca = dq.length >= 7 ? dq.slice(-10) : dq;
+  const pr = String(persona?.telefono_principal || '').replace(/\D/g, ''), al = String(persona?.telefono_alternativo || '').replace(/\D/g, '');
+  if(pr && pr.includes(busca)) return 'principal';
+  if(al && al.includes(busca)) return 'alterno';
+  return null;
+}
+/* Etiqueta en la tarjeta cuando se encontró por su teléfono alterno. */
+function htmlEncontradaPorAlterno(persona, texto){
+  return telCoincide(persona, texto) === 'alterno'
+    ? `<div class="lead-alterno">Encontrada por su teléfono alterno: ${escHtml(persona.telefono_alternativo)}</div>` : '';
+}
+let BUSQUEDA_TABLERO = '';   // lo que se escribió en el buscador del tablero (para marcar el alterno en la tarjeta)
 function leadEnPuerta(l){
   if(l.eventos) return cursoPorVenir(l.eventos);
   if(l.evento_id) return false;
@@ -5455,7 +5474,7 @@ async function cargarInscritos(){
   const inicioGira = await obtenerInicioGira();
   const { data, error } = await sb.from('inscripciones').select(`
       id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id,
-      personas ( id, nombre, telefono_principal, en_lista_negra ),
+      personas ( id, nombre, telefono_principal, telefono_alternativo, en_lista_negra ),
       estatus ( id, etiqueta, color_hex ),
       eventos!inner ( id, fecha, curso_id, ciudades ( id, nombre ) )
     `)
@@ -5582,6 +5601,7 @@ function tarjetaLead(l){
     <div class="lead-card" style="--card-accent:${e?.color_hex||'#ccc'}" data-lead-id="${l.id}">
       <div class="lead-name">${l.personas?.nombre||'(sin nombre)'}${l.paquete==='VIP'?' <span class="badge-vip">VIP</span>':''}${esNuevo?' <span class="badge-nuevo">🆕 Nuevo</span>':''}</div>
       <div class="lead-meta">${l.personas?.telefono_principal||''}${l.cursos?.nombre?'<br>'+l.cursos.nombre:''}</div>
+      ${BUSQUEDA_TABLERO ? htmlEncontradaPorAlterno(l.personas, BUSQUEDA_TABLERO) : ''}
       ${l.ciudades?.nombre?`<div class="lead-ciudad">${l.ciudades.nombre}</div>`:''}
       ${pagoReportado(l)?`<div class="lead-pago-rep">${fmtMoney(l.pago_reportado_monto)} por confirmar</div>`:''}
       ${anticipo}
@@ -5602,6 +5622,7 @@ function tarjetaInscrito(i){
     <div class="lead-card" style="--card-accent:${acento}" data-insc-id="${i.id}">
       <div class="lead-name">${i.personas?.nombre||'(sin nombre)'}${i.paquete==='VIP'?' <span class="badge-vip">VIP</span>':''}</div>
       <div class="lead-meta">${i.personas?.telefono_principal||''}</div>
+      ${BUSQUEDA_TABLERO ? htmlEncontradaPorAlterno(i.personas, BUSQUEDA_TABLERO) : ''}
       ${i.eventos?.ciudades?.nombre?`<div class="lead-ciudad">${i.eventos.ciudades.nombre} · ${fechaCorta(i.eventos.fecha)}${i.eventos.fecha && i.eventos.fecha < hoyISO() ? ' <span class="insc-pasado">✓ curso pasado</span>' : ''}</div>`:''}
       ${saldo}
       ${vistaActiva!=='vendedor' && i.asesor_id ? `<div class="lead-meta">${nombreVendedor(i.asesor_id)}</div>` : ''}
@@ -5725,11 +5746,12 @@ function pintarBoard(){
 
   const filtrados = filasActuales().filter(r=>{
     if(!q) return true;
-    // Teléfono sin importar espacios, guiones o el 52; nombre sin acentos.
-    const dq = q.replace(/\D/g,''), t = (r.personas?.telefono_principal||'').replace(/\D/g,'');
-    if(dq.length >= 7) return t.includes(dq.slice(-10));
-    return normTexto(r.personas?.nombre).includes(normTexto(q)) || t.includes(q);
+    // Teléfono (principal o alterno) sin importar espacios, guiones o el 52; nombre sin acentos.
+    const dq = q.replace(/\D/g,'');
+    if(dq.length >= 7) return !!telCoincide(r.personas, dq);
+    return normTexto(r.personas?.nombre).includes(normTexto(q)) || (/^[\d\s()+-]+$/.test(q) && !!telCoincide(r.personas, dq));
   });
+  BUSQUEDA_TABLERO = q.replace(/\D/g, '').length >= 3 && /^[\d\s()+-]+$/.test(q) ? q : '';
 
   const grupos = agruparFilas(filtrados);
   const abiertos = abiertosDe(vistaActiva);
@@ -6973,7 +6995,7 @@ function etiquetaGrupoCob(id){
 async function inscritasDeCobranza(ids, desde){
   const sel = `
         id, persona_id, evento_id, anticipo, restante, liquidado, precio_pactado, paquete, asesor_id, fecha_proximo_pago, monto_proximo_pago, asistencia, estatus_id,
-        personas ( id, nombre, telefono_principal ),
+        personas ( id, nombre, telefono_principal, telefono_alternativo ),
         estatus ( id, clave, etiqueta ),
         pagos ( monto, verificacion ),
         eventos!inner ( id, fecha, fecha_por_definir, curso_id, ciudades ( id, nombre ) )`;
@@ -7059,7 +7081,7 @@ function itemsCobranza(sinFiltros = false){
   if(quien !== 'inscritas') cobDatos.leads.forEach(l=>{
     const conf = l.estatus?.id === ESTATUS_POR_CONFIRMAR();
     items.push({
-      tipo:'lead', id:l.id, nombre:l.personas?.nombre || '(sin nombre)', tel:l.personas?.telefono_principal || '',
+      tipo:'lead', id:l.id, nombre:l.personas?.nombre || '(sin nombre)', tel:l.personas?.telefono_principal || '', tel2:l.personas?.telefono_alternativo || '',
       vendedor:l.asesor_id || '', porConfirmar:conf, reportadoEn:l.pago_reportado_en,
       donde: l.eventos ? etiquetaEvento(l.eventos) : (l.ciudades?.nombre || 'sin ciudad'),
       fecha: l.fecha_compromiso_pago || null,
@@ -7074,7 +7096,7 @@ function itemsCobranza(sinFiltros = false){
     // "por confirmar" en su ficha y aquí seguía como si nada).
     const porConf = (i.pagos || []).filter(p=>p.verificacion === 'por_confirmar').reduce((t, p)=>t + Number(p.monto || 0), 0);
     items.push({
-      tipo:'insc', id:i.id, nombre:i.personas?.nombre || '(sin nombre)', tel:i.personas?.telefono_principal || '',
+      tipo:'insc', id:i.id, nombre:i.personas?.nombre || '(sin nombre)', tel:i.personas?.telefono_principal || '', tel2:i.personas?.telefono_alternativo || '',
       vendedor:i.asesor_id || '', situacion:sit, porConfirmar: sit === 'por_confirmar',
       donde: etiquetaEvento(i.eventos || {}),
       fecha: i.fecha_proximo_pago || i.eventos?.fecha || null, fechaEsCurso: !i.fecha_proximo_pago,
@@ -7088,7 +7110,10 @@ function itemsCobranza(sinFiltros = false){
   return items.filter(it=>{
     if(vend === '__sin' && it.vendedor) return false;
     if(vend && vend !== '__sin' && it.vendedor !== vend) return false;
-    if(q && !normTexto(it.nombre).includes(q) && !(qTel.length >= 3 && it.tel.includes(qTel))) return false;
+    // Por nombre o por cualquiera de sus dos teléfonos (misma regla que el tablero)
+    const porTel = qTel.length >= 3 ? telCoincide({ telefono_principal:it.tel, telefono_alternativo:it.tel2 }, qTel) : null;
+    if(q && !normTexto(it.nombre).includes(q) && !porTel) return false;
+    it.porAlterno = porTel === 'alterno' && !normTexto(it.nombre).includes(q);
     return true;
   });
 }
@@ -7344,6 +7369,7 @@ function filaCobranza(it, grupo){
     <div class="cob-main">
       <div class="cob-nombre">${escHtml(it.nombre)}<span class="cob-tipo ${it.tipo}">${it.tipo === 'lead' ? (it.yaInscrita ? 'Lead · ya inscrita' : 'Lead') : etiquetaCobInsc(it)}</span></div>
       <div class="cob-meta">${escHtml(it.donde)}${vend ? ' · ' + escHtml(vend) : ' · <span style="color:var(--danger);">sin vendedor</span>'}${htmlCel10(it.tel) ? ' · ' + htmlCel10(it.tel) : ''}</div>
+      ${it.porAlterno ? `<div class="lead-alterno">Encontrada por su teléfono alterno: ${escHtml(it.tel2)}</div>` : ''}
       ${it.tipo === 'insc' ? `<div class="cob-meta ${it.pagado > 0 ? 'cob-pagado' : ''}">${it.pagado > 0 ? `Pagó ${fmtMoney(it.pagado)}${it.precio ? ' de ' + fmtMoney(it.precio) : ''}` : 'Sin pago'} · debe ${fmtMoney(it.debe)}${it.porConfirmar ? ` · ${fmtMoney(it.monto)} por confirmar` : ''}</div>` : ''}
       ${it.situacion === 'verificar' ? '<div class="cob-meta cob-verificar">Verificar antes de cobrar</div>' : ''}
       ${it.yaInscrita ? '<div class="cob-meta">Ya está inscrita en ese curso: al confirmar, el pago pasa a su ficha y el lead se cierra.</div>' : ''}
@@ -9040,18 +9066,19 @@ document.getElementById('cederTel').addEventListener('input', async e=>{
   ceder.sel = null;
   if(tel.length < 10){ caja.innerHTML = ''; nombre.hidden = true; return; }
   const turno = ++ceder.turno;
-  const { data, error } = await sb.from('personas').select('id, nombre, telefono_principal, en_lista_negra').ilike('telefono_principal', '%' + tel).limit(5);
+  const { data, error } = await sb.from('personas').select('id, nombre, telefono_principal, telefono_alternativo, en_lista_negra')
+    .or(`telefono_principal.ilike.*${tel},telefono_alternativo.ilike.*${tel}`).limit(5);
   if(turno !== ceder.turno) return;
   if(error){ caja.innerHTML = `<div class="sub">No se pudo buscar: ${escHtml(error.message)}</div>`; return; }
   const yo = modalInscDatos?.personas?.id;
-  const otras = (data || []).filter(p=>p.id !== yo && String(p.telefono_principal || '').replace(/\D/g, '').slice(-10) === tel);
+  const otras = (data || []).filter(p=>p.id !== yo && telCoincide(p, tel));
   if((data || []).some(p=>p.id === yo) && !otras.length){
     caja.innerHTML = '<div class="sub">Ese es su propio teléfono: escribe el de quien irá.</div>'; nombre.hidden = true; return;
   }
   if(otras.length){
     ceder.sel = otras[0];
     caja.innerHTML = otras.map((p, k)=>`<button type="button" class="ceder-op ${k === 0 ? 'activo' : ''}" data-ceder-persona="${escapeAttr(p.id)}">
-      <span>✓ ${escHtml(tituloCaso(p.nombre || '(sin nombre)'))}${p.en_lista_negra ? ' · Lista negra' : ''}</span><span class="sub" style="margin:0;">ya está en el Hub</span></button>`).join('');
+      <span>✓ ${escHtml(tituloCaso(p.nombre || '(sin nombre)'))}${p.en_lista_negra ? ' · Lista negra' : ''}</span><span class="sub" style="margin:0;">ya está en el Hub${telCoincide(p, tel) === 'alterno' ? ' (es su teléfono alterno)' : ''}</span></button>`).join('');
     nombre.hidden = true;
   } else {
     caja.innerHTML = '<div class="sub">No está en el Hub: escribe su nombre y se da de alta.</div>';
@@ -9061,8 +9088,8 @@ document.getElementById('cederTel').addEventListener('input', async e=>{
 document.getElementById('cederEncontradas').addEventListener('click', async e=>{
   const b = e.target.closest('[data-ceder-persona]'); if(!b) return;
   const tel = document.getElementById('cederTel').value.replace(/\D/g, '').slice(-10);
-  const { data } = await sb.from('personas').select('id, nombre, telefono_principal, en_lista_negra').eq('id', b.dataset.cederPersona).maybeSingle();
-  if(data && String(data.telefono_principal || '').replace(/\D/g, '').slice(-10) === tel) ceder.sel = data;
+  const { data } = await sb.from('personas').select('id, nombre, telefono_principal, telefono_alternativo, en_lista_negra').eq('id', b.dataset.cederPersona).maybeSingle();
+  if(data && telCoincide(data, tel)) ceder.sel = data;
   document.querySelectorAll('#cederEncontradas .ceder-op').forEach(x=>x.classList.toggle('activo', x === b));
 });
 document.getElementById('cederOk').addEventListener('click', async ()=>{
@@ -18083,7 +18110,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-10-gira-centro';
+const HUB_VERSION = '2026-11-11-buscar-alterno';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
