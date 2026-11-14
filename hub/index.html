@@ -538,6 +538,19 @@
   .insc-liq{ font-size:12px; font-weight:700; color:var(--success); margin-top:5px; }
   .aviso-corregir{ background:rgba(197,166,107,.16); border-left:3px solid var(--ambar); border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.55; color:var(--ink-soft); margin-bottom:14px; }
   .aviso-corregir b{ color:var(--ink); }
+  /* Lead duplicado (14 nov 2026): leads parecidos y la elección de cuál se queda */
+  .dup-cand{ border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:8px; background:var(--card); display:flex; gap:10px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+  .dup-cand .dup-dato{ min-width:0; flex:1 1 220px; font-size:12px; color:var(--ink-soft); line-height:1.5; overflow-wrap:anywhere; }
+  .dup-cand .dup-dato b{ color:var(--ink); font-size:13px; }
+  .dup-cand .dup-acc{ display:flex; gap:6px; flex-wrap:wrap; }
+  .dup-motivo{ display:inline-block; font-size:11px; font-weight:700; color:var(--wine-dark); background:rgba(var(--wine-rgb),.1); border-radius:999px; padding:1px 8px; margin-left:4px; }
+  .dup-opc{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:6px 0 14px; }
+  .dup-opc button{ text-align:left; border:1.5px solid var(--border); background:var(--card); border-radius:10px; padding:10px 12px; font-family:inherit; font-size:12px; color:var(--ink-soft); cursor:pointer; line-height:1.45; min-width:0; overflow-wrap:anywhere; }
+  .dup-opc button b{ display:block; color:var(--ink); font-size:13px; }
+  .dup-opc button.active{ border-color:var(--wine); background:rgba(var(--wine-rgb),.07); }
+  .dup-opc button:disabled{ opacity:.5; cursor:not-allowed; }
+  .dup-resumen{ background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.55; margin-bottom:12px; }
+  @media (max-width:600px){ .dup-opc{ grid-template-columns:1fr; } }
   .corr-preview{ background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 13px; font-size:13px; font-weight:600; margin-bottom:14px; }
   .corr-preview .malo{ color:var(--danger); font-weight:700; }
   @media(max-width:700px){ .atajos{ grid-template-columns:repeat(2,1fr); } }
@@ -2620,10 +2633,13 @@
         <div class="ficha-acc">
           <button type="button" class="btn-outline small" id="btnLeadContacto">Datos de contacto</button>
           <button type="button" class="btn-outline small" id="btnLeadOtroCurso">Otro curso</button>
+          <button type="button" class="btn-outline small" id="btnLeadDuplicado">Es un duplicado</button>
         </div>
       </div>
     </div>
     <div class="ficha-tabs" id="ftabsLead"></div>
+    <!-- Lead duplicado (14 nov 2026): "este lead es duplicado de…" o "hay otro lead parecido en este curso" -->
+    <div class="aviso-corregir" id="leadAvisoDuplicado" style="display:none;"></div>
     <div class="ficha-contactos" id="fcontLead"></div>
     <!-- Teléfonos a la vista (5 nov 2026): el alterno estaba escondido en "Datos de contacto" y no lo encontraban -->
     <div class="modal-vendedor" id="leadTelefonos">
@@ -2675,6 +2691,19 @@
     <button class="btn-primary" id="guardarLead">Guardar cambios</button>
     <h3 style="font-size:13px; margin-top:18px;">Historial de contacto</h3>
     <div id="modalHistorial">—</div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ¿ES UN DUPLICADO? (14 nov 2026) =====================
+     Dos leads de la misma persona en el mismo curso (a veces con un dígito distinto en el teléfono).
+     Se elige cuál se queda (de quién es la venta) y con qué datos de la persona; el otro se cierra
+     como "Duplicado" (no se borra) y su historial pasa al que queda: lead_marcar_duplicado. -->
+<div class="modal-overlay" id="modalDuplicado">
+  <div class="modal">
+    <button class="close" id="closeModalDuplicado">✕</button>
+    <h3>¿Es un duplicado?</h3>
+    <div class="sub" id="dupQuien" style="margin-bottom:12px;">—</div>
+    <div id="dupCuerpo"></div>
   </div>
 </div>
 
@@ -3897,6 +3926,8 @@ const ACCION_LABEL = {
   pago_verificado: 'Confirmó un pago en el banco',
   paquete_cambiado: 'Cambió el paquete (Básico / VIP)',
   personas_separadas: 'Separó dos registros con el mismo teléfono',
+  lead_duplicado: 'Cerró un lead duplicado',
+  lead_ya_no_duplicado: 'Quitó la marca de duplicado a un lead',
   pago_no_llego: 'Marcó que un pago no llegó al banco',
   acceso_online_quitado: 'Quitó “acceso online dado”',
   anticipo_perdido: 'Marcó que perdió el anticipo',
@@ -5446,7 +5477,7 @@ function leadEnPuerta(l){
 const LEAD_SELECT = `
     id, comentario, creado_en, ciudad_interes_id, asesor_id,
     evento_id, fecha_compromiso_pago, monto_anticipo, segundo_pago_fecha, segundo_pago_monto, paquete, estatus_antes_de_reporte,
-    pago_reportado_monto, pago_reportado_fecha, pago_reportado_banco, pago_reportado_por, pago_reportado_en,
+    pago_reportado_monto, pago_reportado_fecha, pago_reportado_banco, pago_reportado_por, pago_reportado_en, duplicado_de, duplicado_en,
     eventos ( id, fecha, fecha_por_definir, ciudad_id, curso_id, ciudades ( nombre ) ),
     personas ( id, nombre, telefono_principal, telefono_alternativo, correo, fecha_nacimiento, en_lista_negra ),
     cursos ( nombre ),
@@ -5473,7 +5504,8 @@ async function cargarLeads(){
   const { data, error } = await query;
   if(error){ toast('Error cargando leads: ' + error.message, true); return []; }
   // Fuera los ligados a un curso que ya pasó: no son de la gira que viene (los abiertos van a la bandeja).
-  return (data || []).filter(l=>!CIUDADES_GIRA_ACTIVA.length || leadEnPuerta(l));
+  // Fuera los duplicados (14 nov 2026): están cerrados y su seguimiento va en el lead que quedó.
+  return (data || []).filter(l=>!esLeadDuplicado(l) && (!CIUDADES_GIRA_ACTIVA.length || leadEnPuerta(l)));
 }
 async function renderBoard(){
   await Promise.all([cargarEventosProximos(), cargarEventosCalendario()]);
@@ -5928,8 +5960,10 @@ async function abrirModalLead(leadId){
   document.getElementById('modalCorreoEdit').value = lead.personas?.correo || '';
   document.getElementById('modalNacimientoEdit').value = lead.personas?.fecha_nacimiento || '';
   const sel = document.getElementById('modalEstatusSelect');
-  sel.innerHTML = ESTATUS.filter(e=>!['no_llego','perdio_anticipo'].includes(e.clave) || e.id===lead.estatus?.id)
+  // "Duplicado" no se pone a mano: sale de "Es un duplicado" (y un duplicado no cambia de estatus aquí)
+  sel.innerHTML = ESTATUS.filter(e=>!['no_llego','perdio_anticipo','duplicado'].includes(e.clave) || e.id===lead.estatus?.id)
     .map(e=>`<option value="${e.id}" ${e.id===lead.estatus?.id?'selected':''}>${e.etiqueta}</option>`).join('');
+  sel.disabled = esLeadDuplicado(lead);
   document.getElementById('modalCiudadSelect').innerHTML = opcionesCiudad(lead.ciudad_interes_id);
   document.getElementById('modalEventoSelect').innerHTML = opcionesEvento(lead.evento_id);
   sugerirPorLada(['modalEventoSelect', 'regPagoEvento', 'inscribirEvento'], lead.personas?.telefono_principal);
@@ -5943,6 +5977,7 @@ async function abrirModalLead(leadId){
   document.getElementById('modalHistorial').innerHTML = 'Cargando...';
   document.getElementById('modalLead').classList.add('open');
   pintarFichaTabs('lead', { personaId: leadAbiertoPersonaId, leadId });
+  pintarDuplicadoLead(lead);
   await pintarContactosFicha(leadAbiertoPersonaId, document.getElementById('modalHistorial'), 10);
 }
 // Encabezado de la ficha del lead: los datos de contacto están abajo (se guardan con "Guardar cambios")
@@ -5955,6 +5990,231 @@ document.getElementById('btnLeadOtroCurso').addEventListener('click', ()=>{
   const l = leadAbierto(); if(!l?.personas?.id) return;
   abrirInscribirACurso({ personaId: l.personas.id, nombre: l.personas.nombre, telefono: l.personas.telefono_principal });
 });
+
+/* =========================================================
+   LEAD DUPLICADO (14 nov 2026) — dos leads de la misma persona en el mismo curso (pasó con un alumno de
+   Acapulco: dos vendedoras, el teléfono con un dígito distinto). "Es un duplicado" en la ficha: se elige cuál
+   lead se queda (de quién es la venta) y con qué datos de la persona; el otro se cierra con el estatus
+   "Duplicado" (no se borra, no cuenta en ningún lado) y su historial pasa al que queda. Lo hace la base de
+   una sola vez (lead_marcar_duplicado). Quién se parece lo decide UNA regla de la base (leads_parecidos /
+   parecido_persona), la misma del vigilante ("Posibles leads duplicados") y del aviso al dar de alta un lead.
+   Un administrador lo regresa con "Ya no es duplicado" (lead_quitar_duplicado).
+   ========================================================= */
+const DUP_MOTIVO = { misma_persona:'La misma persona', mismo_nombre:'Mismo nombre', mismo_telefono:'Mismo teléfono',
+                     telefono_casi_igual:'Teléfono con un dígito distinto' };
+function esLeadDuplicado(l){ return !!l?.duplicado_de || claveEstatus(l?.estatus?.id ?? l?.estatus_id) === 'duplicado'; }
+const dup = { lead:null, cands:[], otro:null, queda:'este', persona:'este', inscs:{}, turno:0, tBuscar:null };
+
+// Leads parecidos a este en su mismo curso (sin él mismo)
+async function leadsParecidosDe(lead){
+  if(!lead?.evento_id) return [];
+  const p = lead.personas || {};
+  const { data, error } = await sb.rpc('leads_parecidos', { p_nombre:p.nombre || null, p_tel:p.telefono_principal || null,
+    p_alt:p.telefono_alternativo || null, p_evento:lead.evento_id, p_persona:p.id || null, p_excluir:lead.id });
+  if(error){ console.warn('leads_parecidos:', error.message); return []; }
+  return data || [];
+}
+// Un lead que no está en el tablero (otra gira, cerrado o duplicado): se trae y se abre
+async function abrirLeadPorId(id){
+  if(!leadsCache.some(l=>l.id === id)){
+    const { data } = await sb.from('leads').select(LEAD_SELECT).eq('id', id).maybeSingle();
+    if(!data){ toast('No encontré ese lead.', true); return; }
+    leadsCache.push(data);
+  }
+  return abrirModalLead(id);
+}
+
+// En la ficha: "Este lead es un duplicado…" o "Hay otro lead parecido en este curso"
+async function pintarDuplicadoLead(lead){
+  const aviso = document.getElementById('leadAvisoDuplicado');
+  const btn = document.getElementById('btnLeadDuplicado');
+  const turno = ++dup.turno;
+  aviso.style.display = 'none'; aviso.innerHTML = '';
+  if(esLeadDuplicado(lead)){
+    btn.style.display = 'none';
+    aviso.style.display = '';
+    aviso.innerHTML = `<b>Este lead es un duplicado</b>${lead.duplicado_en ? ' (se cerró el ' + escHtml(fechaCorta(String(lead.duplicado_en).slice(0, 10))) + ')' : ''}: `
+      + 'no cuenta en ningún lado y su seguimiento va en el lead que quedó. '
+      + (lead.duplicado_de ? `<button type="button" class="cf-ver" data-dup-abrir="${escapeAttr(lead.duplicado_de)}">Abrir el que quedó</button>` : '')
+      + (usuarioActual?.es_admin ? ' <button type="button" class="cf-ver" id="btnYaNoDuplicado">Ya no es duplicado</button>' : '');
+    return;
+  }
+  btn.style.display = '';
+  const cands = await leadsParecidosDe(lead);
+  if(turno !== dup.turno || leadAbiertoId !== lead.id || !cands.length) return;
+  const c = cands[0];
+  aviso.style.display = '';
+  aviso.innerHTML = `<b>Hay ${cands.length === 1 ? 'otro lead parecido' : cands.length + ' leads parecidos'} en este curso:</b> `
+    + `${escHtml(c.nombre || '')} · ${escHtml(c.vendedora || 'sin vendedora')} · ${escHtml(DUP_MOTIVO[c.motivo] || '')}. `
+    + '<button type="button" class="cf-ver" data-dup-revisar="1">Revisar</button>';
+}
+document.getElementById('leadAvisoDuplicado').addEventListener('click', async e=>{
+  const ab = e.target.closest('[data-dup-abrir]');
+  if(ab){ document.getElementById('modalLead').classList.remove('open'); return abrirLeadPorId(ab.dataset.dupAbrir); }
+  if(e.target.closest('[data-dup-revisar]')) return abrirDuplicado();
+  if(e.target.closest('#btnYaNoDuplicado')){
+    const lead = leadAbierto(); if(!lead) return;
+    const motivo = await preguntarConfirmacion({ titulo:'¿Ya no es duplicado?', textoSi:'Volver a abrirlo', pedirMotivo:true,
+      etiquetaMotivo:'Motivo (obligatorio)', ejemploMotivo:'Ej.: eran dos personas distintas',
+      aviso:'El lead se vuelve a abrir con el estatus que tenía. Su historial de antes se queda en el otro lead.' });
+    if(motivo === null) return;
+    if(motivo.length < 3){ toast('Escribe el motivo.', true); return; }
+    const { error } = await sb.rpc('lead_quitar_duplicado', { p_lead: lead.id, p_motivo: motivo });
+    if(error){ toast('No se pudo: ' + error.message, true); return; }
+    registrarActividad('lead_ya_no_duplicado', `${lead.personas?.nombre || ''} · ${motivo}`);
+    toast('Listo: el lead se volvió a abrir.');
+    leadsCache = leadsCache.filter(l=>l.id !== lead.id);
+    document.getElementById('modalLead').classList.remove('open');
+    await abrirLeadPorId(lead.id);
+  }
+});
+
+// Ventana "¿Es un duplicado?": 1) con cuál; 2) cuál se queda y con qué datos
+async function abrirDuplicado(){
+  const lead = leadAbierto(); if(!lead) return;
+  Object.assign(dup, { lead, cands:[], otro:null, queda:'este', persona:'este', inscs:{} });
+  document.getElementById('dupQuien').textContent = `${lead.personas?.nombre || '(sin nombre)'} · ${lead.personas?.telefono_principal || ''}`
+    + ` · ${nombreVendedor(lead.asesor_id) || 'sin vendedora'}`;
+  document.getElementById('dupCuerpo').innerHTML = '<div class="empty-note">Buscando leads parecidos…</div>';
+  document.getElementById('modalDuplicado').classList.add('open');
+  dup.cands = await leadsParecidosDe(lead);
+  pintarDupPaso1();
+}
+document.getElementById('btnLeadDuplicado').addEventListener('click', abrirDuplicado);
+document.getElementById('closeModalDuplicado').addEventListener('click', ()=>document.getElementById('modalDuplicado').classList.remove('open'));
+// "Abrir su lead" desde el aviso de "+ Nuevo lead": se cancela el alta y se abre el que ya existe
+document.getElementById('confirmarAviso').addEventListener('click', e=>{
+  const id = e.target.closest('[data-abrir-parecido]')?.dataset.abrirParecido; if(!id) return;
+  document.getElementById('confirmarNo').click();
+  document.getElementById('modalNuevo').classList.remove('open');
+  abrirLeadPorId(id);
+});
+
+const htmlDupCand = (c, conBotones = true) => `<div class="dup-cand">
+  <div class="dup-dato"><b>${escHtml(c.nombre || '(sin nombre)')}</b>${DUP_MOTIVO[c.motivo] ? `<span class="dup-motivo">${escHtml(DUP_MOTIVO[c.motivo])}</span>` : ''}<br>
+    ${escHtml(c.telefono || '')}${c.telefono_alternativo ? ' · alterno ' + escHtml(c.telefono_alternativo) : ''}<br>
+    ${escHtml(c.vendedora || 'sin vendedora')} · ${escHtml(c.estatus || '')}${c.ciudad ? ' · ' + escHtml(c.ciudad) : ''}${c.fecha ? ' ' + escHtml(fechaCorta(c.fecha)) : ''}
+    ${c.creado_en ? ' · capturado el ' + escHtml(fechaCorta(String(c.creado_en).slice(0, 10))) : ''}</div>
+  ${conBotones ? `<div class="dup-acc"><button type="button" class="btn-primary small" data-dup-elegir="${escapeAttr(c.lead_id)}">Es la misma persona</button>
+    ${c.persona_id !== dup.lead?.personas?.id ? `<button type="button" class="btn-outline small" data-dup-separar="${escapeAttr(c.lead_id)}">No es la misma</button>` : ''}</div>` : ''}
+</div>`;
+function pintarDupPaso1(){
+  const cont = document.getElementById('dupCuerpo');
+  cont.innerHTML = `<div class="modal-notas-titulo">Leads parecidos en el mismo curso</div>
+    <div id="dupLista">${dup.cands.length ? dup.cands.map(c=>htmlDupCand(c)).join('') : '<div class="empty-note">No encontré leads parecidos en su curso.</div>'}</div>
+    <div class="modal-field" style="margin-top:12px;"><label>¿No sale? Búscalo por nombre o teléfono</label>
+      <input id="dupBuscar" placeholder="Nombre o teléfono" autocomplete="off"></div>
+    <div id="dupResultados"></div>`;
+}
+document.getElementById('dupCuerpo').addEventListener('input', e=>{
+  if(e.target.id !== 'dupBuscar') return;
+  clearTimeout(dup.tBuscar);
+  const q = e.target.value.trim();
+  dup.tBuscar = setTimeout(async ()=>{
+    const res = document.getElementById('dupResultados'); if(!res) return;
+    if(q.replace(/\D/g, '').length < 7 && q.length < 3){ res.innerHTML = ''; return; }
+    const { data, error } = await sb.rpc('leads_parecidos', { p_texto:q, p_excluir:dup.lead.id });
+    if(error){ res.innerHTML = `<div class="empty-note">Error: ${escHtml(error.message)}</div>`; return; }
+    const nuevos = (data || []).filter(c=>!dup.cands.some(x=>x.lead_id === c.lead_id));
+    dup.cands.push(...nuevos);
+    res.innerHTML = (data || []).length ? data.map(c=>htmlDupCand(c)).join('') : '<div class="empty-note">Sin resultados (solo salen leads abiertos o inscritas).</div>';
+  }, 350);
+});
+document.getElementById('dupCuerpo').addEventListener('click', async e=>{
+  const sep = e.target.closest('[data-dup-separar]')?.dataset.dupSeparar;
+  if(sep){
+    // No es la misma persona: ya no se sugiere ni la cuenta el vigilante (la misma tabla que "separar" del Historial)
+    const c = dup.cands.find(x=>x.lead_id === sep); const yo = dup.lead.personas?.id;
+    if(!c || !yo) return;
+    const [a, b] = [yo, c.persona_id].sort();
+    const { error } = await sb.from('personas_separadas').insert({ persona_a:a, persona_b:b, creado_por: usuarioActual?.id || null });
+    if(error && !/duplicate|duplicad/i.test(error.message)){ toast('No se pudo: ' + error.message, true); return; }
+    registrarActividad('personas_separadas', `${c.nombre || ''} ≠ ${dup.lead.personas?.nombre || ''}`);
+    dup.cands = dup.cands.filter(x=>x.persona_id !== c.persona_id);
+    toast('Listo: no se volverán a sugerir como la misma persona.');
+    pintarDupPaso1();
+    pintarDuplicadoLead(dup.lead);
+    return;
+  }
+  const eleg = e.target.closest('[data-dup-elegir]')?.dataset.dupElegir;
+  if(eleg){ return elegirDuplicado(eleg); }
+  const op = e.target.closest('[data-dup-op]');
+  if(op && !op.disabled){ const [campo, valor] = op.dataset.dupOp.split(':'); dup[campo] = valor; return pintarDupPaso2(); }
+  if(e.target.closest('#dupVolver')) return pintarDupPaso1();
+  if(e.target.closest('#dupConfirmar')) return confirmarDuplicado();
+});
+
+// Quién se queda por fuerza: la inscrita y la que tiene un pago por confirmar (su dinero no se mueve aquí)
+const dupFijo = clave => ['pagado', 'pago_por_confirmar'].includes(clave);
+async function elegirDuplicado(leadId){
+  const c = dup.cands.find(x=>x.lead_id === leadId); if(!c) return;
+  dup.otro = c;
+  const yo = dup.lead.personas?.id;
+  // ¿Cuántos cursos ha tomado cada persona? La que tiene historial suele ser la buena
+  const ids = [...new Set([yo, c.persona_id].filter(Boolean))];
+  const { data } = await sb.from('inscripciones').select('id, persona_id').in('persona_id', ids);
+  dup.inscs = {}; (data || []).forEach(i=>{ dup.inscs[i.persona_id] = (dup.inscs[i.persona_id] || 0) + 1; });
+  const fEste = dupFijo(claveEstatus(dup.lead.estatus?.id)), fOtro = dupFijo(c.estatus_clave);
+  dup.queda = fOtro && !fEste ? 'otro' : 'este';
+  const kept = dup.queda === 'este' ? yo : c.persona_id;
+  dup.persona = (dup.inscs[c.persona_id] || 0) > (dup.inscs[yo] || 0) ? 'otro' : (dup.inscs[yo] || 0) > (dup.inscs[c.persona_id] || 0) ? 'este' : (kept === yo ? 'este' : 'otro');
+  pintarDupPaso2();
+}
+function pintarDupPaso2(){
+  const L = dup.lead, c = dup.otro, cont = document.getElementById('dupCuerpo');
+  const este = { vend: nombreVendedor(L.asesor_id) || 'sin vendedora', clave: claveEstatus(L.estatus?.id), estatus: L.estatus?.etiqueta || '',
+                 persona: L.personas?.id, tel: L.personas?.telefono_principal || '', alt: L.personas?.telefono_alternativo || '' };
+  const otro = { vend: c.vendedora || 'sin vendedora', clave: c.estatus_clave, estatus: c.estatus || '', persona: c.persona_id, tel: c.telefono || '', alt: c.telefono_alternativo || '' };
+  const fEste = dupFijo(este.clave), fOtro = dupFijo(otro.clave);
+  if(fEste && fOtro){
+    cont.innerHTML = htmlDupCand(c, false) + '<div class="aviso-corregir"><b>No se puede cerrar ninguno aquí:</b> los dos tienen un pago (por confirmar o ya inscrita). Pide ayuda a un administrador.</div>'
+      + '<button type="button" class="btn-outline small" id="dupVolver">Volver</button>';
+    return;
+  }
+  const mismaPersona = este.persona === otro.persona;
+  const queda = dup.queda === 'este' ? este : otro, cierra = dup.queda === 'este' ? otro : este;
+  // La inscrita se queda con sus datos: si el lead que queda es de una inscrita, su persona no cambia
+  const personaFija = dupFijo(queda.clave) ? dup.queda : null;
+  if(personaFija) dup.persona = personaFija;
+  const per = dup.persona === 'este' ? este : otro;
+  const cursos = p => dup.inscs[p] ? ` · ya tomó ${dup.inscs[p]} curso${dup.inscs[p] > 1 ? 's' : ''}` : ' · sin cursos tomados';
+  cont.innerHTML = htmlDupCand(c, false)
+    + `<div class="modal-notas-titulo">¿Cuál lead se queda? (de quién es la venta)</div>
+    <div class="dup-opc">
+      <button type="button" data-dup-op="queda:este" class="${dup.queda === 'este' ? 'active' : ''}" ${fOtro ? 'disabled' : ''}><b>Este lead · ${escHtml(este.vend)}</b>${escHtml(este.estatus)}</button>
+      <button type="button" data-dup-op="queda:otro" class="${dup.queda === 'otro' ? 'active' : ''}" ${fEste ? 'disabled' : ''}><b>El otro · ${escHtml(otro.vend)}</b>${escHtml(otro.estatus)}</button>
+    </div>`
+    + (mismaPersona ? '' : `<div class="modal-notas-titulo">¿Con qué datos de la persona?</div>
+    <div class="dup-opc">
+      <button type="button" data-dup-op="persona:este" class="${dup.persona === 'este' ? 'active' : ''}" ${personaFija === 'otro' ? 'disabled' : ''}><b>${escHtml(este.tel || 'sin teléfono')}</b>${este.alt ? 'alterno ' + escHtml(este.alt) : 'sin alterno'}${cursos(este.persona)}</button>
+      <button type="button" data-dup-op="persona:otro" class="${dup.persona === 'otro' ? 'active' : ''}" ${personaFija === 'este' ? 'disabled' : ''}><b>${escHtml(otro.tel || 'sin teléfono')}</b>${otro.alt ? 'alterno ' + escHtml(otro.alt) : 'sin alterno'}${cursos(otro.persona)}</button>
+    </div>`)
+    + `<div class="dup-resumen">Se cierra el lead de <b>${escHtml(cierra.vend)}</b> como <b>Duplicado</b> (no se borra y deja de contar).
+       Se queda el de <b>${escHtml(queda.vend)}</b>${mismaPersona ? '' : `, con el teléfono <b>${escHtml(per.tel)}</b>; el otro número queda como alterno si no tiene`}.
+       Su historial de contacto pasa al que se queda.</div>
+    <div class="modal-field"><label>Motivo (opcional)</label><input id="dupMotivo" maxlength="300" placeholder="Ej.: la venta es de quien la atendió primero"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button type="button" class="btn-outline small" id="dupVolver" style="flex:1; width:auto;">Volver</button>
+      <button type="button" class="btn-primary small" id="dupConfirmar" style="flex:1; width:auto;">Cerrar el duplicado</button>
+    </div>`;
+}
+async function confirmarDuplicado(){
+  const L = dup.lead, c = dup.otro; if(!L || !c) return;
+  const quedaId = dup.queda === 'este' ? L.id : c.lead_id, cierraId = dup.queda === 'este' ? c.lead_id : L.id;
+  const personaId = dup.persona === 'este' ? L.personas?.id : c.persona_id;
+  const motivo = document.getElementById('dupMotivo')?.value.trim() || null;
+  const btn = document.getElementById('dupConfirmar'); btn.disabled = true; btn.textContent = 'Cerrando…';
+  const { data, error } = await sb.rpc('lead_marcar_duplicado', { p_duplicado: cierraId, p_queda: quedaId, p_persona: personaId, p_motivo: motivo });
+  if(error){ btn.disabled = false; btn.textContent = 'Cerrar el duplicado'; toast('No se pudo: ' + error.message, true); return; }
+  const vendQueda = dup.queda === 'este' ? (nombreVendedor(L.asesor_id) || 'sin vendedora') : (c.vendedora || 'sin vendedora');
+  registrarActividad('lead_duplicado', `${L.personas?.nombre || ''} · se quedó el de ${vendQueda}${motivo ? ' · ' + motivo : ''}`);
+  toast('Listo: el duplicado se cerró' + (data?.telefono_agregado ? ' y su otro teléfono quedó como alterno.' : '.'));
+  document.getElementById('modalDuplicado').classList.remove('open');
+  document.getElementById('modalLead').classList.remove('open');
+  leadsCache = await cargarLeads();
+  if(document.getElementById('view-board')?.classList.contains('active')) pintarBoard();
+  await abrirLeadPorId(quedaId);
+}
 
 /* =========================================================
    FICHA ÚNICA — la ficha del lead y la de la inscrita comparten encabezado y pestañas:
@@ -8265,6 +8525,21 @@ document.getElementById('guardarNuevoLead').addEventListener('click', async ()=>
            + 'Si es un pago o un cambio de ese curso, hazlo en su ficha. ¿Crear el lead de todos modos?',
       textoSi: 'Crear de todos modos' });
     if(ok === null) return;
+  }
+  // ¿Ya hay alguien parecido en este curso? (14 nov 2026: mismo nombre o teléfono con un dígito distinto;
+  // el mismo número exacto lo detiene abajo "Este número ya es lead"). La misma regla que el vigilante.
+  if(eventoId){
+    const { data: parec } = await sb.rpc('leads_parecidos', { p_nombre: nombre, p_tel: telefono, p_alt: telAlt || null, p_evento: eventoId });
+    const otros = (parec || []).filter(c=>String(c.telefono || '').replace(/\D/g, '').slice(-10) !== telefono.slice(-10));
+    if(otros.length){
+      const ok = await preguntarConfirmacion({ titulo:'¿Ya es lead en este curso?', textoSi:'Es otra persona: crear el lead',
+        aviso: 'En este curso ya hay ' + (otros.length === 1 ? 'un lead parecido' : 'leads parecidos') + ':<br>'
+          + otros.slice(0, 3).map(c=>`<div class="dup-cand"><div class="dup-dato"><b>${escHtml(c.nombre || '')}</b><span class="dup-motivo">${escHtml(DUP_MOTIVO[c.motivo] || '')}</span><br>`
+            + `${escHtml(c.telefono || '')} · ${escHtml(c.vendedora || 'sin vendedora')} · ${escHtml(c.estatus || '')}</div>`
+            + `<div class="dup-acc"><button type="button" class="btn-outline small" data-abrir-parecido="${escapeAttr(c.lead_id)}">Abrir su lead</button></div></div>`).join('')
+          + 'Si es la misma persona, no crees otro: ábrelo y trabájalo ahí.' });
+      if(ok === null) return;
+    }
   }
 
   const btn = document.getElementById('guardarNuevoLead'); btn.disabled = true; btn.textContent = 'Creando...';
@@ -18317,7 +18592,7 @@ async function copiarTicket(p){
    base (hub_novedades) y queda quién la leyó y cuántos errores tuvo (hub_novedades_leidas).
    ========================================================= */
 // Versión de este código. Si la actualización es más nueva, al terminar se recarga para traer la versión nueva.
-const HUB_VERSION = '2026-11-11-pasar-a-linea';
+const HUB_VERSION = '2026-11-14-lead-duplicado';
 const nov = { actual:null, paso:1, errores:0, bien:{}, malas:{}, leyo:false, ultimaTecla:0, intervalo:null, reintento:null, vista:false };
 document.addEventListener('keydown', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);
 document.addEventListener('input', e=>{ if(!e.target.closest?.('#novedadOverlay')) nov.ultimaTecla = Date.now(); }, true);

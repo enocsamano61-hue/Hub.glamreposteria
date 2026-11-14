@@ -402,5 +402,50 @@ begin
     else mal := mal || 'H18 al regresarla no volvió a su curso con lo pagado'::text; end if;
   end;
   rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H18 vigilante: ' || rojos); end if;
+  /* H19 (14 nov 2026) Lead duplicado: la misma persona capturada dos veces en un curso con cambio de fecha (dos registros,
+     teléfono con un dígito distinto). El vigilante y leads_parecidos la ven; "Es un duplicado" cierra uno sin borrar nada:
+     el que queda pasa a la persona elegida, el Embudo y la lista del cambio de fecha la cuentan una vez, su historial pasa,
+     su otro teléfono queda como alterno; la inscrita no se puede cerrar como duplicado; un administrador lo regresa. */
+  declare v_pa uuid; v_pb uuid; v_la uuid; v_lb uuid; v_r jsonb; v_err text;
+  begin
+    insert into public.personas (nombre, telefono_principal) values ('HISTORIA DIECINUEVE', '5500001901') returning id into v_pa;
+    insert into public.personas (nombre, telefono_principal, telefono_alternativo) values ('HISTORIA DIECINUEVE', '5500001971', '5500001999') returning id into v_pb;
+    insert into public.leads (persona_id, evento_id, estatus_id, asesor_id, ciudad_interes_id)
+    values (v_pa, ea, st_novence, v_vend, (select ciudad_id from public.eventos where id = ea)) returning id into v_la;
+    insert into public.leads (persona_id, evento_id, estatus_id, asesor_id, ciudad_interes_id)
+    values (v_pb, ea, st_novence, v_yo, (select ciudad_id from public.eventos where id = ea)) returning id into v_lb;
+    insert into public.interacciones (persona_id, lead_id, asesor_id, canal, nota) values (v_pa, v_la, v_vend, 'otro', 'HISTORIA: primer contacto');
+    if pg_temp.lista(ea, v_pa) like 'lead:%' and pg_temp.lista(ea, v_pb) like 'lead:%' then ok := ok + 1;
+    else mal := mal || ('H19 antes: los dos en la lista del cambio · ' || pg_temp.lista(ea, v_pa) || ' / ' || pg_temp.lista(ea, v_pb)); end if;
+    if exists (select 1 from jsonb_array_elements(public.vigilante_calcular()) x, jsonb_array_elements(x -> 'casos') c
+                where x ->> 'regla' = 'posible_lead_duplicado' and (c ->> 'lead_id')::uuid in (v_la, v_lb))
+       and exists (select 1 from public.leads_parecidos(p_nombre => 'HISTORIA DIECINUEVE', p_tel => '5500001901', p_evento => ea, p_persona => v_pa, p_excluir => v_la) x
+                    where x.lead_id = v_lb and x.motivo = 'mismo_nombre') then ok := ok + 1;
+    else mal := mal || 'H19 el vigilante o leads_parecidos no ven el duplicado'::text; end if;
+    v_r := public.lead_marcar_duplicado(v_la, v_lb, v_pa, 'Historia: la venta es de la otra');
+    if (select s.clave = 'duplicado' and l.duplicado_de = v_lb from public.leads l join public.estatus s on s.id = l.estatus_id where l.id = v_la)
+       and (select persona_id = v_pa from public.leads where id = v_lb)
+       and (select telefono_alternativo = '5500001999' from public.personas where id = v_pa)
+       and exists (select 1 from public.interacciones where lead_id = v_lb and nota = 'HISTORIA: primer contacto') then ok := ok + 1;
+    else mal := mal || ('H19 al marcar el duplicado no quedó como se esperaba: ' || v_r::text); end if;
+    t := pg_temp.grupos(ea, v_pa) || ' / ' || pg_temp.grupos(ea, v_pb);
+    if t ~ '^[a-z_]+\(l\) / -$' then ok := ok + 1; else mal := mal || ('H19 Embudo después: ' || t); end if;
+    t := pg_temp.lista(ea, v_pa) || ' / ' || pg_temp.lista(ea, v_pb);
+    if t ~ '^lead:[a-z_]+:[a-z_]+ / -$' then ok := ok + 1; else mal := mal || ('H19 lista del cambio después: ' || t); end if;
+    if not exists (select 1 from jsonb_array_elements(public.vigilante_calcular()) x, jsonb_array_elements(x -> 'casos') c
+                    where x ->> 'regla' = 'posible_lead_duplicado' and (c ->> 'lead_id')::uuid in (v_la, v_lb)) then ok := ok + 1;
+    else mal := mal || 'H19 el vigilante sigue viendo el duplicado ya cerrado'::text; end if;
+    rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H19 vigilante (cerrado): ' || rojos); end if;
+    -- La inscrita no se cierra como duplicado
+    update public.leads set estatus_id = st_pagado where id = v_lb;
+    v_err := null;
+    begin perform public.lead_marcar_duplicado(v_lb, v_la); exception when others then v_err := sqlerrm; end;
+    if v_err is not null then ok := ok + 1; else mal := mal || 'H19 dejó cerrar como duplicado el lead de una inscrita'::text; end if;
+    update public.leads set estatus_id = st_novence where id = v_lb;
+    perform public.lead_quitar_duplicado(v_la, 'Historia: eran dos');
+    if (select estatus_id = st_novence and duplicado_de is null from public.leads where id = v_la) then ok := ok + 1;
+    else mal := mal || 'H19 al quitar la marca no volvió a su estatus'::text; end if;
+  end;
+  rojos := pg_temp.rojos(); if rojos = '' then ok := ok + 1; else mal := mal || ('H19 vigilante: ' || rojos); end if;
   raise exception 'HISTORIAS fallas=% bien=% | %', coalesce(array_length(mal, 1), 0), ok, array_to_string(mal, ' || ');
 end $historias$;
